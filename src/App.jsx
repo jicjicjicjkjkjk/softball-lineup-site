@@ -187,7 +187,43 @@ export default function App() {
                 <tr key={inningRow.inning}>
                   <td>{inningRow.inning}</td>
                   {positions.map((pos) => (
-                    <td key={pos}>{inningRow.positions[pos] || ''}</td>
+                    <td key={pos}>
+  <select
+    value={inningRow.positions[pos] || ''}
+    onChange={(e) => {
+      const newName = e.target.value
+
+      setSavedGames((current) => {
+        const updated = { ...current }
+        const gameCopy = { ...updated[gameNumber] }
+
+        const newAssignments = gameCopy.assignments.map((row) => {
+          if (row.inning !== inningRow.inning) return row
+
+          return {
+            ...row,
+            positions: {
+              ...row.positions,
+              [pos]: newName,
+            },
+          }
+        })
+
+        gameCopy.assignments = newAssignments
+        updated[gameNumber] = gameCopy
+
+        return updated
+      })
+    }}
+  >
+    <option value="">--</option>
+    {players.map((p) => (
+      <option key={p.name} value={p.name}>
+        {p.name}
+      </option>
+    ))}
+  </select>
+</td>
                   ))}
                   <td>{inningRow.sit.join(', ')}</td>
                 </tr>
