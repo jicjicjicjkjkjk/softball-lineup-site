@@ -231,6 +231,30 @@ export default function App() {
             </tbody>
           </table>
 
+          <button
+  className="no-print"
+  onClick={() => {
+    setSavedGames((current) => {
+      const updated = { ...current }
+      const game = updated[gameNumber]
+
+      const newSitCounts = {}
+
+      game.assignments.forEach((inning) => {
+        inning.sit.forEach((name) => {
+          newSitCounts[name] = (newSitCounts[name] || 0) + 1
+        })
+      })
+
+      game.sitCounts = newSitCounts
+      updated[gameNumber] = game
+
+      return updated
+    })
+  }}
+>
+  Recalculate Sit-Outs
+</button>
           <h3>Sit-Out Summary</h3>
           <table>
             <thead>
