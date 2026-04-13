@@ -67,8 +67,7 @@ function buildSimpleLineup(availablePlayers, innings, pitcher, catcher) {
 
     for (const pos of remainingPositions) {
       const rankedNames = initialDepth[pos] || []
-      const selected =
-        pool.find((p) => rankedNames.includes(p.name)) || pool[0]
+      const selected = pool.find((p) => rankedNames.includes(p.name)) || pool[0]
 
       if (selected) {
         inningAssignments.positions[pos] = selected.name
@@ -91,18 +90,59 @@ function requiredSitOuts(playerCount, innings) {
   return Math.max(0, playerCount - 9) * innings
 }
 
+function createBlankGame(id) {
+  return {
+    id,
+    date: '',
+    opponent: '',
+    innings: 6,
+    status: 'Planned',
+    lineup: null,
+  }
+}
+
+function recalculateSitCounts(assignments) {
+  const sitCounts = {}
+
+  assignments.forEach((inning) => {
+    ;(inning.sit || []).forEach((name) => {
+      sitCounts[name] = (sitCounts[name] || 0) + 1
+    })
+  })
+
+  return sitCounts
+}
+
 export default function App() {
   const [page, setPage] = useState('optimizer')
+  const [selectedGameId, setSelectedGameId] = useState(null)
+
+  const [games, setGames] = useState([
+    {
+      id: 1,
+      date: '2026-04-15',
+      opponent: 'Wildcats',
+      innings: 6,
+      status: 'Planned',
+      lineup: null,
+    },
+    {
+      id: 2,
+      date: '2026-04-17',
+      opponent: 'Tigers',
+      innings: 6,
+      status: 'Planned',
+      lineup: null,
+    },
+  ])
+
   const [innings, setInnings] = useState(6)
   const [selectedPlayers, setSelectedPlayers] = useState(players.map((p) => p.name))
   const [pitcher, setPitcher] = useState('Emily')
   const [catcher, setCatcher] = useState('Lucie')
-  const [savedGames, setSavedGames] = useState({
-    1: null,
-    2: null,
-    3: null,
-    4: null,
-  })
+  const [newGameDate, setNewGameDate] = useState('')
+  const [newGameOpponent, setNewGameOpponent] = useState('')
+  const [newGameInnings, setNewGameInnings] = useState(6)
 
   const availablePlayers = players.filter((p) => selectedPlayers.includes(p.name))
 
@@ -120,20 +160,151 @@ export default function App() {
     )
   }
 
-  function saveToGame(gameNumber) {
-    setSavedGames((current) => ({
-      ...current,
-      [gameNumber]: {
-        innings,
-        pitcher,
-        catcher,
-        availablePlayers: availablePlayers.map((p) => p.name),
-        assignments: optimized.assignments,
-        sitCounts: optimized.sitCounts,
-      },
-    }))
-    setPage(`game${gameNumber}`)
+  function addGame() {
+    const nextId = games.length ? Math.max(...games.map((g) => g.id)) + 1 : 1
+
+    const game = {
+      id: nextId,
+      date: newGameDate,
+      opponent: newGameOpponent,
+      innings: Number(newGameInnings),
+      status: 'Planned',
+      lineup: null,
+    }
+
+    setGames((current) => [...current, game])
+    setNewGameDate('')
+    setNewGameOpponent('')
+    setNewGameInnings(6)
   }
+
+  function updateGameField(gameId, field, value) {
+    setGames((current) =>
+      current.map((game) =>
+        game.id === gameId
+          ? {
+              ...game,
+              [field]: value,
+            }
+          : game
+      )
+    )
+  }
+
+  function saveToGame(gameId) {
+    setGames((current) =>
+      current.map((game) =>
+        game.id === gameId
+          ? {
+              ...game,
+              innings,
+              lineup: {
+                innings,
+                pitcher,
+                catcher,
+                availablePlayers: availablePlayers.map((p) => p.name),
+                assignments: optimized.assignments,
+                sitCounts: optimized.sitCounts,
+              },
+            }
+          : game
+      )
+    )
+
+    setSelectedGameId(gameId)
+    setPage('game-detail')
+  }
+
+  function clearLineup(gameId) {
+    setGames((current) =>
+      current.map((game) =>
+        game.id === gameId
+          ? {
+              ...game,
+              lineup: null,
+            }
+          : game
+      )
+    )
+  }
+
+  function cancelGame(gameId) {
+    setGames((current) =>
+      current.map((game) =>
+        game.id === gameId
+          ? {
+              ...game,
+              status: 'Cancelled',
+              lineup: null,
+            }
+          : game
+      )
+    )
+  }
+
+  function reopenGame(gameId) {
+    setGames((current) =>
+      current.map((game) =>
+        game.id === gameId
+          ? {
+              ...game,
+              status: 'Planned',
+            }
+          : game
+      )
+    )
+  }
+
+  function openGame(gameId) {
+    setSelectedGameId(gameId)
+    setPage('game-detail')
+  }
+
+  function updateGameAssignment(gameId, inningNumber, position, newPlayer) {
+    setGames((current) =>
+      current.map((game) => {
+        if (game.id !== gameId || !game.lineup) return game
+
+        const newAssignments = game.lineup.assignments.map((row) => {
+          if (row.inning !== inningNumber) return row
+
+          return {
+            ...row,
+            positions: {
+              ...row.positions,
+              [position]: newPlayer,
+            },
+          }
+        })
+
+        return {
+          ...game,
+          lineup: {
+            ...game.lineup,
+            assignments: newAssignments,
+          },
+        }
+      })
+    )
+  }
+
+  function recalculateGameSitOuts(gameId) {
+    setGames((current) =>
+      current.map((game) => {
+        if (game.id !== gameId || !game.lineup) return game
+
+        return {
+          ...game,
+          lineup: {
+            ...game.lineup,
+            sitCounts: recalculateSitCounts(game.lineup.assignments),
+          },
+        }
+      })
+    )
+  }
+
+  const selectedGame = games.find((g) => g.id === selectedGameId) || null
 
   function renderNavButton(key, label) {
     return (
@@ -143,137 +314,6 @@ export default function App() {
       >
         {label}
       </button>
-    )
-  }
-
-  function renderGamePage(gameNumber) {
-    const game = savedGames[gameNumber]
-
-    if (!game) {
-      return (
-        <div className="card">
-          <h2>Game {gameNumber}</h2>
-          <p>No lineup saved yet. Go to Optimizer and save one here.</p>
-        </div>
-      )
-    }
-
-    return (
-      <div className="stack">
-        <div className="card no-print">
-          <div className="row-between">
-            <h2>Game {gameNumber}</h2>
-            <button onClick={() => window.print()}>Print Lineup</button>
-          </div>
-          <p>
-            Pitcher: <strong>{game.pitcher}</strong> | Catcher: <strong>{game.catcher}</strong> | Players Available: <strong>{game.availablePlayers.length}</strong>
-          </p>
-        </div>
-
-        <div className="card print-card">
-          <h2>Thunder Lineup - Game {gameNumber}</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Inning</th>
-                {positions.map((pos) => (
-                  <th key={pos}>{pos}</th>
-                ))}
-                <th>Sit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {game.assignments.map((inningRow) => (
-                <tr key={inningRow.inning}>
-                  <td>{inningRow.inning}</td>
-                  {positions.map((pos) => (
-                    <td key={pos}>
-  <select
-    value={inningRow.positions[pos] || ''}
-    onChange={(e) => {
-      const newName = e.target.value
-
-      setSavedGames((current) => {
-        const updated = { ...current }
-        const gameCopy = { ...updated[gameNumber] }
-
-        const newAssignments = gameCopy.assignments.map((row) => {
-          if (row.inning !== inningRow.inning) return row
-
-          return {
-            ...row,
-            positions: {
-              ...row.positions,
-              [pos]: newName,
-            },
-          }
-        })
-
-        gameCopy.assignments = newAssignments
-        updated[gameNumber] = gameCopy
-
-        return updated
-      })
-    }}
-  >
-    <option value="">--</option>
-    {players.map((p) => (
-      <option key={p.name} value={p.name}>
-        {p.name}
-      </option>
-    ))}
-  </select>
-</td>
-                  ))}
-                  <td>{inningRow.sit.join(', ')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <button
-  className="no-print"
-  onClick={() => {
-    setSavedGames((current) => {
-      const updated = { ...current }
-      const game = updated[gameNumber]
-
-      const newSitCounts = {}
-
-      game.assignments.forEach((inning) => {
-        inning.sit.forEach((name) => {
-          newSitCounts[name] = (newSitCounts[name] || 0) + 1
-        })
-      })
-
-      game.sitCounts = newSitCounts
-      updated[gameNumber] = game
-
-      return updated
-    })
-  }}
->
-  Recalculate Sit-Outs
-</button>
-          <h3>Sit-Out Summary</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Sit Outs</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(game.sitCounts).map(([name, count]) => (
-                <tr key={name}>
-                  <td>{name}</td>
-                  <td>{count}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     )
   }
 
@@ -379,24 +419,34 @@ export default function App() {
   }
 
   function renderTrackingPage() {
-    const seasonRows = players.map((player) => ({
-      name: player.name,
-      sitOuts: optimized.sitCounts[player.name] || 0,
-      battingOrderAvg: '-',
-      positionsPlayed: '-',
-    }))
+    const seasonRows = players.map((player) => {
+      let sitOuts = 0
+
+      games.forEach((game) => {
+        if (game.status === 'Cancelled') return
+        if (!game.lineup) return
+        sitOuts += game.lineup.sitCounts?.[player.name] || 0
+      })
+
+      return {
+        name: player.name,
+        sitOuts,
+        battingOrderAvg: '-',
+        positionsPlayed: '-',
+      }
+    })
 
     return (
       <div className="card">
         <h2>Tracking</h2>
         <p>
-          Required sit-out innings for current setup: <strong>{sitRequired}</strong>
+          This page now rolls up saved games instead of fixed Game 1 / Game 2 tabs.
         </p>
         <table>
           <thead>
             <tr>
               <th>Player</th>
-              <th>Sit Outs</th>
+              <th>Total Sit Outs</th>
               <th>Batting Order</th>
               <th>Positions Played</th>
             </tr>
@@ -416,12 +466,246 @@ export default function App() {
     )
   }
 
+  function renderGamesPage() {
+    return (
+      <div className="stack">
+        <div className="card">
+          <h2>Games</h2>
+          <div className="grid four-col">
+            <div>
+              <label>Date</label>
+              <input
+                type="date"
+                value={newGameDate}
+                onChange={(e) => setNewGameDate(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label>Opponent</label>
+              <input
+                type="text"
+                value={newGameOpponent}
+                onChange={(e) => setNewGameOpponent(e.target.value)}
+                placeholder="Opponent name"
+              />
+            </div>
+
+            <div>
+              <label>Innings</label>
+              <select
+                value={newGameInnings}
+                onChange={(e) => setNewGameInnings(Number(e.target.value))}
+              >
+                <option value={6}>6</option>
+                <option value={7}>7</option>
+              </select>
+            </div>
+
+            <div className="align-end">
+              <button onClick={addGame}>Add Game</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Opponent</th>
+                <th>Innings</th>
+                <th>Status</th>
+                <th>Lineup</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {games.map((game) => (
+                <tr key={game.id}>
+                  <td>
+                    <input
+                      type="date"
+                      value={game.date}
+                      onChange={(e) => updateGameField(game.id, 'date', e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      value={game.opponent}
+                      onChange={(e) => updateGameField(game.id, 'opponent', e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <select
+                      value={game.innings}
+                      onChange={(e) => updateGameField(game.id, 'innings', Number(e.target.value))}
+                    >
+                      <option value={6}>6</option>
+                      <option value={7}>7</option>
+                    </select>
+                  </td>
+                  <td>{game.status}</td>
+                  <td>{game.lineup ? 'Saved' : 'Empty'}</td>
+                  <td>
+                    <div className="button-row">
+                      <button onClick={() => openGame(game.id)}>Go to Game</button>
+                      <button onClick={() => clearLineup(game.id)}>Clear Lineup</button>
+                      {game.status === 'Cancelled' ? (
+                        <button onClick={() => reopenGame(game.id)}>Reopen</button>
+                      ) : (
+                        <button onClick={() => cancelGame(game.id)}>Cancel Game</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!games.length && (
+                <tr>
+                  <td colSpan="6">No games created yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+  function renderGameDetailPage() {
+    if (!selectedGame) {
+      return (
+        <div className="card">
+          <h2>Game Detail</h2>
+          <p>Select a game from the Games page.</p>
+        </div>
+      )
+    }
+
+    if (!selectedGame.lineup) {
+      return (
+        <div className="stack">
+          <div className="card">
+            <div className="row-between">
+              <div>
+                <h2>
+                  {selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
+                </h2>
+                <p>
+                  Status: <strong>{selectedGame.status}</strong> | Innings:{' '}
+                  <strong>{selectedGame.innings}</strong>
+                </p>
+              </div>
+              <button className="no-print" onClick={() => setPage('games')}>
+                Back to Games
+              </button>
+            </div>
+            <p>No lineup saved yet. Use the Optimizer and save into this game.</p>
+          </div>
+        </div>
+      )
+    }
+
+    const game = selectedGame
+
+    return (
+      <div className="stack">
+        <div className="card no-print">
+          <div className="row-between">
+            <div>
+              <h2>
+                {game.date || 'No Date'} vs {game.opponent || 'Opponent'}
+              </h2>
+              <p>
+                Status: <strong>{game.status}</strong> | Innings: <strong>{game.innings}</strong>
+              </p>
+              <p>
+                Pitcher: <strong>{game.lineup.pitcher}</strong> | Catcher:{' '}
+                <strong>{game.lineup.catcher}</strong> | Players Available:{' '}
+                <strong>{game.lineup.availablePlayers.length}</strong>
+              </p>
+            </div>
+
+            <div className="button-row">
+              <button onClick={() => setPage('games')}>Back to Games</button>
+              <button onClick={() => recalculateGameSitOuts(game.id)}>Recalculate Sit-Outs</button>
+              <button onClick={() => window.print()}>Print Lineup</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="card print-card">
+          <h2>
+            Thunder Lineup - {game.date || 'No Date'} vs {game.opponent || 'Opponent'}
+          </h2>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Inning</th>
+                {positions.map((pos) => (
+                  <th key={pos}>{pos}</th>
+                ))}
+                <th>Sit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {game.lineup.assignments.map((inningRow) => (
+                <tr key={inningRow.inning}>
+                  <td>{inningRow.inning}</td>
+                  {positions.map((pos) => (
+                    <td key={pos}>
+                      <select
+                        value={inningRow.positions[pos] || ''}
+                        onChange={(e) =>
+                          updateGameAssignment(game.id, inningRow.inning, pos, e.target.value)
+                        }
+                      >
+                        <option value="">--</option>
+                        {players.map((p) => (
+                          <option key={p.name} value={p.name}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  ))}
+                  <td>{inningRow.sit.join(', ')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <h3>Sit-Out Summary</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Sit Outs</th>
+              </tr>
+            </thead>
+            <tbody>
+              {players.map((player) => (
+                <tr key={player.name}>
+                  <td>{player.name}</td>
+                  <td>{game.lineup.sitCounts?.[player.name] || 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
   function renderOptimizerPage() {
     return (
       <div className="stack">
         <div className="card">
           <h2>Optimizer</h2>
-          <div className="grid three-col">
+
+          <div className="grid four-col">
             <div>
               <label>Innings</label>
               <select value={innings} onChange={(e) => setInnings(Number(e.target.value))}>
@@ -451,6 +735,23 @@ export default function App() {
                 ))}
               </select>
             </div>
+
+            <div>
+              <label>Save Into Game</label>
+              <select
+                value={selectedGameId || ''}
+                onChange={(e) => setSelectedGameId(Number(e.target.value))}
+              >
+                <option value="">Select game</option>
+                {games
+                  .filter((game) => game.status !== 'Cancelled')
+                  .map((game) => (
+                    <option key={game.id} value={game.id}>
+                      {game.date || 'No Date'} vs {game.opponent || `Game ${game.id}`}
+                    </option>
+                  ))}
+              </select>
+            </div>
           </div>
 
           <h3>Available Players</h3>
@@ -468,14 +769,19 @@ export default function App() {
           </div>
 
           <p>
-            Players available: <strong>{availablePlayers.length}</strong> | Required sit-out innings: <strong>{sitRequired}</strong>
+            Players available: <strong>{availablePlayers.length}</strong> | Required sit-out innings:{' '}
+            <strong>{sitRequired}</strong>
           </p>
 
           <div className="button-row">
-            <button onClick={() => saveToGame(1)}>Save to Game 1</button>
-            <button onClick={() => saveToGame(2)}>Save to Game 2</button>
-            <button onClick={() => saveToGame(3)}>Save to Game 3</button>
-            <button onClick={() => saveToGame(4)}>Save to Game 4</button>
+            <button
+              onClick={() => {
+                if (selectedGameId) saveToGame(selectedGameId)
+              }}
+            >
+              Save to Selected Game
+            </button>
+            <button onClick={() => setPage('games')}>Go to Games Page</button>
           </div>
         </div>
 
@@ -516,11 +822,9 @@ export default function App() {
           {renderNavButton('players', 'Players')}
           {renderNavButton('attendance', 'Attendance')}
           {renderNavButton('depth', 'Depth Chart')}
+          {renderNavButton('games', 'Games')}
           {renderNavButton('optimizer', 'Optimizer')}
-          {renderNavButton('game1', 'Game 1')}
-          {renderNavButton('game2', 'Game 2')}
-          {renderNavButton('game3', 'Game 3')}
-          {renderNavButton('game4', 'Game 4')}
+          {renderNavButton('game-detail', 'Game Detail')}
           {renderNavButton('tracking', 'Tracking')}
         </div>
       </aside>
@@ -529,11 +833,9 @@ export default function App() {
         {page === 'players' && renderPlayersPage()}
         {page === 'attendance' && renderAttendancePage()}
         {page === 'depth' && renderDepthChartPage()}
+        {page === 'games' && renderGamesPage()}
         {page === 'optimizer' && renderOptimizerPage()}
-        {page === 'game1' && renderGamePage(1)}
-        {page === 'game2' && renderGamePage(2)}
-        {page === 'game3' && renderGamePage(3)}
-        {page === 'game4' && renderGamePage(4)}
+        {page === 'game-detail' && renderGameDetailPage()}
         {page === 'tracking' && renderTrackingPage()}
       </main>
     </div>
