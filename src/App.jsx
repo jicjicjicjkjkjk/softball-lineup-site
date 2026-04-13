@@ -1,4 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { supabase } from './lib/supabase'
+
+const TEAM_ID = "f76ea5a1-7c44-4789-bfbd-9771edd54f10"
 
 const players = [
   { id: 1, name: 'Alanna' },
@@ -90,17 +93,6 @@ function requiredSitOuts(playerCount, innings) {
   return Math.max(0, playerCount - 9) * innings
 }
 
-function createBlankGame(id) {
-  return {
-    id,
-    date: '',
-    opponent: '',
-    innings: 6,
-    status: 'Planned',
-    lineup: null,
-  }
-}
-
 function recalculateSitCounts(assignments) {
   const sitCounts = {}
 
@@ -113,28 +105,24 @@ function recalculateSitCounts(assignments) {
   return sitCounts
 }
 
+function mapDbGame(row) {
+  return {
+    id: row.id,
+    date: row.game_date || '',
+    opponent: row.opponent || '',
+    innings: row.innings || 6,
+    status: row.status || 'Planned',
+    notes: row.notes || '',
+    lineup: null,
+  }
+}
+
 export default function App() {
   const [page, setPage] = useState('optimizer')
   const [selectedGameId, setSelectedGameId] = useState(null)
-
-  const [games, setGames] = useState([
-    {
-      id: 1,
-      date: '2026-04-15',
-      opponent: 'Wildcats',
-      innings: 6,
-      status: 'Planned',
-      lineup: null,
-    },
-    {
-      id: 2,
-      date: '2026-04-17',
-      opponent: 'Tigers',
-      innings: 6,
-      status: 'Planned',
-      lineup: null,
-    },
-  ])
+  const [games, setGames] = useState([])
+  const [gamesLoading, setGamesLoading] = useState(true)
+  const [gamesError, setGamesError] = useState('')
 
   const [innings, setInnings] = useState(6)
   const [selectedPlayers, setSelectedPlayers] = useState(players.map((p) => p.name))
@@ -152,6 +140,30 @@ export default function App() {
 
   const sitRequired = requiredSitOuts(availablePlayers.length, innings)
 
+  useEffect(() => {
+    loadGames()
+  }, [])
+
+  async function loadGames() {
+    setGamesLoading(true)
+    setGamesError('')
+
+    const { data, error } = await supabase
+      .from('games')
+      .select('*')
+      .eq('team_id', TEAM_ID)
+      .order('game_date', { ascending: true, nullsFirst: false })
+
+    if (error) {
+      setGamesError(error.message)
+      setGamesLoading(false)
+      return
+    }
+
+    setGames((data || []).map(mapDbGame))
+    setGamesLoading(false)
+  }
+
   function togglePlayer(name) {
     setSelectedPlayers((current) =>
       current.includes(name)
@@ -160,25 +172,35 @@ export default function App() {
     )
   }
 
-  function addGame() {
-    const nextId = games.length ? Math.max(...games.map((g) => g.id)) + 1 : 1
+  async function addGame() {
+    setGamesError('')
 
-    const game = {
-      id: nextId,
-      date: newGameDate,
-      opponent: newGameOpponent,
+    const payload = {
+      team_id: TEAM_ID,
+      game_date: newGameDate || null,
+      opponent: newGameOpponent || null,
       innings: Number(newGameInnings),
       status: 'Planned',
-      lineup: null,
     }
 
-    setGames((current) => [...current, game])
+    const { data, error } = await supabase
+      .from('games')
+      .insert(payload)
+      .select()
+      .single()
+
+    if (error) {
+      setGamesError(error.message)
+      return
+    }
+
+    setGames((current) => [...current, mapDbGame(data)])
     setNewGameDate('')
     setNewGameOpponent('')
     setNewGameInnings(6)
   }
 
-  function updateGameField(gameId, field, value) {
+  async function updateGameField(gameId, field, value) {
     setGames((current) =>
       current.map((game) =>
         game.id === gameId
@@ -189,6 +211,22 @@ export default function App() {
           : game
       )
     )
+
+    const updates = {}
+
+    if (field === 'date') updates.game_date = value || null
+    if (field === 'opponent') updates.opponent = value || null
+    if (field === 'innings') updates.innings = Number(value)
+    if (field === 'status') updates.status = value
+
+    const { error } = await supabase
+      .from('games')
+      .update(updates)
+      .eq('id', gameId)
+
+    if (error) {
+      setGamesError(error.message)
+    }
   }
 
   function saveToGame(gameId) {
@@ -228,7 +266,7 @@ export default function App() {
     )
   }
 
-  function cancelGame(gameId) {
+  async function cancelGame(gameId) {
     setGames((current) =>
       current.map((game) =>
         game.id === gameId
@@ -240,9 +278,18 @@ export default function App() {
           : game
       )
     )
+
+    const { error } = await supabase
+      .from('games')
+      .update({ status: 'Cancelled' })
+      .eq('id', gameId)
+
+    if (error) {
+      setGamesError(error.message)
+    }
   }
 
-  function reopenGame(gameId) {
+  async function reopenGame(gameId) {
     setGames((current) =>
       current.map((game) =>
         game.id === gameId
@@ -253,6 +300,15 @@ export default function App() {
           : game
       )
     )
+
+    const { error } = await supabase
+      .from('games')
+      .update({ status: 'Planned' })
+      .eq('id', gameId)
+
+    if (error) {
+      setGamesError(error.message)
+    }
   }
 
   function openGame(gameId) {
@@ -439,9 +495,7 @@ export default function App() {
     return (
       <div className="card">
         <h2>Tracking</h2>
-        <p>
-          This page now rolls up saved games instead of fixed Game 1 / Game 2 tabs.
-        </p>
+        <p>This page rolls up saved games and local lineups.</p>
         <table>
           <thead>
             <tr>
@@ -470,7 +524,14 @@ export default function App() {
     return (
       <div className="stack">
         <div className="card">
-          <h2>Games</h2>
+          <div className="row-between">
+            <h2>Games</h2>
+            <button onClick={loadGames}>Reload from Database</button>
+          </div>
+
+          {gamesError && <p className="error-text">Error: {gamesError}</p>}
+          {gamesLoading && <p>Loading games...</p>}
+
           <div className="grid four-col">
             <div>
               <label>Date</label>
@@ -547,7 +608,7 @@ export default function App() {
                     </select>
                   </td>
                   <td>{game.status}</td>
-                  <td>{game.lineup ? 'Saved' : 'Empty'}</td>
+                  <td>{game.lineup ? 'Local Only' : 'Empty'}</td>
                   <td>
                     <div className="button-row">
                       <button onClick={() => openGame(game.id)}>Go to Game</button>
@@ -561,9 +622,9 @@ export default function App() {
                   </td>
                 </tr>
               ))}
-              {!games.length && (
+              {!games.length && !gamesLoading && (
                 <tr>
-                  <td colSpan="6">No games created yet.</td>
+                  <td colSpan="6">No games found for this team yet.</td>
                 </tr>
               )}
             </tbody>
@@ -740,14 +801,14 @@ export default function App() {
               <label>Save Into Game</label>
               <select
                 value={selectedGameId || ''}
-                onChange={(e) => setSelectedGameId(Number(e.target.value))}
+                onChange={(e) => setSelectedGameId(e.target.value)}
               >
                 <option value="">Select game</option>
                 {games
                   .filter((game) => game.status !== 'Cancelled')
                   .map((game) => (
                     <option key={game.id} value={game.id}>
-                      {game.date || 'No Date'} vs {game.opponent || `Game ${game.id}`}
+                      {game.date || 'No Date'} vs {game.opponent || 'Opponent'}
                     </option>
                   ))}
               </select>
