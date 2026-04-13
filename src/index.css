@@ -38,6 +38,15 @@ label {
   font-weight: 600;
 }
 
+input,
+select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -113,8 +122,8 @@ th {
   grid-template-columns: 1fr 1fr;
 }
 
-.three-col {
-  grid-template-columns: repeat(3, 1fr);
+.four-col {
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .checkbox-grid {
@@ -133,6 +142,7 @@ th {
 
 .checkbox-item input {
   margin: 0;
+  width: auto;
 }
 
 .button-row {
@@ -148,18 +158,23 @@ th {
   gap: 12px;
 }
 
+.align-end {
+  display: flex;
+  align-items: flex-end;
+}
+
 .print-card h2,
 .print-card h3 {
   margin-top: 0;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .app-shell {
     grid-template-columns: 1fr;
   }
 
   .two-col,
-  .three-col,
+  .four-col,
   .checkbox-grid {
     grid-template-columns: 1fr;
   }
@@ -191,5 +206,13 @@ th {
 
   button {
     display: none;
+  }
+
+  input,
+  select {
+    border: none;
+    padding: 0;
+    appearance: none;
+    background: transparent;
   }
 }
