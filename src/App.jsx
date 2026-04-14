@@ -374,7 +374,9 @@ function optimizeGame({
       const id = pk(player.id)
       const value = lineup.cells?.[id]?.[inning] || ''
       const locked = lineup.lockedRows?.[id] || lineup.lockedCells?.[id]?.[inning] || false
-      if (locked && value) usedPlayers.add(id)
+      if (locked && value) {
+        usedPlayers.add(id)
+      }
     })
 
     FIELD_POSITIONS.forEach((position) => {
@@ -382,9 +384,10 @@ function optimizeGame({
         const id = pk(player.id)
         return (lineup.cells?.[id]?.[inning] || '') === position
       })
+
       if (alreadyAssigned) return
 
-        const candidates = players
+      const candidates = players
         .filter((player) => availablePlayerIds.includes(pk(player.id)))
         .filter((player) => !usedPlayers.has(pk(player.id)))
         .filter((player) => fitTier(fitMap, player.id, position) !== 'no')
@@ -412,14 +415,13 @@ function optimizeGame({
           const aTarget = priorityValue(priorityMap, a.id, position)
           const bTarget = priorityValue(priorityMap, b.id, position)
 
-          const aActualCount =
-            ['LF', 'CF', 'RF'].includes(position)
-              ? rollingTotals[aId]?.OF || 0
-              : rollingTotals[aId]?.[position] || 0
-          const bActualCount =
-            ['LF', 'CF', 'RF'].includes(position)
-              ? rollingTotals[bId]?.OF || 0
-              : rollingTotals[bId]?.[position] || 0
+          const aActualCount = ['LF', 'CF', 'RF'].includes(position)
+            ? (rollingTotals[aId]?.OF || 0)
+            : (rollingTotals[aId]?.[position] || 0)
+
+          const bActualCount = ['LF', 'CF', 'RF'].includes(position)
+            ? (rollingTotals[bId]?.OF || 0)
+            : (rollingTotals[bId]?.[position] || 0)
 
           const aField = Math.max(rollingTotals[aId]?.fieldTotal || 0, 1)
           const bField = Math.max(rollingTotals[bId]?.fieldTotal || 0, 1)
@@ -443,90 +445,29 @@ function optimizeGame({
 
       lineup.cells[pk(selected.id)][inning] = position
       usedPlayers.add(pk(selected.id))
-      
-  const fitDiff =
-    fitRank(fitTier(fitMap, a.id, position)) -
-    fitRank(fitTier(fitMap, b.id, position))
-  if (fitDiff !== 0) return fitDiff
-
-  // First: girls who sat more should be pushed onto the field
-  const aGameOuts = currentGameOutCount(lineup, aId)
-  const bGameOuts = currentGameOutCount(lineup, bId)
-  if (aGameOuts !== bGameOuts) return bGameOuts - aGameOuts
-
-  // Also strongly favor girls who sat recently so they don't sit again soon
-  const aSpacing = spacingPenalty(lineup, aId, inning)
-  const bSpacing = spacingPenalty(lineup, bId, inning)
-  if (aSpacing !== bSpacing) return aSpacing - bSpacing
-
-  // Then use YTD fairness
-  const aDelta = rollingTotals[aId]?.delta || 0
-  const bDelta = rollingTotals[bId]?.delta || 0
-  if (aDelta !== bDelta) return bDelta - aDelta
-
-  // Then use positioning priority
-  const aTarget = priorityValue(priorityMap, a.id, position)
-  const bTarget = priorityValue(priorityMap, b.id, position)
-
-  const aActualCount =
-    ['LF', 'CF', 'RF'].includes(position)
-      ? (rollingTotals[aId]?.OF || 0)
-      : (rollingTotals[aId]?.[position] || 0)
-  const bActualCount =
-    ['LF', 'CF', 'RF'].includes(position)
-      ? (rollingTotals[bId]?.OF || 0)
-      : (rollingTotals[bId]?.[position] || 0)
-
-  const aField = Math.max(rollingTotals[aId]?.fieldTotal || 0, 1)
-  const bField = Math.max(rollingTotals[bId]?.fieldTotal || 0, 1)
-
-  const aActualPct = (aActualCount / aField) * 100
-  const bActualPct = (bActualCount / bField) * 100
-
-  const aGap = aTarget - aActualPct
-  const bGap = bTarget - bActualPct
-  if (aGap !== bGap) return bGap - aGap
-
-  const aDepth = depthScore(a.name, position)
-  const bDepth = depthScore(b.name, position)
-  if (aDepth !== bDepth) return aDepth - bDepth
-
-  return String(a.name || '').localeCompare(String(b.name || ''))
-})
-              
-      const selected = candidates[0]
-      if (!selected) return
-
-      lineup.cells[pk(selected.id)][inning] = position
-      usedPlayers.add(pk(selected.id))
     })
 
     players
       .filter((player) => availablePlayerIds.includes(pk(player.id)))
       .filter((player) => !usedPlayers.has(pk(player.id)))
       .sort((a, b) => {
-        .sort((a, b) => {
-  const aId = pk(a.id)
-  const bId = pk(b.id)
+        const aId = pk(a.id)
+        const bId = pk(b.id)
 
-  // Hardest priority: avoid close-together sit outs
-  const aPenalty = spacingPenalty(lineup, aId, inning)
-  const bPenalty = spacingPenalty(lineup, bId, inning)
-  if (aPenalty !== bPenalty) return aPenalty - bPenalty
+        const aPenalty = spacingPenalty(lineup, aId, inning)
+        const bPenalty = spacingPenalty(lineup, bId, inning)
+        if (aPenalty !== bPenalty) return aPenalty - bPenalty
 
-  // Next: whoever has sat less THIS GAME should sit first
-  const aGameOuts = currentGameOutCount(lineup, aId)
-  const bGameOuts = currentGameOutCount(lineup, bId)
-  if (aGameOuts !== bGameOuts) return aGameOuts - bGameOuts
+        const aGameOuts = currentGameOutCount(lineup, aId)
+        const bGameOuts = currentGameOutCount(lineup, bId)
+        if (aGameOuts !== bGameOuts) return aGameOuts - bGameOuts
 
-  // Next: whoever is below expected YTD should sit first
-  const aDelta = rollingTotals[aId]?.delta || 0
-  const bDelta = rollingTotals[bId]?.delta || 0
-  if (aDelta !== bDelta) return aDelta - bDelta
+        const aDelta = rollingTotals[aId]?.delta || 0
+        const bDelta = rollingTotals[bId]?.delta || 0
+        if (aDelta !== bDelta) return aDelta - bDelta
 
-  // Final tie-breaker
-  return String(a.name || '').localeCompare(String(b.name || ''))
-})
+        return String(a.name || '').localeCompare(String(b.name || ''))
+      })
       .forEach((player) => {
         lineup.cells[pk(player.id)][inning] = 'Out'
       })
@@ -537,7 +478,10 @@ function optimizeGame({
           innings: 1,
           availablePlayerIds,
           cells: Object.fromEntries(
-            players.map((player) => [pk(player.id), { 1: lineup.cells[pk(player.id)][inning] || '' }])
+            players.map((player) => [
+              pk(player.id),
+              { 1: lineup.cells[pk(player.id)][inning] || '' },
+            ])
           ),
         },
       ],
