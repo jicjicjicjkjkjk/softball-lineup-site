@@ -148,6 +148,12 @@ export default function App() {
     setGamesLoading(true)
     setGamesError('')
 
+    if (!supabase) {
+      setGamesError('Supabase is not connected. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify.')
+      setGamesLoading(false)
+      return
+    }
+
     const { data, error } = await supabase
       .from('games')
       .select('*')
@@ -172,8 +178,13 @@ export default function App() {
     )
   }
 
-  async function addGame() {
+    async function addGame() {
     setGamesError('')
+
+    if (!supabase) {
+      setGamesError('Supabase is not connected. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify.')
+      return
+    }
 
     const payload = {
       team_id: TEAM_ID,
@@ -199,8 +210,8 @@ export default function App() {
     setNewGameOpponent('')
     setNewGameInnings(6)
   }
-
-  async function updateGameField(gameId, field, value) {
+  
+    async function updateGameField(gameId, field, value) {
     setGames((current) =>
       current.map((game) =>
         game.id === gameId
@@ -211,6 +222,11 @@ export default function App() {
           : game
       )
     )
+
+    if (!supabase) {
+      setGamesError('Supabase is not connected. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify.')
+      return
+    }
 
     const updates = {}
 
@@ -266,7 +282,7 @@ export default function App() {
     )
   }
 
-  async function cancelGame(gameId) {
+    async function cancelGame(gameId) {
     setGames((current) =>
       current.map((game) =>
         game.id === gameId
@@ -279,6 +295,11 @@ export default function App() {
       )
     )
 
+    if (!supabase) {
+      setGamesError('Supabase is not connected. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify.')
+      return
+    }
+
     const { error } = await supabase
       .from('games')
       .update({ status: 'Cancelled' })
@@ -289,7 +310,7 @@ export default function App() {
     }
   }
 
-  async function reopenGame(gameId) {
+    async function reopenGame(gameId) {
     setGames((current) =>
       current.map((game) =>
         game.id === gameId
@@ -300,6 +321,11 @@ export default function App() {
           : game
       )
     )
+
+    if (!supabase) {
+      setGamesError('Supabase is not connected. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify.')
+      return
+    }
 
     const { error } = await supabase
       .from('games')
