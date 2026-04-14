@@ -1,35 +1,43 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase'
 
-const TEAM_ID = "f76ea5a1-7c44-4789-bfbd-9771edd54f10"
+const TEAM_ID = 'f76ea5a1-7c44-4789-bfbd-9771edd54f10'
+const LOCAL_KEY = 'thunder-lineup-local-v3'
 
-const players = [
-  { id: 1, name: 'Alanna' },
-  { id: 2, name: 'Maggie' },
-  { id: 3, name: 'Brooke' },
-  { id: 4, name: 'Emily' },
-  { id: 5, name: 'Josie' },
-  { id: 6, name: 'Lucie' },
-  { id: 7, name: 'Delaney' },
-  { id: 8, name: 'Bella' },
-  { id: 9, name: 'Bridget' },
-  { id: 10, name: 'Elena' },
-  { id: 11, name: 'Lily' },
-  { id: 12, name: 'Molly' },
+const rosterPlayers = [
+  'Alanna',
+  'Maggie',
+  'Brooke',
+  'Emily',
+  'Josie',
+  'Lucie',
+  'Delaney',
+  'Bella',
+  'Bridget',
+  'Elena',
+  'Lily',
+  'Molly',
+  'Sub 1',
+  'Sub 2',
+  'Sub 3',
 ]
 
-const positions = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
+const players = rosterPlayers.map((name, index) => ({ id: index + 1, name }))
+
+const fieldPositions = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
+const lockablePositions = [...fieldPositions, 'Out']
+const trackedPositions = [...fieldPositions, 'Out']
 
 const initialDepth = {
-  P: ['Emily', 'Josie', 'Molly'],
-  C: ['Lucie', 'Bella', 'Molly'],
-  '1B': ['Brooke', 'Maggie', 'Lily'],
-  '2B': ['Alanna', 'Bridget', 'Delaney'],
-  '3B': ['Elena', 'Maggie', 'Brooke'],
-  SS: ['Elena', 'Alanna', 'Bridget'],
-  LF: ['Lily', 'Bella', 'Brooke'],
-  CF: ['Delaney', 'Josie', 'Emily'],
-  RF: ['Molly', 'Lucie', 'Bella'],
+  P: ['Emily', 'Josie', 'Molly', 'Sub 1', 'Sub 2', 'Sub 3'],
+  C: ['Lucie', 'Bella', 'Molly', 'Sub 1', 'Sub 2', 'Sub 3'],
+  '1B': ['Brooke', 'Maggie', 'Lily', 'Sub 1', 'Sub 2', 'Sub 3'],
+  '2B': ['Alanna', 'Bridget', 'Delaney', 'Sub 1', 'Sub 2', 'Sub 3'],
+  '3B': ['Elena', 'Maggie', 'Brooke', 'Sub 1', 'Sub 2', 'Sub 3'],
+  SS: ['Elena', 'Alanna', 'Bridget', 'Sub 1', 'Sub 2', 'Sub 3'],
+  LF: ['Lily', 'Bella', 'Brooke', 'Sub 1', 'Sub 2', 'Sub 3'],
+  CF: ['Delaney', 'Josie', 'Emily', 'Sub 1', 'Sub 2', 'Sub 3'],
+  RF: ['Molly', 'Lucie', 'Bella', 'Sub 1', 'Sub 2', 'Sub 3'],
 }
 
 const attendanceSeed = [
@@ -38,71 +46,74 @@ const attendanceSeed = [
   { date: '2026-04-20', season: 'Optional', type: 'Stoppers Indoor', title: 'Indoor Work' },
 ]
 
-function buildSimpleLineup(availablePlayers, innings, pitcher, catcher) {
-  const active = availablePlayers.slice()
-  const assignments = []
-  const sitCounts = Object.fromEntries(active.map((p) => [p.name, 0]))
-
-  for (let inning = 1; inning <= innings; inning += 1) {
-    let pool = [...active]
-
-    const inningAssignments = {
-      inning,
-      positions: {},
-      sit: [],
+function emptyTotals() {
+  const totals = {}
+  rosterPlayers.forEach((name) => {
+    totals[name] = {
+      totalField: 0,
+      Out: 0,
+      sitOuts: 0,
+      totalTracked: 0,
     }
-
-    if (pitcher) {
-      inningAssignments.positions.P = pitcher
-      pool = pool.filter((p) => p.name !== pitcher)
-    }
-
-    if (catcher) {
-      inningAssignments.positions.C = catcher
-      pool = pool.filter((p) => p.name !== catcher)
-    }
-
-    const remainingPositions = positions.filter((pos) => {
-      if (pos === 'P' && pitcher) return false
-      if (pos === 'C' && catcher) return false
-      return true
+    trackedPositions.forEach((pos) => {
+      totals[name][pos] = 0
     })
+  })
+  return totals
+}
 
-    for (const pos of remainingPositions) {
-      const rankedNames = initialDepth[pos] || []
-      const selected = pool.find((p) => rankedNames.includes(p.name)) || pool[0]
+function cloneTotals(source) {
+  return JSON.parse(JSON.stringify(source))
+}
 
-      if (selected) {
-        inningAssignments.positions[pos] = selected.name
-        pool = pool.filter((p) => p.name !== selected.name)
+function addLineupToTotals(totals, lineup) {
+  if (!lineup?.assignments) return totals
+
+  lineup.assignments.forEach((inning) => {
+    Object.entries(inning.positions || {}).forEach(([positionKey, playerName]) => {
+      if (!playerName || !totals[playerName]) return
+
+      if (positionKey.startsWith('Out')) {
+        totals[playerName].Out += 1
+        totals[playerName].sitOuts += 1
+        totals[playerName].totalTracked += 1
+      } else if (trackedPositions.includes(positionKey)) {
+        totals[playerName][positionKey] += 1
+        totals[playerName].totalField += 1
+        totals[playerName].totalTracked += 1
       }
-    }
-
-    inningAssignments.sit = pool.map((p) => p.name)
-    inningAssignments.sit.forEach((name) => {
-      sitCounts[name] = (sitCounts[name] || 0) + 1
     })
+  })
 
-    assignments.push(inningAssignments)
-  }
+  return totals
+}
 
-  return { assignments, sitCounts }
+function sumLineups(lineups) {
+  const totals = emptyTotals()
+  lineups.forEach((lineup) => addLineupToTotals(totals, lineup))
+  return totals
+}
+
+function addTotals(a, b) {
+  const merged = emptyTotals()
+  rosterPlayers.forEach((name) => {
+    trackedPositions.forEach((pos) => {
+      merged[name][pos] = (a[name]?.[pos] || 0) + (b[name]?.[pos] || 0)
+    })
+    merged[name].Out = (a[name]?.Out || 0) + (b[name]?.Out || 0)
+    merged[name].sitOuts = (a[name]?.sitOuts || 0) + (b[name]?.sitOuts || 0)
+    merged[name].totalField = (a[name]?.totalField || 0) + (b[name]?.totalField || 0)
+    merged[name].totalTracked = (a[name]?.totalTracked || 0) + (b[name]?.totalTracked || 0)
+  })
+  return merged
 }
 
 function requiredSitOuts(playerCount, innings) {
   return Math.max(0, playerCount - 9) * innings
 }
 
-function recalculateSitCounts(assignments) {
-  const sitCounts = {}
-
-  assignments.forEach((inning) => {
-    ;(inning.sit || []).forEach((name) => {
-      sitCounts[name] = (sitCounts[name] || 0) + 1
-    })
-  })
-
-  return sitCounts
+function safeSupabaseReady() {
+  return Boolean(supabase)
 }
 
 function mapDbGame(row) {
@@ -110,46 +121,255 @@ function mapDbGame(row) {
     id: row.id,
     date: row.game_date || '',
     opponent: row.opponent || '',
-    innings: row.innings || 6,
     status: row.status || 'Planned',
     notes: row.notes || '',
-    lineup: null,
+  }
+}
+
+function readLocalState() {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY)
+    if (!raw) {
+      return {
+        lineupsByGame: {},
+        optimizerSettingsByGame: {},
+        locks: [],
+        targetPercentages: {},
+      }
+    }
+    return {
+      lineupsByGame: {},
+      optimizerSettingsByGame: {},
+      locks: [],
+      targetPercentages: {},
+      ...JSON.parse(raw),
+    }
+  } catch {
+    return {
+      lineupsByGame: {},
+      optimizerSettingsByGame: {},
+      locks: [],
+      targetPercentages: {},
+    }
+  }
+}
+
+function buildInningLockIndex(locksForGame) {
+  const index = {}
+  locksForGame.forEach((lock) => {
+    for (let inning = lock.startInning; inning <= lock.endInning; inning += 1) {
+      const key = `${inning}-${lock.position}`
+      index[key] = lock.player
+    }
+  })
+  return index
+}
+
+function positionRank(name, pos) {
+  const list = initialDepth[pos] || []
+  const idx = list.indexOf(name)
+  return idx === -1 ? 999 : idx
+}
+
+function optimizeGame({ innings, availableNames, locksForGame, baseTotals }) {
+  const runningTotals = cloneTotals(baseTotals)
+  const lockIndex = buildInningLockIndex(locksForGame)
+  const assignments = []
+
+  for (let inning = 1; inning <= innings; inning += 1) {
+    const positions = {}
+    const used = new Set()
+
+    const lockedOutPlayers = []
+
+    fieldPositions.forEach((pos) => {
+      const lockedPlayer = lockIndex[`${inning}-${pos}`]
+      if (lockedPlayer && availableNames.includes(lockedPlayer)) {
+        positions[pos] = lockedPlayer
+        used.add(lockedPlayer)
+      }
+    })
+
+    const genericOutPlayer = lockIndex[`${inning}-Out`]
+    if (genericOutPlayer && availableNames.includes(genericOutPlayer)) {
+      lockedOutPlayers.push(genericOutPlayer)
+      used.add(genericOutPlayer)
+    }
+
+    fieldPositions.forEach((pos) => {
+      if (positions[pos]) return
+
+      const candidates = availableNames
+        .filter((name) => !used.has(name))
+        .sort((a, b) => {
+          const rankDiff = positionRank(a, pos) - positionRank(b, pos)
+          if (rankDiff !== 0) return rankDiff
+
+          const posCountDiff = (runningTotals[a]?.[pos] || 0) - (runningTotals[b]?.[pos] || 0)
+          if (posCountDiff !== 0) return posCountDiff
+
+          return (runningTotals[a]?.totalField || 0) - (runningTotals[b]?.totalField || 0)
+        })
+
+      const selected = candidates[0]
+      if (selected) {
+        positions[pos] = selected
+        used.add(selected)
+      }
+    })
+
+    const remaining = availableNames.filter((name) => !used.has(name))
+
+    const sortedOutPlayers = [
+      ...lockedOutPlayers.filter((name, index, arr) => arr.indexOf(name) === index),
+      ...remaining.sort((a, b) => {
+        const outDiff = (runningTotals[a]?.Out || 0) - (runningTotals[b]?.Out || 0)
+        if (outDiff !== 0) return outDiff
+
+        return (runningTotals[b]?.totalField || 0) - (runningTotals[a]?.totalField || 0)
+      }),
+    ]
+
+    sortedOutPlayers.forEach((playerName, index) => {
+      positions[`Out${index + 1}`] = playerName
+    })
+
+    const row = { inning, positions }
+    assignments.push(row)
+    addLineupToTotals(runningTotals, { assignments: [row] })
+  }
+
+  return {
+    innings,
+    assignments,
   }
 }
 
 export default function App() {
-  const [page, setPage] = useState('optimizer')
+  const [page, setPage] = useState('games')
   const [selectedGameId, setSelectedGameId] = useState(null)
+
   const [games, setGames] = useState([])
   const [gamesLoading, setGamesLoading] = useState(true)
   const [gamesError, setGamesError] = useState('')
 
-  const [innings, setInnings] = useState(6)
-  const [selectedPlayers, setSelectedPlayers] = useState(players.map((p) => p.name))
-  const [pitcher, setPitcher] = useState('Emily')
-  const [catcher, setCatcher] = useState('Lucie')
+  const [lineupsByGame, setLineupsByGame] = useState({})
+  const [optimizerSettingsByGame, setOptimizerSettingsByGame] = useState({})
+  const [locks, setLocks] = useState([])
+  const [targetPercentages, setTargetPercentages] = useState({})
+
+  const [selectedGameIds, setSelectedGameIds] = useState([])
+  const [selectedPlayers, setSelectedPlayers] = useState(rosterPlayers)
+
   const [newGameDate, setNewGameDate] = useState('')
   const [newGameOpponent, setNewGameOpponent] = useState('')
-  const [newGameInnings, setNewGameInnings] = useState(6)
 
-  const availablePlayers = players.filter((p) => selectedPlayers.includes(p.name))
+  const [optimizerNewGameDate, setOptimizerNewGameDate] = useState('')
+  const [optimizerNewGameOpponent, setOptimizerNewGameOpponent] = useState('')
 
-  const optimized = useMemo(() => {
-    return buildSimpleLineup(availablePlayers, innings, pitcher, catcher)
-  }, [availablePlayers, innings, pitcher, catcher])
+  const [newLockGameId, setNewLockGameId] = useState('')
+  const [newLockPlayer, setNewLockPlayer] = useState(rosterPlayers[0])
+  const [newLockPosition, setNewLockPosition] = useState('P')
+  const [newLockStartInning, setNewLockStartInning] = useState(1)
+  const [newLockEndInning, setNewLockEndInning] = useState(1)
 
-  const sitRequired = requiredSitOuts(availablePlayers.length, innings)
+  const [removeInningChoice, setRemoveInningChoice] = useState(7)
 
   useEffect(() => {
     loadGames()
+    const local = readLocalState()
+    setLineupsByGame(local.lineupsByGame || {})
+    setOptimizerSettingsByGame(local.optimizerSettingsByGame || {})
+    setLocks(local.locks || [])
+    setTargetPercentages(local.targetPercentages || {})
   }, [])
+
+  useEffect(() => {
+    localStorage.setItem(
+      LOCAL_KEY,
+      JSON.stringify({
+        lineupsByGame,
+        optimizerSettingsByGame,
+        locks,
+        targetPercentages,
+      })
+    )
+  }, [lineupsByGame, optimizerSettingsByGame, locks, targetPercentages])
+
+  const mergedGames = useMemo(() => {
+    return games.map((game) => ({
+      ...game,
+      lineup: lineupsByGame[String(game.id)] || null,
+      plannedInnings: optimizerSettingsByGame[String(game.id)]?.innings || 6,
+    }))
+  }, [games, lineupsByGame, optimizerSettingsByGame])
+
+  const selectedGame = mergedGames.find((g) => String(g.id) === String(selectedGameId)) || null
+  const selectedGames = mergedGames.filter((g) => selectedGameIds.includes(String(g.id)))
+  const availableNames = selectedPlayers
+
+  useEffect(() => {
+    if (!selectedGameIds.length && mergedGames.length) {
+      setSelectedGameIds([String(mergedGames[0].id)])
+      setNewLockGameId(String(mergedGames[0].id))
+    }
+  }, [mergedGames, selectedGameIds.length])
+
+  const ytdBeforeTotals = useMemo(() => {
+    const otherLineups = mergedGames
+      .filter((game) => !selectedGameIds.includes(String(game.id)))
+      .filter((game) => game.status !== 'Cancelled')
+      .map((game) => game.lineup)
+      .filter(Boolean)
+
+    return sumLineups(otherLineups)
+  }, [mergedGames, selectedGameIds])
+
+  const optimizedPlans = useMemo(() => {
+    let runningTotals = cloneTotals(ytdBeforeTotals)
+    const results = []
+
+    const orderedSelectedGames = [...selectedGames].sort((a, b) => {
+      const aKey = `${a.date || ''}-${a.id}`
+      const bKey = `${b.date || ''}-${b.id}`
+      return aKey.localeCompare(bKey)
+    })
+
+    orderedSelectedGames.forEach((game) => {
+      const innings = Number(optimizerSettingsByGame[String(game.id)]?.innings || 6)
+      const locksForGame = locks.filter((lock) => String(lock.gameId) === String(game.id))
+
+      const lineup = optimizeGame({
+        innings,
+        availableNames,
+        locksForGame,
+        baseTotals: runningTotals,
+      })
+
+      addLineupToTotals(runningTotals, lineup)
+      results.push({
+        gameId: String(game.id),
+        lineup,
+      })
+    })
+
+    return results
+  }, [selectedGames, optimizerSettingsByGame, locks, availableNames, ytdBeforeTotals])
+
+  const currentPlanTotals = useMemo(() => {
+    return sumLineups(optimizedPlans.map((x) => x.lineup))
+  }, [optimizedPlans])
+
+  const ytdAfterTotals = useMemo(() => {
+    return addTotals(ytdBeforeTotals, currentPlanTotals)
+  }, [ytdBeforeTotals, currentPlanTotals])
 
   async function loadGames() {
     setGamesLoading(true)
     setGamesError('')
 
-    if (!supabase) {
-      setGamesError('Supabase is not connected. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify.')
+    if (!safeSupabaseReady()) {
+      setGamesError('Supabase is not connected.')
       setGamesLoading(false)
       return
     }
@@ -170,27 +390,18 @@ export default function App() {
     setGamesLoading(false)
   }
 
-  function togglePlayer(name) {
-    setSelectedPlayers((current) =>
-      current.includes(name)
-        ? current.filter((p) => p !== name)
-        : [...current, name]
-    )
-  }
-
-    async function addGame() {
+  async function createGame({ date, opponent }) {
     setGamesError('')
 
-    if (!supabase) {
-      setGamesError('Supabase is not connected. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify.')
-      return
+    if (!safeSupabaseReady()) {
+      setGamesError('Supabase is not connected.')
+      return null
     }
 
     const payload = {
       team_id: TEAM_ID,
-      game_date: newGameDate || null,
-      opponent: newGameOpponent || null,
-      innings: Number(newGameInnings),
+      game_date: date || null,
+      opponent: opponent || null,
       status: 'Planned',
     }
 
@@ -202,37 +413,59 @@ export default function App() {
 
     if (error) {
       setGamesError(error.message)
-      return
+      return null
     }
 
-    setGames((current) => [...current, mapDbGame(data)])
-    setNewGameDate('')
-    setNewGameOpponent('')
-    setNewGameInnings(6)
+    const mapped = mapDbGame(data)
+    setGames((current) => [...current, mapped])
+    setOptimizerSettingsByGame((current) => ({
+      ...current,
+      [String(mapped.id)]: { innings: 6 },
+    }))
+    return mapped
   }
-  
-    async function updateGameField(gameId, field, value) {
+
+  async function addGameFromGamesTab() {
+    const game = await createGame({
+      date: newGameDate,
+      opponent: newGameOpponent,
+    })
+
+    if (game) {
+      setNewGameDate('')
+      setNewGameOpponent('')
+    }
+  }
+
+  async function addGameFromOptimizer() {
+    const game = await createGame({
+      date: optimizerNewGameDate,
+      opponent: optimizerNewGameOpponent,
+    })
+
+    if (game) {
+      setOptimizerNewGameDate('')
+      setOptimizerNewGameOpponent('')
+      setSelectedGameIds((current) => [...new Set([...current, String(game.id)])])
+      setNewLockGameId(String(game.id))
+    }
+  }
+
+  async function updateGameField(gameId, field, value) {
     setGames((current) =>
       current.map((game) =>
-        game.id === gameId
-          ? {
-              ...game,
-              [field]: value,
-            }
-          : game
+        String(game.id) === String(gameId) ? { ...game, [field]: value } : game
       )
     )
 
-    if (!supabase) {
-      setGamesError('Supabase is not connected. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify.')
+    if (!safeSupabaseReady()) {
+      setGamesError('Supabase is not connected.')
       return
     }
 
     const updates = {}
-
     if (field === 'date') updates.game_date = value || null
     if (field === 'opponent') updates.opponent = value || null
-    if (field === 'innings') updates.innings = Number(value)
     if (field === 'status') updates.status = value
 
     const { error } = await supabase
@@ -245,58 +478,65 @@ export default function App() {
     }
   }
 
-  function saveToGame(gameId) {
-    setGames((current) =>
-      current.map((game) =>
-        game.id === gameId
-          ? {
-              ...game,
-              innings,
-              lineup: {
-                innings,
-                pitcher,
-                catcher,
-                availablePlayers: availablePlayers.map((p) => p.name),
-                assignments: optimized.assignments,
-                sitCounts: optimized.sitCounts,
-              },
-            }
-          : game
-      )
-    )
+  function updateOptimizerInnings(gameId, innings) {
+    setOptimizerSettingsByGame((current) => ({
+      ...current,
+      [String(gameId)]: { ...(current[String(gameId)] || {}), innings: Number(innings) },
+    }))
+  }
 
-    setSelectedGameId(gameId)
-    setPage('game-detail')
+  function toggleSelectedGame(gameId) {
+    const gameKey = String(gameId)
+    setSelectedGameIds((current) =>
+      current.includes(gameKey)
+        ? current.filter((id) => id !== gameKey)
+        : [...current, gameKey]
+    )
+  }
+
+  function togglePlayer(name) {
+    setSelectedPlayers((current) =>
+      current.includes(name)
+        ? current.filter((p) => p !== name)
+        : [...current, name]
+    )
+  }
+
+  function saveOptimizedLineupsToGames() {
+    setLineupsByGame((current) => {
+      const next = { ...current }
+      optimizedPlans.forEach((plan) => {
+        next[String(plan.gameId)] = plan.lineup
+      })
+      return next
+    })
   }
 
   function clearLineup(gameId) {
-    setGames((current) =>
-      current.map((game) =>
-        game.id === gameId
-          ? {
-              ...game,
-              lineup: null,
-            }
-          : game
-      )
-    )
+    setLineupsByGame((current) => {
+      const next = { ...current }
+      delete next[String(gameId)]
+      return next
+    })
   }
 
-    async function cancelGame(gameId) {
+  async function cancelGame(gameId) {
     setGames((current) =>
       current.map((game) =>
-        game.id === gameId
-          ? {
-              ...game,
-              status: 'Cancelled',
-              lineup: null,
-            }
+        String(game.id) === String(gameId)
+          ? { ...game, status: 'Cancelled' }
           : game
       )
     )
 
-    if (!supabase) {
-      setGamesError('Supabase is not connected. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify.')
+    setLineupsByGame((current) => {
+      const next = { ...current }
+      delete next[String(gameId)]
+      return next
+    })
+
+    if (!safeSupabaseReady()) {
+      setGamesError('Supabase is not connected.')
       return
     }
 
@@ -305,25 +545,20 @@ export default function App() {
       .update({ status: 'Cancelled' })
       .eq('id', gameId)
 
-    if (error) {
-      setGamesError(error.message)
-    }
+    if (error) setGamesError(error.message)
   }
 
-    async function reopenGame(gameId) {
+  async function reopenGame(gameId) {
     setGames((current) =>
       current.map((game) =>
-        game.id === gameId
-          ? {
-              ...game,
-              status: 'Planned',
-            }
+        String(game.id) === String(gameId)
+          ? { ...game, status: 'Planned' }
           : game
       )
     )
 
-    if (!supabase) {
-      setGamesError('Supabase is not connected. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Netlify.')
+    if (!safeSupabaseReady()) {
+      setGamesError('Supabase is not connected.')
       return
     }
 
@@ -332,61 +567,122 @@ export default function App() {
       .update({ status: 'Planned' })
       .eq('id', gameId)
 
-    if (error) {
-      setGamesError(error.message)
-    }
+    if (error) setGamesError(error.message)
   }
 
   function openGame(gameId) {
-    setSelectedGameId(gameId)
+    setSelectedGameId(String(gameId))
     setPage('game-detail')
   }
 
-  function updateGameAssignment(gameId, inningNumber, position, newPlayer) {
-    setGames((current) =>
-      current.map((game) => {
-        if (game.id !== gameId || !game.lineup) return game
+  function addLock() {
+    if (!newLockGameId) return
 
-        const newAssignments = game.lineup.assignments.map((row) => {
-          if (row.inning !== inningNumber) return row
+    const nextLock = {
+      id: Date.now().toString(),
+      gameId: String(newLockGameId),
+      player: newLockPlayer,
+      position: newLockPosition,
+      startInning: Number(newLockStartInning),
+      endInning: Number(newLockEndInning),
+    }
 
-          return {
-            ...row,
-            positions: {
-              ...row.positions,
-              [position]: newPlayer,
-            },
-          }
-        })
+    setLocks((current) => [...current, nextLock])
+  }
 
+  function removeLock(lockId) {
+    setLocks((current) => current.filter((lock) => lock.id !== lockId))
+  }
+
+  function updateGameAssignment(gameId, inningNumber, positionKey, newPlayer) {
+    setLineupsByGame((current) => {
+      const existing = current[String(gameId)]
+      if (!existing) return current
+
+      const nextAssignments = existing.assignments.map((inning) => {
+        if (inning.inning !== inningNumber) return inning
         return {
-          ...game,
-          lineup: {
-            ...game.lineup,
-            assignments: newAssignments,
+          ...inning,
+          positions: {
+            ...inning.positions,
+            [positionKey]: newPlayer,
           },
         }
       })
+
+      return {
+        ...current,
+        [String(gameId)]: {
+          ...existing,
+          assignments: nextAssignments,
+        },
+      }
+    })
+  }
+
+  function removeLastInning(gameId) {
+    setLineupsByGame((current) => {
+      const existing = current[String(gameId)]
+      if (!existing || existing.assignments.length <= 1) return current
+
+      const nextAssignments = existing.assignments.slice(0, -1)
+      return {
+        ...current,
+        [String(gameId)]: {
+          ...existing,
+          innings: nextAssignments.length,
+          assignments: nextAssignments,
+        },
+      }
+    })
+  }
+
+  function removeSpecificInning(gameId, inningNumber) {
+    setLineupsByGame((current) => {
+      const existing = current[String(gameId)]
+      if (!existing || existing.assignments.length <= 1) return current
+
+      const nextAssignments = existing.assignments
+        .filter((inning) => inning.inning !== Number(inningNumber))
+        .map((inning, index) => ({
+          ...inning,
+          inning: index + 1,
+        }))
+
+      return {
+        ...current,
+        [String(gameId)]: {
+          ...existing,
+          innings: nextAssignments.length,
+          assignments: nextAssignments,
+        },
+      }
+    })
+  }
+
+  function maxOutCount(lineup) {
+    if (!lineup?.assignments?.length) return 0
+    return Math.max(
+      ...lineup.assignments.map(
+        (inning) => Object.keys(inning.positions || {}).filter((key) => key.startsWith('Out')).length
+      ),
+      0
     )
   }
 
-  function recalculateGameSitOuts(gameId) {
-    setGames((current) =>
-      current.map((game) => {
-        if (game.id !== gameId || !game.lineup) return game
-
-        return {
-          ...game,
-          lineup: {
-            ...game.lineup,
-            sitCounts: recalculateSitCounts(game.lineup.assignments),
-          },
-        }
-      })
-    )
+  function targetValue(playerName, position) {
+    return targetPercentages?.[playerName]?.[position] ?? ''
   }
 
-  const selectedGame = games.find((g) => g.id === selectedGameId) || null
+  function updateTarget(playerName, position, value) {
+    setTargetPercentages((current) => ({
+      ...current,
+      [playerName]: {
+        ...(current[playerName] || {}),
+        [position]: value,
+      },
+    }))
+  }
 
   function renderNavButton(key, label) {
     return (
@@ -407,14 +703,14 @@ export default function App() {
           <thead>
             <tr>
               <th>Player</th>
-              <th>Status</th>
+              <th>Type</th>
             </tr>
           </thead>
           <tbody>
             {players.map((player) => (
-              <tr key={player.id}>
+              <tr key={player.name}>
                 <td>{player.name}</td>
-                <td>Active</td>
+                <td>{player.name.startsWith('Sub') ? 'Sub' : 'Rostered'}</td>
               </tr>
             ))}
           </tbody>
@@ -451,48 +747,42 @@ export default function App() {
     )
   }
 
-  function renderDepthChartPage() {
+  function renderTargetsPage() {
     return (
-      <div className="grid two-col">
+      <div className="stack">
         <div className="card">
-          <h2>Depth Chart by Position</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Position</th>
-                <th>Stack</th>
-              </tr>
-            </thead>
-            <tbody>
-              {positions.map((pos) => (
-                <tr key={pos}>
-                  <td>{pos}</td>
-                  <td>{(initialDepth[pos] || []).join(' → ')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <h2>Position Targets (%)</h2>
+          <p>Use this instead of a traditional depth chart. Enter rough target percentages by player and position.</p>
         </div>
 
-        <div className="card">
-          <h2>Depth Chart by Player</h2>
+        <div className="card" style={{ overflowX: 'auto' }}>
           <table>
             <thead>
               <tr>
                 <th>Player</th>
-                <th>Approx Roles</th>
+                {trackedPositions.map((pos) => (
+                  <th key={pos}>{pos}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {players.map((player) => {
-                const roles = positions.filter((pos) => (initialDepth[pos] || []).includes(player.name))
-                return (
-                  <tr key={player.name}>
-                    <td>{player.name}</td>
-                    <td>{roles.join(', ')}</td>
-                  </tr>
-                )
-              })}
+              {players.map((player) => (
+                <tr key={player.name}>
+                  <td>{player.name}</td>
+                  {trackedPositions.map((pos) => (
+                    <td key={pos}>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={targetValue(player.name, pos)}
+                        onChange={(e) => updateTarget(player.name, pos, e.target.value)}
+                        placeholder="%"
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -501,43 +791,42 @@ export default function App() {
   }
 
   function renderTrackingPage() {
-    const seasonRows = players.map((player) => {
-      let sitOuts = 0
-
-      games.forEach((game) => {
-        if (game.status === 'Cancelled') return
-        if (!game.lineup) return
-        sitOuts += game.lineup.sitCounts?.[player.name] || 0
-      })
-
-      return {
-        name: player.name,
-        sitOuts,
-        battingOrderAvg: '-',
-        positionsPlayed: '-',
-      }
-    })
+    const ytdTotals = sumLineups(
+      mergedGames
+        .filter((game) => game.status !== 'Cancelled')
+        .map((game) => game.lineup)
+        .filter(Boolean)
+    )
 
     return (
-      <div className="card">
+      <div className="card" style={{ overflowX: 'auto' }}>
         <h2>Tracking</h2>
-        <p>This page rolls up saved games and local lineups.</p>
         <table>
           <thead>
             <tr>
               <th>Player</th>
-              <th>Total Sit Outs</th>
-              <th>Batting Order</th>
-              <th>Positions Played</th>
+              <th>Fld</th>
+              <th>Out</th>
+              <th>P</th>
+              <th>C</th>
+              <th>1B</th>
+              <th>2B</th>
+              <th>3B</th>
+              <th>SS</th>
+              <th>LF</th>
+              <th>CF</th>
+              <th>RF</th>
             </tr>
           </thead>
           <tbody>
-            {seasonRows.map((row) => (
-              <tr key={row.name}>
-                <td>{row.name}</td>
-                <td>{row.sitOuts}</td>
-                <td>{row.battingOrderAvg}</td>
-                <td>{row.positionsPlayed}</td>
+            {players.map((player) => (
+              <tr key={player.name}>
+                <td>{player.name}</td>
+                <td>{ytdTotals[player.name]?.totalField || 0}</td>
+                <td>{ytdTotals[player.name]?.Out || 0}</td>
+                {fieldPositions.map((pos) => (
+                  <td key={pos}>{ytdTotals[player.name]?.[pos] || 0}</td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -555,7 +844,7 @@ export default function App() {
             <button onClick={loadGames}>Reload from Database</button>
           </div>
 
-          {gamesError && <p className="error-text">Error: {gamesError}</p>}
+          {gamesError && <p style={{ color: '#b91c1c' }}>Error: {gamesError}</p>}
           {gamesLoading && <p>Loading games...</p>}
 
           <div className="grid four-col">
@@ -579,37 +868,39 @@ export default function App() {
             </div>
 
             <div>
-              <label>Innings</label>
-              <select
-                value={newGameInnings}
-                onChange={(e) => setNewGameInnings(Number(e.target.value))}
-              >
-                <option value={6}>6</option>
-                <option value={7}>7</option>
-              </select>
+              <label>Status</label>
+              <div className="summary-box">Planned</div>
             </div>
 
             <div className="align-end">
-              <button onClick={addGame}>Add Game</button>
+              <button onClick={addGameFromGamesTab}>Add Game</button>
             </div>
           </div>
         </div>
 
-        <div className="card">
+        <div className="card" style={{ overflowX: 'auto' }}>
           <table>
             <thead>
               <tr>
+                <th>Use</th>
                 <th>Date</th>
                 <th>Opponent</th>
-                <th>Innings</th>
+                <th>Opt Inng</th>
                 <th>Status</th>
                 <th>Lineup</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {games.map((game) => (
+              {mergedGames.map((game) => (
                 <tr key={game.id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedGameIds.includes(String(game.id))}
+                      onChange={() => toggleSelectedGame(game.id)}
+                    />
+                  </td>
                   <td>
                     <input
                       type="date"
@@ -626,15 +917,18 @@ export default function App() {
                   </td>
                   <td>
                     <select
-                      value={game.innings}
-                      onChange={(e) => updateGameField(game.id, 'innings', Number(e.target.value))}
+                      value={game.plannedInnings}
+                      onChange={(e) => updateOptimizerInnings(game.id, Number(e.target.value))}
                     >
-                      <option value={6}>6</option>
-                      <option value={7}>7</option>
+                      {[4, 5, 6, 7].map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
                     </select>
                   </td>
                   <td>{game.status}</td>
-                  <td>{game.lineup ? 'Local Only' : 'Empty'}</td>
+                  <td>{game.lineup ? 'Saved' : 'Empty'}</td>
                   <td>
                     <div className="button-row">
                       <button onClick={() => openGame(game.id)}>Go to Game</button>
@@ -648,9 +942,9 @@ export default function App() {
                   </td>
                 </tr>
               ))}
-              {!games.length && !gamesLoading && (
+              {!mergedGames.length && !gamesLoading && (
                 <tr>
-                  <td colSpan="6">No games found for this team yet.</td>
+                  <td colSpan="7">No games found for this team yet.</td>
                 </tr>
               )}
             </tbody>
@@ -660,128 +954,36 @@ export default function App() {
     )
   }
 
-  function renderGameDetailPage() {
-    if (!selectedGame) {
-      return (
-        <div className="card">
-          <h2>Game Detail</h2>
-          <p>Select a game from the Games page.</p>
-        </div>
-      )
-    }
-
-    if (!selectedGame.lineup) {
-      return (
-        <div className="stack">
-          <div className="card">
-            <div className="row-between">
-              <div>
-                <h2>
-                  {selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
-                </h2>
-                <p>
-                  Status: <strong>{selectedGame.status}</strong> | Innings:{' '}
-                  <strong>{selectedGame.innings}</strong>
-                </p>
-              </div>
-              <button className="no-print" onClick={() => setPage('games')}>
-                Back to Games
-              </button>
-            </div>
-            <p>No lineup saved yet. Use the Optimizer and save into this game.</p>
-          </div>
-        </div>
-      )
-    }
-
-    const game = selectedGame
-
+  function renderSummaryTable(title, totals) {
     return (
-      <div className="stack">
-        <div className="card no-print">
-          <div className="row-between">
-            <div>
-              <h2>
-                {game.date || 'No Date'} vs {game.opponent || 'Opponent'}
-              </h2>
-              <p>
-                Status: <strong>{game.status}</strong> | Innings: <strong>{game.innings}</strong>
-              </p>
-              <p>
-                Pitcher: <strong>{game.lineup.pitcher}</strong> | Catcher:{' '}
-                <strong>{game.lineup.catcher}</strong> | Players Available:{' '}
-                <strong>{game.lineup.availablePlayers.length}</strong>
-              </p>
-            </div>
-
-            <div className="button-row">
-              <button onClick={() => setPage('games')}>Back to Games</button>
-              <button onClick={() => recalculateGameSitOuts(game.id)}>Recalculate Sit-Outs</button>
-              <button onClick={() => window.print()}>Print Lineup</button>
-            </div>
-          </div>
-        </div>
-
-        <div className="card print-card">
-          <h2>
-            Thunder Lineup - {game.date || 'No Date'} vs {game.opponent || 'Opponent'}
-          </h2>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Inning</th>
-                {positions.map((pos) => (
-                  <th key={pos}>{pos}</th>
-                ))}
-                <th>Sit</th>
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <h3>{title}</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Fld</th>
+              <th>Out</th>
+              <th>P</th>
+              <th>C</th>
+              <th>SS</th>
+              <th>CF</th>
+            </tr>
+          </thead>
+          <tbody>
+            {players.map((player) => (
+              <tr key={player.name}>
+                <td>{player.name}</td>
+                <td>{totals[player.name]?.totalField || 0}</td>
+                <td>{totals[player.name]?.Out || 0}</td>
+                <td>{totals[player.name]?.P || 0}</td>
+                <td>{totals[player.name]?.C || 0}</td>
+                <td>{totals[player.name]?.SS || 0}</td>
+                <td>{totals[player.name]?.CF || 0}</td>
               </tr>
-            </thead>
-            <tbody>
-              {game.lineup.assignments.map((inningRow) => (
-                <tr key={inningRow.inning}>
-                  <td>{inningRow.inning}</td>
-                  {positions.map((pos) => (
-                    <td key={pos}>
-                      <select
-                        value={inningRow.positions[pos] || ''}
-                        onChange={(e) =>
-                          updateGameAssignment(game.id, inningRow.inning, pos, e.target.value)
-                        }
-                      >
-                        <option value="">--</option>
-                        {players.map((p) => (
-                          <option key={p.name} value={p.name}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                  ))}
-                  <td>{inningRow.sit.join(', ')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <h3>Sit-Out Summary</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Sit Outs</th>
-              </tr>
-            </thead>
-            <tbody>
-              {players.map((player) => (
-                <tr key={player.name}>
-                  <td>{player.name}</td>
-                  <td>{game.lineup.sitCounts?.[player.name] || 0}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
     )
   }
@@ -794,51 +996,47 @@ export default function App() {
 
           <div className="grid four-col">
             <div>
-              <label>Innings</label>
-              <select value={innings} onChange={(e) => setInnings(Number(e.target.value))}>
-                <option value={6}>6</option>
-                <option value={7}>7</option>
-              </select>
+              <label>New Game Date</label>
+              <input
+                type="date"
+                value={optimizerNewGameDate}
+                onChange={(e) => setOptimizerNewGameDate(e.target.value)}
+              />
             </div>
-
             <div>
-              <label>Pitcher</label>
-              <select value={pitcher} onChange={(e) => setPitcher(e.target.value)}>
-                {players.map((p) => (
-                  <option key={p.name} value={p.name}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              <label>New Game Opponent</label>
+              <input
+                type="text"
+                value={optimizerNewGameOpponent}
+                onChange={(e) => setOptimizerNewGameOpponent(e.target.value)}
+                placeholder="Opponent name"
+              />
             </div>
-
             <div>
-              <label>Catcher</label>
-              <select value={catcher} onChange={(e) => setCatcher(e.target.value)}>
-                {players.map((p) => (
-                  <option key={p.name} value={p.name}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              <label>Add Game Here</label>
+              <div className="summary-box">Create directly from optimizer</div>
             </div>
+            <div className="align-end">
+              <button onClick={addGameFromOptimizer}>Add Game</button>
+            </div>
+          </div>
+        </div>
 
-            <div>
-              <label>Save Into Game</label>
-              <select
-                value={selectedGameId || ''}
-                onChange={(e) => setSelectedGameId(e.target.value)}
-              >
-                <option value="">Select game</option>
-                {games
-                  .filter((game) => game.status !== 'Cancelled')
-                  .map((game) => (
-                    <option key={game.id} value={game.id}>
-                      {game.date || 'No Date'} vs {game.opponent || 'Opponent'}
-                    </option>
-                  ))}
-              </select>
-            </div>
+        <div className="card">
+          <h3>Games to Optimize</h3>
+          <div className="checkbox-grid">
+            {mergedGames
+              .filter((game) => game.status !== 'Cancelled')
+              .map((game) => (
+                <label key={game.id} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={selectedGameIds.includes(String(game.id))}
+                    onChange={() => toggleSelectedGame(game.id)}
+                  />
+                  {game.date || 'No Date'} vs {game.opponent || 'Opponent'} ({game.plannedInnings} inn)
+                </label>
+              ))}
           </div>
 
           <h3>Available Players</h3>
@@ -856,42 +1054,255 @@ export default function App() {
           </div>
 
           <p>
-            Players available: <strong>{availablePlayers.length}</strong> | Required sit-out innings:{' '}
-            <strong>{sitRequired}</strong>
+            Selected games: <strong>{selectedGames.length}</strong> | Available players:{' '}
+            <strong>{availableNames.length}</strong> | Required sit-out innings:{' '}
+            <strong>
+              {selectedGames.reduce(
+                (sum, game) => sum + requiredSitOuts(availableNames.length, game.plannedInnings),
+                0
+              )}
+            </strong>
           </p>
-
-          <div className="button-row">
-            <button
-              onClick={() => {
-                if (selectedGameId) saveToGame(selectedGameId)
-              }}
-            >
-              Save to Selected Game
-            </button>
-            <button onClick={() => setPage('games')}>Go to Games Page</button>
-          </div>
         </div>
 
         <div className="card">
-          <h2>Optimized Preview</h2>
+          <h3>Locks</h3>
+          <div className="grid four-col">
+            <div>
+              <label>Game</label>
+              <select value={newLockGameId} onChange={(e) => setNewLockGameId(e.target.value)}>
+                <option value="">Select game</option>
+                {mergedGames
+                  .filter((game) => game.status !== 'Cancelled')
+                  .map((game) => (
+                    <option key={game.id} value={String(game.id)}>
+                      {game.date || 'No Date'} vs {game.opponent || 'Opponent'}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div>
+              <label>Player</label>
+              <select value={newLockPlayer} onChange={(e) => setNewLockPlayer(e.target.value)}>
+                {rosterPlayers.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label>Position</label>
+              <select value={newLockPosition} onChange={(e) => setNewLockPosition(e.target.value)}>
+                {lockablePositions.map((pos) => (
+                  <option key={pos} value={pos}>
+                    {pos}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label>Start / End</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <select value={newLockStartInning} onChange={(e) => setNewLockStartInning(Number(e.target.value))}>
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+                <select value={newLockEndInning} onChange={(e) => setNewLockEndInning(Number(e.target.value))}>
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="button-row" style={{ marginTop: 12 }}>
+            <button onClick={addLock}>Add Lock</button>
+            <button onClick={saveOptimizedLineupsToGames}>Save / Overwrite Selected Lineups</button>
+          </div>
+
+          <div style={{ marginTop: 16, overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Game</th>
+                  <th>Player</th>
+                  <th>Position</th>
+                  <th>Innings</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {locks.map((lock) => {
+                  const game = mergedGames.find((g) => String(g.id) === String(lock.gameId))
+                  return (
+                    <tr key={lock.id}>
+                      <td>{game ? `${game.date || 'No Date'} vs ${game.opponent || 'Opponent'}` : lock.gameId}</td>
+                      <td>{lock.player}</td>
+                      <td>{lock.position}</td>
+                      <td>
+                        {lock.startInning}-{lock.endInning}
+                      </td>
+                      <td>
+                        <button onClick={() => removeLock(lock.id)}>Remove</button>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {!locks.length && (
+                  <tr>
+                    <td colSpan="5">No locks added yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {renderSummaryTable('YTD Before', ytdBeforeTotals)}
+        {renderSummaryTable(`Current Plan (${selectedGames.length} game${selectedGames.length === 1 ? '' : 's'})`, currentPlanTotals)}
+        {renderSummaryTable('YTD After', ytdAfterTotals)}
+      </div>
+    )
+  }
+
+  function renderGameDetailPage() {
+    if (!selectedGame) {
+      return (
+        <div className="card">
+          <h2>Game Detail</h2>
+          <p>Select a game from the Games page.</p>
+        </div>
+      )
+    }
+
+    if (!selectedGame.lineup) {
+      return (
+        <div className="card">
+          <div className="row-between">
+            <div>
+              <h2>
+                {selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
+              </h2>
+              <p>Status: <strong>{selectedGame.status}</strong></p>
+            </div>
+            <button className="no-print" onClick={() => setPage('games')}>
+              Back to Games
+            </button>
+          </div>
+          <p>No lineup saved yet. Use the Optimizer and save into this game.</p>
+        </div>
+      )
+    }
+
+    const outCount = maxOutCount(selectedGame.lineup)
+    const outColumns = Array.from({ length: outCount }, (_, i) => `Out${i + 1}`)
+
+    return (
+      <div className="stack">
+        <div className="card no-print">
+          <div className="row-between">
+            <div>
+              <h2>
+                {selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
+              </h2>
+              <p>
+                Status: <strong>{selectedGame.status}</strong> | Innings:{' '}
+                <strong>{selectedGame.lineup.assignments.length}</strong>
+              </p>
+            </div>
+
+            <div className="button-row">
+              <button onClick={() => setPage('games')}>Back to Games</button>
+              <button onClick={() => removeLastInning(selectedGame.id)}>Remove Last Inning</button>
+              <button onClick={() => window.print()}>Print Lineup</button>
+            </div>
+          </div>
+
+          <div className="button-row" style={{ marginTop: 12 }}>
+            <select
+              value={removeInningChoice}
+              onChange={(e) => setRemoveInningChoice(Number(e.target.value))}
+              style={{ maxWidth: 140 }}
+            >
+              {selectedGame.lineup.assignments.map((inning) => (
+                <option key={inning.inning} value={inning.inning}>
+                  Inning {inning.inning}
+                </option>
+              ))}
+            </select>
+            <button onClick={() => removeSpecificInning(selectedGame.id, removeInningChoice)}>
+              Remove Selected Inning
+            </button>
+          </div>
+        </div>
+
+        <div className="card print-card" style={{ overflowX: 'auto' }}>
+          <h2>
+            Thunder Lineup - {selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
+          </h2>
+
           <table>
             <thead>
               <tr>
                 <th>Inning</th>
-                {positions.map((pos) => (
+                {fieldPositions.map((pos) => (
                   <th key={pos}>{pos}</th>
                 ))}
-                <th>Sit</th>
+                {outColumns.map((pos) => (
+                  <th key={pos}>{pos}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {optimized.assignments.map((inningRow) => (
+              {selectedGame.lineup.assignments.map((inningRow) => (
                 <tr key={inningRow.inning}>
                   <td>{inningRow.inning}</td>
-                  {positions.map((pos) => (
-                    <td key={pos}>{inningRow.positions[pos] || ''}</td>
+
+                  {fieldPositions.map((pos) => (
+                    <td key={pos}>
+                      <select
+                        value={inningRow.positions[pos] || ''}
+                        onChange={(e) =>
+                          updateGameAssignment(selectedGame.id, inningRow.inning, pos, e.target.value)
+                        }
+                      >
+                        <option value="">--</option>
+                        {rosterPlayers.map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                   ))}
-                  <td>{inningRow.sit.join(', ')}</td>
+
+                  {outColumns.map((outKey) => (
+                    <td key={outKey}>
+                      <select
+                        value={inningRow.positions[outKey] || ''}
+                        onChange={(e) =>
+                          updateGameAssignment(selectedGame.id, inningRow.inning, outKey, e.target.value)
+                        }
+                      >
+                        <option value="">--</option>
+                        {rosterPlayers.map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
@@ -908,7 +1319,7 @@ export default function App() {
         <div className="nav-stack">
           {renderNavButton('players', 'Players')}
           {renderNavButton('attendance', 'Attendance')}
-          {renderNavButton('depth', 'Depth Chart')}
+          {renderNavButton('targets', 'Targets')}
           {renderNavButton('games', 'Games')}
           {renderNavButton('optimizer', 'Optimizer')}
           {renderNavButton('game-detail', 'Game Detail')}
@@ -919,7 +1330,7 @@ export default function App() {
       <main className="main-content">
         {page === 'players' && renderPlayersPage()}
         {page === 'attendance' && renderAttendancePage()}
-        {page === 'depth' && renderDepthChartPage()}
+        {page === 'targets' && renderTargetsPage()}
         {page === 'games' && renderGamesPage()}
         {page === 'optimizer' && renderOptimizerPage()}
         {page === 'game-detail' && renderGameDetailPage()}
