@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase'
 
+function dbReady() {
+  return Boolean(supabase)
+}
+
 const TEAM_ID = 'f76ea5a1-7c44-4789-bfbd-9771edd54f10'
 
 const FIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
