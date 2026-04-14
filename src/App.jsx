@@ -140,6 +140,10 @@ function rowSummary(lineup, playerId) {
   return result
 }
 
+function requiredOutsForGame(playerCount, innings) {
+  return Math.max(0, playerCount - 9) * innings
+}
+
 function computeTotals(lineups, players) {
   const totals = {}
 
