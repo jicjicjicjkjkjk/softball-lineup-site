@@ -334,6 +334,7 @@ function lastOutDistance(lineup, playerId, inning) {
   return distance
 }
 
+
 function optimizeGame({
   game,
   players,
@@ -383,15 +384,66 @@ function optimizeGame({
       })
       if (alreadyAssigned) return
 
-      const candidates = players
+        const candidates = players
         .filter((player) => availablePlayerIds.includes(pk(player.id)))
         .filter((player) => !usedPlayers.has(pk(player.id)))
         .filter((player) => fitTier(fitMap, player.id, position) !== 'no')
         .sort((a, b) => {
-          .sort((a, b) => {
-  const aId = pk(a.id)
-  const bId = pk(b.id)
+          const aId = pk(a.id)
+          const bId = pk(b.id)
 
+          const fitDiff =
+            fitRank(fitTier(fitMap, a.id, position)) -
+            fitRank(fitTier(fitMap, b.id, position))
+          if (fitDiff !== 0) return fitDiff
+
+          const aGameOuts = currentGameOutCount(lineup, aId)
+          const bGameOuts = currentGameOutCount(lineup, bId)
+          if (aGameOuts !== bGameOuts) return bGameOuts - aGameOuts
+
+          const aSpacing = spacingPenalty(lineup, aId, inning)
+          const bSpacing = spacingPenalty(lineup, bId, inning)
+          if (aSpacing !== bSpacing) return aSpacing - bSpacing
+
+          const aDelta = rollingTotals[aId]?.delta || 0
+          const bDelta = rollingTotals[bId]?.delta || 0
+          if (aDelta !== bDelta) return bDelta - aDelta
+
+          const aTarget = priorityValue(priorityMap, a.id, position)
+          const bTarget = priorityValue(priorityMap, b.id, position)
+
+          const aActualCount =
+            ['LF', 'CF', 'RF'].includes(position)
+              ? rollingTotals[aId]?.OF || 0
+              : rollingTotals[aId]?.[position] || 0
+          const bActualCount =
+            ['LF', 'CF', 'RF'].includes(position)
+              ? rollingTotals[bId]?.OF || 0
+              : rollingTotals[bId]?.[position] || 0
+
+          const aField = Math.max(rollingTotals[aId]?.fieldTotal || 0, 1)
+          const bField = Math.max(rollingTotals[bId]?.fieldTotal || 0, 1)
+
+          const aActualPct = (aActualCount / aField) * 100
+          const bActualPct = (bActualCount / bField) * 100
+
+          const aGap = aTarget - aActualPct
+          const bGap = bTarget - bActualPct
+          if (aGap !== bGap) return bGap - aGap
+
+          const aDepth = depthScore(a.name, position)
+          const bDepth = depthScore(b.name, position)
+          if (aDepth !== bDepth) return aDepth - bDepth
+
+          return String(a.name || '').localeCompare(String(b.name || ''))
+        })
+
+      const selected = candidates[0]
+      if (!selected) return
+
+      lineup.cells[pk(selected.id)][inning] = position
+      usedPlayers.add(pk(selected.id))
+      
   const fitDiff =
     fitRank(fitTier(fitMap, a.id, position)) -
     fitRank(fitTier(fitMap, b.id, position))
