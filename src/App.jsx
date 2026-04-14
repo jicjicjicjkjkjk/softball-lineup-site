@@ -2,31 +2,28 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase'
 
 const TEAM_ID = 'f76ea5a1-7c44-4789-bfbd-9771edd54f10'
-const LOCAL_KEY = 'thunder-lineup-local-v3'
 
-const rosterPlayers = [
-  'Alanna',
-  'Maggie',
-  'Brooke',
-  'Emily',
-  'Josie',
-  'Lucie',
-  'Delaney',
-  'Bella',
-  'Bridget',
-  'Elena',
-  'Lily',
-  'Molly',
-  'Sub 1',
-  'Sub 2',
-  'Sub 3',
+const fallbackPlayers = [
+  { name: 'Alanna', jersey_number: '1', active: true },
+  { name: 'Maggie', jersey_number: '2', active: true },
+  { name: 'Brooke', jersey_number: '3', active: true },
+  { name: 'Emily', jersey_number: '4', active: true },
+  { name: 'Josie', jersey_number: '5', active: true },
+  { name: 'Lucie', jersey_number: '6', active: true },
+  { name: 'Delaney', jersey_number: '7', active: true },
+  { name: 'Bella', jersey_number: '8', active: true },
+  { name: 'Bridget', jersey_number: '9', active: true },
+  { name: 'Elena', jersey_number: '10', active: true },
+  { name: 'Lily', jersey_number: '11', active: true },
+  { name: 'Molly', jersey_number: '12', active: true },
+  { name: 'Sub 1', jersey_number: 'S1', active: true },
+  { name: 'Sub 2', jersey_number: 'S2', active: true },
+  { name: 'Sub 3', jersey_number: 'S3', active: true },
 ]
 
-const players = rosterPlayers.map((name, index) => ({ id: index + 1, name }))
-
 const fieldPositions = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
-const lockablePositions = [...fieldPositions, 'Out']
-const trackedPositions = [...fieldPositions, 'Out']
+const positionOptions = ['', 'P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'Out', 'Injury']
+const targetColumns = ['P', 'C', 'IF', 'OF', 'CF', 'Out']
 
 const initialDepth = {
   P: ['Emily', 'Josie', 'Molly', 'Sub 1', 'Sub 2', 'Sub 3'],
@@ -40,415 +37,699 @@ const initialDepth = {
   RF: ['Molly', 'Lucie', 'Bella', 'Sub 1', 'Sub 2', 'Sub 3'],
 }
 
-const attendanceSeed = [
-  { date: '2026-04-15', season: 'In Season', type: 'Game', title: 'Game vs Wildcats' },
-  { date: '2026-04-17', season: 'In Season', type: 'Team Practice', title: 'Team Practice' },
-  { date: '2026-04-20', season: 'Optional', type: 'Stoppers Indoor', title: 'Indoor Work' },
-]
-
-function emptyTotals() {
-  const totals = {}
-  rosterPlayers.forEach((name) => {
-    totals[name] = {
-      totalField: 0,
-      Out: 0,
-      sitOuts: 0,
-      totalTracked: 0,
-    }
-    trackedPositions.forEach((pos) => {
-      totals[name][pos] = 0
-    })
-  })
-  return totals
-}
-
-function cloneTotals(source) {
-  return JSON.parse(JSON.stringify(source))
-}
-
-function addLineupToTotals(totals, lineup) {
-  if (!lineup?.assignments) return totals
-
-  lineup.assignments.forEach((inning) => {
-    Object.entries(inning.positions || {}).forEach(([positionKey, playerName]) => {
-      if (!playerName || !totals[playerName]) return
-
-      if (positionKey.startsWith('Out')) {
-        totals[playerName].Out += 1
-        totals[playerName].sitOuts += 1
-        totals[playerName].totalTracked += 1
-      } else if (trackedPositions.includes(positionKey)) {
-        totals[playerName][positionKey] += 1
-        totals[playerName].totalField += 1
-        totals[playerName].totalTracked += 1
-      }
-    })
-  })
-
-  return totals
-}
-
-function sumLineups(lineups) {
-  const totals = emptyTotals()
-  lineups.forEach((lineup) => addLineupToTotals(totals, lineup))
-  return totals
-}
-
-function addTotals(a, b) {
-  const merged = emptyTotals()
-  rosterPlayers.forEach((name) => {
-    trackedPositions.forEach((pos) => {
-      merged[name][pos] = (a[name]?.[pos] || 0) + (b[name]?.[pos] || 0)
-    })
-    merged[name].Out = (a[name]?.Out || 0) + (b[name]?.Out || 0)
-    merged[name].sitOuts = (a[name]?.sitOuts || 0) + (b[name]?.sitOuts || 0)
-    merged[name].totalField = (a[name]?.totalField || 0) + (b[name]?.totalField || 0)
-    merged[name].totalTracked = (a[name]?.totalTracked || 0) + (b[name]?.totalTracked || 0)
-  })
-  return merged
-}
-
-function requiredSitOuts(playerCount, innings) {
-  return Math.max(0, playerCount - 9) * innings
-}
-
 function safeSupabaseReady() {
   return Boolean(supabase)
 }
 
-function mapDbGame(row) {
-  return {
-    id: row.id,
-    date: row.game_date || '',
-    opponent: row.opponent || '',
-    status: row.status || 'Planned',
-    notes: row.notes || '',
-  }
+function sortRows(rows, sortConfig) {
+  const { key, direction } = sortConfig
+  if (!key) return rows
+
+  const multiplier = direction === 'asc' ? 1 : -1
+
+  return [...rows].sort((a, b) => {
+    const av = a[key]
+    const bv = b[key]
+
+    const aNum = Number(av)
+    const bNum = Number(bv)
+
+    if (!Number.isNaN(aNum) && !Number.isNaN(bNum) && String(av).trim() !== '' && String(bv).trim() !== '') {
+      return (aNum - bNum) * multiplier
+    }
+
+    return String(av ?? '').localeCompare(String(bv ?? '')) * multiplier
+  })
 }
 
-function readLocalState() {
-  try {
-    const raw = localStorage.getItem(LOCAL_KEY)
-    if (!raw) {
-      return {
-        lineupsByGame: {},
-        optimizerSettingsByGame: {},
-        locks: [],
-        targetPercentages: {},
-      }
-    }
-    return {
-      lineupsByGame: {},
-      optimizerSettingsByGame: {},
-      locks: [],
-      targetPercentages: {},
-      ...JSON.parse(raw),
-    }
-  } catch {
-    return {
-      lineupsByGame: {},
-      optimizerSettingsByGame: {},
-      locks: [],
-      targetPercentages: {},
-    }
-  }
+function nextSort(current, key) {
+  if (current.key !== key) return { key, direction: 'asc' }
+  return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
 }
 
-function buildInningLockIndex(locksForGame) {
-  const index = {}
-  locksForGame.forEach((lock) => {
-    for (let inning = lock.startInning; inning <= lock.endInning; inning += 1) {
-      const key = `${inning}-${lock.position}`
-      index[key] = lock.player
+function blankLineup(playerIds, innings) {
+  const cells = {}
+  const battingOrder = {}
+
+  playerIds.forEach((id) => {
+    const key = String(id)
+    cells[key] = {}
+    battingOrder[key] = ''
+    for (let inning = 1; inning <= innings; inning += 1) {
+      cells[key][inning] = ''
     }
   })
-  return index
-}
-
-function positionRank(name, pos) {
-  const list = initialDepth[pos] || []
-  const idx = list.indexOf(name)
-  return idx === -1 ? 999 : idx
-}
-
-function optimizeGame({ innings, availableNames, locksForGame, baseTotals }) {
-  const runningTotals = cloneTotals(baseTotals)
-  const lockIndex = buildInningLockIndex(locksForGame)
-  const assignments = []
-
-  for (let inning = 1; inning <= innings; inning += 1) {
-    const positions = {}
-    const used = new Set()
-
-    const lockedOutPlayers = []
-
-    fieldPositions.forEach((pos) => {
-      const lockedPlayer = lockIndex[`${inning}-${pos}`]
-      if (lockedPlayer && availableNames.includes(lockedPlayer)) {
-        positions[pos] = lockedPlayer
-        used.add(lockedPlayer)
-      }
-    })
-
-    const genericOutPlayer = lockIndex[`${inning}-Out`]
-    if (genericOutPlayer && availableNames.includes(genericOutPlayer)) {
-      lockedOutPlayers.push(genericOutPlayer)
-      used.add(genericOutPlayer)
-    }
-
-    fieldPositions.forEach((pos) => {
-      if (positions[pos]) return
-
-      const candidates = availableNames
-        .filter((name) => !used.has(name))
-        .sort((a, b) => {
-          const rankDiff = positionRank(a, pos) - positionRank(b, pos)
-          if (rankDiff !== 0) return rankDiff
-
-          const posCountDiff = (runningTotals[a]?.[pos] || 0) - (runningTotals[b]?.[pos] || 0)
-          if (posCountDiff !== 0) return posCountDiff
-
-          return (runningTotals[a]?.totalField || 0) - (runningTotals[b]?.totalField || 0)
-        })
-
-      const selected = candidates[0]
-      if (selected) {
-        positions[pos] = selected
-        used.add(selected)
-      }
-    })
-
-    const remaining = availableNames.filter((name) => !used.has(name))
-
-    const sortedOutPlayers = [
-      ...lockedOutPlayers.filter((name, index, arr) => arr.indexOf(name) === index),
-      ...remaining.sort((a, b) => {
-        const outDiff = (runningTotals[a]?.Out || 0) - (runningTotals[b]?.Out || 0)
-        if (outDiff !== 0) return outDiff
-
-        return (runningTotals[b]?.totalField || 0) - (runningTotals[a]?.totalField || 0)
-      }),
-    ]
-
-    sortedOutPlayers.forEach((playerName, index) => {
-      positions[`Out${index + 1}`] = playerName
-    })
-
-    const row = { inning, positions }
-    assignments.push(row)
-    addLineupToTotals(runningTotals, { assignments: [row] })
-  }
 
   return {
     innings,
-    assignments,
+    availablePlayerIds: playerIds.map(String),
+    battingOrder,
+    cells,
   }
+}
+
+function normalizeLineup(lineup, playerIds, innings) {
+  const normalized = lineup
+    ? {
+        innings: lineup.innings || innings,
+        availablePlayerIds: (lineup.availablePlayerIds || playerIds).map(String),
+        battingOrder: { ...(lineup.battingOrder || {}) },
+        cells: { ...(lineup.cells || {}) },
+      }
+    : blankLineup(playerIds, innings)
+
+  playerIds.forEach((id) => {
+    const key = String(id)
+    if (!normalized.cells[key]) normalized.cells[key] = {}
+    if (normalized.battingOrder[key] === undefined) normalized.battingOrder[key] = ''
+    for (let inning = 1; inning <= normalized.innings; inning += 1) {
+      if (normalized.cells[key][inning] === undefined) normalized.cells[key][inning] = ''
+    }
+  })
+
+  Object.keys(normalized.cells).forEach((playerId) => {
+    for (let inning = 1; inning <= normalized.innings; inning += 1) {
+      if (normalized.cells[playerId][inning] === undefined) normalized.cells[playerId][inning] = ''
+    }
+  })
+
+  return normalized
+}
+
+function gameRowSummary(lineup, playerId) {
+  const row = {
+    IF: 0,
+    OF: 0,
+    P: 0,
+    C: 0,
+    Out: 0,
+    Injury: 0,
+  }
+
+  if (!lineup?.cells?.[playerId]) return row
+
+  Object.values(lineup.cells[playerId]).forEach((value) => {
+    if (['1B', '2B', '3B', 'SS'].includes(value)) row.IF += 1
+    if (['LF', 'RF'].includes(value)) row.OF += 1
+    if (value === 'CF') row.OF += 1
+    if (value === 'P') row.P += 1
+    if (value === 'C') row.C += 1
+    if (value === 'Out') row.Out += 1
+    if (value === 'Injury') row.Injury += 1
+  })
+
+  return row
+}
+
+function computeLineupTotals(lineups, players) {
+  const totals = {}
+
+  players.forEach((player) => {
+    totals[String(player.id)] = {
+      playerId: String(player.id),
+      name: player.name,
+      jersey_number: player.jersey_number || '',
+      P: 0,
+      C: 0,
+      '1B': 0,
+      '2B': 0,
+      '3B': 0,
+      SS: 0,
+      LF: 0,
+      CF: 0,
+      RF: 0,
+      IF: 0,
+      OF: 0,
+      Out: 0,
+      Injury: 0,
+      fieldTotal: 0,
+      expectedOuts: 0,
+      actualOuts: 0,
+      delta: 0,
+    }
+  })
+
+  lineups.forEach((lineup) => {
+    if (!lineup) return
+
+    const availableIds = (lineup.availablePlayerIds || []).map(String)
+
+    for (let inning = 1; inning <= (lineup.innings || 0); inning += 1) {
+      const eligibleIds = availableIds.filter((playerId) => {
+        const value = lineup.cells?.[playerId]?.[inning] || ''
+        return value !== 'Injury'
+      })
+
+      const requiredOuts = Math.max(0, eligibleIds.length - 9)
+      const expectedShare = eligibleIds.length ? requiredOuts / eligibleIds.length : 0
+
+      availableIds.forEach((playerId) => {
+        const value = lineup.cells?.[playerId]?.[inning] || ''
+        if (!totals[playerId]) return
+
+        if (value === 'Injury') {
+          totals[playerId].Injury += 1
+          return
+        }
+
+        if (eligibleIds.includes(playerId)) {
+          totals[playerId].expectedOuts += expectedShare
+        }
+
+        if (value === 'Out') {
+          totals[playerId].Out += 1
+          totals[playerId].actualOuts += 1
+        }
+
+        if (fieldPositions.includes(value)) {
+          totals[playerId][value] += 1
+          totals[playerId].fieldTotal += 1
+        }
+
+        if (['1B', '2B', '3B', 'SS'].includes(value)) totals[playerId].IF += 1
+        if (['LF', 'RF', 'CF'].includes(value)) totals[playerId].OF += 1
+      })
+    }
+  })
+
+  Object.values(totals).forEach((row) => {
+    row.delta = Number((row.actualOuts - row.expectedOuts).toFixed(2))
+    row.expectedOuts = Number(row.expectedOuts.toFixed(2))
+  })
+
+  return totals
+}
+
+function addTotals(a, b, players) {
+  const merged = {}
+
+  players.forEach((player) => {
+    const key = String(player.id)
+    merged[key] = {
+      playerId: key,
+      name: player.name,
+      jersey_number: player.jersey_number || '',
+      P: (a[key]?.P || 0) + (b[key]?.P || 0),
+      C: (a[key]?.C || 0) + (b[key]?.C || 0),
+      '1B': (a[key]?.['1B'] || 0) + (b[key]?.['1B'] || 0),
+      '2B': (a[key]?.['2B'] || 0) + (b[key]?.['2B'] || 0),
+      '3B': (a[key]?.['3B'] || 0) + (b[key]?.['3B'] || 0),
+      SS: (a[key]?.SS || 0) + (b[key]?.SS || 0),
+      LF: (a[key]?.LF || 0) + (b[key]?.LF || 0),
+      CF: (a[key]?.CF || 0) + (b[key]?.CF || 0),
+      RF: (a[key]?.RF || 0) + (b[key]?.RF || 0),
+      IF: (a[key]?.IF || 0) + (b[key]?.IF || 0),
+      OF: (a[key]?.OF || 0) + (b[key]?.OF || 0),
+      Out: (a[key]?.Out || 0) + (b[key]?.Out || 0),
+      Injury: (a[key]?.Injury || 0) + (b[key]?.Injury || 0),
+      fieldTotal: (a[key]?.fieldTotal || 0) + (b[key]?.fieldTotal || 0),
+      expectedOuts: Number(((a[key]?.expectedOuts || 0) + (b[key]?.expectedOuts || 0)).toFixed(2)),
+      actualOuts: (a[key]?.actualOuts || 0) + (b[key]?.actualOuts || 0),
+      delta: Number(((a[key]?.delta || 0) + (b[key]?.delta || 0)).toFixed(2)),
+    }
+  })
+
+  return merged
+}
+
+function requiredOutsForGame(playerCount, innings) {
+  return Math.max(0, playerCount - 9) * innings
+}
+
+function depthRank(name, position) {
+  const rank = initialDepth[position] || []
+  const idx = rank.indexOf(name)
+  return idx === -1 ? 999 : idx
+}
+
+function optimizeLineup({ players, availablePlayerIds, innings, locks, ytdTotals, existingLineup }) {
+  const lineup = normalizeLineup(existingLineup, players.map((p) => p.id), innings)
+  lineup.availablePlayerIds = availablePlayerIds.map(String)
+  lineup.innings = innings
+
+  players.forEach((player) => {
+    const playerId = String(player.id)
+    for (let inning = 1; inning <= innings; inning += 1) {
+      lineup.cells[playerId][inning] = ''
+    }
+  })
+
+  for (let inning = 1; inning <= innings; inning += 1) {
+    const availablePlayers = players.filter((p) => availablePlayerIds.includes(String(p.id)))
+    const used = new Set()
+
+    const inningLocks = locks.filter(
+      (lock) =>
+        inning >= Number(lock.startInning) &&
+        inning <= Number(lock.endInning)
+    )
+
+    inningLocks.forEach((lock) => {
+      const playerId = String(lock.playerId)
+      if (!availablePlayerIds.includes(playerId)) return
+      if (!lineup.cells[playerId]) return
+
+      lineup.cells[playerId][inning] = lock.position
+      used.add(playerId)
+    })
+
+    fieldPositions.forEach((position) => {
+      const alreadyAssigned = availablePlayers.find(
+        (p) => lineup.cells[String(p.id)][inning] === position
+      )
+      if (alreadyAssigned) return
+
+      const candidates = availablePlayers
+        .filter((p) => !used.has(String(p.id)))
+        .sort((a, b) => {
+          const rankDiff = depthRank(a.name, position) - depthRank(b.name, position)
+          if (rankDiff !== 0) return rankDiff
+
+          const aTotal = ytdTotals[String(a.id)]?.[position] || 0
+          const bTotal = ytdTotals[String(b.id)]?.[position] || 0
+          return aTotal - bTotal
+        })
+
+      const selected = candidates[0]
+      if (!selected) return
+
+      lineup.cells[String(selected.id)][inning] = position
+      used.add(String(selected.id))
+    })
+
+    availablePlayers
+      .filter((p) => !used.has(String(p.id)))
+      .sort((a, b) => {
+        const aOut = ytdTotals[String(a.id)]?.Out || 0
+        const bOut = ytdTotals[String(b.id)]?.Out || 0
+        return aOut - bOut
+      })
+      .forEach((player) => {
+        lineup.cells[String(player.id)][inning] = 'Out'
+      })
+  }
+
+  return lineup
 }
 
 export default function App() {
   const [page, setPage] = useState('games')
-  const [selectedGameId, setSelectedGameId] = useState(null)
-
   const [games, setGames] = useState([])
-  const [gamesLoading, setGamesLoading] = useState(true)
-  const [gamesError, setGamesError] = useState('')
-
+  const [players, setPlayers] = useState([])
   const [lineupsByGame, setLineupsByGame] = useState({})
-  const [optimizerSettingsByGame, setOptimizerSettingsByGame] = useState({})
-  const [locks, setLocks] = useState([])
-  const [targetPercentages, setTargetPercentages] = useState({})
+  const [targetsByPlayer, setTargetsByPlayer] = useState({})
+  const [gamesError, setGamesError] = useState('')
+  const [loading, setLoading] = useState(true)
 
-  const [selectedGameIds, setSelectedGameIds] = useState([])
-  const [selectedPlayers, setSelectedPlayers] = useState(rosterPlayers)
+  const [selectedGameId, setSelectedGameId] = useState('')
+  const [optimizerGameId, setOptimizerGameId] = useState('')
 
   const [newGameDate, setNewGameDate] = useState('')
   const [newGameOpponent, setNewGameOpponent] = useState('')
+  const [optimizerNewDate, setOptimizerNewDate] = useState('')
+  const [optimizerNewOpponent, setOptimizerNewOpponent] = useState('')
 
-  const [optimizerNewGameDate, setOptimizerNewGameDate] = useState('')
-  const [optimizerNewGameOpponent, setOptimizerNewGameOpponent] = useState('')
+  const [newPlayerName, setNewPlayerName] = useState('')
+  const [newPlayerNumber, setNewPlayerNumber] = useState('')
+  const [newPlayerActive, setNewPlayerActive] = useState(true)
 
-  const [newLockGameId, setNewLockGameId] = useState('')
-  const [newLockPlayer, setNewLockPlayer] = useState(rosterPlayers[0])
-  const [newLockPosition, setNewLockPosition] = useState('P')
-  const [newLockStartInning, setNewLockStartInning] = useState(1)
-  const [newLockEndInning, setNewLockEndInning] = useState(1)
+  const [optimizerAvailableIds, setOptimizerAvailableIds] = useState([])
+  const [optimizerPreview, setOptimizerPreview] = useState(null)
 
-  const [removeInningChoice, setRemoveInningChoice] = useState(7)
+  const [lockPlayerId, setLockPlayerId] = useState('')
+  const [lockPosition, setLockPosition] = useState('P')
+  const [lockStart, setLockStart] = useState(1)
+  const [lockEnd, setLockEnd] = useState(1)
+  const [locksByGame, setLocksByGame] = useState({})
+
+  const [playerSort, setPlayerSort] = useState({ key: 'name', direction: 'asc' })
+  const [gameSort, setGameSort] = useState({ key: 'date', direction: 'asc' })
+  const [targetSort, setTargetSort] = useState({ key: 'name', direction: 'asc' })
+  const [trackingSort, setTrackingSort] = useState({ key: 'name', direction: 'asc' })
 
   useEffect(() => {
-    loadGames()
-    const local = readLocalState()
-    setLineupsByGame(local.lineupsByGame || {})
-    setOptimizerSettingsByGame(local.optimizerSettingsByGame || {})
-    setLocks(local.locks || [])
-    setTargetPercentages(local.targetPercentages || {})
+    loadAll()
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(
-      LOCAL_KEY,
-      JSON.stringify({
-        lineupsByGame,
-        optimizerSettingsByGame,
-        locks,
-        targetPercentages,
-      })
-    )
-  }, [lineupsByGame, optimizerSettingsByGame, locks, targetPercentages])
+    if (!optimizerGameId) return
+    const game = games.find((g) => String(g.id) === String(optimizerGameId))
+    if (!game) return
 
-  const mergedGames = useMemo(() => {
-    return games.map((game) => ({
-      ...game,
-      lineup: lineupsByGame[String(game.id)] || null,
-      plannedInnings: optimizerSettingsByGame[String(game.id)]?.innings || 6,
-    }))
-  }, [games, lineupsByGame, optimizerSettingsByGame])
-
-  const selectedGame = mergedGames.find((g) => String(g.id) === String(selectedGameId)) || null
-  const selectedGames = mergedGames.filter((g) => selectedGameIds.includes(String(g.id)))
-  const availableNames = selectedPlayers
-
-  useEffect(() => {
-    if (!selectedGameIds.length && mergedGames.length) {
-      setSelectedGameIds([String(mergedGames[0].id)])
-      setNewLockGameId(String(mergedGames[0].id))
+    const saved = lineupsByGame[String(game.id)]
+    if (saved?.availablePlayerIds?.length) {
+      setOptimizerAvailableIds(saved.availablePlayerIds.map(String))
+    } else {
+      setOptimizerAvailableIds(
+        players.filter((p) => p.active !== false).map((p) => String(p.id))
+      )
     }
-  }, [mergedGames, selectedGameIds.length])
+  }, [optimizerGameId, games, lineupsByGame, players])
+
+  const selectedGame = games.find((g) => String(g.id) === String(selectedGameId)) || null
+  const selectedGameLineup = selectedGame ? lineupsByGame[String(selectedGame.id)] || null : null
 
   const ytdBeforeTotals = useMemo(() => {
-    const otherLineups = mergedGames
-      .filter((game) => !selectedGameIds.includes(String(game.id)))
-      .filter((game) => game.status !== 'Cancelled')
-      .map((game) => game.lineup)
-      .filter(Boolean)
+    const otherLineups = Object.entries(lineupsByGame)
+      .filter(([gameId]) => String(gameId) !== String(optimizerGameId))
+      .map(([, lineup]) => lineup)
 
-    return sumLineups(otherLineups)
-  }, [mergedGames, selectedGameIds])
-
-  const optimizedPlans = useMemo(() => {
-    let runningTotals = cloneTotals(ytdBeforeTotals)
-    const results = []
-
-    const orderedSelectedGames = [...selectedGames].sort((a, b) => {
-      const aKey = `${a.date || ''}-${a.id}`
-      const bKey = `${b.date || ''}-${b.id}`
-      return aKey.localeCompare(bKey)
-    })
-
-    orderedSelectedGames.forEach((game) => {
-      const innings = Number(optimizerSettingsByGame[String(game.id)]?.innings || 6)
-      const locksForGame = locks.filter((lock) => String(lock.gameId) === String(game.id))
-
-      const lineup = optimizeGame({
-        innings,
-        availableNames,
-        locksForGame,
-        baseTotals: runningTotals,
-      })
-
-      addLineupToTotals(runningTotals, lineup)
-      results.push({
-        gameId: String(game.id),
-        lineup,
-      })
-    })
-
-    return results
-  }, [selectedGames, optimizerSettingsByGame, locks, availableNames, ytdBeforeTotals])
+    return computeLineupTotals(otherLineups, players)
+  }, [lineupsByGame, optimizerGameId, players])
 
   const currentPlanTotals = useMemo(() => {
-    return sumLineups(optimizedPlans.map((x) => x.lineup))
-  }, [optimizedPlans])
+    return computeLineupTotals(optimizerPreview ? [optimizerPreview] : [], players)
+  }, [optimizerPreview, players])
 
   const ytdAfterTotals = useMemo(() => {
-    return addTotals(ytdBeforeTotals, currentPlanTotals)
-  }, [ytdBeforeTotals, currentPlanTotals])
+    return addTotals(ytdBeforeTotals, currentPlanTotals, players)
+  }, [ytdBeforeTotals, currentPlanTotals, players])
 
-  async function loadGames() {
-    setGamesLoading(true)
+  const sortedPlayers = useMemo(() => {
+    return sortRows(
+      players.map((p) => ({
+        ...p,
+        name: p.name,
+        jersey_number: p.jersey_number || '',
+        activeText: p.active === false ? 'No' : 'Yes',
+      })),
+      playerSort
+    )
+  }, [players, playerSort])
+
+  const sortedGames = useMemo(() => {
+    const rows = games.map((g) => ({
+      ...g,
+      date: g.date || '',
+      opponent: g.opponent || '',
+      innings: g.innings || 6,
+      status: g.status || 'Planned',
+      hasLineup: lineupsByGame[String(g.id)] ? 'Yes' : 'No',
+    }))
+    return sortRows(rows, gameSort)
+  }, [games, lineupsByGame, gameSort])
+
+  const targetRows = useMemo(() => {
+    const rows = players.map((player) => {
+      const target = targetsByPlayer[String(player.id)] || {}
+      const subtotal = targetColumns.reduce((sum, key) => sum + Number(target[key] || 0), 0)
+      return {
+        playerId: String(player.id),
+        name: player.name,
+        number: player.jersey_number || '',
+        P: target.P || '',
+        C: target.C || '',
+        IF: target.IF || '',
+        OF: target.OF || '',
+        CF: target.CF || '',
+        Out: target.Out || '',
+        subtotal,
+      }
+    })
+
+    return sortRows(targetRowsPrepare(rows), targetSort)
+  }, [players, targetsByPlayer, targetSort])
+
+  const trackingRows = useMemo(() => {
+    const totals = computeLineupTotals(Object.values(lineupsByGame), players)
+    const rows = players.map((player) => ({
+      playerId: String(player.id),
+      name: player.name,
+      jersey_number: player.jersey_number || '',
+      fieldTotal: totals[String(player.id)]?.fieldTotal || 0,
+      Out: totals[String(player.id)]?.Out || 0,
+      expectedOuts: totals[String(player.id)]?.expectedOuts || 0,
+      actualOuts: totals[String(player.id)]?.actualOuts || 0,
+      delta: totals[String(player.id)]?.delta || 0,
+      P: totals[String(player.id)]?.P || 0,
+      C: totals[String(player.id)]?.C || 0,
+      IF: totals[String(player.id)]?.IF || 0,
+      OF: totals[String(player.id)]?.OF || 0,
+      CF: totals[String(player.id)]?.CF || 0,
+    }))
+    return sortRows(trackingRowsPrepare(rows), trackingSort)
+  }, [players, lineupsByGame, trackingSort])
+
+  async function loadAll() {
+    setLoading(true)
     setGamesError('')
 
-    if (!safeSupabaseReady()) {
-      setGamesError('Supabase is not connected.')
-      setGamesLoading(false)
+    try {
+      if (!safeSupabaseReady()) {
+        setGamesError('Supabase is not connected.')
+        setLoading(false)
+        return
+      }
+
+      const { data: playerRows, error: playerError } = await supabase
+        .from('players')
+        .select('id, name, jersey_number, active')
+        .eq('team_id', TEAM_ID)
+        .order('name', { ascending: true })
+
+      if (playerError) throw playerError
+
+      let workingPlayers = playerRows || []
+
+      if (!workingPlayers.length) {
+        const insertPayload = fallbackPlayers.map((p) => ({
+          team_id: TEAM_ID,
+          name: p.name,
+          jersey_number: p.jersey_number,
+          active: p.active,
+        }))
+
+        const { data: inserted, error: insertError } = await supabase
+          .from('players')
+          .insert(insertPayload)
+          .select('id, name, jersey_number, active')
+
+        if (insertError) throw insertError
+        workingPlayers = inserted || []
+      }
+
+      setPlayers(workingPlayers)
+
+      const { data: gamesRows, error: gamesErr } = await supabase
+        .from('games')
+        .select('*')
+        .eq('team_id', TEAM_ID)
+        .order('game_date', { ascending: true, nullsFirst: false })
+
+      if (gamesErr) throw gamesErr
+
+      const mappedGames = (gamesRows || []).map((row) => ({
+        id: row.id,
+        date: row.game_date || '',
+        opponent: row.opponent || '',
+        innings: row.innings || 6,
+        status: row.status || 'Planned',
+      }))
+
+      setGames(mappedGames)
+
+      const gameIds = mappedGames.map((g) => g.id)
+
+      const { data: lineupRows, error: lineupError } = await supabase
+        .from('game_lineups')
+        .select('id, game_id, batting_order')
+        .in('game_id', gameIds.length ? gameIds : ['00000000-0000-0000-0000-000000000000'])
+
+      if (lineupError && gameIds.length) throw lineupError
+
+      const lineupIds = (lineupRows || []).map((row) => row.id)
+
+      const { data: assignmentRows, error: assignError } = await supabase
+        .from('lineup_assignments')
+        .select('lineup_id, inning_number, position, player_id')
+        .in('lineup_id', lineupIds.length ? lineupIds : ['00000000-0000-0000-0000-000000000000'])
+
+      if (assignError && lineupIds.length) throw assignError
+
+      const builtLineups = {}
+
+      ;(lineupRows || []).forEach((lineupRow) => {
+        const meta = lineupRow.batting_order || {}
+        const innings = Number(meta.innings || 6)
+        const playerIds = workingPlayers.map((p) => p.id)
+
+        const lineup = blankLineup(playerIds, innings)
+
+        lineup.availablePlayerIds = (meta.availablePlayerIds || playerIds).map(String)
+        lineup.battingOrder = {}
+        playerIds.forEach((id) => {
+          lineup.battingOrder[String(id)] = meta.order?.[String(id)] ?? ''
+        })
+
+        ;(assignmentRows || [])
+          .filter((row) => row.lineup_id === lineupRow.id)
+          .forEach((row) => {
+            const playerId = String(row.player_id)
+            if (!lineup.cells[playerId]) lineup.cells[playerId] = {}
+            lineup.cells[playerId][row.inning_number] = row.position
+          })
+
+        builtLineups[String(lineupRow.game_id)] = normalizeLineup(lineup, playerIds, innings)
+      })
+
+      setLineupsByGame(builtLineups)
+
+      const { data: targetRowsDb, error: targetErr } = await supabase
+        .from('player_position_ratings')
+        .select('player_id, position, target_pct')
+
+      if (targetErr) throw targetErr
+
+      const targetMap = {}
+      ;(targetRowsDb || []).forEach((row) => {
+        const playerId = String(row.player_id)
+        if (!targetMap[playerId]) targetMap[playerId] = {}
+        targetMap[playerId][row.position] = row.target_pct ?? ''
+      })
+
+      setTargetsByPlayer(targetMap)
+      setOptimizerGameId(mappedGames[0] ? String(mappedGames[0].id) : '')
+      setSelectedGameId(mappedGames[0] ? String(mappedGames[0].id) : '')
+      setLoading(false)
+    } catch (error) {
+      setGamesError(error.message || 'Failed to load data.')
+      setLoading(false)
+    }
+  }
+
+  async function savePlayer(player) {
+    if (!safeSupabaseReady()) return
+
+    if (player.id) {
+      const { error } = await supabase
+        .from('players')
+        .update({
+          name: player.name,
+          jersey_number: player.jersey_number,
+          active: player.active,
+        })
+        .eq('id', player.id)
+
+      if (error) setGamesError(error.message)
       return
     }
 
     const { data, error } = await supabase
-      .from('games')
-      .select('*')
-      .eq('team_id', TEAM_ID)
-      .order('game_date', { ascending: true, nullsFirst: false })
+      .from('players')
+      .insert({
+        team_id: TEAM_ID,
+        name: player.name,
+        jersey_number: player.jersey_number,
+        active: player.active,
+      })
+      .select('id, name, jersey_number, active')
+      .single()
 
     if (error) {
       setGamesError(error.message)
-      setGamesLoading(false)
       return
     }
 
-    setGames((data || []).map(mapDbGame))
-    setGamesLoading(false)
+    setPlayers((current) => [...current, data])
   }
 
-  async function createGame({ date, opponent }) {
-    setGamesError('')
+  function updatePlayerField(playerId, field, value) {
+    setPlayers((current) =>
+      current.map((player) =>
+        String(player.id) === String(playerId) ? { ...player, [field]: value } : player
+      )
+    )
+  }
 
-    if (!safeSupabaseReady()) {
-      setGamesError('Supabase is not connected.')
-      return null
-    }
+  async function addPlayer() {
+    if (!newPlayerName.trim()) return
 
-    const payload = {
-      team_id: TEAM_ID,
-      game_date: date || null,
-      opponent: opponent || null,
-      status: 'Planned',
-    }
+    await savePlayer({
+      name: newPlayerName.trim(),
+      jersey_number: newPlayerNumber.trim(),
+      active: newPlayerActive,
+    })
 
+    setNewPlayerName('')
+    setNewPlayerNumber('')
+    setNewPlayerActive(true)
+    await loadAll()
+  }
+
+  async function addGame({ date, opponent }) {
+    if (!safeSupabaseReady()) return
     const { data, error } = await supabase
       .from('games')
-      .insert(payload)
+      .insert({
+        team_id: TEAM_ID,
+        game_date: date || null,
+        opponent: opponent || null,
+        innings: 6,
+        status: 'Planned',
+      })
       .select()
       .single()
 
     if (error) {
       setGamesError(error.message)
-      return null
+      return
     }
 
-    const mapped = mapDbGame(data)
+    const mapped = {
+      id: data.id,
+      date: data.game_date || '',
+      opponent: data.opponent || '',
+      innings: data.innings || 6,
+      status: data.status || 'Planned',
+    }
+
     setGames((current) => [...current, mapped])
-    setOptimizerSettingsByGame((current) => ({
-      ...current,
-      [String(mapped.id)]: { innings: 6 },
-    }))
-    return mapped
+    setOptimizerGameId(String(mapped.id))
+    setSelectedGameId(String(mapped.id))
   }
 
-  async function addGameFromGamesTab() {
-    const game = await createGame({
-      date: newGameDate,
-      opponent: newGameOpponent,
-    })
+  async function deleteGame(gameId) {
+    if (!safeSupabaseReady()) return
 
-    if (game) {
-      setNewGameDate('')
-      setNewGameOpponent('')
+    const lineupIdQuery = await supabase
+      .from('game_lineups')
+      .select('id')
+      .eq('game_id', gameId)
+
+    if (lineupIdQuery.error) {
+      setGamesError(lineupIdQuery.error.message)
+      return
     }
-  }
 
-  async function addGameFromOptimizer() {
-    const game = await createGame({
-      date: optimizerNewGameDate,
-      opponent: optimizerNewGameOpponent,
-    })
+    const lineupIds = (lineupIdQuery.data || []).map((row) => row.id)
 
-    if (game) {
-      setOptimizerNewGameDate('')
-      setOptimizerNewGameOpponent('')
-      setSelectedGameIds((current) => [...new Set([...current, String(game.id)])])
-      setNewLockGameId(String(game.id))
+    if (lineupIds.length) {
+      const delAssign = await supabase.from('lineup_assignments').delete().in('lineup_id', lineupIds)
+      if (delAssign.error) {
+        setGamesError(delAssign.error.message)
+        return
+      }
+
+      const delLineups = await supabase.from('game_lineups').delete().in('id', lineupIds)
+      if (delLineups.error) {
+        setGamesError(delLineups.error.message)
+        return
+      }
     }
+
+    const { error } = await supabase.from('games').delete().eq('id', gameId)
+
+    if (error) {
+      setGamesError(error.message)
+      return
+    }
+
+    setGames((current) => current.filter((game) => String(game.id) !== String(gameId)))
+    setLineupsByGame((current) => {
+      const next = { ...current }
+      delete next[String(gameId)]
+      return next
+    })
   }
 
   async function updateGameField(gameId, field, value) {
@@ -458,329 +739,436 @@ export default function App() {
       )
     )
 
-    if (!safeSupabaseReady()) {
-      setGamesError('Supabase is not connected.')
-      return
-    }
+    if (!safeSupabaseReady()) return
 
     const updates = {}
     if (field === 'date') updates.game_date = value || null
     if (field === 'opponent') updates.opponent = value || null
+    if (field === 'innings') updates.innings = Number(value)
     if (field === 'status') updates.status = value
 
-    const { error } = await supabase
-      .from('games')
-      .update(updates)
-      .eq('id', gameId)
-
-    if (error) {
-      setGamesError(error.message)
-    }
-  }
-
-  function updateOptimizerInnings(gameId, innings) {
-    setOptimizerSettingsByGame((current) => ({
-      ...current,
-      [String(gameId)]: { ...(current[String(gameId)] || {}), innings: Number(innings) },
-    }))
-  }
-
-  function toggleSelectedGame(gameId) {
-    const gameKey = String(gameId)
-    setSelectedGameIds((current) =>
-      current.includes(gameKey)
-        ? current.filter((id) => id !== gameKey)
-        : [...current, gameKey]
-    )
-  }
-
-  function togglePlayer(name) {
-    setSelectedPlayers((current) =>
-      current.includes(name)
-        ? current.filter((p) => p !== name)
-        : [...current, name]
-    )
-  }
-
-  function saveOptimizedLineupsToGames() {
-    setLineupsByGame((current) => {
-      const next = { ...current }
-      optimizedPlans.forEach((plan) => {
-        next[String(plan.gameId)] = plan.lineup
-      })
-      return next
-    })
-  }
-
-  function clearLineup(gameId) {
-    setLineupsByGame((current) => {
-      const next = { ...current }
-      delete next[String(gameId)]
-      return next
-    })
-  }
-
-  async function cancelGame(gameId) {
-    setGames((current) =>
-      current.map((game) =>
-        String(game.id) === String(gameId)
-          ? { ...game, status: 'Cancelled' }
-          : game
-      )
-    )
-
-    setLineupsByGame((current) => {
-      const next = { ...current }
-      delete next[String(gameId)]
-      return next
-    })
-
-    if (!safeSupabaseReady()) {
-      setGamesError('Supabase is not connected.')
-      return
-    }
-
-    const { error } = await supabase
-      .from('games')
-      .update({ status: 'Cancelled' })
-      .eq('id', gameId)
-
+    const { error } = await supabase.from('games').update(updates).eq('id', gameId)
     if (error) setGamesError(error.message)
   }
 
-  async function reopenGame(gameId) {
-    setGames((current) =>
-      current.map((game) =>
-        String(game.id) === String(gameId)
-          ? { ...game, status: 'Planned' }
-          : game
-      )
+  function toggleAvailablePlayer(playerId) {
+    const key = String(playerId)
+    setOptimizerAvailableIds((current) =>
+      current.includes(key) ? current.filter((id) => id !== key) : [...current, key]
     )
-
-    if (!safeSupabaseReady()) {
-      setGamesError('Supabase is not connected.')
-      return
-    }
-
-    const { error } = await supabase
-      .from('games')
-      .update({ status: 'Planned' })
-      .eq('id', gameId)
-
-    if (error) setGamesError(error.message)
   }
 
-  function openGame(gameId) {
-    setSelectedGameId(String(gameId))
-    setPage('game-detail')
+  function buildOrRefreshPreview() {
+    const game = games.find((g) => String(g.id) === String(optimizerGameId))
+    if (!game) return
+
+    const existing = lineupsByGame[String(game.id)] || null
+    const locks = locksByGame[String(game.id)] || []
+
+    const lineup = optimizeLineup({
+      players,
+      availablePlayerIds: optimizerAvailableIds,
+      innings: Number(game.innings || 6),
+      locks,
+      ytdTotals: ytdBeforeTotals,
+      existingLineup: existing,
+    })
+
+    setOptimizerPreview(lineup)
   }
 
   function addLock() {
-    if (!newLockGameId) return
+    if (!optimizerGameId || !lockPlayerId) return
 
-    const nextLock = {
-      id: Date.now().toString(),
-      gameId: String(newLockGameId),
-      player: newLockPlayer,
-      position: newLockPosition,
-      startInning: Number(newLockStartInning),
-      endInning: Number(newLockEndInning),
-    }
-
-    setLocks((current) => [...current, nextLock])
+    setLocksByGame((current) => {
+      const gameLocks = current[String(optimizerGameId)] || []
+      return {
+        ...current,
+        [String(optimizerGameId)]: [
+          ...gameLocks,
+          {
+            id: Date.now().toString(),
+            playerId: String(lockPlayerId),
+            position: lockPosition,
+            startInning: Number(lockStart),
+            endInning: Number(lockEnd),
+          },
+        ],
+      }
+    })
   }
 
   function removeLock(lockId) {
-    setLocks((current) => current.filter((lock) => lock.id !== lockId))
+    setLocksByGame((current) => {
+      const gameLocks = current[String(optimizerGameId)] || []
+      return {
+        ...current,
+        [String(optimizerGameId)]: gameLocks.filter((lock) => lock.id !== lockId),
+      }
+    })
   }
 
-  function updateGameAssignment(gameId, inningNumber, positionKey, newPlayer) {
+  function updatePreviewCell(playerId, inning, value) {
+    setOptimizerPreview((current) => {
+      if (!current) return current
+      const next = JSON.parse(JSON.stringify(current))
+      next.cells[String(playerId)][inning] = value
+      return next
+    })
+  }
+
+  function updatePreviewBatting(playerId, value) {
+    setOptimizerPreview((current) => {
+      if (!current) return current
+      const next = JSON.parse(JSON.stringify(current))
+      next.battingOrder[String(playerId)] = value
+      return next
+    })
+  }
+
+  async function saveOrOverwriteLineup(gameId, lineup) {
+    if (!safeSupabaseReady() || !lineup) return
+
+    const existing = await supabase
+      .from('game_lineups')
+      .select('id')
+      .eq('game_id', gameId)
+      .eq('lineup_name', 'Main')
+      .maybeSingle()
+
+    if (existing.error) {
+      setGamesError(existing.error.message)
+      return
+    }
+
+    let lineupId = existing.data?.id || null
+
+    const meta = {
+      innings: lineup.innings,
+      availablePlayerIds: lineup.availablePlayerIds,
+      order: lineup.battingOrder,
+    }
+
+    if (lineupId) {
+      const updated = await supabase
+        .from('game_lineups')
+        .update({ batting_order: meta })
+        .eq('id', lineupId)
+        .select('id')
+        .single()
+
+      if (updated.error) {
+        setGamesError(updated.error.message)
+        return
+      }
+
+      const deleted = await supabase
+        .from('lineup_assignments')
+        .delete()
+        .eq('lineup_id', lineupId)
+
+      if (deleted.error) {
+        setGamesError(deleted.error.message)
+        return
+      }
+    } else {
+      const inserted = await supabase
+        .from('game_lineups')
+        .insert({
+          game_id: gameId,
+          lineup_name: 'Main',
+          batting_order: meta,
+        })
+        .select('id')
+        .single()
+
+      if (inserted.error) {
+        setGamesError(inserted.error.message)
+        return
+      }
+
+      lineupId = inserted.data.id
+    }
+
+    const playerIds = Object.keys(lineup.cells || {})
+    const assignmentPayload = []
+
+    playerIds.forEach((playerId) => {
+      for (let inning = 1; inning <= lineup.innings; inning += 1) {
+        const value = lineup.cells[playerId]?.[inning] || ''
+        if (!value) return
+        assignmentPayload.push({
+          lineup_id: lineupId,
+          inning_number: inning,
+          position: value,
+          player_id: playerId,
+          source: 'manual',
+          is_locked: false,
+        })
+      }
+    })
+
+    if (assignmentPayload.length) {
+      const insertedAssignments = await supabase
+        .from('lineup_assignments')
+        .insert(assignmentPayload)
+
+      if (insertedAssignments.error) {
+        setGamesError(insertedAssignments.error.message)
+        return
+      }
+    }
+
+    setLineupsByGame((current) => ({
+      ...current,
+      [String(gameId)]: lineup,
+    }))
+  }
+
+  function updateSavedLineupCell(gameId, playerId, inning, value) {
     setLineupsByGame((current) => {
       const existing = current[String(gameId)]
       if (!existing) return current
 
-      const nextAssignments = existing.assignments.map((inning) => {
-        if (inning.inning !== inningNumber) return inning
-        return {
-          ...inning,
-          positions: {
-            ...inning.positions,
-            [positionKey]: newPlayer,
-          },
-        }
+      const next = JSON.parse(JSON.stringify(existing))
+      next.cells[String(playerId)][inning] = value
+      return { ...current, [String(gameId)]: next }
+    })
+  }
+
+  function updateSavedBatting(gameId, playerId, value) {
+    setLineupsByGame((current) => {
+      const existing = current[String(gameId)]
+      if (!existing) return current
+
+      const next = JSON.parse(JSON.stringify(existing))
+      next.battingOrder[String(playerId)] = value
+      return { ...current, [String(gameId)]: next }
+    })
+  }
+
+  function addInningToSavedLineup(gameId) {
+    setLineupsByGame((current) => {
+      const existing = current[String(gameId)]
+      if (!existing) return current
+
+      const next = JSON.parse(JSON.stringify(existing))
+      const newInning = next.innings + 1
+      next.innings = newInning
+
+      Object.keys(next.cells).forEach((playerId) => {
+        next.cells[playerId][newInning] = ''
       })
 
-      return {
-        ...current,
-        [String(gameId)]: {
-          ...existing,
-          assignments: nextAssignments,
-        },
-      }
+      return { ...current, [String(gameId)]: next }
     })
   }
 
-  function removeLastInning(gameId) {
+  function removeInningFromSavedLineup(gameId, inningToRemove) {
     setLineupsByGame((current) => {
       const existing = current[String(gameId)]
-      if (!existing || existing.assignments.length <= 1) return current
+      if (!existing || existing.innings <= 1) return current
 
-      const nextAssignments = existing.assignments.slice(0, -1)
-      return {
-        ...current,
-        [String(gameId)]: {
-          ...existing,
-          innings: nextAssignments.length,
-          assignments: nextAssignments,
-        },
-      }
+      const next = JSON.parse(JSON.stringify(existing))
+      Object.keys(next.cells).forEach((playerId) => {
+        const rebuilt = {}
+        let newIndex = 1
+        for (let inning = 1; inning <= next.innings; inning += 1) {
+          if (inning === inningToRemove) continue
+          rebuilt[newIndex] = next.cells[playerId][inning] || ''
+          newIndex += 1
+        }
+        next.cells[playerId] = rebuilt
+      })
+
+      next.innings = next.innings - 1
+      return { ...current, [String(gameId)]: next }
     })
   }
 
-  function removeSpecificInning(gameId, inningNumber) {
+  function clearSavedLineup(gameId) {
     setLineupsByGame((current) => {
-      const existing = current[String(gameId)]
-      if (!existing || existing.assignments.length <= 1) return current
-
-      const nextAssignments = existing.assignments
-        .filter((inning) => inning.inning !== Number(inningNumber))
-        .map((inning, index) => ({
-          ...inning,
-          inning: index + 1,
-        }))
-
-      return {
-        ...current,
-        [String(gameId)]: {
-          ...existing,
-          innings: nextAssignments.length,
-          assignments: nextAssignments,
-        },
-      }
+      const next = { ...current }
+      delete next[String(gameId)]
+      return next
     })
   }
 
-  function maxOutCount(lineup) {
-    if (!lineup?.assignments?.length) return 0
-    return Math.max(
-      ...lineup.assignments.map(
-        (inning) => Object.keys(inning.positions || {}).filter((key) => key.startsWith('Out')).length
-      ),
-      0
-    )
+  async function saveTargets(playerId) {
+    if (!safeSupabaseReady()) return
+
+    const playerTargets = targetsByPlayer[String(playerId)] || {}
+    const payload = targetColumns
+      .filter((position) => String(playerTargets[position] || '').trim() !== '')
+      .map((position) => ({
+        player_id: playerId,
+        position,
+        rank_score: 3,
+        target_pct: Number(playerTargets[position]),
+      }))
+
+    await supabase.from('player_position_ratings').delete().eq('player_id', playerId)
+
+    if (payload.length) {
+      const { error } = await supabase.from('player_position_ratings').insert(payload)
+      if (error) setGamesError(error.message)
+    }
   }
 
-  function targetValue(playerName, position) {
-    return targetPercentages?.[playerName]?.[position] ?? ''
-  }
-
-  function updateTarget(playerName, position, value) {
-    setTargetPercentages((current) => ({
+  function updateTargetField(playerId, position, value) {
+    setTargetsByPlayer((current) => ({
       ...current,
-      [playerName]: {
-        ...(current[playerName] || {}),
+      [String(playerId)]: {
+        ...(current[String(playerId)] || {}),
         [position]: value,
       },
     }))
   }
 
-  function renderNavButton(key, label) {
+  function lineupGrid(lineup, onCellChange, onBattingChange, editable = true) {
+    if (!lineup) return null
+
+    const sortedRows = [...players].sort((a, b) => {
+      const aOrder = Number(lineup.battingOrder[String(a.id)] || 999)
+      const bOrder = Number(lineup.battingOrder[String(b.id)] || 999)
+      if (aOrder !== bOrder) return aOrder - bOrder
+      return a.name.localeCompare(b.name)
+    })
+
     return (
-      <button
-        className={page === key ? 'nav-button active' : 'nav-button'}
-        onClick={() => setPage(key)}
-      >
-        {label}
-      </button>
+      <div style={{ overflowX: 'auto' }}>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Player</th>
+              <th>BO</th>
+              {Array.from({ length: lineup.innings }, (_, i) => i + 1).map((inning) => (
+                <th key={inning}>{inning}</th>
+              ))}
+              <th>IF</th>
+              <th>OF</th>
+              <th>P</th>
+              <th>C</th>
+              <th>X</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedRows.map((player) => {
+              const playerId = String(player.id)
+              const summary = gameRowSummary(lineup, playerId)
+              return (
+                <tr key={playerId}>
+                  <td>{player.jersey_number || ''}</td>
+                  <td>{player.name}</td>
+                  <td>
+                    {editable ? (
+                      <input
+                        type="number"
+                        value={lineup.battingOrder[playerId] || ''}
+                        onChange={(e) => onBattingChange(playerId, e.target.value)}
+                        style={{ width: 58 }}
+                      />
+                    ) : (
+                      lineup.battingOrder[playerId] || ''
+                    )}
+                  </td>
+                  {Array.from({ length: lineup.innings }, (_, i) => i + 1).map((inning) => (
+                    <td key={inning}>
+                      {editable ? (
+                        <select
+                          value={lineup.cells[playerId]?.[inning] || ''}
+                          onChange={(e) => onCellChange(playerId, inning, e.target.value)}
+                        >
+                          {positionOptions.map((option) => (
+                            <option key={option || 'blank'} value={option}>
+                              {option || '--'}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        lineup.cells[playerId]?.[inning] || ''
+                      )}
+                    </td>
+                  ))}
+                  <td>{summary.IF}</td>
+                  <td>{summary.OF}</td>
+                  <td>{summary.P}</td>
+                  <td>{summary.C}</td>
+                  <td>{summary.Out}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     )
   }
 
   function renderPlayersPage() {
     return (
-      <div className="card">
-        <h2>Players</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th>Type</th>
-            </tr>
-          </thead>
-          <tbody>
-            {players.map((player) => (
-              <tr key={player.name}>
-                <td>{player.name}</td>
-                <td>{player.name.startsWith('Sub') ? 'Sub' : 'Rostered'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
-
-  function renderAttendancePage() {
-    return (
-      <div className="card">
-        <h2>Attendance</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Season</th>
-              <th>Type</th>
-              <th>Title</th>
-            </tr>
-          </thead>
-          <tbody>
-            {attendanceSeed.map((event) => (
-              <tr key={`${event.date}-${event.title}`}>
-                <td>{event.date}</td>
-                <td>{event.season}</td>
-                <td>{event.type}</td>
-                <td>{event.title}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
-
-  function renderTargetsPage() {
-    return (
       <div className="stack">
         <div className="card">
-          <h2>Position Targets (%)</h2>
-          <p>Use this instead of a traditional depth chart. Enter rough target percentages by player and position.</p>
+          <h2>Players</h2>
+          <div className="grid four-col">
+            <div>
+              <label>Name</label>
+              <input value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} />
+            </div>
+            <div>
+              <label>Number</label>
+              <input value={newPlayerNumber} onChange={(e) => setNewPlayerNumber(e.target.value)} />
+            </div>
+            <div>
+              <label>Active</label>
+              <select value={newPlayerActive ? 'Yes' : 'No'} onChange={(e) => setNewPlayerActive(e.target.value === 'Yes')}>
+                <option>Yes</option>
+                <option>No</option>
+              </select>
+            </div>
+            <div className="align-end">
+              <button onClick={addPlayer}>Add Player</button>
+            </div>
+          </div>
         </div>
 
         <div className="card" style={{ overflowX: 'auto' }}>
           <table>
             <thead>
               <tr>
-                <th>Player</th>
-                {trackedPositions.map((pos) => (
-                  <th key={pos}>{pos}</th>
-                ))}
+                <th onClick={() => setPlayerSort(nextSort(playerSort, 'name'))}>Name</th>
+                <th onClick={() => setPlayerSort(nextSort(playerSort, 'jersey_number'))}>#</th>
+                <th onClick={() => setPlayerSort(nextSort(playerSort, 'activeText'))}>Active</th>
+                <th>Save</th>
               </tr>
             </thead>
             <tbody>
-              {players.map((player) => (
-                <tr key={player.name}>
-                  <td>{player.name}</td>
-                  {trackedPositions.map((pos) => (
-                    <td key={pos}>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={targetValue(player.name, pos)}
-                        onChange={(e) => updateTarget(player.name, pos, e.target.value)}
-                        placeholder="%"
-                      />
-                    </td>
-                  ))}
+              {sortedPlayers.map((player) => (
+                <tr key={player.id}>
+                  <td>
+                    <input
+                      value={player.name}
+                      onChange={(e) => updatePlayerField(player.id, 'name', e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={player.jersey_number || ''}
+                      onChange={(e) => updatePlayerField(player.id, 'jersey_number', e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <select
+                      value={player.active === false ? 'No' : 'Yes'}
+                      onChange={(e) => updatePlayerField(player.id, 'active', e.target.value === 'Yes')}
+                    >
+                      <option>Yes</option>
+                      <option>No</option>
+                    </select>
+                  </td>
+                  <td>
+                    <button onClick={() => savePlayer(player)}>Save</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -790,43 +1178,44 @@ export default function App() {
     )
   }
 
-  function renderTrackingPage() {
-    const ytdTotals = sumLineups(
-      mergedGames
-        .filter((game) => game.status !== 'Cancelled')
-        .map((game) => game.lineup)
-        .filter(Boolean)
-    )
-
+  function renderTargetsPage() {
     return (
       <div className="card" style={{ overflowX: 'auto' }}>
-        <h2>Tracking</h2>
+        <h2>Targets</h2>
         <table>
           <thead>
             <tr>
-              <th>Player</th>
-              <th>Fld</th>
-              <th>Out</th>
-              <th>P</th>
-              <th>C</th>
-              <th>1B</th>
-              <th>2B</th>
-              <th>3B</th>
-              <th>SS</th>
-              <th>LF</th>
-              <th>CF</th>
-              <th>RF</th>
+              <th onClick={() => setTargetSort(nextSort(targetSort, 'name'))}>Player</th>
+              <th onClick={() => setTargetSort(nextSort(targetSort, 'number'))}>#</th>
+              {targetColumns.map((col) => (
+                <th key={col} onClick={() => setTargetSort(nextSort(targetSort, col))}>
+                  {col}
+                </th>
+              ))}
+              <th onClick={() => setTargetSort(nextSort(targetSort, 'subtotal'))}>Subtotal</th>
+              <th>Save</th>
             </tr>
           </thead>
           <tbody>
-            {players.map((player) => (
-              <tr key={player.name}>
-                <td>{player.name}</td>
-                <td>{ytdTotals[player.name]?.totalField || 0}</td>
-                <td>{ytdTotals[player.name]?.Out || 0}</td>
-                {fieldPositions.map((pos) => (
-                  <td key={pos}>{ytdTotals[player.name]?.[pos] || 0}</td>
+            {targetRows.map((row) => (
+              <tr key={row.playerId}>
+                <td>{row.name}</td>
+                <td>{row.number}</td>
+                {targetColumns.map((col) => (
+                  <td key={col}>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={row[col]}
+                      onChange={(e) => updateTargetField(row.playerId, col, e.target.value)}
+                    />
+                  </td>
                 ))}
+                <td>{row.subtotal}</td>
+                <td>
+                  <button onClick={() => saveTargets(row.playerId)}>Save</button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -841,39 +1230,29 @@ export default function App() {
         <div className="card">
           <div className="row-between">
             <h2>Games</h2>
-            <button onClick={loadGames}>Reload from Database</button>
+            <button onClick={loadAll}>Reload from Database</button>
           </div>
 
           {gamesError && <p style={{ color: '#b91c1c' }}>Error: {gamesError}</p>}
-          {gamesLoading && <p>Loading games...</p>}
+          {loading && <p>Loading...</p>}
 
           <div className="grid four-col">
             <div>
               <label>Date</label>
-              <input
-                type="date"
-                value={newGameDate}
-                onChange={(e) => setNewGameDate(e.target.value)}
-              />
+              <input type="date" value={newGameDate} onChange={(e) => setNewGameDate(e.target.value)} />
             </div>
-
             <div>
               <label>Opponent</label>
-              <input
-                type="text"
-                value={newGameOpponent}
-                onChange={(e) => setNewGameOpponent(e.target.value)}
-                placeholder="Opponent name"
-              />
+              <input value={newGameOpponent} onChange={(e) => setNewGameOpponent(e.target.value)} />
             </div>
-
             <div>
-              <label>Status</label>
-              <div className="summary-box">Planned</div>
+              <label>Info</label>
+              <div className="summary-box">Innings set later</div>
             </div>
-
             <div className="align-end">
-              <button onClick={addGameFromGamesTab}>Add Game</button>
+              <button onClick={() => addGame({ date: newGameDate, opponent: newGameOpponent })}>
+                Add Game
+              </button>
             </div>
           </div>
         </div>
@@ -882,25 +1261,17 @@ export default function App() {
           <table>
             <thead>
               <tr>
-                <th>Use</th>
-                <th>Date</th>
-                <th>Opponent</th>
-                <th>Opt Inng</th>
-                <th>Status</th>
-                <th>Lineup</th>
+                <th onClick={() => setGameSort(nextSort(gameSort, 'date'))}>Date</th>
+                <th onClick={() => setGameSort(nextSort(gameSort, 'opponent'))}>Opponent</th>
+                <th onClick={() => setGameSort(nextSort(gameSort, 'innings'))}>Innings</th>
+                <th onClick={() => setGameSort(nextSort(gameSort, 'status'))}>Status</th>
+                <th onClick={() => setGameSort(nextSort(gameSort, 'hasLineup'))}>Lineup</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {mergedGames.map((game) => (
+              {sortedGames.map((game) => (
                 <tr key={game.id}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedGameIds.includes(String(game.id))}
-                      onChange={() => toggleSelectedGame(game.id)}
-                    />
-                  </td>
                   <td>
                     <input
                       type="date"
@@ -910,41 +1281,32 @@ export default function App() {
                   </td>
                   <td>
                     <input
-                      type="text"
                       value={game.opponent}
                       onChange={(e) => updateGameField(game.id, 'opponent', e.target.value)}
                     />
                   </td>
                   <td>
-                    <select
-                      value={game.plannedInnings}
-                      onChange={(e) => updateOptimizerInnings(game.id, Number(e.target.value))}
-                    >
-                      {[4, 5, 6, 7].map((n) => (
-                        <option key={n} value={n}>
-                          {n}
-                        </option>
-                      ))}
-                    </select>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <button onClick={() => updateGameField(game.id, 'innings', Math.max(4, Number(game.innings) - 1))}>-</button>
+                      <span>{game.innings}</span>
+                      <button onClick={() => updateGameField(game.id, 'innings', Math.min(7, Number(game.innings) + 1))}>+</button>
+                    </div>
                   </td>
                   <td>{game.status}</td>
-                  <td>{game.lineup ? 'Saved' : 'Empty'}</td>
+                  <td>{game.hasLineup}</td>
                   <td>
                     <div className="button-row">
-                      <button onClick={() => openGame(game.id)}>Go to Game</button>
-                      <button onClick={() => clearLineup(game.id)}>Clear Lineup</button>
-                      {game.status === 'Cancelled' ? (
-                        <button onClick={() => reopenGame(game.id)}>Reopen</button>
-                      ) : (
-                        <button onClick={() => cancelGame(game.id)}>Cancel Game</button>
-                      )}
+                      <button onClick={() => { setSelectedGameId(String(game.id)); setPage('game-detail') }}>
+                        Open
+                      </button>
+                      <button onClick={() => deleteGame(game.id)}>Delete</button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {!mergedGames.length && !gamesLoading && (
+              {!sortedGames.length && !loading && (
                 <tr>
-                  <td colSpan="7">No games found for this team yet.</td>
+                  <td colSpan="6">No games yet.</td>
                 </tr>
               )}
             </tbody>
@@ -954,41 +1316,10 @@ export default function App() {
     )
   }
 
-  function renderSummaryTable(title, totals) {
-    return (
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <h3>{title}</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th>Fld</th>
-              <th>Out</th>
-              <th>P</th>
-              <th>C</th>
-              <th>SS</th>
-              <th>CF</th>
-            </tr>
-          </thead>
-          <tbody>
-            {players.map((player) => (
-              <tr key={player.name}>
-                <td>{player.name}</td>
-                <td>{totals[player.name]?.totalField || 0}</td>
-                <td>{totals[player.name]?.Out || 0}</td>
-                <td>{totals[player.name]?.P || 0}</td>
-                <td>{totals[player.name]?.C || 0}</td>
-                <td>{totals[player.name]?.SS || 0}</td>
-                <td>{totals[player.name]?.CF || 0}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
-
   function renderOptimizerPage() {
+    const optimizerGame = games.find((g) => String(g.id) === String(optimizerGameId)) || null
+    const gameLocks = locksByGame[String(optimizerGameId)] || []
+
     return (
       <div className="stack">
         <div className="card">
@@ -996,181 +1327,247 @@ export default function App() {
 
           <div className="grid four-col">
             <div>
-              <label>New Game Date</label>
-              <input
-                type="date"
-                value={optimizerNewGameDate}
-                onChange={(e) => setOptimizerNewGameDate(e.target.value)}
-              />
+              <label>Existing Game</label>
+              <select value={optimizerGameId} onChange={(e) => setOptimizerGameId(e.target.value)}>
+                <option value="">Select game</option>
+                {games.map((game) => (
+                  <option key={game.id} value={String(game.id)}>
+                    {(game.date || 'No Date')} vs {(game.opponent || 'Opponent')}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
-              <label>New Game Opponent</label>
-              <input
-                type="text"
-                value={optimizerNewGameOpponent}
-                onChange={(e) => setOptimizerNewGameOpponent(e.target.value)}
-                placeholder="Opponent name"
-              />
+              <label>Or Create Date</label>
+              <input type="date" value={optimizerNewDate} onChange={(e) => setOptimizerNewDate(e.target.value)} />
             </div>
             <div>
-              <label>Add Game Here</label>
-              <div className="summary-box">Create directly from optimizer</div>
+              <label>Create Opponent</label>
+              <input value={optimizerNewOpponent} onChange={(e) => setOptimizerNewOpponent(e.target.value)} />
             </div>
             <div className="align-end">
-              <button onClick={addGameFromOptimizer}>Add Game</button>
+              <button onClick={() => addGame({ date: optimizerNewDate, opponent: optimizerNewOpponent })}>
+                Create New Game
+              </button>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <h3>Games to Optimize</h3>
-          <div className="checkbox-grid">
-            {mergedGames
-              .filter((game) => game.status !== 'Cancelled')
-              .map((game) => (
-                <label key={game.id} className="checkbox-item">
+        {optimizerGame && (
+          <>
+            <div className="card">
+              <div className="grid four-col">
+                <div>
+                  <label>Date</label>
                   <input
-                    type="checkbox"
-                    checked={selectedGameIds.includes(String(game.id))}
-                    onChange={() => toggleSelectedGame(game.id)}
+                    type="date"
+                    value={optimizerGame.date}
+                    onChange={(e) => updateGameField(optimizerGame.id, 'date', e.target.value)}
                   />
-                  {game.date || 'No Date'} vs {game.opponent || 'Opponent'} ({game.plannedInnings} inn)
-                </label>
-              ))}
-          </div>
+                </div>
+                <div>
+                  <label>Opponent</label>
+                  <input
+                    value={optimizerGame.opponent}
+                    onChange={(e) => updateGameField(optimizerGame.id, 'opponent', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label>Innings</label>
+                  <select
+                    value={optimizerGame.innings}
+                    onChange={(e) => updateGameField(optimizerGame.id, 'innings', Number(e.target.value))}
+                  >
+                    {[4, 5, 6, 7].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>Required Outs</label>
+                  <div className="summary-box">
+                    {requiredOutsForGame(optimizerAvailableIds.length, Number(optimizerGame.innings || 6))}
+                  </div>
+                </div>
+              </div>
 
-          <h3>Available Players</h3>
-          <div className="checkbox-grid">
-            {players.map((player) => (
-              <label key={player.name} className="checkbox-item">
-                <input
-                  type="checkbox"
-                  checked={selectedPlayers.includes(player.name)}
-                  onChange={() => togglePlayer(player.name)}
-                />
-                {player.name}
-              </label>
-            ))}
-          </div>
-
-          <p>
-            Selected games: <strong>{selectedGames.length}</strong> | Available players:{' '}
-            <strong>{availableNames.length}</strong> | Required sit-out innings:{' '}
-            <strong>
-              {selectedGames.reduce(
-                (sum, game) => sum + requiredSitOuts(availableNames.length, game.plannedInnings),
-                0
-              )}
-            </strong>
-          </p>
-        </div>
-
-        <div className="card">
-          <h3>Locks</h3>
-          <div className="grid four-col">
-            <div>
-              <label>Game</label>
-              <select value={newLockGameId} onChange={(e) => setNewLockGameId(e.target.value)}>
-                <option value="">Select game</option>
-                {mergedGames
-                  .filter((game) => game.status !== 'Cancelled')
-                  .map((game) => (
-                    <option key={game.id} value={String(game.id)}>
-                      {game.date || 'No Date'} vs {game.opponent || 'Opponent'}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            <div>
-              <label>Player</label>
-              <select value={newLockPlayer} onChange={(e) => setNewLockPlayer(e.target.value)}>
-                {rosterPlayers.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
+              <h3 style={{ marginTop: 16 }}>Available Players</h3>
+              <div className="checkbox-grid">
+                {players.map((player) => (
+                  <label key={player.id} className="checkbox-item">
+                    <input
+                      type="checkbox"
+                      checked={optimizerAvailableIds.includes(String(player.id))}
+                      onChange={() => toggleAvailablePlayer(player.id)}
+                    />
+                    {player.name}
+                  </label>
                 ))}
-              </select>
-            </div>
-
-            <div>
-              <label>Position</label>
-              <select value={newLockPosition} onChange={(e) => setNewLockPosition(e.target.value)}>
-                {lockablePositions.map((pos) => (
-                  <option key={pos} value={pos}>
-                    {pos}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label>Start / End</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <select value={newLockStartInning} onChange={(e) => setNewLockStartInning(Number(e.target.value))}>
-                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-                <select value={newLockEndInning} onChange={(e) => setNewLockEndInning(Number(e.target.value))}>
-                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
-          </div>
 
-          <div className="button-row" style={{ marginTop: 12 }}>
-            <button onClick={addLock}>Add Lock</button>
-            <button onClick={saveOptimizedLineupsToGames}>Save / Overwrite Selected Lineups</button>
-          </div>
+            <div className="card">
+              <h3>Locks</h3>
+              <div className="grid four-col">
+                <div>
+                  <label>Player</label>
+                  <select value={lockPlayerId} onChange={(e) => setLockPlayerId(e.target.value)}>
+                    <option value="">Select player</option>
+                    {players.map((player) => (
+                      <option key={player.id} value={String(player.id)}>
+                        {player.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>Position</label>
+                  <select value={lockPosition} onChange={(e) => setLockPosition(e.target.value)}>
+                    {['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'Out'].map((pos) => (
+                      <option key={pos} value={pos}>
+                        {pos}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>Start Inning</label>
+                  <select value={lockStart} onChange={(e) => setLockStart(Number(e.target.value))}>
+                    {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>End Inning</label>
+                  <select value={lockEnd} onChange={(e) => setLockEnd(Number(e.target.value))}>
+                    {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-          <div style={{ marginTop: 16, overflowX: 'auto' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Game</th>
-                  <th>Player</th>
-                  <th>Position</th>
-                  <th>Innings</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {locks.map((lock) => {
-                  const game = mergedGames.find((g) => String(g.id) === String(lock.gameId))
-                  return (
-                    <tr key={lock.id}>
-                      <td>{game ? `${game.date || 'No Date'} vs ${game.opponent || 'Opponent'}` : lock.gameId}</td>
-                      <td>{lock.player}</td>
-                      <td>{lock.position}</td>
-                      <td>
-                        {lock.startInning}-{lock.endInning}
-                      </td>
-                      <td>
-                        <button onClick={() => removeLock(lock.id)}>Remove</button>
-                      </td>
+              <div className="button-row" style={{ marginTop: 12 }}>
+                <button onClick={addLock}>Add Lock</button>
+                <button onClick={buildOrRefreshPreview}>Optimize / Re-Optimize</button>
+                <button onClick={() => saveOrOverwriteLineup(optimizerGame.id, optimizerPreview)}>
+                  Save / Overwrite Lineup
+                </button>
+              </div>
+
+              <div style={{ marginTop: 16, overflowX: 'auto' }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Player</th>
+                      <th>Position</th>
+                      <th>Range</th>
+                      <th>Action</th>
                     </tr>
-                  )
-                })}
-                {!locks.length && (
-                  <tr>
-                    <td colSpan="5">No locks added yet.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  </thead>
+                  <tbody>
+                    {gameLocks.map((lock) => {
+                      const player = players.find((p) => String(p.id) === String(lock.playerId))
+                      return (
+                        <tr key={lock.id}>
+                          <td>{player?.name || lock.playerId}</td>
+                          <td>{lock.position}</td>
+                          <td>{lock.startInning}-{lock.endInning}</td>
+                          <td>
+                            <button onClick={() => removeLock(lock.id)}>Remove</button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                    {!gameLocks.length && (
+                      <tr>
+                        <td colSpan="4">No locks yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-        {renderSummaryTable('YTD Before', ytdBeforeTotals)}
-        {renderSummaryTable(`Current Plan (${selectedGames.length} game${selectedGames.length === 1 ? '' : 's'})`, currentPlanTotals)}
-        {renderSummaryTable('YTD After', ytdAfterTotals)}
+            {optimizerPreview && (
+              <div className="card">
+                <h3>Optimizer Grid</h3>
+                {lineupGrid(optimizerPreview, updatePreviewCell, updatePreviewBatting, true)}
+              </div>
+            )}
+
+            {renderSummaryCard('YTD Before', ytdBeforeTotals, trackingSort, setTrackingSort)}
+            {renderSummaryCard('Current Plan', currentPlanTotals, trackingSort, setTrackingSort)}
+            {renderSummaryCard('YTD After', ytdAfterTotals, trackingSort, setTrackingSort)}
+          </>
+        )}
+      </div>
+    )
+  }
+
+  function renderSummaryCard(title, totals, sortConfig, setSortConfig) {
+    const rows = players.map((player) => ({
+      playerId: String(player.id),
+      name: player.name,
+      jersey_number: player.jersey_number || '',
+      fieldTotal: totals[String(player.id)]?.fieldTotal || 0,
+      Out: totals[String(player.id)]?.Out || 0,
+      expectedOuts: totals[String(player.id)]?.expectedOuts || 0,
+      actualOuts: totals[String(player.id)]?.actualOuts || 0,
+      delta: totals[String(player.id)]?.delta || 0,
+      P: totals[String(player.id)]?.P || 0,
+      C: totals[String(player.id)]?.C || 0,
+      IF: totals[String(player.id)]?.IF || 0,
+      OF: totals[String(player.id)]?.OF || 0,
+      CF: totals[String(player.id)]?.CF || 0,
+    }))
+
+    const sorted = sortRows(rows, sortConfig)
+
+    return (
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <h3>{title}</h3>
+        <table>
+          <thead>
+            <tr>
+              <th onClick={() => setSortConfig(nextSort(sortConfig, 'name'))}>Player</th>
+              <th onClick={() => setSortConfig(nextSort(sortConfig, 'fieldTotal'))}>Fld</th>
+              <th onClick={() => setSortConfig(nextSort(sortConfig, 'Out'))}>Out</th>
+              <th onClick={() => setSortConfig(nextSort(sortConfig, 'expectedOuts'))}>Exp X</th>
+              <th onClick={() => setSortConfig(nextSort(sortConfig, 'actualOuts'))}>Act X</th>
+              <th onClick={() => setSortConfig(nextSort(sortConfig, 'delta'))}>Delta</th>
+              <th onClick={() => setSortConfig(nextSort(sortConfig, 'P'))}>P</th>
+              <th onClick={() => setSortConfig(nextSort(sortConfig, 'C'))}>C</th>
+              <th onClick={() => setSortConfig(nextSort(sortConfig, 'IF'))}>IF</th>
+              <th onClick={() => setSortConfig(nextSort(sortConfig, 'OF'))}>OF</th>
+              <th onClick={() => setSortConfig(nextSort(sortConfig, 'CF'))}>CF</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((row) => (
+              <tr key={`${title}-${row.playerId}`}>
+                <td>{row.name}</td>
+                <td>{row.fieldTotal}</td>
+                <td>{row.Out}</td>
+                <td>{row.expectedOuts}</td>
+                <td>{row.actualOuts}</td>
+                <td>{row.delta}</td>
+                <td>{row.P}</td>
+                <td>{row.C}</td>
+                <td>{row.IF}</td>
+                <td>{row.OF}</td>
+                <td>{row.CF}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     )
   }
@@ -1185,128 +1582,54 @@ export default function App() {
       )
     }
 
-    if (!selectedGame.lineup) {
+    if (!selectedGameLineup) {
       return (
         <div className="card">
           <div className="row-between">
             <div>
-              <h2>
-                {selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
-              </h2>
-              <p>Status: <strong>{selectedGame.status}</strong></p>
+              <h2>{selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}</h2>
+              <p>Use Optimizer to create a lineup, then save it here.</p>
             </div>
-            <button className="no-print" onClick={() => setPage('games')}>
-              Back to Games
-            </button>
+            <button onClick={() => setPage('games')}>Back to Games</button>
           </div>
-          <p>No lineup saved yet. Use the Optimizer and save into this game.</p>
         </div>
       )
     }
 
-    const outCount = maxOutCount(selectedGame.lineup)
-    const outColumns = Array.from({ length: outCount }, (_, i) => `Out${i + 1}`)
-
     return (
       <div className="stack">
-        <div className="card no-print">
+        <div className="card">
           <div className="row-between">
             <div>
-              <h2>
-                {selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
-              </h2>
-              <p>
-                Status: <strong>{selectedGame.status}</strong> | Innings:{' '}
-                <strong>{selectedGame.lineup.assignments.length}</strong>
-              </p>
+              <h2>{selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}</h2>
+              <p>By player, innings across. Batting order on the left.</p>
             </div>
-
             <div className="button-row">
-              <button onClick={() => setPage('games')}>Back to Games</button>
-              <button onClick={() => removeLastInning(selectedGame.id)}>Remove Last Inning</button>
-              <button onClick={() => window.print()}>Print Lineup</button>
+              <button onClick={() => addInningToSavedLineup(selectedGame.id)}>Add Inning</button>
+              <button onClick={() => saveOrOverwriteLineup(selectedGame.id, lineupsByGame[String(selectedGame.id)])}>
+                Save Changes
+              </button>
+              <button onClick={() => clearSavedLineup(selectedGame.id)}>Clear Lineup</button>
+              <button onClick={() => window.print()}>Print</button>
             </div>
           </div>
 
           <div className="button-row" style={{ marginTop: 12 }}>
-            <select
-              value={removeInningChoice}
-              onChange={(e) => setRemoveInningChoice(Number(e.target.value))}
-              style={{ maxWidth: 140 }}
-            >
-              {selectedGame.lineup.assignments.map((inning) => (
-                <option key={inning.inning} value={inning.inning}>
-                  Inning {inning.inning}
-                </option>
-              ))}
-            </select>
-            <button onClick={() => removeSpecificInning(selectedGame.id, removeInningChoice)}>
-              Remove Selected Inning
-            </button>
+            {Array.from({ length: selectedGameLineup.innings }, (_, i) => i + 1).map((inning) => (
+              <button key={inning} onClick={() => removeInningFromSavedLineup(selectedGame.id, inning)}>
+                Remove {inning}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="card print-card" style={{ overflowX: 'auto' }}>
-          <h2>
-            Thunder Lineup - {selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
-          </h2>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Inning</th>
-                {fieldPositions.map((pos) => (
-                  <th key={pos}>{pos}</th>
-                ))}
-                {outColumns.map((pos) => (
-                  <th key={pos}>{pos}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {selectedGame.lineup.assignments.map((inningRow) => (
-                <tr key={inningRow.inning}>
-                  <td>{inningRow.inning}</td>
-
-                  {fieldPositions.map((pos) => (
-                    <td key={pos}>
-                      <select
-                        value={inningRow.positions[pos] || ''}
-                        onChange={(e) =>
-                          updateGameAssignment(selectedGame.id, inningRow.inning, pos, e.target.value)
-                        }
-                      >
-                        <option value="">--</option>
-                        {rosterPlayers.map((name) => (
-                          <option key={name} value={name}>
-                            {name}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                  ))}
-
-                  {outColumns.map((outKey) => (
-                    <td key={outKey}>
-                      <select
-                        value={inningRow.positions[outKey] || ''}
-                        onChange={(e) =>
-                          updateGameAssignment(selectedGame.id, inningRow.inning, outKey, e.target.value)
-                        }
-                      >
-                        <option value="">--</option>
-                        {rosterPlayers.map((name) => (
-                          <option key={name} value={name}>
-                            {name}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="card">
+          {lineupGrid(
+            selectedGameLineup,
+            (playerId, inning, value) => updateSavedLineupCell(selectedGame.id, playerId, inning, value),
+            (playerId, value) => updateSavedBatting(selectedGame.id, playerId, value),
+            true
+          )}
         </div>
       </div>
     )
@@ -1317,25 +1640,57 @@ export default function App() {
       <aside className="sidebar no-print">
         <h1>Thunder Lineup Tool</h1>
         <div className="nav-stack">
-          {renderNavButton('players', 'Players')}
-          {renderNavButton('attendance', 'Attendance')}
-          {renderNavButton('targets', 'Targets')}
-          {renderNavButton('games', 'Games')}
-          {renderNavButton('optimizer', 'Optimizer')}
-          {renderNavButton('game-detail', 'Game Detail')}
-          {renderNavButton('tracking', 'Tracking')}
+          {renderNavButton(page, setPage, 'players', 'Players')}
+          {renderNavButton(page, setPage, 'targets', 'Targets')}
+          {renderNavButton(page, setPage, 'games', 'Games')}
+          {renderNavButton(page, setPage, 'optimizer', 'Optimizer')}
+          {renderNavButton(page, setPage, 'game-detail', 'Game Detail')}
+          {renderNavButton(page, setPage, 'tracking', 'Tracking')}
         </div>
       </aside>
 
       <main className="main-content">
         {page === 'players' && renderPlayersPage()}
-        {page === 'attendance' && renderAttendancePage()}
         {page === 'targets' && renderTargetsPage()}
         {page === 'games' && renderGamesPage()}
         {page === 'optimizer' && renderOptimizerPage()}
         {page === 'game-detail' && renderGameDetailPage()}
-        {page === 'tracking' && renderTrackingPage()}
+        {page === 'tracking' && renderSummaryCard('Tracking', computeLineupTotals(Object.values(lineupsByGame), players), trackingSort, setTrackingSort)}
       </main>
     </div>
   )
+}
+
+function renderNavButton(currentPage, setPage, key, label) {
+  return (
+    <button
+      className={currentPage === key ? 'nav-button active' : 'nav-button'}
+      onClick={() => setPage(key)}
+    >
+      {label}
+    </button>
+  )
+}
+
+function targetRowsPrepare(rows) {
+  return rows.map((row) => ({
+    ...row,
+    subtotal: Number(row.subtotal || 0),
+  }))
+}
+
+function trackingRowsPrepare(rows) {
+  return rows.map((row) => ({
+    ...row,
+    delta: Number(row.delta || 0),
+    expectedOuts: Number(row.expectedOuts || 0),
+    actualOuts: Number(row.actualOuts || 0),
+    fieldTotal: Number(row.fieldTotal || 0),
+    Out: Number(row.Out || 0),
+    P: Number(row.P || 0),
+    C: Number(row.C || 0),
+    IF: Number(row.IF || 0),
+    OF: Number(row.OF || 0),
+    CF: Number(row.CF || 0),
+  }))
 }
