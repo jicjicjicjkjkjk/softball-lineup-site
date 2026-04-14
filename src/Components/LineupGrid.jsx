@@ -1,4 +1,4 @@
-import MiniDiamond from './MiniDiamond'
+import MiniDiamond from './Minidiamond'
 import { GRID_OPTIONS, rowSummary, fitTier } from '../lib/lineupUtils'
 
 export default function LineupGrid({
