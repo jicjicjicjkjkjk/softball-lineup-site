@@ -489,6 +489,221 @@ function optimizeGame({
   return lineup
 }
 
+function renderTrackingCard(title, totals, players, sortConfig, setSortConfig) {
+  const rows = sortRows(
+    players.map((player) => ({
+      playerId: String(player.id),
+      name: player.name,
+      jersey_number: player.jersey_number || '',
+      fieldTotal: totals[String(player.id)]?.fieldTotal || 0,
+      Out: totals[String(player.id)]?.Out || 0,
+      expectedOuts: totals[String(player.id)]?.expectedOuts || 0,
+      actualOuts: totals[String(player.id)]?.actualOuts || 0,
+      delta: totals[String(player.id)]?.delta || 0,
+      P: totals[String(player.id)]?.P || 0,
+      C: totals[String(player.id)]?.C || 0,
+      '1B': totals[String(player.id)]?.['1B'] || 0,
+      '2B': totals[String(player.id)]?.['2B'] || 0,
+      '3B': totals[String(player.id)]?.['3B'] || 0,
+      SS: totals[String(player.id)]?.SS || 0,
+      LF: totals[String(player.id)]?.LF || 0,
+      CF: totals[String(player.id)]?.CF || 0,
+      RF: totals[String(player.id)]?.RF || 0,
+      IF: totals[String(player.id)]?.IF || 0,
+      OF: totals[String(player.id)]?.OF || 0,
+    })),
+    sortConfig
+  )
+
+  return (
+    <div className="card" style={{ overflowX: 'auto' }}>
+      <h3>{title}</h3>
+      <table>
+        <thead>
+          <tr>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'name'))}>Player</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'fieldTotal'))}>Fld</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'Out'))}>Out</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'expectedOuts'))}>Exp X</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'actualOuts'))}>Act X</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'delta'))}>Delta</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'P'))}>P</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'C'))}>C</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, '1B'))}>1B</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, '2B'))}>2B</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, '3B'))}>3B</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'SS'))}>SS</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'LF'))}>LF</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'CF'))}>CF</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'RF'))}>RF</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'IF'))}>IF</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'OF'))}>OF</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={`${title}-${row.playerId}`}>
+              <td>{row.name}</td>
+              <td>{row.fieldTotal}</td>
+              <td>{row.Out}</td>
+              <td>{row.expectedOuts}</td>
+              <td>{row.actualOuts}</td>
+              <td>{row.delta}</td>
+              <td>{row.P}</td>
+              <td>{row.C}</td>
+              <td>{row['1B']}</td>
+              <td>{row['2B']}</td>
+              <td>{row['3B']}</td>
+              <td>{row.SS}</td>
+              <td>{row.LF}</td>
+              <td>{row.CF}</td>
+              <td>{row.RF}</td>
+              <td>{row.IF}</td>
+              <td>{row.OF}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function renderGrid({
+  players,
+  lineup,
+  fitMap,
+  showLocks,
+  lockedLineup,
+  onCellChange,
+  onBattingChange,
+  onCellLockToggle,
+  onRowLockToggle,
+}) {
+  const sortedRows = [...players].sort((a, b) => {
+    const aOrder = Number(lineup.battingOrder[String(a.id)] || 999)
+    const bOrder = Number(lineup.battingOrder[String(b.id)] || 999)
+    if (aOrder !== bOrder) return aOrder - bOrder
+    return a.name.localeCompare(b.name)
+  })
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>BO</th>
+          {showLocks && <th>Row Lock</th>}
+          {Array.from({ length: lineup.innings }, (_, i) => i + 1).map((inning) => (
+            <th key={inning}>{inning}</th>
+          ))}
+          <th>IF</th>
+          <th>OF</th>
+          <th>P</th>
+          <th>C</th>
+          <th>X</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sortedRows.map((player) => {
+          const pid = String(player.id)
+          const summary = rowSummary(lineup, pid)
+          const rowLocked = lineup.lockedRows?.[pid] || false
+
+          return (
+            <tr key={pid}>
+              <td>{player.jersey_number || ''}</td>
+              <td>{player.name}</td>
+              <td>
+                <input
+                  type="number"
+                  value={lineup.battingOrder[pid] || ''}
+                  disabled={lockedLineup}
+                  onChange={(e) => onBattingChange(pid, e.target.value)}
+                  style={{ width: 56 }}
+                />
+              </td>
+
+              {showLocks && (
+                <td>
+                  <label style={{ display: 'flex', gap: 4, alignItems: 'center', margin: 0, fontWeight: 400 }}>
+                    <input
+                      type="checkbox"
+                      checked={rowLocked}
+                      onChange={() => onRowLockToggle(pid)}
+                      disabled={lockedLineup}
+                      style={{ width: 'auto' }}
+                    />
+                    All
+                  </label>
+                </td>
+              )}
+
+              {Array.from({ length: lineup.innings }, (_, i) => i + 1).map((inning) => {
+                const value = lineup.cells?.[pid]?.[inning] || ''
+                const cellLocked = lineup.lockedCells?.[pid]?.[inning] || false
+                const effectiveLocked = lockedLineup || rowLocked || cellLocked
+
+                let background = value ? '#eef6ff' : 'white'
+
+                if (FIELD_POSITIONS.includes(value)) {
+                  const counts = positionCountsForInning(lineup, inning, lineup.availablePlayerIds || [])
+                  if ((counts[value] || []).length > 1) {
+                    background = '#fee2e2'
+                  } else {
+                    const tier = fitTier(fitMap, pid, value)
+                    background = tier === 'primary' ? '#dcfce7' : tier === 'secondary' ? '#fef3c7' : '#fee2e2'
+                  }
+                }
+
+                return (
+                  <td key={inning}>
+                    <div style={{ display: 'grid', gap: 6 }}>
+                      <select
+                        value={value}
+                        disabled={effectiveLocked}
+                        onChange={(e) => onCellChange(pid, inning, e.target.value)}
+                        style={{ background }}
+                      >
+                        {GRID_OPTIONS.map((option) => (
+                          <option key={option || 'blank'} value={option}>
+                            {option || '--'}
+                          </option>
+                        ))}
+                      </select>
+
+                      {showLocks && (
+                        <label style={{ display: 'flex', gap: 4, alignItems: 'center', margin: 0, fontWeight: 400 }}>
+                          <input
+                            type="checkbox"
+                            checked={cellLocked}
+                            disabled={lockedLineup || rowLocked}
+                            onChange={() => onCellLockToggle(pid, inning)}
+                            style={{ width: 'auto' }}
+                          />
+                          Lock
+                        </label>
+                      )}
+                    </div>
+                  </td>
+                )
+              })}
+
+              <td>{summary.IF}</td>
+              <td>{summary.OF}</td>
+              <td>{summary.P}</td>
+              <td>{summary.C}</td>
+              <td>{summary.X}</td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  )
+}
+
+
+
 export default function App() {
   const [page, setPage] = useState('games')
 
