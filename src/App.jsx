@@ -329,11 +329,24 @@ function lastOutDistance(lineup, playerId, inning) {
   return distance
 }
 
-function spacingPenalty(lineup, playerId, inning) {
-  const distance = lastOutDistance(lineup, playerId, inning)
-  if (distance === 1) return 1000000
-  if (distance === 2) return 500000
-  return 0
+function sitOutDistance(lineup, playerId, inning) {
+  let last = null
+
+  for (let prev = inning - 1; prev >= 1; prev -= 1) {
+    const value = lineup.cells?.[playerId]?.[prev] || ''
+    if (value === 'Out') {
+      last = prev
+      break
+    }
+  }
+
+  if (last === null) return 999
+  return inning - last
+}
+
+function isSitOutAllowed(lineup, playerId, inning) {
+  const distance = sitOutDistance(lineup, playerId, inning)
+  return distance >= 3 || distance === 999
 }
 
 function renderMiniDiamond(lineup, inning) {
@@ -453,14 +466,16 @@ function optimizeGame({
       })
       if (alreadyAssigned) return
 
-      const candidates = players
-        .filter((player) => availablePlayerIds.includes(pk(player.id)))
-        .filter((player) => !usedPlayers.has(pk(player.id)))
-        .filter((player) => fitTier(fitMap, player.id, position) !== 'no')
-        .sort((a, b) => {
-          const aId = pk(a.id)
-          const bId = pk(b.id)
+      const sitCandidates = players
+  .filter((player) => availablePlayerIds.includes(pk(player.id)))
+  .filter((player) => !usedPlayers.has(pk(player.id)))
 
+const allowedSitCandidates = sitCandidates.filter((player) =>
+  isSitOutAllowed(lineup, pk(player.id), inning)
+)
+
+const finalSitCandidates =
+  allowedSitCandidates.length > 0 ? allowedSitCandidates : sitCandidates
           const fitDiff =
             fitRank(fitTier(fitMap, a.id, position)) -
             fitRank(fitTier(fitMap, b.id, position))
