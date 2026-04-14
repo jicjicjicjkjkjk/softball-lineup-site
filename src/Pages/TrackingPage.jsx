@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { GAME_TYPES, computeTotals } from '../lib/lineupUtils'
-import TrackingTable from '../Components/Trackingtable'
+import TrackingTable from "../Components/TrackingTable";
 
 export default function TrackingPage({
   games,
