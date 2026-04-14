@@ -81,6 +81,7 @@ function blankLineup(playerIds, innings = 6, availablePlayerIds = playerIds) {
     battingOrder[idKey] = ''
     lockedCells[idKey] = {}
     lockedRows[idKey] = false
+
     for (let inning = 1; inning <= innings; inning += 1) {
       cells[idKey][inning] = ''
       lockedCells[idKey][inning] = false
@@ -116,6 +117,7 @@ function normalizeLineup(lineup, players, inningsFallback = 6, availableFallback
     if (!out.lockedCells[idKey]) out.lockedCells[idKey] = {}
     if (out.battingOrder[idKey] === undefined) out.battingOrder[idKey] = ''
     if (out.lockedRows[idKey] === undefined) out.lockedRows[idKey] = false
+
     for (let inning = 1; inning <= out.innings; inning += 1) {
       if (out.cells[idKey][inning] === undefined) out.cells[idKey][inning] = ''
       if (out.lockedCells[idKey][inning] === undefined) out.lockedCells[idKey][inning] = false
@@ -147,15 +149,6 @@ function requiredOutsForGame(playerCount, innings) {
 function currentGameOutCount(lineup, playerId) {
   const row = lineup?.cells?.[playerId] || {}
   return Object.values(row).filter((value) => value === 'Out').length
-}
-
-function spacingPenalty(lineup, playerId, inning) {
-  const distance = lastOutDistance(lineup, playerId, inning)
-
-  if (distance === 1) return 100000
-  if (distance === 2) return 20000
-  if (distance === 3) return 3000
-  return 0
 }
 
 function computeTotals(lineups, players) {
@@ -235,6 +228,7 @@ function computeTotals(lineups, players) {
 
 function addTotals(a, b, players) {
   const merged = {}
+
   players.forEach((player) => {
     const id = pk(player.id)
     merged[id] = {
@@ -260,6 +254,7 @@ function addTotals(a, b, players) {
       delta: Number(((a[id]?.delta || 0) + (b[id]?.delta || 0)).toFixed(2)),
     }
   })
+
   return merged
 }
 
@@ -334,6 +329,80 @@ function lastOutDistance(lineup, playerId, inning) {
   return distance
 }
 
+function spacingPenalty(lineup, playerId, inning) {
+  const distance = lastOutDistance(lineup, playerId, inning)
+  if (distance === 1) return 1000000
+  if (distance === 2) return 500000
+  return 0
+}
+
+function renderMiniDiamond(lineup, inning) {
+  const availableIds = (lineup.availablePlayerIds || []).map(String)
+  const counts = positionCountsForInning(lineup, inning, availableIds)
+
+  const getState = (pos) => {
+    const count = counts[pos]?.length || 0
+    if (count === 0) return '#ffffff'
+    if (count > 1) return '#fee2e2'
+    return '#dcfce7'
+  }
+
+  const spot = (label, top, left, pos) => (
+    <div
+      key={pos}
+      style={{
+        position: 'absolute',
+        top,
+        left,
+        transform: 'translate(-50%, -50%)',
+        width: 16,
+        height: 16,
+        borderRadius: 999,
+        border: '1px solid #94a3b8',
+        background: getState(pos),
+        fontSize: 7,
+        lineHeight: '14px',
+        textAlign: 'center',
+        fontWeight: 700,
+        overflow: 'hidden',
+      }}
+      title={pos}
+    >
+      {label}
+    </div>
+  )
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      <div style={{ position: 'relative', width: 70, height: 70 }}>
+        {spot('8', '8%', '50%', 'CF')}
+        {spot('7', '27%', '18%', 'LF')}
+        {spot('9', '27%', '82%', 'RF')}
+        {spot('6', '44%', '35%', 'SS')}
+        {spot('4', '44%', '65%', '2B')}
+        {spot('5', '66%', '24%', '3B')}
+        {spot('3', '66%', '76%', '1B')}
+        {spot('1', '64%', '50%', 'P')}
+        {spot('2', '89%', '50%', 'C')}
+
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            width: 44,
+            height: 44,
+            transform: 'translate(-50%, -30%) rotate(45deg)',
+            border: '1px solid #cbd5e1',
+            opacity: 0.45,
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 700 }}>{inning}</div>
+    </div>
+  )
+}
 
 function optimizeGame({
   game,
@@ -374,9 +443,7 @@ function optimizeGame({
       const id = pk(player.id)
       const value = lineup.cells?.[id]?.[inning] || ''
       const locked = lineup.lockedRows?.[id] || lineup.lockedCells?.[id]?.[inning] || false
-      if (locked && value) {
-        usedPlayers.add(id)
-      }
+      if (locked && value) usedPlayers.add(id)
     })
 
     FIELD_POSITIONS.forEach((position) => {
@@ -384,7 +451,6 @@ function optimizeGame({
         const id = pk(player.id)
         return (lineup.cells?.[id]?.[inning] || '') === position
       })
-
       if (alreadyAssigned) return
 
       const candidates = players
@@ -403,10 +469,6 @@ function optimizeGame({
           const aGameOuts = currentGameOutCount(lineup, aId)
           const bGameOuts = currentGameOutCount(lineup, bId)
           if (aGameOuts !== bGameOuts) return bGameOuts - aGameOuts
-
-          const aSpacing = spacingPenalty(lineup, aId, inning)
-          const bSpacing = spacingPenalty(lineup, bId, inning)
-          if (aSpacing !== bSpacing) return aSpacing - bSpacing
 
           const aDelta = rollingTotals[aId]?.delta || 0
           const bDelta = rollingTotals[bId]?.delta || 0
@@ -456,6 +518,10 @@ function optimizeGame({
 
         const aPenalty = spacingPenalty(lineup, aId, inning)
         const bPenalty = spacingPenalty(lineup, bId, inning)
+
+        const aBlocked = aPenalty >= 500000
+        const bBlocked = bPenalty >= 500000
+        if (aBlocked !== bBlocked) return aBlocked ? 1 : -1
         if (aPenalty !== bPenalty) return aPenalty - bPenalty
 
         const aGameOuts = currentGameOutCount(lineup, aId)
@@ -595,36 +661,6 @@ function renderTrackingCard(title, totals, players, sortConfig, setSortConfig) {
   )
 }
 
-function renderMiniDiamond(lineup, inning) {
-  const availableIds = (lineup.availablePlayerIds || []).map(String)
-  const counts = positionCountsForInning(lineup, inning, availableIds)
-
-  function cellClass(positions) {
-    const total = positions.reduce((sum, pos) => sum + (counts[pos]?.length || 0), 0)
-    if (total === 0) return 'diamond-spot'
-    if (total > 1) return 'diamond-spot duplicate'
-    return 'diamond-spot filled'
-  }
-
-  return (
-    <div className="mini-diamond-wrap">
-      <div className="mini-diamond">
-        <div className={`diamond-label p ${cellClass(['P'])}`}>P</div>
-        <div className={`diamond-label c ${cellClass(['C'])}`}>C</div>
-        <div className={`diamond-label first ${cellClass(['1B'])}`}>1B</div>
-        <div className={`diamond-label second ${cellClass(['2B'])}`}>2B</div>
-        <div className={`diamond-label third ${cellClass(['3B'])}`}>3B</div>
-        <div className={`diamond-label ss ${cellClass(['SS'])}`}>SS</div>
-        <div className={`diamond-label lf ${cellClass(['LF'])}`}>LF</div>
-        <div className={`diamond-label cf ${cellClass(['CF'])}`}>CF</div>
-        <div className={`diamond-label rf ${cellClass(['RF'])}`}>RF</div>
-      </div>
-      <div className="inning-number">{inning}</div>
-    </div>
-  )
-}
-
-
 function renderGrid({
   players,
   lineup,
@@ -650,10 +686,10 @@ function renderGrid({
           <th>#</th>
           <th>Player</th>
           <th>BO</th>
-          {showLocks && <th>Row Lock</th>}
+          {showLocks && <th>Lock</th>}
           {Array.from({ length: lineup.innings }, (_, i) => i + 1).map((inning) => (
-  <th key={inning}>{renderMiniDiamond(lineup, inning)}</th>
-))}
+            <th key={inning}>{renderMiniDiamond(lineup, inning)}</th>
+          ))}
           <th>IF</th>
           <th>OF</th>
           <th>P</th>
@@ -759,8 +795,6 @@ function renderGrid({
   )
 }
 
-
-
 export default function App() {
   const [page, setPage] = useState('games')
 
@@ -788,6 +822,9 @@ export default function App() {
   const [newPlayerName, setNewPlayerName] = useState('')
   const [newPlayerNumber, setNewPlayerNumber] = useState('')
   const [newPlayerActive, setNewPlayerActive] = useState(true)
+
+  const [trackingThroughDate, setTrackingThroughDate] = useState('')
+  const [trackingIncludeUnlocked, setTrackingIncludeUnlocked] = useState(true)
 
   const [playerSort, setPlayerSort] = useState({ key: 'name', direction: 'asc' })
   const [gameSort, setGameSort] = useState({ key: 'date', direction: 'asc' })
@@ -872,42 +909,43 @@ export default function App() {
       setLineupLockedByGame(loadedLocked)
 
       const prefRes = await supabase
-  .from('player_position_preferences')
-  .select('player_id, position, priority_pct')
+        .from('player_position_preferences')
+        .select('player_id, position, priority_pct')
 
-if (prefRes.error) throw prefRes.error
+      if (prefRes.error) throw prefRes.error
 
-const allowedRes = await supabase
-  .from('player_allowed_positions')
-  .select('player_id, position, fit_tier')
+      const allowedRes = await supabase
+        .from('player_allowed_positions')
+        .select('player_id, position, fit_tier')
 
-if (allowedRes.error) throw allowedRes.error
+      if (allowedRes.error) throw allowedRes.error
 
-const priorityMap = {}
-const fitMap = {}
+      const priorityMap = {}
+      const fitMap = {}
 
-;(prefRes.data || []).forEach((row) => {
-  const playerId = String(row.player_id)
-  if (!priorityMap[playerId]) priorityMap[playerId] = {}
+      ;(prefRes.data || []).forEach((row) => {
+        const playerId = String(row.player_id)
+        if (!priorityMap[playerId]) priorityMap[playerId] = {}
 
-  if (PRIORITY_POSITIONS.includes(row.position)) {
-    priorityMap[playerId][row.position] = {
-      priority_pct: row.priority_pct ?? '',
-    }
-  }
-})
+        if (PRIORITY_POSITIONS.includes(row.position)) {
+          priorityMap[playerId][row.position] = {
+            priority_pct: row.priority_pct ?? '',
+          }
+        }
+      })
 
-;(allowedRes.data || []).forEach((row) => {
-  const playerId = String(row.player_id)
-  if (!fitMap[playerId]) fitMap[playerId] = {}
+      ;(allowedRes.data || []).forEach((row) => {
+        const playerId = String(row.player_id)
+        if (!fitMap[playerId]) fitMap[playerId] = {}
 
-  if (ALLOWED_POSITIONS.includes(row.position)) {
-    fitMap[playerId][row.position] = row.fit_tier || 'secondary'
-  }
-})
+        if (ALLOWED_POSITIONS.includes(row.position)) {
+          fitMap[playerId][row.position] = row.fit_tier || 'secondary'
+        }
+      })
 
-setPriorityByPlayer(priorityMap)
-setFitByPlayer(fitMap)      
+      setPriorityByPlayer(priorityMap)
+      setFitByPlayer(fitMap)
+
       if (loadedGames[0]) {
         setSelectedGameId(String(loadedGames[0].id))
         setOptimizerExistingGameId(String(loadedGames[0].id))
@@ -934,10 +972,16 @@ setFitByPlayer(fitMap)
 
   const sortedGames = useMemo(() => {
     return sortRows(
-      games.map((game) => ({
-        ...game,
-        lineupState: lineupLockedByGame[String(game.id)] ? 'Locked' : lineupsByGame[String(game.id)] ? 'Saved' : 'Empty',
-      })),
+      games.map((game) => {
+        let lineupState = 'Empty'
+        if (lineupLockedByGame[String(game.id)]) lineupState = 'Locked'
+        else if (lineupsByGame[String(game.id)]) lineupState = 'Saved'
+
+        return {
+          ...game,
+          lineupState,
+        }
+      }),
       gameSort
     )
   }, [games, lineupsByGame, lineupLockedByGame, gameSort])
@@ -1171,7 +1215,7 @@ setFitByPlayer(fitMap)
   }
 
   async function deletePlayer(playerId) {
-    const confirmed = window.confirm('Delete this player? Their saved preferences remain in the database only if you keep the row inactive instead.')
+    const confirmed = window.confirm('Delete this player?')
     if (!confirmed) return
 
     const del = await supabase.from('players').delete().eq('id', playerId)
@@ -1184,48 +1228,48 @@ setFitByPlayer(fitMap)
   }
 
   async function persistPriority(playerId, position, value) {
-  const cleaned = String(value ?? '').trim()
+    const cleaned = String(value ?? '').trim()
 
-  if (!cleaned) {
-    const del = await supabase
+    if (!cleaned) {
+      const del = await supabase
+        .from('player_position_preferences')
+        .delete()
+        .eq('player_id', playerId)
+        .eq('position', position)
+
+      if (del.error) setAppError(del.error.message)
+      return
+    }
+
+    const up = await supabase
       .from('player_position_preferences')
-      .delete()
-      .eq('player_id', playerId)
-      .eq('position', position)
+      .upsert(
+        {
+          player_id: playerId,
+          position,
+          priority_pct: Number(cleaned),
+        },
+        { onConflict: 'player_id,position' }
+      )
 
-    if (del.error) setAppError(del.error.message)
-    return
+    if (up.error) setAppError(up.error.message)
   }
 
-  const up = await supabase
-    .from('player_position_preferences')
-    .upsert(
-      {
-        player_id: playerId,
-        position,
-        priority_pct: Number(cleaned),
-      },
-      { onConflict: 'player_id,position' }
-    )
-
-  if (up.error) setAppError(up.error.message)
-}
-  
   async function persistFitTier(playerId, position, tier) {
-  const up = await supabase
-    .from('player_allowed_positions')
-    .upsert(
-      {
-        player_id: playerId,
-        position,
-        fit_tier: tier,
-      },
-      { onConflict: 'player_id,position' }
-    )
+    const up = await supabase
+      .from('player_allowed_positions')
+      .upsert(
+        {
+          player_id: playerId,
+          position,
+          fit_tier: tier,
+        },
+        { onConflict: 'player_id,position' }
+      )
 
-  if (up.error) setAppError(up.error.message)
-}
-  
+    if (up.error) setAppError(up.error.message)
+  }
+
   function updatePriorityLocal(playerId, position, value) {
     setPriorityByPlayer((current) => ({
       ...current,
@@ -1272,7 +1316,8 @@ setFitByPlayer(fitMap)
     })
 
     orderedGames.forEach((game) => {
-      const saved = optimizerPreviewByGame[String(game.id)] ||
+      const saved =
+        optimizerPreviewByGame[String(game.id)] ||
         lineupsByGame[String(game.id)] ||
         blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
 
@@ -1302,7 +1347,12 @@ setFitByPlayer(fitMap)
         lineupsByGame[String(gameId)] ||
         blankLineup(players.map((p) => p.id), 6, activePlayerIds())
 
-      const existing = normalizeLineup(base, players, base.innings || 6, base.availablePlayerIds || activePlayerIds())
+      const existing = normalizeLineup(
+        base,
+        players,
+        base.innings || 6,
+        base.availablePlayerIds || activePlayerIds()
+      )
       const next = updater(JSON.parse(JSON.stringify(existing)))
       return { ...current, [String(gameId)]: next }
     })
@@ -1311,6 +1361,7 @@ setFitByPlayer(fitMap)
   function togglePreviewAvailable(gameId, playerId) {
     updatePreview(gameId, (lineup) => {
       const id = String(playerId)
+
       if (lineup.availablePlayerIds.includes(id)) {
         lineup.availablePlayerIds = lineup.availablePlayerIds.filter((x) => x !== id)
         for (let inning = 1; inning <= lineup.innings; inning += 1) {
@@ -1321,6 +1372,7 @@ setFitByPlayer(fitMap)
       } else {
         lineup.availablePlayerIds.push(id)
       }
+
       return lineup
     })
   }
@@ -1404,7 +1456,10 @@ setFitByPlayer(fitMap)
     }
 
     await updateGameField(gameId, 'innings', lineup.innings)
-    setLineupsByGame((current) => ({ ...current, [String(gameId)]: JSON.parse(JSON.stringify(lineup)) }))
+    setLineupsByGame((current) => ({
+      ...current,
+      [String(gameId)]: JSON.parse(JSON.stringify(lineup)),
+    }))
     setLineupLockedByGame((current) => ({ ...current, [String(gameId)]: false }))
   }
 
@@ -1427,6 +1482,25 @@ setFitByPlayer(fitMap)
   function updateSavedBatting(gameId, playerId, value) {
     updateSavedLineup(gameId, (lineup) => {
       lineup.battingOrder[String(playerId)] = value
+      return lineup
+    })
+  }
+
+  function toggleSavedAvailable(gameId, playerId) {
+    updateSavedLineup(gameId, (lineup) => {
+      const id = String(playerId)
+
+      if (lineup.availablePlayerIds.includes(id)) {
+        lineup.availablePlayerIds = lineup.availablePlayerIds.filter((x) => x !== id)
+        for (let inning = 1; inning <= lineup.innings; inning += 1) {
+          lineup.cells[id][inning] = ''
+          lineup.lockedCells[id][inning] = false
+        }
+        lineup.lockedRows[id] = false
+      } else {
+        lineup.availablePlayerIds.push(id)
+      }
+
       return lineup
     })
   }
@@ -1591,7 +1665,10 @@ setFitByPlayer(fitMap)
             </div>
             <div>
               <label>Active</label>
-              <select value={newPlayerActive ? 'Yes' : 'No'} onChange={(e) => setNewPlayerActive(e.target.value === 'Yes')}>
+              <select
+                value={newPlayerActive ? 'Yes' : 'No'}
+                onChange={(e) => setNewPlayerActive(e.target.value === 'Yes')}
+              >
                 <option>Yes</option>
                 <option>No</option>
               </select>
@@ -1995,15 +2072,21 @@ setFitByPlayer(fitMap)
                 <div className="card" style={{ overflowX: 'auto' }}>
                   <h3>Grid</h3>
                   {renderGrid({
-                    players,
+                    players: players.filter((player) =>
+                      (optimizerFocusLineup.availablePlayerIds || []).includes(String(player.id))
+                    ),
                     lineup: optimizerFocusLineup,
                     fitMap: fitByPlayer,
                     showLocks: true,
                     lockedLineup: false,
-                    onCellChange: (playerId, inning, value) => updatePreviewCell(optimizerFocusGame.id, playerId, inning, value),
-                    onBattingChange: (playerId, value) => updatePreviewBatting(optimizerFocusGame.id, playerId, value),
-                    onCellLockToggle: (playerId, inning) => togglePreviewCellLock(optimizerFocusGame.id, playerId, inning),
-                    onRowLockToggle: (playerId) => togglePreviewRowLock(optimizerFocusGame.id, playerId),
+                    onCellChange: (playerId, inning, value) =>
+                      updatePreviewCell(optimizerFocusGame.id, playerId, inning, value),
+                    onBattingChange: (playerId, value) =>
+                      updatePreviewBatting(optimizerFocusGame.id, playerId, value),
+                    onCellLockToggle: (playerId, inning) =>
+                      togglePreviewCellLock(optimizerFocusGame.id, playerId, inning),
+                    onRowLockToggle: (playerId) =>
+                      togglePreviewRowLock(optimizerFocusGame.id, playerId),
                   })}
                 </div>
               </>
@@ -2048,7 +2131,21 @@ setFitByPlayer(fitMap)
           <div className="row-between">
             <div>
               <h2>{selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}</h2>
-              <p>Status: <strong>{selectedLocked ? 'Locked' : 'Planned'}</strong></p>
+              <p>
+                Status:{' '}
+                <strong>{selectedLocked ? 'Locked' : selectedLineup ? 'Saved' : 'Empty'}</strong>
+              </p>
+            </div>
+
+            <div style={{ minWidth: 260 }}>
+              <label>Open Another Game</label>
+              <select value={selectedGameId} onChange={(e) => setSelectedGameId(e.target.value)}>
+                {games.map((game) => (
+                  <option key={game.id} value={String(game.id)}>
+                    {(game.date || 'No Date')} vs {(game.opponent || 'Opponent')}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="button-row">
@@ -2058,9 +2155,7 @@ setFitByPlayer(fitMap)
               <button onClick={() => saveSavedLineup(selectedGame.id)} disabled={selectedLocked}>
                 Save Changes
               </button>
-              <button
-                onClick={() => toggleLineupLocked(selectedGame.id, !selectedLocked)}
-              >
+              <button onClick={() => toggleLineupLocked(selectedGame.id, !selectedLocked)}>
                 {selectedLocked ? 'Unlock Lineup' : 'Lock Lineup'}
               </button>
               <button onClick={() => clearSavedLineup(selectedGame.id)} disabled={selectedLocked}>
@@ -2074,24 +2169,51 @@ setFitByPlayer(fitMap)
             {Array.from({ length: selectedLineup.innings }, (_, i) => i + 1).map((inning) => (
               <button
                 key={inning}
-                onClick={() => removeSavedInning(selectedGame.id, inning)}
+                onClick={() => {
+                  const confirmed = window.confirm(`Remove inning ${inning}?`)
+                  if (confirmed) removeSavedInning(selectedGame.id, inning)
+                }}
                 disabled={selectedLocked}
               >
-                Remove {inning}
+                Remove Inning {inning}
               </button>
             ))}
           </div>
         </div>
 
+        <div className="card">
+          <h3>Game Availability</h3>
+          <div className="checkbox-grid">
+            {activePlayers.map((player) => {
+              const included = (selectedLineup.availablePlayerIds || []).includes(String(player.id))
+              return (
+                <label key={player.id} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={included}
+                    disabled={selectedLocked}
+                    onChange={() => toggleSavedAvailable(selectedGame.id, player.id)}
+                  />
+                  {player.name}
+                </label>
+              )
+            })}
+          </div>
+        </div>
+
         <div className="card" style={{ overflowX: 'auto' }}>
           {renderGrid({
-            players,
+            players: players.filter((player) =>
+              (selectedLineup.availablePlayerIds || []).includes(String(player.id))
+            ),
             lineup: selectedLineup,
             fitMap: fitByPlayer,
             showLocks: false,
             lockedLineup: selectedLocked,
-            onCellChange: (playerId, inning, value) => updateSavedCell(selectedGame.id, playerId, inning, value),
-            onBattingChange: (playerId, value) => updateSavedBatting(selectedGame.id, playerId, value),
+            onCellChange: (playerId, inning, value) =>
+              updateSavedCell(selectedGame.id, playerId, inning, value),
+            onBattingChange: (playerId, value) =>
+              updateSavedBatting(selectedGame.id, playerId, value),
             onCellLockToggle: () => {},
             onRowLockToggle: () => {},
           })}
@@ -2101,7 +2223,20 @@ setFitByPlayer(fitMap)
   }
 
   function renderTrackingPage() {
-    const overallTotals = computeTotals(Object.values(lineupsByGame), players)
+    const eligibleGameIds = games
+      .filter((game) => {
+        if (trackingThroughDate && game.date && game.date > trackingThroughDate) return false
+        if (!trackingIncludeUnlocked && !lineupLockedByGame[String(game.id)]) return false
+        return true
+      })
+      .map((game) => String(game.id))
+
+    const overallTotals = computeTotals(
+      Object.entries(lineupsByGame)
+        .filter(([gameId]) => eligibleGameIds.includes(String(gameId)))
+        .map(([, lineup]) => lineup),
+      players
+    )
 
     const rows = sortRows(
       players.map((player) => {
@@ -2149,6 +2284,30 @@ setFitByPlayer(fitMap)
 
     return (
       <div className="stack">
+        <div className="card">
+          <h2>Tracking Filters</h2>
+          <div className="grid four-col">
+            <div>
+              <label>Through Date</label>
+              <input
+                type="date"
+                value={trackingThroughDate}
+                onChange={(e) => setTrackingThroughDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label>Include</label>
+              <select
+                value={trackingIncludeUnlocked ? 'all' : 'locked'}
+                onChange={(e) => setTrackingIncludeUnlocked(e.target.value === 'all')}
+              >
+                <option value="all">Saved + Locked</option>
+                <option value="locked">Locked Only</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         {renderTrackingCard('Tracking Totals', overallTotals, players, trackingSort, setTrackingSort)}
 
         <div className="card" style={{ overflowX: 'auto' }}>
@@ -2202,6 +2361,17 @@ setFitByPlayer(fitMap)
     )
   }
 
+  function renderNavButton(key, label) {
+    return (
+      <button
+        className={page === key ? 'nav-button active' : 'nav-button'}
+        onClick={() => setPage(key)}
+      >
+        {label}
+      </button>
+    )
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar no-print">
@@ -2232,15 +2402,4 @@ setFitByPlayer(fitMap)
       </main>
     </div>
   )
-
-  function renderNavButton(key, label) {
-    return (
-      <button
-        className={page === key ? 'nav-button active' : 'nav-button'}
-        onClick={() => setPage(key)}
-      >
-        {label}
-      </button>
-    )
-  }
 }
