@@ -441,11 +441,36 @@ export default function App() {
     }))
   }
 
-  function addExistingGameToBatch() {
-    if (!optimizerExistingGameId) return
-    setOptimizerBatchGameIds((current) => [...new Set([...current, String(optimizerExistingGameId)])])
-    setOptimizerFocusGameId(String(optimizerExistingGameId))
-  }
+function addExistingGameToBatch() {
+  if (!optimizerExistingGameId) return
+
+  const gameId = String(optimizerExistingGameId)
+  const game = games.find((g) => String(g.id) === gameId)
+  if (!game) return
+
+  const savedLineup =
+    optimizerPreviewByGame[gameId] ||
+    lineupsByGame[gameId] ||
+    blankLineup(
+      players.map((p) => p.id),
+      Number(game.innings || 6),
+      activePlayerIds()
+    )
+
+  const normalized = normalizeLineup(
+    savedLineup,
+    players,
+    Number(game.innings || 6),
+    savedLineup.availablePlayerIds || activePlayerIds()
+  )
+
+  setOptimizerBatchGameIds((current) => [...new Set([...current, gameId])])
+  setOptimizerFocusGameId(gameId)
+  setOptimizerPreviewByGame((current) => ({
+    ...current,
+    [gameId]: normalized,
+  }))
+}
 
   function removeBatchGame(gameId) {
     setOptimizerBatchGameIds((current) => current.filter((id) => String(id) !== String(gameId)))
