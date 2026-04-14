@@ -144,6 +144,20 @@ function requiredOutsForGame(playerCount, innings) {
   return Math.max(0, playerCount - 9) * innings
 }
 
+function currentGameOutCount(lineup, playerId) {
+  const row = lineup?.cells?.[playerId] || {}
+  return Object.values(row).filter((value) => value === 'Out').length
+}
+
+function spacingPenalty(lineup, playerId, inning) {
+  const distance = lastOutDistance(lineup, playerId, inning)
+
+  if (distance === 1) return 100000
+  if (distance === 2) return 20000
+  if (distance === 3) return 3000
+  return 0
+}
+
 function computeTotals(lineups, players) {
   const totals = {}
 
@@ -374,45 +388,60 @@ function optimizeGame({
         .filter((player) => !usedPlayers.has(pk(player.id)))
         .filter((player) => fitTier(fitMap, player.id, position) !== 'no')
         .sort((a, b) => {
-          const aId = pk(a.id)
-          const bId = pk(b.id)
+          .sort((a, b) => {
+  const aId = pk(a.id)
+  const bId = pk(b.id)
 
-          const fitDiff = fitRank(fitTier(fitMap, a.id, position)) - fitRank(fitTier(fitMap, b.id, position))
-          if (fitDiff !== 0) return fitDiff
+  const fitDiff =
+    fitRank(fitTier(fitMap, a.id, position)) -
+    fitRank(fitTier(fitMap, b.id, position))
+  if (fitDiff !== 0) return fitDiff
 
-          const aTarget = priorityValue(priorityMap, a.id, position)
-          const bTarget = priorityValue(priorityMap, b.id, position)
+  // First: girls who sat more should be pushed onto the field
+  const aGameOuts = currentGameOutCount(lineup, aId)
+  const bGameOuts = currentGameOutCount(lineup, bId)
+  if (aGameOuts !== bGameOuts) return bGameOuts - aGameOuts
 
-          const aActualCount =
-            ['LF', 'CF', 'RF'].includes(position)
-              ? (rollingTotals[aId]?.OF || 0)
-              : (rollingTotals[aId]?.[position] || 0)
-          const bActualCount =
-            ['LF', 'CF', 'RF'].includes(position)
-              ? (rollingTotals[bId]?.OF || 0)
-              : (rollingTotals[bId]?.[position] || 0)
+  // Also strongly favor girls who sat recently so they don't sit again soon
+  const aSpacing = spacingPenalty(lineup, aId, inning)
+  const bSpacing = spacingPenalty(lineup, bId, inning)
+  if (aSpacing !== bSpacing) return aSpacing - bSpacing
 
-          const aField = Math.max(rollingTotals[aId]?.fieldTotal || 0, 1)
-          const bField = Math.max(rollingTotals[bId]?.fieldTotal || 0, 1)
+  // Then use YTD fairness
+  const aDelta = rollingTotals[aId]?.delta || 0
+  const bDelta = rollingTotals[bId]?.delta || 0
+  if (aDelta !== bDelta) return bDelta - aDelta
 
-          const aActualPct = (aActualCount / aField) * 100
-          const bActualPct = (bActualCount / bField) * 100
+  // Then use positioning priority
+  const aTarget = priorityValue(priorityMap, a.id, position)
+  const bTarget = priorityValue(priorityMap, b.id, position)
 
-          const aGap = aTarget - aActualPct
-          const bGap = bTarget - bActualPct
-          if (aGap !== bGap) return bGap - aGap
+  const aActualCount =
+    ['LF', 'CF', 'RF'].includes(position)
+      ? (rollingTotals[aId]?.OF || 0)
+      : (rollingTotals[aId]?.[position] || 0)
+  const bActualCount =
+    ['LF', 'CF', 'RF'].includes(position)
+      ? (rollingTotals[bId]?.OF || 0)
+      : (rollingTotals[bId]?.[position] || 0)
 
-          const aDelta = rollingTotals[aId]?.delta || 0
-          const bDelta = rollingTotals[bId]?.delta || 0
-          if (aDelta !== bDelta) return bDelta - aDelta
+  const aField = Math.max(rollingTotals[aId]?.fieldTotal || 0, 1)
+  const bField = Math.max(rollingTotals[bId]?.fieldTotal || 0, 1)
 
-          const aDepth = depthScore(a.name, position)
-          const bDepth = depthScore(b.name, position)
-          if (aDepth !== bDepth) return aDepth - bDepth
+  const aActualPct = (aActualCount / aField) * 100
+  const bActualPct = (bActualCount / bField) * 100
 
-          return String(a.name || '').localeCompare(String(b.name || ''))
-        })
+  const aGap = aTarget - aActualPct
+  const bGap = bTarget - bActualPct
+  if (aGap !== bGap) return bGap - aGap
 
+  const aDepth = depthScore(a.name, position)
+  const bDepth = depthScore(b.name, position)
+  if (aDepth !== bDepth) return aDepth - bDepth
+
+  return String(a.name || '').localeCompare(String(b.name || ''))
+})
+              
       const selected = candidates[0]
       if (!selected) return
 
@@ -424,30 +453,28 @@ function optimizeGame({
       .filter((player) => availablePlayerIds.includes(pk(player.id)))
       .filter((player) => !usedPlayers.has(pk(player.id)))
       .sort((a, b) => {
-        const aId = pk(a.id)
-        const bId = pk(b.id)
+        .sort((a, b) => {
+  const aId = pk(a.id)
+  const bId = pk(b.id)
 
-        const aDelta = rollingTotals[aId]?.delta || 0
-        const bDelta = rollingTotals[bId]?.delta || 0
-        if (aDelta !== bDelta) return aDelta - bDelta
+  // Hardest priority: avoid close-together sit outs
+  const aPenalty = spacingPenalty(lineup, aId, inning)
+  const bPenalty = spacingPenalty(lineup, bId, inning)
+  if (aPenalty !== bPenalty) return aPenalty - bPenalty
 
-        const aDistance = lastOutDistance(lineup, aId, inning)
-        const bDistance = lastOutDistance(lineup, bId, inning)
+  // Next: whoever has sat less THIS GAME should sit first
+  const aGameOuts = currentGameOutCount(lineup, aId)
+  const bGameOuts = currentGameOutCount(lineup, bId)
+  if (aGameOuts !== bGameOuts) return aGameOuts - bGameOuts
 
-        const aPenalty =
-          aDistance === 1 ? 10000 :
-          aDistance === 2 ? 3000 :
-          aDistance === 3 ? 500 : 0
+  // Next: whoever is below expected YTD should sit first
+  const aDelta = rollingTotals[aId]?.delta || 0
+  const bDelta = rollingTotals[bId]?.delta || 0
+  if (aDelta !== bDelta) return aDelta - bDelta
 
-        const bPenalty =
-          bDistance === 1 ? 10000 :
-          bDistance === 2 ? 3000 :
-          bDistance === 3 ? 500 : 0
-
-        if (aPenalty !== bPenalty) return aPenalty - bPenalty
-
-        return (rollingTotals[aId]?.Out || 0) - (rollingTotals[bId]?.Out || 0)
-      })
+  // Final tie-breaker
+  return String(a.name || '').localeCompare(String(b.name || ''))
+})
       .forEach((player) => {
         lineup.cells[pk(player.id)][inning] = 'Out'
       })
@@ -572,6 +599,36 @@ function renderTrackingCard(title, totals, players, sortConfig, setSortConfig) {
   )
 }
 
+function renderMiniDiamond(lineup, inning) {
+  const availableIds = (lineup.availablePlayerIds || []).map(String)
+  const counts = positionCountsForInning(lineup, inning, availableIds)
+
+  function cellClass(positions) {
+    const total = positions.reduce((sum, pos) => sum + (counts[pos]?.length || 0), 0)
+    if (total === 0) return 'diamond-spot'
+    if (total > 1) return 'diamond-spot duplicate'
+    return 'diamond-spot filled'
+  }
+
+  return (
+    <div className="mini-diamond-wrap">
+      <div className="mini-diamond">
+        <div className={`diamond-label p ${cellClass(['P'])}`}>P</div>
+        <div className={`diamond-label c ${cellClass(['C'])}`}>C</div>
+        <div className={`diamond-label first ${cellClass(['1B'])}`}>1B</div>
+        <div className={`diamond-label second ${cellClass(['2B'])}`}>2B</div>
+        <div className={`diamond-label third ${cellClass(['3B'])}`}>3B</div>
+        <div className={`diamond-label ss ${cellClass(['SS'])}`}>SS</div>
+        <div className={`diamond-label lf ${cellClass(['LF'])}`}>LF</div>
+        <div className={`diamond-label cf ${cellClass(['CF'])}`}>CF</div>
+        <div className={`diamond-label rf ${cellClass(['RF'])}`}>RF</div>
+      </div>
+      <div className="inning-number">{inning}</div>
+    </div>
+  )
+}
+
+
 function renderGrid({
   players,
   lineup,
@@ -599,8 +656,8 @@ function renderGrid({
           <th>BO</th>
           {showLocks && <th>Row Lock</th>}
           {Array.from({ length: lineup.innings }, (_, i) => i + 1).map((inning) => (
-            <th key={inning}>{inning}</th>
-          ))}
+  <th key={inning}>{renderMiniDiamond(lineup, inning)}</th>
+))}
           <th>IF</th>
           <th>OF</th>
           <th>P</th>
