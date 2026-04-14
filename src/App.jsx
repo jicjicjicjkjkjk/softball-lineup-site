@@ -823,25 +823,44 @@ export default function App() {
       const priorityMap = {}
       const fitMap = {}
 
-      ;(prefRes.data || []).forEach((row) => {
-        const playerId = String(row.player_id)
-        if (!priorityMap[playerId]) priorityMap[playerId] = {}
-        if (!fitMap[playerId]) fitMap[playerId] = {}
+      const prefRes = await supabase
+  .from('player_position_preferences')
+  .select('player_id, position, priority_pct')
 
-        if (PRIORITY_POSITIONS.includes(row.position)) {
-          priorityMap[playerId][row.position] = {
-            priority_pct: row.priority_pct ?? '',
-          }
-        }
+if (prefRes.error) throw prefRes.error
 
-        if (ALLOWED_POSITIONS.includes(row.position)) {
-          fitMap[playerId][row.position] = row.fit_tier || 'secondary'
-        }
-      })
+const allowedRes = await supabase
+  .from('player_allowed_positions')
+  .select('player_id, position, fit_tier')
 
-      setPriorityByPlayer(priorityMap)
-      setFitByPlayer(fitMap)
+if (allowedRes.error) throw allowedRes.error
 
+const priorityMap = {}
+const fitMap = {}
+
+;(prefRes.data || []).forEach((row) => {
+  const playerId = String(row.player_id)
+  if (!priorityMap[playerId]) priorityMap[playerId] = {}
+
+  if (PRIORITY_POSITIONS.includes(row.position)) {
+    priorityMap[playerId][row.position] = {
+      priority_pct: row.priority_pct ?? '',
+    }
+  }
+})
+
+;(allowedRes.data || []).forEach((row) => {
+  const playerId = String(row.player_id)
+  if (!fitMap[playerId]) fitMap[playerId] = {}
+
+  if (ALLOWED_POSITIONS.includes(row.position)) {
+    fitMap[playerId][row.position] = row.fit_tier || 'secondary'
+  }
+})
+
+setPriorityByPlayer(priorityMap)
+setFitByPlayer(fitMap)
+      
       if (loadedGames[0]) {
         setSelectedGameId(String(loadedGames[0].id))
         setOptimizerExistingGameId(String(loadedGames[0].id))
@@ -1118,52 +1137,48 @@ export default function App() {
   }
 
   async function persistPriority(playerId, position, value) {
-    const cleaned = String(value ?? '').trim()
+  const cleaned = String(value ?? '').trim()
 
-    if (!cleaned) {
-      const del = await supabase
-        .from('player_position_preferences')
-        .delete()
-        .eq('player_id', playerId)
-        .eq('position', position)
-
-      if (del.error) setAppError(del.error.message)
-      return
-    }
-
-    const up = await supabase
+  if (!cleaned) {
+    const del = await supabase
       .from('player_position_preferences')
-      .upsert(
-        {
-          player_id: playerId,
-          position,
-          priority_pct: Number(cleaned),
-          fit_tier: null,
-          is_allowed: true,
-        },
-        { onConflict: 'player_id,position' }
-      )
+      .delete()
+      .eq('player_id', playerId)
+      .eq('position', position)
 
-    if (up.error) setAppError(up.error.message)
+    if (del.error) setAppError(del.error.message)
+    return
   }
 
+  const up = await supabase
+    .from('player_position_preferences')
+    .upsert(
+      {
+        player_id: playerId,
+        position,
+        priority_pct: Number(cleaned),
+      },
+      { onConflict: 'player_id,position' }
+    )
+
+  if (up.error) setAppError(up.error.message)
+}
+  
   async function persistFitTier(playerId, position, tier) {
-    const up = await supabase
-      .from('player_position_preferences')
-      .upsert(
-        {
-          player_id: playerId,
-          position,
-          priority_pct: null,
-          fit_tier: tier,
-          is_allowed: tier !== 'no',
-        },
-        { onConflict: 'player_id,position' }
-      )
+  const up = await supabase
+    .from('player_allowed_positions')
+    .upsert(
+      {
+        player_id: playerId,
+        position,
+        fit_tier: tier,
+      },
+      { onConflict: 'player_id,position' }
+    )
 
-    if (up.error) setAppError(up.error.message)
-  }
-
+  if (up.error) setAppError(up.error.message)
+}
+  
   function updatePriorityLocal(playerId, position, value) {
     setPriorityByPlayer((current) => ({
       ...current,
