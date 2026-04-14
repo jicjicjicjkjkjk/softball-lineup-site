@@ -1,4 +1,4 @@
-import LineupGrid from '../components/LineupGrid'
+import LineupGrid from '../Components/Lineupgrid'
 
 export default function GameDetailPage({
   games,
