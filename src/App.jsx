@@ -712,7 +712,6 @@ function renderGrid({
           <th>X</th>
         </tr>
       </thead>
-
       <tbody>
         {sortedRows.map((player) => {
           const pid = String(player.id)
@@ -723,7 +722,6 @@ function renderGrid({
             <tr key={pid}>
               <td>{player.jersey_number || ''}</td>
               <td>{player.name}</td>
-
               <td>
                 <input
                   type="number"
