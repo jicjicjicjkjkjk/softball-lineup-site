@@ -216,3 +216,92 @@ th {
     background: transparent;
   }
 }
+
+.mini-diamond-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 92px;
+}
+
+.mini-diamond {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto;
+}
+
+.diamond-label {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: white;
+  font-size: 9px;
+  line-height: 20px;
+  text-align: center;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.diamond-spot.filled {
+  background: #dcfce7;
+  border-color: #16a34a;
+}
+
+.diamond-spot.duplicate {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+
+.diamond-label.cf {
+  top: 0;
+  left: 25px;
+}
+
+.diamond-label.lf {
+  top: 12px;
+  left: 2px;
+}
+
+.diamond-label.rf {
+  top: 12px;
+  right: 2px;
+}
+
+.diamond-label.second {
+  top: 18px;
+  left: 25px;
+}
+
+.diamond-label.ss {
+  top: 30px;
+  left: 10px;
+}
+
+.diamond-label.third {
+  top: 42px;
+  left: 2px;
+}
+
+.diamond-label.first {
+  top: 42px;
+  right: 2px;
+}
+
+.diamond-label.p {
+  top: 40px;
+  left: 25px;
+}
+
+.diamond-label.c {
+  bottom: 0;
+  left: 25px;
+}
+
+.inning-number {
+  font-size: 12px;
+  font-weight: 700;
+}
