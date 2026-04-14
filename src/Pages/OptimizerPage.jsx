@@ -1,5 +1,5 @@
-import LineupGrid from '../Components/Lineupgrid'
-import TrackingTable from '../Components/Trackingtable'
+import LineupGrid from "../Components/LineupGrid";
+import TrackingTable from "../Components/TrackingTable";
 import { GAME_TYPES, blankLineup, inningStatus } from '../lib/lineupUtils'
 
 export default function OptimizerPage(props) {
