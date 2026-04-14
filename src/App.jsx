@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase'
-import Sidebar from './components/Sidebar'
-import PlayersPage from './pages/PlayersPage'
-import PositioningPriorityPage from './pages/PositioningPriorityPage'
-import GamesPage from './pages/GamesPage'
-import OptimizerPage from './pages/OptimizerPage'
-import GameDetailPage from './pages/GameDetailPage'
-import TrackingPage from './pages/TrackingPage'
+import Sidebar from './Components/Sidebar'
+import PlayersPage from './Pages/PlayersPage'
+import PositioningPriorityPage from './Pages/PositioningPriorityPage'
+import GamesPage from './Pages/GamesPage'
+import OptimizerPage from './Pages/OptimizerPage'
+import GameDetailPage from './Pages/GameDetailPage'
+import TrackingPage from './Pages/TrackingPage'
 import {
   PRIORITY_POSITIONS,
   ALLOWED_POSITIONS,
