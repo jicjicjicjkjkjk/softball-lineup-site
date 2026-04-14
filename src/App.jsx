@@ -815,15 +815,6 @@ export default function App() {
       setLineupLockedByGame(loadedLocked)
 
       const prefRes = await supabase
-        .from('player_position_preferences')
-        .select('player_id, position, priority_pct, fit_tier, is_allowed')
-
-      if (prefRes.error) throw prefRes.error
-
-      const priorityMap = {}
-      const fitMap = {}
-
-      const prefRes = await supabase
   .from('player_position_preferences')
   .select('player_id, position, priority_pct')
 
@@ -859,8 +850,7 @@ const fitMap = {}
 })
 
 setPriorityByPlayer(priorityMap)
-setFitByPlayer(fitMap)
-      
+setFitByPlayer(fitMap)      
       if (loadedGames[0]) {
         setSelectedGameId(String(loadedGames[0].id))
         setOptimizerExistingGameId(String(loadedGames[0].id))
