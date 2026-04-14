@@ -712,6 +712,7 @@ function renderGrid({
           <th>X</th>
         </tr>
       </thead>
+
       <tbody>
         {sortedRows.map((player) => {
           const pid = String(player.id)
@@ -722,6 +723,7 @@ function renderGrid({
             <tr key={pid}>
               <td>{player.jersey_number || ''}</td>
               <td>{player.name}</td>
+
               <td>
                 <input
                   type="number"
@@ -734,7 +736,15 @@ function renderGrid({
 
               {showLocks && (
                 <td>
-                  <label style={{ display: 'flex', gap: 4, alignItems: 'center', margin: 0, fontWeight: 400 }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      gap: 4,
+                      alignItems: 'center',
+                      margin: 0,
+                      fontWeight: 400,
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={rowLocked}
@@ -755,12 +765,22 @@ function renderGrid({
                 let background = value ? '#eef6ff' : 'white'
 
                 if (FIELD_POSITIONS.includes(value)) {
-                  const counts = positionCountsForInning(lineup, inning, lineup.availablePlayerIds || [])
+                  const counts = positionCountsForInning(
+                    lineup,
+                    inning,
+                    lineup.availablePlayerIds || []
+                  )
+
                   if ((counts[value] || []).length > 1) {
                     background = '#fee2e2'
                   } else {
                     const tier = fitTier(fitMap, pid, value)
-                    background = tier === 'primary' ? '#dcfce7' : tier === 'secondary' ? '#fef3c7' : '#fee2e2'
+                    background =
+                      tier === 'primary'
+                        ? '#dcfce7'
+                        : tier === 'secondary'
+                        ? '#fef3c7'
+                        : '#fee2e2'
                   }
                 }
 
@@ -781,7 +801,15 @@ function renderGrid({
                       </select>
 
                       {showLocks && (
-                        <label style={{ display: 'flex', gap: 4, alignItems: 'center', margin: 0, fontWeight: 400 }}>
+                        <label
+                          style={{
+                            display: 'flex',
+                            gap: 4,
+                            alignItems: 'center',
+                            margin: 0,
+                            fontWeight: 400,
+                          }}
+                        >
                           <input
                             type="checkbox"
                             checked={cellLocked}
