@@ -39,6 +39,21 @@ export default function OptimizerPage(props) {
     onRowLockToggle,
   } = props
 
+function handleOptimize() {
+  if (!optimizerFocusGameId) {
+    alert("Select a focus game first")
+    return
+  }
+
+  // 🔥 Force rebuild
+  onBuildBatch()
+
+  // 🔥 Force re-focus (THIS IS WHAT YOU WERE MISSING)
+  setTimeout(() => {
+    setOptimizerFocusGameId(String(optimizerFocusGameId))
+  }, 50)
+}
+  
   const focusStatuses = optimizerFocusLineup
     ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
         inning,
