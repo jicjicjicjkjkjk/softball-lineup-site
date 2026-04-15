@@ -1173,46 +1173,52 @@ export default function App() {
     })
   }
 
-  function runOptimizeAll() {
-    if (!optimizerBatchGames.length) return
-    const confirmed = window.confirm('Optimize all selected games? This can overwrite unlocked lineup choices.')
-    if (!confirmed) return
-
-    let rollingTotals = JSON.parse(JSON.stringify(ytdBeforeTotals))
-    const next = {}
-
-    const orderedGames = [...optimizerBatchGames].sort((a, b) => {
-      const aKey = `${a.date || ''}-${String(a.game_order || null).padStart(2, '0')}-${a.id}`
-      const bKey = `${b.date || ''}-${String(b.game_order || null).padStart(2, '0')}-${b.id}`
-      return aKey.localeCompare(bKey)
-    })
-
-    orderedGames.forEach((game) => {
-      const saved =
-        optimizerPreviewByGame[pk(game.id)] ||
-        lineupsByGame[pk(game.id)] ||
-        blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
-
-      const availableIds = (saved.availablePlayerIds || activePlayerIds()).map(pk)
-
-      if (!availableIds.length) return
-
-      const optimized = buildOptimizedLineup({
-        game,
-        players,
-        availablePlayerIds: availableIds,
-        sourceLineup: saved,
-        totalsBefore: rollingTotals,
-        priorityMap: priorityByPlayer,
-        fitMap: fitByPlayer,
-      })
-
-      next[pk(game.id)] = optimized
-      rollingTotals = addTotals(rollingTotals, computeTotals([optimized], players), players)
-    })
-
-    setOptimizerPreviewByGame((current) => ({ ...current, ...next }))
+function runOptimizeAll() {
+  if (!optimizerBatchGames.length) {
+    alert("No games in plan")
+    return
   }
+
+  let rollingTotals = JSON.parse(JSON.stringify(ytdBeforeTotals))
+  const next = {}
+
+  const orderedGames = [...optimizerBatchGames].sort((a, b) => {
+    const aKey = `${a.date || ''}-${String(a.game_order || 0).padStart(2, '0')}-${a.id}`
+    const bKey = `${b.date || ''}-${String(b.game_order || 0).padStart(2, '0')}-${b.id}`
+    return aKey.localeCompare(bKey)
+  })
+
+  orderedGames.forEach((game) => {
+    const source =
+      optimizerPreviewByGame[pk(game.id)] ||
+      lineupsByGame[pk(game.id)] ||
+      blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
+
+    const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
+
+    if (!availableIds.length) {
+      console.log("❌ No available players for game", game.id)
+      return
+    }
+
+    const optimized = buildOptimizedLineup({
+      game,
+      players,
+      availablePlayerIds: availableIds,
+      sourceLineup: source,
+      totalsBefore: rollingTotals,
+      priorityMap: priorityByPlayer,
+      fitMap: fitByPlayer,
+    })
+
+    console.log("✅ Optimized game", game.id, optimized)
+
+    next[pk(game.id)] = optimized
+    rollingTotals = addTotals(rollingTotals, computeTotals([optimized], players), players)
+  })
+
+  setOptimizerPreviewByGame((current) => ({ ...current, ...next }))
+}
 
   function runOptimizeCurrent() {
     if (!optimizerFocusGameId) return
