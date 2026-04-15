@@ -1796,115 +1796,140 @@ export default function App() {
     )
   }
 
-  function renderGamesPage() {
-    return (
-      <div className="stack">
-        <div className="card">
-          <div className="row-between wrap-row">
-            <h2>Games</h2>
-            <button onClick={loadAll}>Refresh from Database</button>
-          </div>
-
-          {appError && <p style={{ color: '#b91c1c' }}>Error: {appError}</p>}
-          {loading && <p>Loading...</p>}
-
-          <div className="grid four-col compact-grid">
-            <div>
-              <label>Date</label>
-              <input type="date" value={newGameDate} onChange={(e) => setNewGameDate(e.target.value)} />
-            </div>
-            <div>
-              <label>Opponent</label>
-              <input value={newGameOpponent} onChange={(e) => setNewGameOpponent(e.target.value)} />
-            </div>
-            <div>
-              <label>Type</label>
-              <select value={newGameType} onChange={(e) => setNewGameType(e.target.value)}>
-                {GAME_TYPES.map((type) => (
-                  <option key={type}>{type}</option>
-                ))}
-              </select>
-            </div>
-            <div className="align-end">
-              <button onClick={addGameFromGames}>Add Game</button>
-            </div>
-          </div>
-
-          <p className="small-note">
-            “Refresh from Database” simply reloads the latest players, games, lineups, priorities, and attendance from Supabase.
-          </p>
+function renderGamesPage() {
+  return (
+    <div className="stack">
+      <div className="card">
+        <div className="row-between wrap-row">
+          <h2>Games</h2>
+          <button onClick={loadAll}>Refresh from Database</button>
         </div>
 
-        <div className="card" style={{ overflowX: 'auto' }}>
-          <table>
-            <thead>
-              <tr>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'date'))}>Date</th>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'game_order'))}>Order</th>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'opponent'))}>Opponent</th>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'game_type'))}>Type</th>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'innings'))}>Innings</th>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'lineupState'))}>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedGames.map((game) => (
-                <tr key={game.id}>
-                  <td>{formatDateShort(game.date)}</td>
-                  <td className="center-cell narrow-cell">
-                    <input
-                      className="input-center"
-                      type="number"
-                      value={game.game_order || 1}
-                      onChange={(e) => updateGameField(game.id, 'game_order', Number(e.target.value))}
-                    />
-                  </td>
-                  <td className="wide-text-cell">
-                    <input
-                      value={game.opponent}
-                      onChange={(e) => updateGameField(game.id, 'opponent', e.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={game.game_type || GAME_TYPES[0]}
-                      onChange={(e) => updateGameField(game.id, 'game_type', e.target.value)}
-                    >
-                      {GAME_TYPES.map((type) => (
-                        <option key={type}>{type}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="center-cell">{game.innings}</td>
-                  <td className="center-cell">{game.lineupState}</td>
-                  <td>
-                    <div className="button-row">
-                      <button
-                        onClick={() => {
-                          setSelectedGameId(pk(game.id))
-                          setPage('game-detail')
-                        }}
-                      >
-                        Open
-                      </button>
-                      <button onClick={() => deleteGame(game.id)}>Delete</button>
-                    </div>
-                  </td>
-                </tr>
+        {appError && <p style={{ color: '#b91c1c' }}>Error: {appError}</p>}
+        {loading && <p>Loading...</p>}
+
+        <div className="grid four-col compact-grid">
+          <div>
+            <label>Date</label>
+            <input
+              type="date"
+              value={newGameDate}
+              onChange={(e) => setNewGameDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <label>Opponent</label>
+            <input
+              value={newGameOpponent}
+              onChange={(e) => setNewGameOpponent(e.target.value)}
+            />
+          </div>
+          <div>
+            <label>Type</label>
+            <select
+              value={newGameType}
+              onChange={(e) => setNewGameType(e.target.value)}
+            >
+              {GAME_TYPES.map((type) => (
+                <option key={type}>{type}</option>
               ))}
-              {!sortedGames.length && !loading && (
-                <tr>
-                  <td colSpan="7">No games yet.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            </select>
+          </div>
+          <div className="align-end">
+            <button onClick={addGameFromGames}>Add Game</button>
+          </div>
         </div>
-      </div>
-    )
-  }
 
+        <p className="small-note">
+          “Refresh from Database” reloads all players, games, lineups, priorities, and attendance.
+        </p>
+      </div>
+
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <table>
+          <thead>
+            <tr>
+              <th onClick={() => setGameSort(nextSort(gameSort, 'date'))}>Date</th>
+              <th onClick={() => setGameSort(nextSort(gameSort, 'game_order'))}>Order</th>
+              <th onClick={() => setGameSort(nextSort(gameSort, 'opponent'))}>Opponent</th>
+              <th onClick={() => setGameSort(nextSort(gameSort, 'game_type'))}>Type</th>
+              <th onClick={() => setGameSort(nextSort(gameSort, 'innings'))}>Innings</th>
+              <th onClick={() => setGameSort(nextSort(gameSort, 'lineupState'))}>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {sortedGames.map((game) => (
+              <tr key={game.id}>
+                <td>{formatDateShort(game.date)}</td>
+
+                <td className="center-cell narrow-cell">
+                  <input
+                    className="input-center"
+                    type="number"
+                    value={game.game_order || 1}
+                    onChange={(e) =>
+                      updateGameField(game.id, 'game_order', Number(e.target.value))
+                    }
+                  />
+                </td>
+
+                <td className="wide-text-cell">
+                  <input
+                    value={game.opponent}
+                    onChange={(e) =>
+                      updateGameField(game.id, 'opponent', e.target.value)
+                    }
+                  />
+                </td>
+
+                <td>
+                  <select
+                    value={game.game_type || GAME_TYPES[0]}
+                    onChange={(e) =>
+                      updateGameField(game.id, 'game_type', e.target.value)
+                    }
+                  >
+                    {GAME_TYPES.map((type) => (
+                      <option key={type}>{type}</option>
+                    ))}
+                  </select>
+                </td>
+
+                <td className="center-cell">{game.innings}</td>
+                <td className="center-cell">{game.lineupState}</td>
+
+                <td>
+                  <div className="button-row">
+                    <button
+                      onClick={() => {
+                        setSelectedGameId(pk(game.id))
+                        setPage('game-detail')
+                      }}
+                    >
+                      Open
+                    </button>
+
+                    <button onClick={() => deleteGame(game.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+
+            {!sortedGames.length && !loading && (
+              <tr>
+                <td colSpan="7">No games yet.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
   function renderGameDetailPage() {
     if (!selectedGame) {
       return (
