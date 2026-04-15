@@ -120,10 +120,9 @@ function handleOptimize() {
   </div>
 
   <div className="align-end">
-    <button onClick={onBuildBatch}>
-      🔁 Build / Rebuild Batch
-    </button>
-  </div>
+    <button onClick={handleOptimize}>
+  ⚡ Optimize
+</button>  </div>
 
   <div className="align-end">
     <button
