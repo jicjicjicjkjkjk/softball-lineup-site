@@ -393,74 +393,60 @@ function buildSitPlan({ lineup, game, players, totalsBefore }) {
   const runningOutCounts = {}
   const runningDelta = {}
 
-  ;(players || []).forEach((player) => {
+  players.forEach((player) => {
     const id = pk(player.id)
     runningOutCounts[id] = Number(totalsBefore?.[id]?.Out || 0)
     runningDelta[id] = Number(totalsBefore?.[id]?.delta || 0)
   })
 
-  for (let inning = 1; inning <= innings; inning += 1) {
+  for (let inning = 1; inning <= innings; inning++) {
     const eligible = getEligiblePlayersForInning(lineup, inning, players)
     const { assignedPositions, lockedOuts } = getLockedAssignmentsForInning(lineup, inning, players)
 
-    const spotsLeftToFill = Math.max(0, 9 - assignedPositions.size)
-    const totalOutsNeeded = Math.max(0, eligible.length - spotsLeftToFill)
-    const outsToChoose = Math.max(0, totalOutsNeeded - lockedOuts)
+    const spotsLeft = Math.max(0, 9 - assignedPositions.size)
+    const totalOutsNeeded = Math.max(0, eligible.length - spotsLeft)
+    const outsToPick = Math.max(0, totalOutsNeeded - lockedOuts)
 
-    const candidates = eligible.filter((player) => {
-      const id = pk(player.id)
-      if (!availableSet.has(id)) return false
-      if (lockedValue(lineup, id, inning)) return false
-      return true
+    const candidates = eligible.filter((p) => {
+      const id = pk(p.id)
+      return availableSet.has(id) && !lockedValue(lineup, id, inning)
     })
 
-    for (let i = 0; i < outsToChoose; i += 1) {
+    for (let i = 0; i < outsToPick; i++) {
       const ranked = candidates
-        .filter((player) => !plannedOuts[pk(player.id)].has(inning))
-        .map((player) => {
-          const id = pk(player.id)
-
-          const prevOutGap = previousOutDistance(lineup, id, inning, plannedOuts)
+        .filter((p) => !plannedOuts[pk(p.id)].has(inning))
+        .map((p) => {
+          const id = pk(p.id)
 
           return {
             id,
-            player,
+            player: p,
+
+            // 🧠 KEY METRICS
             outCount: runningOutCounts[id],
             delta: runningDelta[id],
-            backToBackPenalty: prevOutGap === 1 ? 1000000 : 0,
-            spacingPenalty: spacingPenalty(lineup, id, inning, innings, plannedOuts),
+            spacing: spacingPenalty(lineup, id, inning, innings, plannedOuts),
           }
         })
         .sort((a, b) => {
-          // 1. NO DOUBLE SITS UNTIL ALL SIT
-          if (a.outCount !== b.outCount) {
-            return a.outCount - b.outCount
-          }
+          // 🔥 1. NO ONE SITS TWICE BEFORE EVERYONE SITS ONCE
+          if (a.outCount !== b.outCount) return a.outCount - b.outCount
 
-          // 2. HARD STOP: NO BACK-TO-BACK
-          if (a.backToBackPenalty !== b.backToBackPenalty) {
-            return a.backToBackPenalty - b.backToBackPenalty
-          }
+          // 🔥 2. AVOID BACK-TO-BACK
+          if (a.spacing !== b.spacing) return a.spacing - b.spacing
 
-          // 3. SPACING (spread sits out)
-          if (a.spacingPenalty !== b.spacingPenalty) {
-            return a.spacingPenalty - b.spacingPenalty
-          }
+          // 🔥 3. SEASON FAIRNESS
+          if (a.delta !== b.delta) return b.delta - a.delta
 
-          // 4. SEASON FAIRNESS
-          if (a.delta !== b.delta) {
-            return b.delta - a.delta
-          }
-
-          return String(a.player.name || '').localeCompare(String(b.player.name || ''))
+          return a.player.name.localeCompare(b.player.name)
         })
 
-      const choice = ranked[0]
-      if (!choice) break
+      const pick = ranked[0]
+      if (!pick) break
 
-      plannedOuts[choice.id].add(inning)
-      runningOutCounts[choice.id] += 1
-      runningDelta[choice.id] = Number((runningDelta[choice.id] + 1).toFixed(2))
+      plannedOuts[pick.id].add(inning)
+      runningOutCounts[pick.id]++
+      runningDelta[pick.id] += 1
     }
   }
 
