@@ -428,11 +428,23 @@ function buildSitPlan({ lineup, game, players, totalsBefore }) {
           }
         })
         .sort((a, b) => {
-          if (a.penalty !== b.penalty) return a.penalty - b.penalty
-          if (a.outCount !== b.outCount) return a.outCount - b.outCount
-          if (a.delta !== b.delta) return b.delta - a.delta
-          return String(a.player.name || '').localeCompare(String(b.player.name || ''))
-        })
+  // 🚨 PRIORITY 1: enforce sit-out balance
+  if (Math.floor(a.plannedOutCount) !== Math.floor(b.plannedOutCount))
+    return a.plannedOutCount - b.plannedOutCount
+  }
+
+  // 🚨 PRIORITY 2: avoid back-to-back sits
+  if (a.spacingPenalty !== b.spacingPenalty) {
+    return a.spacingPenalty - b.spacingPenalty
+  }
+
+  // 🚨 PRIORITY 3: season fairness (who has sat less overall)
+  if (a.delta !== b.delta) {
+    return b.delta - a.delta
+  }
+
+  return String(a.player.name || '').localeCompare(String(b.player.name || ''))
+})
 
       const choice = ranked[0]
       if (!choice) break
