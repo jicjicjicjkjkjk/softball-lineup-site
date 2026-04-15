@@ -1923,7 +1923,7 @@ export default function App() {
         </div>
 
         <div className="card" style={{ overflowX: 'auto' }}>
-          <table>
+          <table className="games-table">
             <thead>
               <tr>
                 <th onClick={() => setPlayerSort(nextSort(playerSort, 'name'))}>Player</th>
@@ -2139,7 +2139,7 @@ export default function App() {
       </div>
 
       <div className="card" style={{ overflowX: 'auto' }}>
-        <table>
+        <table className="games-table">
           <thead>
             <tr>
               <th onClick={() => setGameSort(nextSort(gameSort, 'date'))}>Date</th>
@@ -2251,7 +2251,7 @@ export default function App() {
               <h2>{selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}</h2>
               <p>No lineup saved yet.</p>
             </div>
-            <div className="button-row">
+            <div className="actions-inline">
               <button onClick={() => setPage('games')}>Back to Games</button>
             </div>
           </div>
@@ -2273,7 +2273,7 @@ export default function App() {
               </p>
             </div>
 
-            <div className="button-row">
+            <div className="actions-inline">
               <button onClick={() => setPage('games')}>Back to Games</button>
               <select value={selectedGameId} onChange={(e) => setSelectedGameId(e.target.value)} style={{ maxWidth: 280 }}>
                 {games.map((game) => (
@@ -2413,7 +2413,7 @@ export default function App() {
         <div className="card" style={{ overflowX: 'auto' }}>
           <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
-            <div className="button-row">
+            <div className="actions-inline">
               <button onClick={runOptimizeCurrent} disabled={!optimizerFocusGameId}>Optimize Game Viewing</button>
               <button onClick={runOptimizeAll} disabled={!optimizerBatchGames.length}>Optimize All Games in Plan</button>
             </div>
@@ -2480,7 +2480,7 @@ export default function App() {
                 </h3>
 
                 {optimizerFocusLineup && (
-                  <div className="button-row">
+                  <div className="actions-inline">
                     <button onClick={() => addPreviewInning(optimizerFocusGame.id)}>Add Inning</button>
                     {Array.from({ length: Number(optimizerFocusLineup.innings || 0) }, (_, i) => i + 1).map((inning) => (
                       <button key={inning} onClick={() => removePreviewInning(optimizerFocusGame.id, inning)}>
