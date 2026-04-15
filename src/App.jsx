@@ -718,9 +718,7 @@ export default function App() {
   }, [lineupsByGame, lineupLockedByGame])
 
   const ytdBeforeTotals = useMemo(() => computeTotals(lockedLineupsOnly, players), [lockedLineupsOnly, players])
-
   const currentBatchTotals = useMemo(() => computeTotals(Object.values(optimizerPreviewByGame), players), [optimizerPreviewByGame, players])
-
   const ytdAfterTotals = useMemo(() => addTotals(ytdBeforeTotals, currentBatchTotals, players), [ytdBeforeTotals, currentBatchTotals, players])
 
   const filteredTrackingLineups = useMemo(() => {
@@ -760,7 +758,7 @@ export default function App() {
     })
   }, [players, games, lineupsByGame])
 
-    const perPlayerTrackingRows = useMemo(() => {
+  const perPlayerTrackingRows = useMemo(() => {
     if (!trackingPlayerId) return []
 
     return games
@@ -826,7 +824,7 @@ export default function App() {
       .sort((a, b) => `${a.date}-${a.gameId}`.localeCompare(`${b.date}-${b.gameId}`))
   }, [trackingPlayerId, games, lineupsByGame, trackingGameType, trackingThroughDate])
 
-    const filteredAttendanceEvents = useMemo(() => {
+  const filteredAttendanceEvents = useMemo(() => {
     return sortRows(
       attendanceEvents.filter((event) => {
         if (attendanceTypeFilters.length && !attendanceTypeFilters.includes(event.event_type)) {
@@ -837,7 +835,6 @@ export default function App() {
       attendanceSort
     )
   }, [attendanceEvents, attendanceTypeFilters, attendanceSort])
-  
 
   const attendanceSummaryByPlayer = useMemo(() => {
     return players.map((player) => {
@@ -858,7 +855,7 @@ export default function App() {
     })
   }, [players, filteredAttendanceEvents, attendanceByEvent, attendancePlayerFilter])
 
-    const attendanceBreakdownByPlayer = useMemo(() => {
+  const attendanceBreakdownByPlayer = useMemo(() => {
     return players.map((player) => {
       const id = pk(player.id)
       const eventRows = filteredAttendanceEvents
@@ -886,26 +883,6 @@ export default function App() {
       }
     })
   }, [players, filteredAttendanceEvents, attendanceByEvent])
-  
-  const attendanceParticipationRows = useMemo(() => {
-    return players.map((player) => {
-      const playerId = pk(player.id)
-
-      const countAttended = (predicate) =>
-        attendanceEvents.filter(predicate).filter((event) => attendanceByEvent[pk(event.id)]?.[playerId] === true).length
-
-      return {
-        playerId,
-        name: player.name,
-        inSeason: countAttended((event) => event.season_bucket === 'In Season'),
-        outSeason: countAttended((event) => event.season_bucket === 'Out of Season'),
-        pitchersCatchers: countAttended((event) => event.event_type === 'Pitchers/Catchers'),
-        teamPractice: countAttended((event) => event.event_type === 'Team Practice'),
-        indoor: countAttended((event) => event.surface === 'Indoor'),
-        outdoor: countAttended((event) => event.surface === 'Outdoor'),
-      }
-    })
-  }, [players, attendanceEvents, attendanceByEvent])
 
   async function addGame(date, opponent, gameType) {
     const res = await supabase
@@ -1257,7 +1234,6 @@ export default function App() {
         blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
 
       const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
-
       if (!availableIds.length) return
 
       const optimized = buildOptimizedLineup({
@@ -1393,46 +1369,6 @@ export default function App() {
     updatePreview(gameId, (lineup) => {
       const newInning = Number(lineup.innings || 0) + 1
       lineup.innings = newInning
-      Object.keys(lineup.cells).forEach((id) => {
-        lineup.cells[id][newInning] = ''
-        lineup.lockedCells[id][newInning] = false
-      })
-      return lineup
-    })
-  }
-
-  function removePreviewInning(gameId, inningToRemove) {
-    const confirmed = window.confirm(`Remove inning ${inningToRemove}?`)
-    if (!confirmed) return
-
-    updatePreview(gameId, (lineup) => {
-      if (Number(lineup.innings || 0) <= 1) return lineup
-
-      Object.keys(lineup.cells).forEach((id) => {
-        const newCells = {}
-        const newLocks = {}
-        let idx = 1
-
-        for (let inning = 1; inning <= lineup.innings; inning += 1) {
-          if (inning === inningToRemove) continue
-          newCells[idx] = lineup.cells[id][inning] || ''
-          newLocks[idx] = lineup.lockedCells[id][inning] || false
-          idx += 1
-        }
-
-        lineup.cells[id] = newCells
-        lineup.lockedCells[id] = newLocks
-      })
-
-      lineup.innings -= 1
-      return lineup
-    })
-  }
-
-  function addPreviewInning(gameId) {
-    updatePreview(gameId, (lineup) => {
-      const newInning = Number(lineup.innings || 0) + 1
-      lineup.innings = newInning
 
       Object.keys(lineup.cells || {}).forEach((id) => {
         if (!lineup.cells[id]) lineup.cells[id] = {}
@@ -1473,32 +1409,6 @@ export default function App() {
     })
   }
 
-  async function updateAttendanceEventField(eventId, field, value) {
-    setAttendanceEvents((current) =>
-      current.map((event) =>
-        pk(event.id) === pk(eventId) ? { ...event, [field]: value } : event
-      )
-    )
-
-    const updates = {}
-    if (field === 'event_date') updates.event_date = value || null
-    if (field === 'season_bucket') updates.season_bucket = value
-    if (field === 'event_type') updates.event_type = value
-    if (field === 'surface') updates.surface = value
-    if (field === 'title') updates.title = value || null
-
-    const res = await supabase.from('attendance_events').update(updates).eq('id', eventId)
-    if (res.error) setAppError(res.error.message)
-  }
-
-  function toggleAttendanceTypeFilter(type) {
-    setAttendanceTypeFilters((current) =>
-      current.includes(type)
-        ? current.filter((x) => x !== type)
-        : [...current, type]
-    )
-  }
-  
   async function savePreview(gameId) {
     const lineup = optimizerPreviewByGame[pk(gameId)]
     if (!lineup) return
@@ -2329,7 +2239,7 @@ export default function App() {
     )
   }
 
-    function renderLineupSetterPage() {
+  function renderLineupSetterPage() {
     const focusStatuses = optimizerFocusLineup
       ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
           inning,
@@ -2632,7 +2542,7 @@ export default function App() {
       </div>
     )
   }
-  
+
   function renderTrackingPage() {
     const rows = sortRows(
       players.map((player) => {
@@ -2786,7 +2696,7 @@ export default function App() {
           </table>
         </div>
 
-                {trackingPlayerId && (
+        {trackingPlayerId && (
           <div className="card" style={{ overflowX: 'auto' }}>
             <h3>Player Game-by-Game Tracking</h3>
             <table className="table-center">
