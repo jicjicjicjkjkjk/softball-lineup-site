@@ -325,13 +325,22 @@ th {
   min-width: 110px;
 }
 
+.table-center thead th {
+  overflow: hidden;
+}
+
+.card[style*='overflowX'] {
+  overflow-y: hidden;
+}
+
 .vertical-header {
-  width: 56px;
-  min-width: 56px;
-  height: 180px;
-  padding: 6px 4px;
+  width: 72px;
+  min-width: 72px;
+  height: 255px;
+  padding: 10px 6px 14px;
   vertical-align: bottom;
-  white-space: nowrap;
+  text-align: center;
+  overflow: hidden;
 }
 
 .vertical-header > span {
@@ -340,7 +349,8 @@ th {
   display: inline-block;
   white-space: nowrap;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.1;
+  max-height: 228px;
 }
 
 .no-print {
