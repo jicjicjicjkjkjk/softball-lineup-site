@@ -509,14 +509,15 @@ function lockedHeavySitClumpPenalty(lineup, playerId, inning, innings, players, 
 function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
   const innings = Number(game?.innings || lineup?.innings || 6)
   const plannedOuts = initializePlannedOutSets(players)
+
+  const baseSeasonOuts = {}
   const gameOutCounts = {}
-  const seasonOuts = {}
   const seasonDelta = {}
 
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
+    baseSeasonOuts[id] = Number(totalsBefore?.[id]?.actualOuts || 0)
     gameOutCounts[id] = 0
-    seasonOuts[id] = Number(totalsBefore?.[id]?.actualOuts || 0)
     seasonDelta[id] = Number(totalsBefore?.[id]?.delta || 0)
   })
 
@@ -543,20 +544,18 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
       const remainingPool = unlockedEligibleIds.filter((id) => !chosenSits.has(id))
       if (!remainingPool.length) break
 
-      // Hard fairness rule:
-      // among players still eligible to be chosen for this inning,
-      // do not allow anyone to go more than 1 sit above the current minimum,
-      // unless locks / coverage make that impossible.
-      const sitTotalsNow = remainingPool.map((id) => seasonOuts[id] + gameOutCounts[id])
-      const minSitTotal = Math.min(...sitTotalsNow)
+      const currentTotals = remainingPool.map(
+        (id) => baseSeasonOuts[id] + gameOutCounts[id]
+      )
+      const minTotal = Math.min(...currentTotals)
 
       const ranked = remainingPool
         .map((id) => ({
           id,
           player: (players || []).find((p) => pk(p.id) === id),
+          baseSeasonOutCount: baseSeasonOuts[id],
           gameOutCount: gameOutCounts[id],
-          seasonOutCount: seasonOuts[id],
-          totalSitCount: seasonOuts[id] + gameOutCounts[id],
+          totalSitCount: baseSeasonOuts[id] + gameOutCounts[id],
           delta: seasonDelta[id],
           spacing: spacingPenalty(lineup, id, inning, innings, plannedOuts),
         }))
@@ -565,16 +564,20 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
           if (a.gameOutCount !== b.gameOutCount) return a.gameOutCount - b.gameOutCount
           if (a.spacing !== b.spacing) return a.spacing - b.spacing
           if (a.delta !== b.delta) return a.delta - b.delta
-          if (a.seasonOutCount !== b.seasonOutCount) return a.seasonOutCount - b.seasonOutCount
+          if (a.baseSeasonOutCount !== b.baseSeasonOutCount) {
+            return a.baseSeasonOutCount - b.baseSeasonOutCount
+          }
           return String(a.player?.name || '').localeCompare(String(b.player?.name || ''))
         })
 
       let pickedId = null
 
-      // Pass 1: enforce fairness cap (cannot move above min + 1)
+      // Pass 1: enforce fairness ceiling.
+      // No one should move more than 1 above the current minimum sit total
+      // unless coverage/locks force it.
       for (const candidate of ranked) {
-        const candidateFutureTotal = candidate.totalSitCount + 1
-        if (candidateFutureTotal > minSitTotal + 1) continue
+        const futureTotal = candidate.totalSitCount + 1
+        if (futureTotal > minTotal + 1) continue
 
         const remainingFielders = unlockedEligibleIds.filter(
           (id) => !chosenSits.has(id) && id !== candidate.id
@@ -589,7 +592,7 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
         }
       }
 
-      // Pass 2: if fairness makes it impossible, allow exception only when needed
+      // Pass 2: only relax fairness if inning coverage makes it necessary
       if (!pickedId) {
         for (const candidate of ranked) {
           const remainingFielders = unlockedEligibleIds.filter(
@@ -615,7 +618,6 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
       chosenSits.add(pickedId)
       plannedOuts[pickedId].add(inning)
       gameOutCounts[pickedId] += 1
-      seasonOuts[pickedId] += 1
       seasonDelta[pickedId] = Number((seasonDelta[pickedId] + 1).toFixed(2))
     }
   }
