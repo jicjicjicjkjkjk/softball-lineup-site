@@ -540,52 +540,42 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
     const chosenSits = new Set()
 
     for (let pick = 0; pick < outsToChoose; pick += 1) {
-                  const ranked = unlockedEligibleIds
-        .filter((id) => !chosenSits.has(id))
+      const remainingPool = unlockedEligibleIds.filter((id) => !chosenSits.has(id))
+      if (!remainingPool.length) break
+
+      // Hard fairness rule:
+      // among players still eligible to be chosen for this inning,
+      // do not allow anyone to go more than 1 sit above the current minimum,
+      // unless locks / coverage make that impossible.
+      const sitTotalsNow = remainingPool.map((id) => seasonOuts[id] + gameOutCounts[id])
+      const minSitTotal = Math.min(...sitTotalsNow)
+
+      const ranked = remainingPool
         .map((id) => ({
           id,
           player: (players || []).find((p) => pk(p.id) === id),
           gameOutCount: gameOutCounts[id],
           seasonOutCount: seasonOuts[id],
+          totalSitCount: seasonOuts[id] + gameOutCounts[id],
           delta: seasonDelta[id],
           spacing: spacingPenalty(lineup, id, inning, innings, plannedOuts),
-          futureLockedFields: futureLockedFieldCount(lineup, id, inning, innings),
-          totalLockedFields: totalLockedFieldCount(lineup, id, innings),
-          clumpPenalty: lockedHeavySitClumpPenalty(
-            lineup,
-            id,
-            inning,
-            innings,
-            players,
-            plannedOuts
-          ),
         }))
-                .sort((a, b) => {
+        .sort((a, b) => {
+          if (a.totalSitCount !== b.totalSitCount) return a.totalSitCount - b.totalSitCount
           if (a.gameOutCount !== b.gameOutCount) return a.gameOutCount - b.gameOutCount
-
-          // Prefer sitting players who are locked into more future field innings
-          if (a.futureLockedFields !== b.futureLockedFields) {
-            return b.futureLockedFields - a.futureLockedFields
-          }
-
-          // Avoid clumping multiple locked-heavy players into back-to-back sit innings
-          if (a.clumpPenalty !== b.clumpPenalty) {
-            return a.clumpPenalty - b.clumpPenalty
-          }
-
-          // Secondary tiebreaker: players with more total locked field innings
-          if (a.totalLockedFields !== b.totalLockedFields) {
-            return b.totalLockedFields - a.totalLockedFields
-          }
-
           if (a.spacing !== b.spacing) return a.spacing - b.spacing
           if (a.delta !== b.delta) return a.delta - b.delta
           if (a.seasonOutCount !== b.seasonOutCount) return a.seasonOutCount - b.seasonOutCount
           return String(a.player?.name || '').localeCompare(String(b.player?.name || ''))
         })
+
       let pickedId = null
 
+      // Pass 1: enforce fairness cap (cannot move above min + 1)
       for (const candidate of ranked) {
+        const candidateFutureTotal = candidate.totalSitCount + 1
+        if (candidateFutureTotal > minSitTotal + 1) continue
+
         const remainingFielders = unlockedEligibleIds.filter(
           (id) => !chosenSits.has(id) && id !== candidate.id
         )
@@ -596,6 +586,23 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
         if (canCoverStrict || canCoverLoose) {
           pickedId = candidate.id
           break
+        }
+      }
+
+      // Pass 2: if fairness makes it impossible, allow exception only when needed
+      if (!pickedId) {
+        for (const candidate of ranked) {
+          const remainingFielders = unlockedEligibleIds.filter(
+            (id) => !chosenSits.has(id) && id !== candidate.id
+          )
+
+          const canCoverStrict = canCoverOpenPositions(remainingFielders, openPositions, fitMap, true)
+          const canCoverLoose = canCoverOpenPositions(remainingFielders, openPositions, fitMap, false)
+
+          if (canCoverStrict || canCoverLoose) {
+            pickedId = candidate.id
+            break
+          }
         }
       }
 
