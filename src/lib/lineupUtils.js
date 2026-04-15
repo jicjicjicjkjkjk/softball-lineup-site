@@ -482,6 +482,30 @@ function totalLockedFieldCount(lineup, playerId, innings) {
   return count
 }
 
+function lockedHeavySitClumpPenalty(lineup, playerId, inning, innings, players, plannedOuts) {
+  const currentLocked = futureLockedFieldCount(lineup, playerId, inning, innings)
+
+  if (currentLocked <= 0) return 0
+
+  let penalty = 0
+
+  for (const player of players || []) {
+    const otherId = pk(player.id)
+    if (otherId === playerId) continue
+
+    const otherLocked = futureLockedFieldCount(lineup, otherId, inning - 1, innings)
+    const satPrev =
+      plannedOuts?.[otherId]?.has(inning - 1) ||
+      (inning > 1 && (lineup?.cells?.[otherId]?.[inning - 1] || '') === 'Out')
+
+    if (satPrev && otherLocked >= 2) {
+      penalty += 500
+    }
+  }
+
+  return penalty
+}
+
 function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
   const innings = Number(game?.innings || lineup?.innings || 6)
   const plannedOuts = initializePlannedOutSets(players)
@@ -516,7 +540,7 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
     const chosenSits = new Set()
 
     for (let pick = 0; pick < outsToChoose; pick += 1) {
-            const ranked = unlockedEligibleIds
+                  const ranked = unlockedEligibleIds
         .filter((id) => !chosenSits.has(id))
         .map((id) => ({
           id,
@@ -527,13 +551,26 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
           spacing: spacingPenalty(lineup, id, inning, innings, plannedOuts),
           futureLockedFields: futureLockedFieldCount(lineup, id, inning, innings),
           totalLockedFields: totalLockedFieldCount(lineup, id, innings),
+          clumpPenalty: lockedHeavySitClumpPenalty(
+            lineup,
+            id,
+            inning,
+            innings,
+            players,
+            plannedOuts
+          ),
         }))
-        .sort((a, b) => {
+                .sort((a, b) => {
           if (a.gameOutCount !== b.gameOutCount) return a.gameOutCount - b.gameOutCount
 
           // Prefer sitting players who are locked into more future field innings
           if (a.futureLockedFields !== b.futureLockedFields) {
             return b.futureLockedFields - a.futureLockedFields
+          }
+
+          // Avoid clumping multiple locked-heavy players into back-to-back sit innings
+          if (a.clumpPenalty !== b.clumpPenalty) {
+            return a.clumpPenalty - b.clumpPenalty
           }
 
           // Secondary tiebreaker: players with more total locked field innings
