@@ -3,6 +3,9 @@ export const GRID_OPTIONS = ['', 'P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', '
 export const PRIORITY_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
 export const ALLOWED_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
 export const GAME_TYPES = ['Friendly', 'Tournament Pool', 'Tournament Bracket', 'Doubleheader', 'Round Robin']
+export const SEASON_BUCKETS = ['In Season', 'Out of Season']
+export const PRACTICE_TYPES = ['Pitchers/Catchers', 'Team Practice', 'Skills', 'Conditioning', 'Open Gym']
+export const SETTING_TYPES = ['Indoor', 'Outdoor']
 
 export function pk(id) {
   return String(id)
@@ -59,7 +62,6 @@ export function normalizeLineup(lineup, playersOrIds, inningsFallback = 6, avail
 
   playerIds.forEach((id) => {
     const key = pk(id)
-
     if (!out.cells[key]) out.cells[key] = {}
     if (!out.lockedCells[key]) out.lockedCells[key] = {}
     if (out.battingOrder[key] === undefined) out.battingOrder[key] = ''
@@ -115,10 +117,6 @@ export function priorityValue(priorityMap, playerId, position) {
   }
 
   return Number(priorityMap?.[id]?.[position]?.priority_pct || 0)
-}
-
-export function depthScore() {
-  return 999
 }
 
 export function positionCountsForInning(lineup, inning, availableIds) {
@@ -183,6 +181,8 @@ export function computeTotals(lineups, players) {
       expectedOuts: 0,
       actualOuts: 0,
       delta: 0,
+      battingOrderTotal: 0,
+      battingOrderGames: 0,
     }
   })
 
@@ -190,7 +190,15 @@ export function computeTotals(lineups, players) {
     if (!lineup) return
 
     const availableIds = (lineup.availablePlayerIds || []).map(pk)
-    const gameCounted = new Set()
+    const countedGameForPlayer = new Set()
+
+    availableIds.forEach((id) => {
+      const bo = Number(lineup?.battingOrder?.[id] || 0)
+      if (bo > 0 && totals[id]) {
+        totals[id].battingOrderTotal += bo
+        totals[id].battingOrderGames += 1
+      }
+    })
 
     for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
       const eligible = availableIds.filter((id) => {
@@ -204,9 +212,9 @@ export function computeTotals(lineups, players) {
         const row = totals[id]
         if (!row) return
 
-        if (!gameCounted.has(id)) {
+        if (!countedGameForPlayer.has(id)) {
           row.games += 1
-          gameCounted.add(id)
+          countedGameForPlayer.add(id)
         }
 
         const value = lineup.cells?.[id]?.[inning] || ''
@@ -237,6 +245,9 @@ export function computeTotals(lineups, players) {
   Object.values(totals).forEach((row) => {
     row.expectedOuts = Number(row.expectedOuts.toFixed(2))
     row.delta = Number((row.actualOuts - row.expectedOuts).toFixed(2))
+    row.avgBattingOrder = row.battingOrderGames
+      ? Number((row.battingOrderTotal / row.battingOrderGames).toFixed(2))
+      : null
   })
 
   return totals
@@ -270,8 +281,18 @@ export function addTotals(a, b, players) {
         (Number(a?.[id]?.expectedOuts || 0) + Number(b?.[id]?.expectedOuts || 0)).toFixed(2)
       ),
       actualOuts: Number(a?.[id]?.actualOuts || 0) + Number(b?.[id]?.actualOuts || 0),
-      delta: Number((Number(a?.[id]?.actualOuts || 0) + Number(b?.[id]?.actualOuts || 0) - Number(a?.[id]?.expectedOuts || 0) - Number(b?.[id]?.expectedOuts || 0)).toFixed(2)),
+      delta: 0,
+      battingOrderTotal:
+        Number(a?.[id]?.battingOrderTotal || 0) + Number(b?.[id]?.battingOrderTotal || 0),
+      battingOrderGames:
+        Number(a?.[id]?.battingOrderGames || 0) + Number(b?.[id]?.battingOrderGames || 0),
+      avgBattingOrder: null,
     }
+
+    out[id].delta = Number((out[id].actualOuts - out[id].expectedOuts).toFixed(2))
+    out[id].avgBattingOrder = out[id].battingOrderGames
+      ? Number((out[id].battingOrderTotal / out[id].battingOrderGames).toFixed(2))
+      : null
   })
 
   return out
@@ -434,7 +455,16 @@ function buildSitPlan({ lineup, game, players, availablePlayerIds, totalsBefore 
   return plannedOutsByPlayer
 }
 
-function scorePlayerForPosition({ player, playerId, position, rollingTotals, priorityMap, fitMap }) {
+function scorePlayerForPosition({
+  player,
+  playerId,
+  position,
+  rollingTotals,
+  priorityMap,
+  fitMap,
+  lineup,
+  inning,
+}) {
   const fit = fitTier(fitMap, playerId, position)
   const fitScore = fitRank(fit)
   const target = priorityValue(priorityMap, playerId, position)
@@ -447,12 +477,15 @@ function scorePlayerForPosition({ player, playerId, position, rollingTotals, pri
   const actualPct = (actualCount / fieldTotal) * 100
   const gap = target - actualPct
 
+  const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
+  const continuityBonus = prevValue === position ? 5 : 0
+
   return {
     player,
     id: playerId,
     fitScore,
     gap,
-    depth: depthScore(player.name, position),
+    continuityBonus,
   }
 }
 
@@ -513,12 +546,14 @@ function assignPositionsForInning({
           rollingTotals,
           priorityMap,
           fitMap,
+          lineup,
+          inning,
         })
       )
       .sort((a, b) => {
         if (a.fitScore !== b.fitScore) return a.fitScore - b.fitScore
         if (a.gap !== b.gap) return b.gap - a.gap
-        if (a.depth !== b.depth) return a.depth - b.depth
+        if (a.continuityBonus !== b.continuityBonus) return b.continuityBonus - a.continuityBonus
         return String(a.player.name || '').localeCompare(String(b.player.name || ''))
       })
 
@@ -555,15 +590,16 @@ export function buildOptimizedLineup({
   priorityMap,
   fitMap,
 }) {
+  const safeAvailable = (availablePlayerIds || []).map(pk)
   const lineup = normalizeLineup(
     sourceLineup,
     players,
     Number(game?.innings || 6),
-    availablePlayerIds
+    safeAvailable.length ? safeAvailable : (players || []).map((p) => pk(p.id))
   )
 
   lineup.innings = Number(game?.innings || lineup?.innings || 6)
-  lineup.availablePlayerIds = (availablePlayerIds || []).map(pk)
+  lineup.availablePlayerIds = safeAvailable.length ? safeAvailable : (players || []).map((p) => pk(p.id))
 
   const rollingTotals = JSON.parse(JSON.stringify(totalsBefore || {}))
 
@@ -621,6 +657,7 @@ export function buildOptimizedLineup({
         {
           innings: 1,
           availablePlayerIds: lineup.availablePlayerIds,
+          battingOrder: lineup.battingOrder,
           cells: Object.fromEntries(
             (players || []).map((player) => [
               pk(player.id),
@@ -637,7 +674,6 @@ export function buildOptimizedLineup({
       const add = inningTotals[id]
       if (!current || !add) return
 
-      current.games = Number(current.games || 0)
       current.P += add.P
       current.C += add.C
       current['1B'] += add['1B']
@@ -659,4 +695,69 @@ export function buildOptimizedLineup({
   }
 
   return lineup
+}
+
+export function formatDateMMDDYY(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(`${dateStr}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return dateStr
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const yy = String(d.getFullYear()).slice(-2)
+  return `${mm}/${dd}/${yy}`
+}
+
+export function playerGameTrackingRows(games, lineupsByGame, lineupLockedByGame, playerId, gameTypeFilter = 'All') {
+  return (games || [])
+    .filter((game) => {
+      if (gameTypeFilter !== 'All' && game.game_type !== gameTypeFilter) return false
+      return Boolean(lineupsByGame?.[pk(game.id)])
+    })
+    .sort((a, b) => {
+      const aKey = `${a.date || ''}-${String(a.game_order || 1).padStart(3, '0')}`
+      const bKey = `${b.date || ''}-${String(b.game_order || 1).padStart(3, '0')}`
+      return aKey.localeCompare(bKey)
+    })
+    .map((game) => {
+      const lineup = lineupsByGame?.[pk(game.id)]
+      if (!lineup) return null
+
+      const id = pk(playerId)
+      const innings = Number(lineup.innings || 0)
+      const positions = []
+      let sitOuts = 0
+      let expectedOuts = 0
+      const available = (lineup.availablePlayerIds || []).map(pk)
+      const inGame = available.includes(id)
+      const battingOrder = Number(lineup?.battingOrder?.[id] || 0) || ''
+
+      for (let inning = 1; inning <= innings; inning += 1) {
+        const value = lineup?.cells?.[id]?.[inning] || ''
+        positions.push(value || '')
+
+        const eligible = available.filter((pid) => (lineup?.cells?.[pid]?.[inning] || '') !== 'Injury')
+        const expected = eligible.length ? Math.max(0, eligible.length - 9) / eligible.length : 0
+
+        if ((lineup?.cells?.[id]?.[inning] || '') !== 'Injury' && inGame) {
+          expectedOuts += expected
+        }
+
+        if (value === 'Out') sitOuts += 1
+      }
+
+      return {
+        gameId: pk(game.id),
+        date: game.date || '',
+        opponent: game.opponent || '',
+        type: game.game_type || '',
+        order: game.game_order || 1,
+        status: lineupLockedByGame?.[pk(game.id)] ? 'Locked' : 'Saved',
+        battingOrder,
+        positions,
+        sitOuts,
+        expectedOuts: Number(expectedOuts.toFixed(2)),
+        sitDelta: Number((sitOuts - expectedOuts).toFixed(2)),
+      }
+    })
+    .filter(Boolean)
 }
