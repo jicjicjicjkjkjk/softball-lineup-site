@@ -389,6 +389,7 @@ function buildSitPlan({ lineup, game, players, totalsBefore }) {
   const innings = Number(game?.innings || lineup?.innings || 6)
   const plannedOuts = initializePlannedOutSets(players)
   const availableSet = new Set((lineup?.availablePlayerIds || []).map(pk))
+
   const runningOutCounts = {}
   const runningDelta = {}
 
@@ -406,45 +407,53 @@ function buildSitPlan({ lineup, game, players, totalsBefore }) {
     const totalOutsNeeded = Math.max(0, eligible.length - spotsLeftToFill)
     const outsToChoose = Math.max(0, totalOutsNeeded - lockedOuts)
 
-    const candidates = eligible
-      .filter((player) => {
-        const id = pk(player.id)
-        if (!availableSet.has(id)) return false
-        if (lockedValue(lineup, id, inning)) return false
-        return true
-      })
+    const candidates = eligible.filter((player) => {
+      const id = pk(player.id)
+      if (!availableSet.has(id)) return false
+      if (lockedValue(lineup, id, inning)) return false
+      return true
+    })
 
     for (let i = 0; i < outsToChoose; i += 1) {
       const ranked = candidates
         .filter((player) => !plannedOuts[pk(player.id)].has(inning))
         .map((player) => {
           const id = pk(player.id)
+
+          const prevOutGap = previousOutDistance(lineup, id, inning, plannedOuts)
+
           return {
             id,
             player,
-            penalty: spacingPenalty(lineup, id, inning, innings, plannedOuts),
             outCount: runningOutCounts[id],
             delta: runningDelta[id],
+            backToBackPenalty: prevOutGap === 1 ? 1000000 : 0,
+            spacingPenalty: spacingPenalty(lineup, id, inning, innings, plannedOuts),
           }
         })
         .sort((a, b) => {
-  // 🚨 PRIORITY 1: enforce sit-out balance
-  if (Math.floor(a.plannedOutCount) !== Math.floor(b.plannedOutCount))
-    return a.plannedOutCount - b.plannedOutCount
-  }
+          // 1. NO DOUBLE SITS UNTIL ALL SIT
+          if (a.outCount !== b.outCount) {
+            return a.outCount - b.outCount
+          }
 
-  // 🚨 PRIORITY 2: avoid back-to-back sits
-  if (a.spacingPenalty !== b.spacingPenalty) {
-    return a.spacingPenalty - b.spacingPenalty
-  }
+          // 2. HARD STOP: NO BACK-TO-BACK
+          if (a.backToBackPenalty !== b.backToBackPenalty) {
+            return a.backToBackPenalty - b.backToBackPenalty
+          }
 
-  // 🚨 PRIORITY 3: season fairness (who has sat less overall)
-  if (a.delta !== b.delta) {
-    return b.delta - a.delta
-  }
+          // 3. SPACING (spread sits out)
+          if (a.spacingPenalty !== b.spacingPenalty) {
+            return a.spacingPenalty - b.spacingPenalty
+          }
 
-  return String(a.player.name || '').localeCompare(String(b.player.name || ''))
-})
+          // 4. SEASON FAIRNESS
+          if (a.delta !== b.delta) {
+            return b.delta - a.delta
+          }
+
+          return String(a.player.name || '').localeCompare(String(b.player.name || ''))
+        })
 
       const choice = ranked[0]
       if (!choice) break
@@ -503,7 +512,8 @@ function assignPositionsForInning({
   fitMap,
 }) {
   const availableSet = new Set((availablePlayerIds || []).map(pk))
-  const { assignedPositions, usedPlayers } = inningLockedFieldAssignments(lineup, inning, players)
+  const usedPlayers = new Set()
+  const assignedPositions = new Set()
 
   const eligiblePlayers = (players || []).filter((p) => {
     const id = pk(p.id)
@@ -512,15 +522,12 @@ function assignPositionsForInning({
     return val !== 'Injury'
   })
 
-  // STEP 1: CLEAR NON-LOCKED CELLS
+  // STEP 1: APPLY LOCKED + PLANNED OUTS FIRST
   eligiblePlayers.forEach((player) => {
     const id = pk(player.id)
-    const rowLocked = lineup?.lockedRows?.[id]
-    const cellLocked = lineup?.lockedCells?.[id]?.[inning]
+    const locked = lockedValue(lineup, id, inning)
 
-    if (!rowLocked && !cellLocked) {
-      lineup.cells[id][inning] = ''
-    } else {
+    if (locked) {
       const val = lineup.cells[id][inning]
       if (FIELD_POSITIONS.includes(val)) {
         assignedPositions.add(val)
@@ -529,10 +536,19 @@ function assignPositionsForInning({
       if (val === 'Out') {
         usedPlayers.add(id)
       }
+      return
+    }
+
+    // APPLY SIT PLAN HERE
+    if (plannedOutsByPlayer?.[id]?.has(inning)) {
+      lineup.cells[id][inning] = 'Out'
+      usedPlayers.add(id)
+    } else {
+      lineup.cells[id][inning] = ''
     }
   })
 
-  // STEP 2: FILL ALL 9 POSITIONS FIRST (CRITICAL FIX)
+  // STEP 2: FILL POSITIONS (BEST FIT FIRST)
   FIELD_POSITIONS.forEach((position) => {
     if (assignedPositions.has(position)) return
 
@@ -543,22 +559,35 @@ function assignPositionsForInning({
         if (fitTier(fitMap, id, position) === 'no') return false
         return true
       })
-      .map((player) =>
-        scorePlayerForPosition({
+      .map((player) => {
+        const id = pk(player.id)
+
+        const fitScore = fitRank(fitTier(fitMap, id, position))
+        const target = priorityValue(priorityMap, id, position)
+
+        const actualCount = ['LF', 'CF', 'RF'].includes(position)
+          ? Number(rollingTotals?.[id]?.OF || 0)
+          : Number(rollingTotals?.[id]?.[position] || 0)
+
+        const fieldTotal = Math.max(Number(rollingTotals?.[id]?.fieldTotal || 0), 1)
+        const actualPct = (actualCount / fieldTotal) * 100
+        const gap = target - actualPct
+
+        const prev = inning > 1 ? lineup?.cells?.[id]?.[inning - 1] : ''
+        const continuity = prev === position ? 5 : 0
+
+        return {
+          id,
           player,
-          playerId: pk(player.id),
-          position,
-          rollingTotals,
-          priorityMap,
-          fitMap,
-          lineup,
-          inning,
-        })
-      )
+          fitScore,
+          gap,
+          continuity,
+        }
+      })
       .sort((a, b) => {
         if (a.fitScore !== b.fitScore) return a.fitScore - b.fitScore
         if (a.gap !== b.gap) return b.gap - a.gap
-        if (a.continuityBonus !== b.continuityBonus) return b.continuityBonus - a.continuityBonus
+        if (a.continuity !== b.continuity) return b.continuity - a.continuity
         return a.player.name.localeCompare(b.player.name)
       })
 
@@ -570,21 +599,15 @@ function assignPositionsForInning({
     assignedPositions.add(position)
   })
 
-  // STEP 3: ONLY NOW ASSIGN OUTS
+  // STEP 3: CLEANUP (anyone left = Out)
   eligiblePlayers.forEach((player) => {
     const id = pk(player.id)
     if (usedPlayers.has(id)) return
 
-    const rowLocked = lineup?.lockedRows?.[id]
-    const cellLocked = lineup?.lockedCells?.[id]?.[inning]
-
-    if (!rowLocked && !cellLocked) {
-      lineup.cells[id][inning] = 'Out'
-      usedPlayers.add(id)
-    }
+    lineup.cells[id][inning] = 'Out'
+    usedPlayers.add(id)
   })
 }
-
 export function buildOptimizedLineup({
   game,
   players,
