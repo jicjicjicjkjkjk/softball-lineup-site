@@ -2190,41 +2190,103 @@ function renderGamesPage() {
     <input
       value={optimizerNewOpponent}
       onChange={(e) => setOptimizerNewOpponent(e.target.value)}
-    />
+    /><div className="card">
+  <h2>Lineup Setter</h2>
+  <p className="small-note">
+    Step 1: add an existing game to the plan, or create a new game and add it.
+    Step 2: mark who is available for the selected game.
+    Step 3: optimize from the plan table below.
+  </p>
+
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 24,
+      alignItems: 'start',
+    }}
+  >
+    <div>
+      <h3 style={{ marginTop: 0 }}>Add Existing Game to Plan</h3>
+      <div className="grid compact-grid" style={{ gridTemplateColumns: '1fr auto', gap: 12 }}>
+        <div>
+          <label>Existing Game</label>
+          <select
+            value={optimizerExistingGameId}
+            onChange={(e) => setOptimizerExistingGameId(e.target.value)}
+          >
+            <option value="">Select game</option>
+            {games.map((game) => (
+              <option key={game.id} value={pk(game.id)}>
+                {(formatDateShort(game.date) || 'No Date')} vs {(game.opponent || 'Opponent')}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="align-end">
+          <button onClick={addExistingGameToBatch}>Add Existing Game</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 style={{ marginTop: 0 }}>Create New Game and Add to Plan</h3>
+      <div
+        className="grid compact-grid"
+        style={{ gridTemplateColumns: '1fr 1fr 1fr auto', gap: 12 }}
+      >
+        <div>
+          <label>Game Date</label>
+          <input
+            type="date"
+            value={optimizerNewDate}
+            onChange={(e) => setOptimizerNewDate(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label>Opponent</label>
+          <input
+            value={optimizerNewOpponent}
+            onChange={(e) => setOptimizerNewOpponent(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label>Game Type</label>
+          <select
+            value={optimizerNewType}
+            onChange={(e) => setOptimizerNewType(e.target.value)}
+          >
+            {GAME_TYPES.map((type) => (
+              <option key={type}>{type}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="align-end">
+          <button onClick={addGameFromOptimizer}>Add New Game to Plan</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
-
-<div className="grid four-col compact-grid" style={{ marginTop: 12 }}>
-  <div>
-    <label>Game Type</label>
-    <select
-      value={optimizerNewType}
-      onChange={(e) => setOptimizerNewType(e.target.value)}
-    >
-      {GAME_TYPES.map((type) => (
-        <option key={type}>{type}</option>
-      ))}
-    </select>
-  </div>
-
-  <div className="align-end">
-    <button onClick={addGameFromOptimizer}>Add New Game to Plan</button>
-  </div>
-
-  <div className="align-end">
-    <button onClick={runOptimizeAll}>Optimize!</button>
-  </div>
-
-  <div className="align-end">
-    <button onClick={runOptimizeCurrent} disabled={!optimizerFocusGameId}>
-      Optimize Current Game
-    </button>
-  </div>
-</div>
+    
         </div>
 
         <div className="card" style={{ overflowX: 'auto' }}>
-          <h3>Games in Current Plan</h3>
+  <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+    <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
+    <div className="button-row">
+      <button onClick={runOptimizeCurrent} disabled={!optimizerFocusGameId}>
+        Optimize Game Viewing
+      </button>
+      <button onClick={runOptimizeAll} disabled={!optimizerBatchGames.length}>
+        Optimize All Games in Plan
+      </button>
+    </div>
+  </div>
           <table className="table-center">
             <thead>
               <tr>
