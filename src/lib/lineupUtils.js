@@ -4,7 +4,7 @@ export const PRIORITY_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
 export const ALLOWED_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
 export const GAME_TYPES = ['Friendly', 'Tournament Pool', 'Tournament Bracket', 'Doubleheader', 'Round Robin']
 export const SEASON_BUCKETS = ['In Season', 'Out of Season']
-export const PRACTICE_TYPES = ['Pitchers/Catchers', 'Team Practice', 'Skills', 'Conditioning', 'Open Gym']
+export const PRACTICE_TYPES = ['Pitchers/Catchers', 'Team Practice', 'Indoor Work', 'Outdoor Practice']
 export const SETTING_TYPES = ['Indoor', 'Outdoor']
 
 export function pk(id) {
@@ -17,14 +17,14 @@ export function blankLineup(playerIds, innings = 6, availablePlayerIds = playerI
   const lockedCells = {}
   const lockedRows = {}
 
-  playerIds.forEach((id) => {
+  ;(playerIds || []).forEach((id) => {
     const key = pk(id)
     cells[key] = {}
     battingOrder[key] = ''
     lockedCells[key] = {}
     lockedRows[key] = false
 
-    for (let inning = 1; inning <= innings; inning += 1) {
+    for (let inning = 1; inning <= Number(innings || 6); inning += 1) {
       cells[key][inning] = ''
       lockedCells[key][inning] = false
     }
@@ -32,7 +32,7 @@ export function blankLineup(playerIds, innings = 6, availablePlayerIds = playerI
 
   return {
     innings: Number(innings || 6),
-    availablePlayerIds: (availablePlayerIds || playerIds).map(pk),
+    availablePlayerIds: (availablePlayerIds || playerIds || []).map(pk),
     battingOrder,
     cells,
     lockedCells,
@@ -98,12 +98,8 @@ export function requiredOutsForGame(playerCount, innings) {
 export function fitTier(fitMap, playerId, position) {
   const id = pk(playerId)
 
-  if (position === 'LF' || position === 'RF') {
+  if (position === 'LF' || position === 'RF' || position === 'CF') {
     return fitMap?.[id]?.[position] || fitMap?.[id]?.OF || 'secondary'
-  }
-
-  if (position === 'CF') {
-    return fitMap?.[id]?.CF || fitMap?.[id]?.OF || 'secondary'
   }
 
   return fitMap?.[id]?.[position] || 'secondary'
@@ -304,141 +300,136 @@ function fitRank(tier) {
   return 9
 }
 
-function countLockedOutsForPlayer(lineup, playerId) {
-  let total = 0
-  const innings = Number(lineup?.innings || 0)
-
-  for (let inning = 1; inning <= innings; inning += 1) {
-    const rowLocked = lineup?.lockedRows?.[playerId] === true
-    const cellLocked = lineup?.lockedCells?.[playerId]?.[inning] === true
-    const value = lineup?.cells?.[playerId]?.[inning] || ''
-
-    if ((rowLocked || cellLocked) && value === 'Out') total += 1
-  }
-
-  return total
+function lockedValue(lineup, playerId, inning) {
+  const rowLocked = lineup?.lockedRows?.[playerId] === true
+  const cellLocked = lineup?.lockedCells?.[playerId]?.[inning] === true
+  return rowLocked || cellLocked
 }
 
-function previousOutDistance(plannedOutsByPlayer, playerId, inning) {
-  let distance = 999
+function getEligiblePlayersForInning(lineup, inning, players) {
+  const availableSet = new Set((lineup?.availablePlayerIds || []).map(pk))
+  return (players || []).filter((player) => {
+    const id = pk(player.id)
+    if (!availableSet.has(id)) return false
+    return (lineup?.cells?.[id]?.[inning] || '') !== 'Injury'
+  })
+}
 
+function getLockedAssignmentsForInning(lineup, inning, players) {
+  const usedPlayers = new Set()
+  const assignedPositions = new Set()
+  let lockedOuts = 0
+
+  ;(players || []).forEach((player) => {
+    const id = pk(player.id)
+    if (!lockedValue(lineup, id, inning)) return
+
+    const value = lineup?.cells?.[id]?.[inning] || ''
+    if (!value) return
+
+    usedPlayers.add(id)
+
+    if (value === 'Out') lockedOuts += 1
+    if (FIELD_POSITIONS.includes(value)) assignedPositions.add(value)
+  })
+
+  return { usedPlayers, assignedPositions, lockedOuts }
+}
+
+function previousOutDistance(lineup, playerId, inning, plannedOuts) {
   for (let prev = inning - 1; prev >= 1; prev -= 1) {
-    if (plannedOutsByPlayer[playerId]?.has(prev)) {
-      distance = inning - prev
-      break
-    }
+    const planned = plannedOuts?.[playerId]?.has(prev)
+    const locked = (lineup?.cells?.[playerId]?.[prev] || '') === 'Out'
+    if (planned || locked) return inning - prev
   }
-
-  return distance
+  return 999
 }
 
-function nextOutDistance(plannedOutsByPlayer, playerId, inning, innings) {
-  let distance = 999
-
+function nextLockedOutDistance(lineup, playerId, inning, innings) {
   for (let next = inning + 1; next <= innings; next += 1) {
-    if (plannedOutsByPlayer[playerId]?.has(next)) {
-      distance = next - inning
-      break
+    if (lockedValue(lineup, playerId, next) && (lineup?.cells?.[playerId]?.[next] || '') === 'Out') {
+      return next - inning
     }
   }
-
-  return distance
+  return 999
 }
 
-function spacingPenaltyForOut(plannedOutsByPlayer, playerId, inning, innings) {
-  const prevDistance = previousOutDistance(plannedOutsByPlayer, playerId, inning)
-  const nextDistance = nextOutDistance(plannedOutsByPlayer, playerId, inning, innings)
-  const minDistance = Math.min(prevDistance, nextDistance)
+function spacingPenalty(lineup, playerId, inning, innings, plannedOuts) {
+  const prev = previousOutDistance(lineup, playerId, inning, plannedOuts)
+  const next = nextLockedOutDistance(lineup, playerId, inning, innings)
+  const minGap = Math.min(prev, next)
 
-  if (minDistance <= 1) return 1000000
-  if (minDistance === 2) return 100000
-  if (minDistance === 3) return 10000
+  if (minGap <= 1) return 1000000
+  if (minGap === 2) return 100000
+  if (minGap === 3) return 10000
   return 0
 }
 
-function inningLockedFieldAssignments(lineup, inning, players) {
-  const assignedPositions = new Set()
-  const usedPlayers = new Set()
-
+function clearUnlockedCells(lineup, players) {
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
-    const rowLocked = lineup?.lockedRows?.[id] === true
-    const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
-    const value = lineup?.cells?.[id]?.[inning] || ''
-
-    if ((rowLocked || cellLocked) && value) {
-      usedPlayers.add(id)
-      if (FIELD_POSITIONS.includes(value)) assignedPositions.add(value)
+    for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+      if (!lockedValue(lineup, id, inning)) {
+        const current = lineup?.cells?.[id]?.[inning] || ''
+        if (current !== 'Injury') lineup.cells[id][inning] = ''
+      }
     }
   })
-
-  return { assignedPositions, usedPlayers }
 }
 
-function buildSitPlan({ lineup, game, players, availablePlayerIds, totalsBefore }) {
-  const innings = Number(game?.innings || lineup?.innings || 6)
-  const availableSet = new Set((availablePlayerIds || []).map(pk))
+function initializePlannedOutSets(players) {
+  const out = {}
+  ;(players || []).forEach((player) => {
+    out[pk(player.id)] = new Set()
+  })
+  return out
+}
 
-  const plannedOutsByPlayer = {}
-  const plannedOutCounts = {}
-  const currentDelta = {}
+function buildSitPlan({ lineup, game, players, totalsBefore }) {
+  const innings = Number(game?.innings || lineup?.innings || 6)
+  const plannedOuts = initializePlannedOutSets(players)
+  const availableSet = new Set((lineup?.availablePlayerIds || []).map(pk))
+  const runningOutCounts = {}
+  const runningDelta = {}
 
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
-    plannedOutsByPlayer[id] = new Set()
-    plannedOutCounts[id] = countLockedOutsForPlayer(lineup, id)
-    currentDelta[id] = Number(totalsBefore?.[id]?.delta || 0)
+    runningOutCounts[id] = Number(totalsBefore?.[id]?.Out || 0)
+    runningDelta[id] = Number(totalsBefore?.[id]?.delta || 0)
   })
 
   for (let inning = 1; inning <= innings; inning += 1) {
-    const eligible = (players || []).filter((player) => {
-      const id = pk(player.id)
-      if (!availableSet.has(id)) return false
-      const value = lineup?.cells?.[id]?.[inning] || ''
-      return value !== 'Injury'
-    })
+    const eligible = getEligiblePlayersForInning(lineup, inning, players)
+    const { assignedPositions, lockedOuts } = getLockedAssignmentsForInning(lineup, inning, players)
 
-    const { assignedPositions } = inningLockedFieldAssignments(lineup, inning, players)
+    const spotsLeftToFill = Math.max(0, 9 - assignedPositions.size)
+    const totalOutsNeeded = Math.max(0, eligible.length - spotsLeftToFill)
+    const outsToChoose = Math.max(0, totalOutsNeeded - lockedOuts)
 
-    let lockedOutsThisInning = 0
-    eligible.forEach((player) => {
-      const id = pk(player.id)
-      const rowLocked = lineup?.lockedRows?.[id] === true
-      const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
-      const value = lineup?.cells?.[id]?.[inning] || ''
-      if ((rowLocked || cellLocked) && value === 'Out') {
-        plannedOutsByPlayer[id].add(inning)
-        lockedOutsThisInning += 1
-      }
-    })
+    const candidates = eligible
+      .filter((player) => {
+        const id = pk(player.id)
+        if (!availableSet.has(id)) return false
+        if (lockedValue(lineup, id, inning)) return false
+        return true
+      })
 
-    const fieldSpotsStillNeeded = Math.max(0, 9 - assignedPositions.size)
-    const totalOutsNeeded = Math.max(0, eligible.length - fieldSpotsStillNeeded)
-    const outsStillToAssign = Math.max(0, totalOutsNeeded - lockedOutsThisInning)
-
-    const candidates = eligible.filter((player) => {
-      const id = pk(player.id)
-      const rowLocked = lineup?.lockedRows?.[id] === true
-      const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
-      return !(rowLocked || cellLocked)
-    })
-
-    for (let slot = 0; slot < outsStillToAssign; slot += 1) {
+    for (let i = 0; i < outsToChoose; i += 1) {
       const ranked = candidates
-        .filter((player) => !plannedOutsByPlayer[pk(player.id)].has(inning))
+        .filter((player) => !plannedOuts[pk(player.id)].has(inning))
         .map((player) => {
           const id = pk(player.id)
           return {
-            player,
             id,
-            plannedOutCount: plannedOutCounts[id],
-            spacingPenalty: spacingPenaltyForOut(plannedOutsByPlayer, id, inning, innings),
-            delta: currentDelta[id],
+            player,
+            penalty: spacingPenalty(lineup, id, inning, innings, plannedOuts),
+            outCount: runningOutCounts[id],
+            delta: runningDelta[id],
           }
         })
         .sort((a, b) => {
-          if (a.spacingPenalty !== b.spacingPenalty) return a.spacingPenalty - b.spacingPenalty
-          if (a.plannedOutCount !== b.plannedOutCount) return a.plannedOutCount - b.plannedOutCount
+          if (a.penalty !== b.penalty) return a.penalty - b.penalty
+          if (a.outCount !== b.outCount) return a.outCount - b.outCount
           if (a.delta !== b.delta) return b.delta - a.delta
           return String(a.player.name || '').localeCompare(String(b.player.name || ''))
         })
@@ -446,13 +437,13 @@ function buildSitPlan({ lineup, game, players, availablePlayerIds, totalsBefore 
       const choice = ranked[0]
       if (!choice) break
 
-      plannedOutsByPlayer[choice.id].add(inning)
-      plannedOutCounts[choice.id] += 1
-      currentDelta[choice.id] = Number((currentDelta[choice.id] + 1).toFixed(2))
+      plannedOuts[choice.id].add(inning)
+      runningOutCounts[choice.id] += 1
+      runningDelta[choice.id] = Number((runningDelta[choice.id] + 1).toFixed(2))
     }
   }
 
-  return plannedOutsByPlayer
+  return plannedOuts
 }
 
 function scorePlayerForPosition({
@@ -478,7 +469,7 @@ function scorePlayerForPosition({
   const gap = target - actualPct
 
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
-  const continuityBonus = prevValue === position ? 5 : 0
+  const continuityBonus = prevValue === position ? 4 : 0
 
   return {
     player,
@@ -493,36 +484,30 @@ function assignPositionsForInning({
   lineup,
   inning,
   players,
-  availablePlayerIds,
-  plannedOutsByPlayer,
+  plannedOuts,
   rollingTotals,
   priorityMap,
   fitMap,
 }) {
-  const availableSet = new Set((availablePlayerIds || []).map(pk))
-  const { assignedPositions, usedPlayers } = inningLockedFieldAssignments(lineup, inning, players)
+  const availableSet = new Set((lineup?.availablePlayerIds || []).map(pk))
+  const { usedPlayers, assignedPositions } = getLockedAssignmentsForInning(lineup, inning, players)
 
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
-    const value = lineup?.cells?.[id]?.[inning] || ''
-    const rowLocked = lineup?.lockedRows?.[id] === true
-    const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
-
     if (!availableSet.has(id)) {
       lineup.cells[id][inning] = ''
       return
     }
 
-    if (value === 'Injury') {
+    const current = lineup?.cells?.[id]?.[inning] || ''
+    if (current === 'Injury') {
       usedPlayers.add(id)
       return
     }
 
-    if (plannedOutsByPlayer[id]?.has(inning)) {
-      if (!(rowLocked || cellLocked)) lineup.cells[id][inning] = 'Out'
+    if (!lockedValue(lineup, id, inning) && plannedOuts[id]?.has(inning)) {
+      lineup.cells[id][inning] = 'Out'
       usedPlayers.add(id)
-    } else if (!(rowLocked || cellLocked)) {
-      lineup.cells[id][inning] = ''
     }
   })
 
@@ -534,8 +519,8 @@ function assignPositionsForInning({
         const id = pk(player.id)
         if (!availableSet.has(id)) return false
         if (usedPlayers.has(id)) return false
-        const current = lineup?.cells?.[id]?.[inning] || ''
-        if (current === 'Out' || current === 'Injury') return false
+        if ((lineup?.cells?.[id]?.[inning] || '') === 'Injury') return false
+        if ((lineup?.cells?.[id]?.[inning] || '') === 'Out') return false
         return fitTier(fitMap, id, position) !== 'no'
       })
       .map((player) =>
@@ -568,13 +553,8 @@ function assignPositionsForInning({
     const id = pk(player.id)
     if (!availableSet.has(id)) return
     if (usedPlayers.has(id)) return
-
-    const rowLocked = lineup?.lockedRows?.[id] === true
-    const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
-    const current = lineup?.cells?.[id]?.[inning] || ''
-
-    if (current === 'Injury') return
-    if (!(rowLocked || cellLocked)) {
+    if ((lineup?.cells?.[id]?.[inning] || '') === 'Injury') return
+    if (!lockedValue(lineup, id, inning)) {
       lineup.cells[id][inning] = 'Out'
       usedPlayers.add(id)
     }
@@ -595,14 +575,15 @@ export function buildOptimizedLineup({
     sourceLineup,
     players,
     Number(game?.innings || 6),
-    safeAvailable.length ? safeAvailable : (players || []).map((p) => pk(p.id))
+    safeAvailable.length ? safeAvailable : (players || []).map((p) => p.id)
   )
 
   lineup.innings = Number(game?.innings || lineup?.innings || 6)
   lineup.availablePlayerIds = safeAvailable.length ? safeAvailable : (players || []).map((p) => pk(p.id))
 
-  const rollingTotals = JSON.parse(JSON.stringify(totalsBefore || {}))
+  clearUnlockedCells(lineup, players)
 
+  const rollingTotals = JSON.parse(JSON.stringify(totalsBefore || {}))
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
     if (!rollingTotals[id]) {
@@ -632,11 +613,10 @@ export function buildOptimizedLineup({
     }
   })
 
-  const plannedOutsByPlayer = buildSitPlan({
+  const plannedOuts = buildSitPlan({
     lineup,
     game,
     players,
-    availablePlayerIds: lineup.availablePlayerIds,
     totalsBefore: rollingTotals,
   })
 
@@ -645,8 +625,7 @@ export function buildOptimizedLineup({
       lineup,
       inning,
       players,
-      availablePlayerIds: lineup.availablePlayerIds,
-      plannedOutsByPlayer,
+      plannedOuts,
       rollingTotals,
       priorityMap,
       fitMap,
