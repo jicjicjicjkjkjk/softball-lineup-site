@@ -674,14 +674,15 @@ export function buildOptimizedLineup({
 
   for (let inning = 1; inning <= lineup.innings; inning += 1) {
     assignPositionsForInning({
-      lineup,
-      inning,
-      players,
-      plannedOuts,
-      rollingTotals,
-      priorityMap,
-      fitMap,
-    })
+  lineup,
+  inning,
+  players,
+  availablePlayerIds: lineup.availablePlayerIds,
+  plannedOutsByPlayer: plannedOuts,
+  rollingTotals,
+  priorityMap,
+  fitMap,
+})
 
     const inningTotals = computeTotals(
       [
