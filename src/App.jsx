@@ -25,6 +25,21 @@ const ATTENDANCE_SEASON_OPTIONS = ['In Season', 'Out of Season']
 const ATTENDANCE_TYPE_OPTIONS = ['Pitchers/Catchers', 'Team Practice', 'Indoor Work', 'Outdoor Practice']
 const ATTENDANCE_SURFACE_OPTIONS = ['Indoor', 'Outdoor']
 
+function autoSave(gameId, lineup) {
+  supabase
+    .from('game_lineups')
+    .upsert({
+      game_id: gameId,
+      lineup_name: 'Main',
+      lineup_data: lineup,
+      optimizer_meta: {
+        innings: lineup.innings,
+        availablePlayerIds: lineup.availablePlayerIds,
+      },
+      lineup_locked: lineupLockedByGame[pk(gameId)] === true,
+    }, { onConflict: 'game_id,lineup_name' })
+}
+
 function dbReady() {
   return Boolean(supabase)
 }
@@ -364,7 +379,7 @@ function Sidebar({ page, setPage }) {
     ['players', 'Players'],
     ['positioning-priority', 'Positioning Priority'],
     ['games', 'Games'],
-    ['game-detail', 'Game Detail'],
+    ['game-detail', 'ail'],
     ['lineup-setter', 'Lineup Setter'],
     ['tracking', 'Tracking'],
     ['attendance', 'Attendance Tracker'],
@@ -1364,19 +1379,25 @@ export default function App() {
   }
 
   function updateSavedCell(gameId, playerId, inning, value) {
-    updateSavedLineup(gameId, (lineup) => {
-      lineup.cells[pk(playerId)][inning] = value
-      return lineup
-    })
-  }
+  updateSavedLineup(gameId, (lineup) => {
+    lineup.cells[pk(playerId)][inning] = value
+
+    autoSave(gameId, lineup) // ✅ ADD THIS LINE
+
+    return lineup
+  })
+}
 
   function updateSavedBatting(gameId, playerId, value) {
-    updateSavedLineup(gameId, (lineup) => {
-      lineup.battingOrder[pk(playerId)] = value
-      return lineup
-    })
-  }
+  updateSavedLineup(gameId, (lineup) => {
+    lineup.battingOrder[pk(playerId)] = value
 
+    autoSave(gameId, lineup) // ✅ ADD THIS LINE
+
+    return lineup
+  })
+}
+  
   function addSavedInning(gameId) {
     updateSavedLineup(gameId, (lineup) => {
       const newInning = lineup.innings + 1
@@ -1935,6 +1956,7 @@ function renderGamesPage() {
       return (
         <div className="card">
           <h2>Game Detail</h2>
+          <p style={{ color: '#16a34a', fontSize: 12 }}>Auto-saving changes</p>
           <p>Select a game from Games.</p>
         </div>
       )
