@@ -565,3 +565,44 @@ th {
 .games-table td {
   white-space: nowrap;
 }
+
+/* ===== TRACKING TABLE HEADER FIX ===== */
+
+/* Ensure cards clip anything that tries to overflow */
+.card {
+  overflow: hidden;
+}
+
+/* Force tables to stay inside their container */
+.card table {
+  overflow: hidden;
+}
+
+/* BIG FIX: give header row a real height */
+.table-center thead tr {
+  height: 200px;
+}
+
+/* Lock vertical header cells */
+.vertical-header {
+  height: 200px !important;
+  min-height: 180px !important;
+  max-height: 180px !important;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding: 8px 4px;
+}
+
+/* Ensure rotated text stays inside cell */
+.vertical-header span {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* Prevent header bleed into previous section */
+.card + .card {
+  margin-top: 8px;
+}
