@@ -509,16 +509,33 @@ function lockedHeavySitClumpPenalty(lineup, playerId, inning, innings, players, 
 function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
   const innings = Number(game?.innings || lineup?.innings || 6)
   const plannedOuts = initializePlannedOutSets(players)
-
-  const baseSeasonOuts = {}
   const gameOutCounts = {}
+  const seasonOuts = {}
   const seasonDelta = {}
 
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
-    baseSeasonOuts[id] = Number(totalsBefore?.[id]?.actualOuts || 0)
-    gameOutCounts[id] = 0
+
+    // Start with season totals
+    seasonOuts[id] = Number(totalsBefore?.[id]?.actualOuts || 0)
     seasonDelta[id] = Number(totalsBefore?.[id]?.delta || 0)
+
+    // IMPORTANT:
+    // Locked OUT innings in this game count toward fairness baseline.
+    let lockedGameOuts = 0
+    for (let inning = 1; inning <= innings; inning += 1) {
+      if (
+        lockedValue(lineup, id, inning) &&
+        (lineup?.cells?.[id]?.[inning] || '') === 'Out'
+      ) {
+        lockedGameOuts += 1
+        plannedOuts[id].add(inning)
+      }
+    }
+
+    gameOutCounts[id] = lockedGameOuts
+    seasonOuts[id] += lockedGameOuts
+    seasonDelta[id] = Number((seasonDelta[id] + lockedGameOuts).toFixed(2))
   })
 
   for (let inning = 1; inning <= innings; inning += 1) {
@@ -541,44 +558,33 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
     const chosenSits = new Set()
 
     for (let pick = 0; pick < outsToChoose; pick += 1) {
-      const remainingPool = unlockedEligibleIds.filter((id) => !chosenSits.has(id))
-      if (!remainingPool.length) break
-
-      const currentTotals = remainingPool.map(
-        (id) => baseSeasonOuts[id] + gameOutCounts[id]
-      )
-      const minTotal = Math.min(...currentTotals)
-
-      const ranked = remainingPool
+      const ranked = unlockedEligibleIds
+        .filter((id) => !chosenSits.has(id))
         .map((id) => ({
           id,
           player: (players || []).find((p) => pk(p.id) === id),
-          baseSeasonOutCount: baseSeasonOuts[id],
           gameOutCount: gameOutCounts[id],
-          totalSitCount: baseSeasonOuts[id] + gameOutCounts[id],
+          seasonOutCount: seasonOuts[id],
           delta: seasonDelta[id],
           spacing: spacingPenalty(lineup, id, inning, innings, plannedOuts),
         }))
         .sort((a, b) => {
-          if (a.totalSitCount !== b.totalSitCount) return a.totalSitCount - b.totalSitCount
+          // 1) Lowest current-game sit total first
           if (a.gameOutCount !== b.gameOutCount) return a.gameOutCount - b.gameOutCount
+
+          // 2) Best spacing next
           if (a.spacing !== b.spacing) return a.spacing - b.spacing
+
+          // 3) Then lowest season delta / season outs
           if (a.delta !== b.delta) return a.delta - b.delta
-          if (a.baseSeasonOutCount !== b.baseSeasonOutCount) {
-            return a.baseSeasonOutCount - b.baseSeasonOutCount
-          }
+          if (a.seasonOutCount !== b.seasonOutCount) return a.seasonOutCount - b.seasonOutCount
+
           return String(a.player?.name || '').localeCompare(String(b.player?.name || ''))
         })
 
       let pickedId = null
 
-      // Pass 1: enforce fairness ceiling.
-      // No one should move more than 1 above the current minimum sit total
-      // unless coverage/locks force it.
       for (const candidate of ranked) {
-        const futureTotal = candidate.totalSitCount + 1
-        if (futureTotal > minTotal + 1) continue
-
         const remainingFielders = unlockedEligibleIds.filter(
           (id) => !chosenSits.has(id) && id !== candidate.id
         )
@@ -592,23 +598,6 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
         }
       }
 
-      // Pass 2: only relax fairness if inning coverage makes it necessary
-      if (!pickedId) {
-        for (const candidate of ranked) {
-          const remainingFielders = unlockedEligibleIds.filter(
-            (id) => !chosenSits.has(id) && id !== candidate.id
-          )
-
-          const canCoverStrict = canCoverOpenPositions(remainingFielders, openPositions, fitMap, true)
-          const canCoverLoose = canCoverOpenPositions(remainingFielders, openPositions, fitMap, false)
-
-          if (canCoverStrict || canCoverLoose) {
-            pickedId = candidate.id
-            break
-          }
-        }
-      }
-
       if (!pickedId) {
         pickedId = ranked[0]?.id || null
       }
@@ -618,6 +607,7 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
       chosenSits.add(pickedId)
       plannedOuts[pickedId].add(inning)
       gameOutCounts[pickedId] += 1
+      seasonOuts[pickedId] += 1
       seasonDelta[pickedId] = Number((seasonDelta[pickedId] + 1).toFixed(2))
     }
   }
