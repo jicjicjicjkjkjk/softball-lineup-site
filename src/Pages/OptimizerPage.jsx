@@ -91,7 +91,40 @@ export default function OptimizerPage(props) {
         </div>
 
         <div className="grid four-col" style={{ marginTop: 12 }}>
-          <div>
+  <div>
+    <label>Create Type</label>
+    <select value={optimizerNewType} onChange={(e) => setOptimizerNewType(e.target.value)}>
+      {GAME_TYPES.map((type) => (
+        <option key={type}>{type}</option>
+      ))}
+    </select>
+  </div>
+
+  <div className="align-end">
+    <button onClick={onAddGame}>Create New + Add to Batch</button>
+  </div>
+
+  <div className="align-end">
+    <button onClick={onBuildBatch}>
+      🔁 Build / Rebuild Batch
+    </button>
+  </div>
+
+  <div className="align-end">
+    <button
+      onClick={() => {
+        if (!optimizerFocusGameId) {
+          alert("Select a game first")
+          return
+        }
+        onBuildBatch()
+      }}
+    >
+      ⚡ Optimize Focus Game
+    </button>
+  </div>
+</div>
+        <div>
             <label>Create Type</label>
             <select value={optimizerNewType} onChange={(e) => setOptimizerNewType(e.target.value)}>
               {GAME_TYPES.map((type) => (
