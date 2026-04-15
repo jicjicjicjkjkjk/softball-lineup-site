@@ -368,3 +368,105 @@ th {
 .print-only {
   display: none;
 }
+
+
+.small-note {
+  font-size: 13px;
+  color: #475569;
+  margin-top: 8px;
+}
+
+.compact-grid {
+  align-items: end;
+}
+
+.input-center {
+  text-align: center;
+}
+
+.center-cell {
+  text-align: center;
+}
+
+.narrow-cell {
+  min-width: 70px;
+}
+
+.wide-text-cell {
+  min-width: 220px;
+}
+
+.wide-text-cell input {
+  min-width: 220px;
+}
+
+.table-center th,
+.table-center td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.grouped-table th.group-col,
+.grouped-table td.group-col {
+  border-right: 2px solid #94a3b8;
+}
+
+.print-only {
+  display: none;
+}
+
+.wrap-row {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .compact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wide-text-cell,
+  .wide-text-cell input {
+    min-width: 140px;
+  }
+}
+
+@media print {
+  .no-print,
+  .sidebar,
+  .small-note,
+  button,
+  input,
+  select {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .print-table-compact {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 10px;
+  }
+
+  .print-table-compact th,
+  .print-table-compact td {
+    border: 1px solid #000;
+    padding: 4px;
+    text-align: center;
+    word-wrap: break-word;
+  }
+
+  @page {
+    size: landscape;
+    margin: 0.4in;
+  }
+}
