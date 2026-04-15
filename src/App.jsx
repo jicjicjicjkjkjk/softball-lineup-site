@@ -379,7 +379,7 @@ function Sidebar({ page, setPage }) {
     ['players', 'Players'],
     ['positioning-priority', 'Positioning Priority'],
     ['games', 'Games'],
-    ['game-detail', 'ail'],
+    ['game-detail', 'Game Detail'],
     ['lineup-setter', 'Lineup Setter'],
     ['tracking', 'Tracking'],
     ['attendance', 'Attendance Tracker'],
@@ -1098,8 +1098,8 @@ export default function App() {
   async function persistFitTier(playerId, position, tier) {
     const primaryLocked =
       Number(priorityByPlayer[pk(playerId)]?.[position]?.priority_pct || 0) > 0 ||
-      (['LF', 'CF', 'RF'].includes(position) &&
-        Number(priorityByPlayer[pk(playerId)]?.OF?.priority_pct || 0) > 0)
+      (['LF', 'RF'].includes(position) &&
+ Number(priorityByPlayer[row.playerId]?.OF?.priority_pct || 0) > 0)
 
     if (primaryLocked) return
 
@@ -1786,8 +1786,8 @@ function runOptimizeAll() {
                     const tier = fitByPlayer[row.playerId]?.[position] || 'secondary'
                     const lockedPrimary =
                       Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0 ||
-                      (['LF', 'CF', 'RF'].includes(position) &&
-                        Number(priorityByPlayer[row.playerId]?.OF?.priority_pct || 0) > 0)
+(['LF', 'RF'].includes(position) &&
+ Number(priorityByPlayer[row.playerId]?.OF?.priority_pct || 0) > 0)
 
                     const background =
                       tier === 'primary'
