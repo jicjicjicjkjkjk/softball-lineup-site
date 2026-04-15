@@ -24,30 +24,6 @@ const ATTENDANCE_SEASON_OPTIONS = ['In Season', 'Out of Season']
 const ATTENDANCE_TYPE_OPTIONS = ['Pitchers/Catchers', 'Team Practice']
 const ATTENDANCE_SURFACE_OPTIONS = ['Indoor', 'Outdoor']
 
-  async function deleteAttendanceEvent(eventId) {
-    const confirmed = window.confirm('Delete this attendance event?')
-    if (!confirmed) return
-
-    const recDel = await supabase.from('attendance_records').delete().eq('event_id', eventId)
-    if (recDel.error) {
-      setAppError(recDel.error.message)
-      return
-    }
-
-    const eventDel = await supabase.from('attendance_events').delete().eq('id', eventId)
-    if (eventDel.error) {
-      setAppError(eventDel.error.message)
-      return
-    }
-
-    setAttendanceEvents((current) => current.filter((event) => pk(event.id) !== pk(eventId)))
-    setAttendanceByEvent((current) => {
-      const next = { ...current }
-      delete next[pk(eventId)]
-      return next
-    })
-  }
-
 import {
   buildBattingOrderMatrix,
   buildSitOutSummary,
