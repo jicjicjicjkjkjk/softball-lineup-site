@@ -504,3 +504,64 @@ th {
     background: white;
   }
 }
+
+
+/* ===== GAMES TABLE FIX ===== */
+
+/* Force clean single-row layout */
+.games-table td,
+.games-table th {
+  vertical-align: middle;
+}
+
+/* Normalize input/select height so rows don't stretch */
+.games-table input,
+.games-table select {
+  height: 42px;
+  min-height: 42px;
+  margin: 0;
+}
+
+/* Tighten padding so rows aren't tall */
+.games-table td {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* Keep buttons INLINE (this is the main fix) */
+.games-table .actions-inline {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Prevent buttons from stretching row height */
+.games-table .actions-inline button {
+  height: 38px;
+  min-height: 38px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+/* Tighten order column */
+.games-table .order-col {
+  width: 70px;
+  min-width: 70px;
+}
+
+/* Wider opponent field */
+.games-table .wide-text-cell input {
+  min-width: 220px;
+}
+
+/* Keep status compact */
+.games-table .center-cell {
+  white-space: nowrap;
+}
+
+/* Prevent wrapping anywhere in the row */
+.games-table td {
+  white-space: nowrap;
+}
