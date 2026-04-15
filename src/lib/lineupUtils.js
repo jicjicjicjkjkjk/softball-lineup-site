@@ -458,6 +458,30 @@ function canCoverOpenPositions(playerIds, openPositions, fitMap, strict = true) 
   return search(0)
 }
 
+function futureLockedFieldCount(lineup, playerId, inning, innings) {
+  let count = 0
+
+  for (let next = inning + 1; next <= innings; next += 1) {
+    if (!lockedValue(lineup, playerId, next)) continue
+    const value = lineup?.cells?.[playerId]?.[next] || ''
+    if (FIELD_POSITIONS.includes(value)) count += 1
+  }
+
+  return count
+}
+
+function totalLockedFieldCount(lineup, playerId, innings) {
+  let count = 0
+
+  for (let inning = 1; inning <= innings; inning += 1) {
+    if (!lockedValue(lineup, playerId, inning)) continue
+    const value = lineup?.cells?.[playerId]?.[inning] || ''
+    if (FIELD_POSITIONS.includes(value)) count += 1
+  }
+
+  return count
+}
+
 function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
   const innings = Number(game?.innings || lineup?.innings || 6)
   const plannedOuts = initializePlannedOutSets(players)
@@ -492,7 +516,7 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
     const chosenSits = new Set()
 
     for (let pick = 0; pick < outsToChoose; pick += 1) {
-      const ranked = unlockedEligibleIds
+            const ranked = unlockedEligibleIds
         .filter((id) => !chosenSits.has(id))
         .map((id) => ({
           id,
@@ -501,18 +525,27 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
           seasonOutCount: seasonOuts[id],
           delta: seasonDelta[id],
           spacing: spacingPenalty(lineup, id, inning, innings, plannedOuts),
+          futureLockedFields: futureLockedFieldCount(lineup, id, inning, innings),
+          totalLockedFields: totalLockedFieldCount(lineup, id, innings),
         }))
         .sort((a, b) => {
-          // 1. nobody gets a second sit before everyone possible gets one
           if (a.gameOutCount !== b.gameOutCount) return a.gameOutCount - b.gameOutCount
-          // 2. avoid back-to-back or very tight sits
+
+          // Prefer sitting players who are locked into more future field innings
+          if (a.futureLockedFields !== b.futureLockedFields) {
+            return b.futureLockedFields - a.futureLockedFields
+          }
+
+          // Secondary tiebreaker: players with more total locked field innings
+          if (a.totalLockedFields !== b.totalLockedFields) {
+            return b.totalLockedFields - a.totalLockedFields
+          }
+
           if (a.spacing !== b.spacing) return a.spacing - b.spacing
-          // 3. season fairness
           if (a.delta !== b.delta) return a.delta - b.delta
           if (a.seasonOutCount !== b.seasonOutCount) return a.seasonOutCount - b.seasonOutCount
           return String(a.player?.name || '').localeCompare(String(b.player?.name || ''))
         })
-
       let pickedId = null
 
       for (const candidate of ranked) {
