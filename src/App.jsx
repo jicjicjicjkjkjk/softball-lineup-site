@@ -24,13 +24,6 @@ const ATTENDANCE_SEASON_OPTIONS = ['In Season', 'Out of Season']
 const ATTENDANCE_TYPE_OPTIONS = ['Pitchers/Catchers', 'Team Practice']
 const ATTENDANCE_SURFACE_OPTIONS = ['Indoor', 'Outdoor']
 
-import {
-  buildBattingOrderMatrix,
-  buildSitOutSummary,
-  buildPlayerSitOuts,
-  buildPositionByPlayer,
-} from './lib/trackingUtils'
-
 function dbReady() {
   return Boolean(supabase)
 }
@@ -57,30 +50,6 @@ function sortRows(rows, sort) {
   })
 }
 
-async function deleteAttendanceEvent(eventId) {
-  const confirmed = window.confirm('Delete this attendance event?')
-  if (!confirmed) return
-
-  const recDel = await supabase.from('attendance_records').delete().eq('event_id', eventId)
-  if (recDel.error) {
-    setAppError(recDel.error.message)
-    return
-  }
-
-  const eventDel = await supabase.from('attendance_events').delete().eq('id', eventId)
-  if (eventDel.error) {
-    setAppError(eventDel.error.message)
-    return
-  }
-
-  setAttendanceEvents((current) => current.filter((event) => pk(event.id) !== pk(eventId)))
-  setAttendanceByEvent((current) => {
-    const next = { ...current }
-    delete next[pk(eventId)]
-    return next
-  })
-}
-
 function formatDateShort(value) {
   if (!value) return ''
   const [y, m, d] = value.split('-')
@@ -90,7 +59,7 @@ function formatDateShort(value) {
 
 function avg(numbers) {
   if (!numbers.length) return ''
-  return (numbers.reduce((a, b) => a + b, 0) / numbers.length).toFixed(2)
+  return (numbers.reduce((a, b) => a + b, 0) / numbers.length).toFixed(1)
 }
 
 function getNextGameOrder(games) {
@@ -99,7 +68,6 @@ function getNextGameOrder(games) {
       .map((g) => Number(g.game_order))
       .filter((n) => Number.isFinite(n) && n > 0)
   )
-
   let next = 1
   while (used.has(next)) next += 1
   return next
@@ -111,7 +79,190 @@ function compareGamesAsc(a, b) {
   return aKey.localeCompare(bKey)
 }
 
+function isPlayerAvailableForGame(lineup, playerId) {
+  return (lineup?.availablePlayerIds || []).includes(pk(playerId))
+}
 
+function buildBattingOrderMatrix(games, lineupsByGame, players) {
+  return players.map((p) => {
+    const orders = []
+    const perGame = games.map((game) => {
+      const lineup = lineupsByGame[pk(game.id)]
+      if (!lineup || !isPlayerAvailableForGame(lineup, p.id)) return ''
+      const value = lineup?.battingOrder?.[pk(p.id)] || ''
+      if (value !== '') orders.push(Number(value))
+      return value
+    })
+
+    return {
+      playerId: pk(p.id),
+      name: p.name,
+      avg: avg(orders),
+      perGame,
+    }
+  })
+}
+
+function buildSitOutSummary(games, lineupsByGame, players) {
+  return games
+    .map((game) => {
+      const lineup = lineupsByGame[pk(game.id)]
+      if (!lineup) return null
+
+      const availableIds = (lineup.availablePlayerIds || []).filter((id) =>
+        players.some((p) => pk(p.id) === pk(id))
+      )
+
+      const totalPlayers = availableIds.length
+      const innings = Number(lineup.innings || 0)
+
+      let sitOuts = 0
+      let injury = 0
+
+      availableIds.forEach((pid) => {
+        for (let i = 1; i <= innings; i += 1) {
+          const value = lineup.cells?.[pid]?.[i]
+          if (value === 'Out') sitOuts += 1
+          if (value === 'Injury') injury += 1
+        }
+      })
+
+      return {
+        gameId: pk(game.id),
+        totalPlayers,
+        innings,
+        sitOuts,
+        injury,
+        avgSit: totalPlayers ? (sitOuts / totalPlayers).toFixed(1) : '',
+      }
+    })
+    .filter(Boolean)
+}
+
+function buildPlayerSitOuts(games, lineupsByGame, players) {
+  return players.map((p) => {
+    let runningActual = 0
+    let runningExpected = 0
+
+    const perGame = []
+    const running = []
+
+    games.forEach((game) => {
+      const lineup = lineupsByGame[pk(game.id)]
+      if (!lineup || !isPlayerAvailableForGame(lineup, p.id)) {
+        perGame.push('')
+        running.push('')
+        return
+      }
+
+      let count = 0
+      for (let i = 1; i <= Number(lineup.innings || 0); i += 1) {
+        if (lineup.cells?.[pk(p.id)]?.[i] === 'Out') count += 1
+      }
+
+      const eligiblePlayers = (lineup.availablePlayerIds || []).filter((id) => {
+        const playerRow = lineup.cells?.[pk(id)] || {}
+        const everyInjury =
+          Object.keys(playerRow).length > 0 &&
+          Object.values(playerRow).every((v) => v === 'Injury')
+        return !everyInjury && players.some((pl) => pk(pl.id) === pk(id))
+      })
+
+      const expectedPerPlayer = eligiblePlayers.length
+        ? requiredOutsForGame(eligiblePlayers.length, Number(lineup.innings || 0)) / eligiblePlayers.length
+        : 0
+
+      runningActual += count
+      runningExpected += expectedPerPlayer
+
+      perGame.push(count === 0 ? 0 : count)
+      running.push((runningActual - runningExpected).toFixed(1))
+    })
+
+    return {
+      playerId: pk(p.id),
+      name: p.name,
+      perGame,
+      running,
+    }
+  })
+}
+
+function buildPositionByPlayer(games, lineupsByGame, playerId) {
+  return games
+    .map((game) => {
+      const lineup = lineupsByGame[pk(game.id)]
+      if (!lineup || !isPlayerAvailableForGame(lineup, playerId)) return null
+
+      const counts = {
+        P: 0,
+        C: 0,
+        '1B': 0,
+        '2B': 0,
+        '3B': 0,
+        SS: 0,
+        LF: 0,
+        CF: 0,
+        RF: 0,
+        Out: 0,
+        Injury: 0,
+      }
+
+      for (let i = 1; i <= Number(lineup.innings || 0); i += 1) {
+        const pos = lineup.cells?.[pk(playerId)]?.[i]
+        if (counts[pos] !== undefined) counts[pos] += 1
+      }
+
+      return {
+        gameId: pk(game.id),
+        date: game.date,
+        opponent: game.opponent,
+        order: game.game_order ?? '',
+        active: 'Yes',
+        ...counts,
+      }
+    })
+    .filter(Boolean)
+}
+
+function verticalHeaderStyle(minWidth = 44) {
+  return {
+    minWidth,
+    width: minWidth,
+    padding: '8px 4px',
+    verticalAlign: 'bottom',
+  }
+}
+
+function VerticalHeader({ top, bottom, minWidth = 44 }) {
+  return (
+    <th style={verticalHeaderStyle(minWidth)}>
+      <div
+        style={{
+          height: 150,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        {top ? <div style={{ fontWeight: 700 }}>{top}</div> : null}
+        <div
+          style={{
+            writingMode: 'vertical-rl',
+            transform: 'rotate(180deg)',
+            whiteSpace: 'nowrap',
+            fontWeight: 700,
+            lineHeight: 1,
+          }}
+        >
+          {bottom}
+        </div>
+      </div>
+    </th>
+  )
+}
 
 function MiniDiamond({ status }) {
   const posCoords = {
@@ -480,7 +631,6 @@ export default function App() {
 
   const [trackingThroughDate, setTrackingThroughDate] = useState('')
   const [trackingGameType, setTrackingGameType] = useState('All')
-  const [trackingState, setTrackingState] = useState('All')
   const [trackingPlayerId, setTrackingPlayerId] = useState('')
 
   const [attendanceDate, setAttendanceDate] = useState('')
@@ -488,25 +638,21 @@ export default function App() {
   const [attendanceType, setAttendanceType] = useState(ATTENDANCE_TYPE_OPTIONS[0])
   const [attendanceSurface, setAttendanceSurface] = useState(ATTENDANCE_SURFACE_OPTIONS[0])
   const [attendanceTitle, setAttendanceTitle] = useState('')
-  const [attendancePlayerFilter, setAttendancePlayerFilter] = useState('')
-  const [attendanceTypeFilters, setAttendanceTypeFilters] = useState([])
 
   function autoSave(gameId, lineup) {
-    supabase
-      .from('game_lineups')
-      .upsert(
-        {
-          game_id: gameId,
-          lineup_name: 'Main',
-          lineup_data: lineup,
-          optimizer_meta: {
-            innings: lineup.innings,
-            availablePlayerIds: lineup.availablePlayerIds,
-          },
-          lineup_locked: lineupLockedByGame[pk(gameId)] === true,
+    supabase.from('game_lineups').upsert(
+      {
+        game_id: gameId,
+        lineup_name: 'Main',
+        lineup_data: lineup,
+        optimizer_meta: {
+          innings: lineup.innings,
+          availablePlayerIds: lineup.availablePlayerIds,
         },
-        { onConflict: 'game_id,lineup_name' }
-      )
+        lineup_locked: lineupLockedByGame[pk(gameId)] === true,
+      },
+      { onConflict: 'game_id,lineup_name' }
+    )
   }
 
   useEffect(() => {
@@ -609,7 +755,7 @@ export default function App() {
         .from('attendance_events')
         .select('id, event_date, season_bucket, event_type, surface, title')
         .eq('team_id', TEAM_ID)
-        .order('event_date', { ascending: false })
+        .order('event_date', { ascending: true })
 
       if (attendanceEventsRes.error) throw attendanceEventsRes.error
       setAttendanceEvents(attendanceEventsRes.data || [])
@@ -675,15 +821,15 @@ export default function App() {
     return sortRows(
       games.map((game) => ({
         ...game,
-        lineupState: lineupLockedByGame[pk(game.id)]
-          ? 'Locked'
-          : lineupsByGame[pk(game.id)]
-          ? 'Saved'
-          : 'Empty',
+        lineupState: lineupLockedByGame[pk(game.id)] ? 'Locked' : lineupsByGame[pk(game.id)] ? 'Saved' : 'Empty',
       })),
       gameSort
     )
   }, [games, lineupsByGame, lineupLockedByGame, gameSort])
+
+  const orderedGamesAsc = useMemo(() => {
+    return [...games].sort(compareGamesAsc)
+  }, [games])
 
   const activePriorityRows = useMemo(() => {
     return sortRows(
@@ -768,281 +914,160 @@ export default function App() {
       .map(([, lineup]) => lineup)
   }, [lineupsByGame, lineupLockedByGame])
 
+  const trackingLockedLineups = useMemo(() => {
+    return orderedGamesAsc
+      .filter((game) => lineupLockedByGame[pk(game.id)] === true)
+      .map((game) => lineupsByGame[pk(game.id)])
+      .filter(Boolean)
+  }, [orderedGamesAsc, lineupLockedByGame, lineupsByGame])
+
   const ytdBeforeTotals = useMemo(() => computeTotals(lockedLineupsOnly, players), [lockedLineupsOnly, players])
   const currentBatchTotals = useMemo(() => computeTotals(Object.values(optimizerPreviewByGame), players), [optimizerPreviewByGame, players])
   const ytdAfterTotals = useMemo(() => addTotals(ytdBeforeTotals, currentBatchTotals, players), [ytdBeforeTotals, currentBatchTotals, players])
 
-    const filteredLockedTrackingGames = useMemo(() => {
-    return [...games]
-      .sort(compareGamesAsc)
-      .filter((game) => {
-        const gameId = pk(game.id)
-        if (lineupLockedByGame[gameId] !== true) return false
-        if (!lineupsByGame[gameId]) return false
-        if (trackingGameType !== 'All' && game.game_type !== trackingGameType) return false
-        if (trackingThroughDate && game.date && game.date > trackingThroughDate) return false
-        return true
-      })
-  }, [games, lineupLockedByGame, lineupsByGame, trackingGameType, trackingThroughDate])
+  const trackingTotals = useMemo(() => computeTotals(trackingLockedLineups, players), [trackingLockedLineups, players])
 
-  const filteredTrackingLineups = useMemo(() => {
-    return filteredLockedTrackingGames.map((game) => lineupsByGame[pk(game.id)])
-  }, [filteredLockedTrackingGames, lineupsByGame])
-
-  const trackingTotals = useMemo(
-    () => computeTotals(filteredTrackingLineups, activePlayers),
-    [filteredTrackingLineups, activePlayers]
+  const battingRows = useMemo(
+    () => buildBattingOrderMatrix(orderedGamesAsc.filter((g) => lineupsByGame[pk(g.id)]), lineupsByGame, activePlayers),
+    [orderedGamesAsc, lineupsByGame, activePlayers]
   )
 
-  const averageBattingOrderRows = useMemo(() => {
-    return players.map((player) => {
-      const orders = games
-        .map((game) => lineupsByGame[pk(game.id)])
-        .filter(Boolean)
-        .map((lineup) => Number(lineup?.battingOrder?.[pk(player.id)] || 0))
-        .filter((n) => n > 0)
+  const sitSummary = useMemo(
+    () => buildSitOutSummary(orderedGamesAsc.filter((g) => lineupsByGame[pk(g.id)]), lineupsByGame, activePlayers),
+    [orderedGamesAsc, lineupsByGame, activePlayers]
+  )
 
-      return {
-        playerId: pk(player.id),
-        name: player.name,
-        averageBattingOrder: avg(orders),
-        gamesWithBattingOrder: orders.length,
-      }
-    })
-  }, [players, games, lineupsByGame])
+  const sitByPlayer = useMemo(
+    () => buildPlayerSitOuts(orderedGamesAsc.filter((g) => lineupsByGame[pk(g.id)]), lineupsByGame, activePlayers),
+    [orderedGamesAsc, lineupsByGame, activePlayers]
+  )
 
-const orderedGamesAsc = useMemo(() => {
-  return [...games].sort(compareGamesAsc)
-}, [games])
-
-const trackingByGameRows = useMemo(() => {
-  return orderedGamesAsc
-    .filter((game) => {
-      const state = lineupLockedByGame[pk(game.id)]
-        ? 'Locked'
-        : lineupsByGame[pk(game.id)]
-        ? 'Saved'
-        : 'Empty'
-
-      if (trackingState !== 'All' && state !== trackingState) return false
-      if (trackingGameType !== 'All' && game.game_type !== trackingGameType) return false
-      if (trackingThroughDate && game.date && game.date > trackingThroughDate) return false
-      return Boolean(lineupsByGame[pk(game.id)])
-    })
-    .map((game) => {
-      const lineup = lineupsByGame[pk(game.id)]
-      const availableIds = (lineup?.availablePlayerIds || []).filter((id) =>
-        activePlayers.some((p) => pk(p.id) === pk(id))
-      )
-
-      const battingMap = {}
-      activePlayers.forEach((player) => {
-        battingMap[player.name] = lineup?.battingOrder?.[pk(player.id)] || ''
-      })
-
-      const positionCounts = {
-        P: 0,
-        C: 0,
-        '1B': 0,
-        '2B': 0,
-        '3B': 0,
-        SS: 0,
-        LF: 0,
-        CF: 0,
-        RF: 0,
-        Out: 0,
-        Injury: 0,
-      }
-
-      availableIds.forEach((playerId) => {
-        for (let inning = 1; inning <= Number(lineup?.innings || 0); inning += 1) {
-          const value = lineup?.cells?.[playerId]?.[inning]
-          if (positionCounts[value] !== undefined) positionCounts[value] += 1
-        }
-      })
-
-      return {
-        gameId: pk(game.id),
-        date: game.date,
-        dateText: formatDateShort(game.date),
-        order: game.game_order ?? '',
-        opponent: game.opponent || '',
-        type: game.game_type || '',
-        totalPlayers: availableIds.length,
-        innings: Number(lineup?.innings || game.innings || 0),
-        battingMap,
-        ...positionCounts,
-      }
-    })
-}, [
-  orderedGamesAsc,
-  lineupLockedByGame,
-  lineupsByGame,
-  trackingState,
-  trackingGameType,
-  trackingThroughDate,
-  activePlayers,
-])
-  
-  const perPlayerTrackingRows = useMemo(() => {
+  const selectedPlayerPositions = useMemo(() => {
     if (!trackingPlayerId) return []
+    return buildPositionByPlayer(orderedGamesAsc.filter((g) => lineupsByGame[pk(g.id)]), lineupsByGame, pk(trackingPlayerId))
+  }, [trackingPlayerId, orderedGamesAsc, lineupsByGame])
 
-    return games
-      .filter((game) => {
-        if (trackingGameType !== 'All' && game.game_type !== trackingGameType) return false
-        if (trackingThroughDate && game.date && game.date > trackingThroughDate) return false
-        return Boolean(lineupsByGame[pk(game.id)])
-      })
-      .map((game) => {
-        const lineup = lineupsByGame[pk(game.id)]
-        if (!lineup) return null
+  const trackingPriorityRows = useMemo(() => {
+    return sortRows(
+      activePlayers.map((player) => {
+        const totals = trackingTotals[pk(player.id)] || {}
+        const priority = priorityByPlayer[pk(player.id)] || {}
+        const fieldTotal = Math.max(totals.fieldTotal || 0, 1)
 
-        const playerId = pk(trackingPlayerId)
-        const row = lineup.cells?.[playerId] || {}
-        const values = Object.values(row)
-
-        const counts = {
-          P: 0,
-          C: 0,
-          '1B': 0,
-          '2B': 0,
-          '3B': 0,
-          SS: 0,
-          LF: 0,
-          CF: 0,
-          RF: 0,
-          Out: 0,
-          Injury: 0,
+        const actPct = (n) => {
+          const value = Number((((n || 0) / fieldTotal) * 100).toFixed(1))
+          return value === 0 ? '' : value
         }
-
-        values.forEach((value) => {
-          if (counts[value] !== undefined) counts[value] += 1
-        })
-
-        const eligiblePlayers = (lineup.availablePlayerIds || []).filter((id) => {
-          const playerRow = lineup.cells?.[id] || {}
-          const hasInjuryEveryInning = Object.values(playerRow).every((v) => v === 'Injury')
-          return !hasInjuryEveryInning
-        })
-
-        const expectedPerPlayer = eligiblePlayers.length
-          ? Number(
-              (
-                requiredOutsForGame(eligiblePlayers.length, lineup.innings) /
-                eligiblePlayers.length
-              ).toFixed(2)
-            )
-          : 0
 
         return {
-          gameId: pk(game.id),
-          date: game.date,
-          dateText: formatDateShort(game.date),
-          opponent: game.opponent || '',
-          game_type: game.game_type || '',
-          battingOrder: lineup.battingOrder?.[playerId] || '',
-          expectedOuts: expectedPerPlayer,
-          delta: Number((counts.Out - expectedPerPlayer).toFixed(2)),
-          ...counts,
+          playerId: pk(player.id),
+          name: player.name,
+          fieldTotal: totals.fieldTotal || 0,
+          targP: priority.P?.priority_pct || '',
+          targC: priority.C?.priority_pct || '',
+          targ1B: priority['1B']?.priority_pct || '',
+          targ2B: priority['2B']?.priority_pct || '',
+          targ3B: priority['3B']?.priority_pct || '',
+          targSS: priority.SS?.priority_pct || '',
+          targOF: priority.OF?.priority_pct || '',
+          actP: actPct(totals.P),
+          actC: actPct(totals.C),
+          act1B: actPct(totals['1B']),
+          act2B: actPct(totals['2B']),
+          act3B: actPct(totals['3B']),
+          actSS: actPct(totals.SS),
+          actOF: actPct(totals.OF),
         }
-      })
-      .filter(Boolean)
-      .sort((a, b) => `${a.date}-${a.gameId}`.localeCompare(`${b.date}-${b.gameId}`))
-  }, [trackingPlayerId, games, lineupsByGame, trackingGameType, trackingThroughDate])
+      }),
+      trackingSort
+    )
+  }, [activePlayers, trackingTotals, priorityByPlayer, trackingSort])
 
   const filteredAttendanceEvents = useMemo(() => {
-    return sortRows(
-      attendanceEvents.filter((event) => {
-        if (attendanceTypeFilters.length && !attendanceTypeFilters.includes(event.event_type)) {
-          return false
-        }
-        return true
-      }),
-      attendanceSort
-    )
-  }, [attendanceEvents, attendanceTypeFilters, attendanceSort])
+    return sortRows(attendanceEvents, attendanceSort)
+  }, [attendanceEvents, attendanceSort])
 
-  const attendanceSummaryByPlayer = useMemo(() => {
-    return players.map((player) => {
-      const eventRows = filteredAttendanceEvents.filter((event) => {
-        if (!attendancePlayerFilter) return true
-        return pk(player.id) === pk(attendancePlayerFilter)
-      })
-
-      const total = eventRows.length
-      const attended = eventRows.filter((event) => attendanceByEvent[pk(event.id)]?.[pk(player.id)] === true).length
-      return {
-        playerId: pk(player.id),
-        name: player.name,
-        attended,
-        total,
-        pct: total ? `${Math.round((attended / total) * 100)}%` : '',
-      }
-    })
-  }, [players, filteredAttendanceEvents, attendanceByEvent, attendancePlayerFilter])
+  const attendanceTotals = useMemo(() => {
+    const events = filteredAttendanceEvents
+    return {
+      inSeason: events.filter((e) => e.season_bucket === 'In Season').length,
+      outSeason: events.filter((e) => e.season_bucket === 'Out of Season').length,
+      pitchersCatchers: events.filter((e) => e.event_type === 'Pitchers/Catchers').length,
+      teamPractice: events.filter((e) => e.event_type === 'Team Practice').length,
+      indoor: events.filter((e) => e.surface === 'Indoor').length,
+      outdoor: events.filter((e) => e.surface === 'Outdoor').length,
+    }
+  }, [filteredAttendanceEvents])
 
   const attendanceBreakdownByPlayer = useMemo(() => {
-    return players.map((player) => {
+    return activePlayers.map((player) => {
       const id = pk(player.id)
       const eventRows = filteredAttendanceEvents
 
-      function countMatching(predicate) {
-        const matching = eventRows.filter(predicate)
-        const total = matching.length
-        const attended = matching.filter(
-          (event) => attendanceByEvent[pk(event.id)]?.[id] === true
-        ).length
-        return total ? `${attended}/${total}` : ''
+      function countAttended(predicate) {
+        return eventRows.filter(predicate).filter((event) => attendanceByEvent[pk(event.id)]?.[id] === true).length
       }
+
+      function formatValue(actual, total) {
+        if (!total) return ''
+        return `${actual} (${Math.round((actual / total) * 100)}%)`
+      }
+
+      const inSeasonActual = countAttended((event) => event.season_bucket === 'In Season')
+      const outSeasonActual = countAttended((event) => event.season_bucket === 'Out of Season')
+      const pcActual = countAttended((event) => event.event_type === 'Pitchers/Catchers')
+      const teamActual = countAttended((event) => event.event_type === 'Team Practice')
+      const indoorActual = countAttended((event) => event.surface === 'Indoor')
+      const outdoorActual = countAttended((event) => event.surface === 'Outdoor')
 
       return {
         playerId: id,
         name: player.name,
-        inSeason: countMatching((event) => event.season_bucket === 'In Season'),
-        outSeason: countMatching((event) => event.season_bucket === 'Out of Season'),
-        pitchersCatchers: countMatching((event) => event.event_type === 'Pitchers/Catchers'),
-        teamPractice: countMatching((event) => event.event_type === 'Team Practice'),
-        indoor: countMatching((event) => event.surface === 'Indoor'),
-        outdoor: countMatching((event) => event.surface === 'Outdoor'),
+        inSeason: formatValue(inSeasonActual, attendanceTotals.inSeason),
+        outSeason: formatValue(outSeasonActual, attendanceTotals.outSeason),
+        pitchersCatchers: formatValue(pcActual, attendanceTotals.pitchersCatchers),
+        teamPractice: formatValue(teamActual, attendanceTotals.teamPractice),
+        indoor: formatValue(indoorActual, attendanceTotals.indoor),
+        outdoor: formatValue(outdoorActual, attendanceTotals.outdoor),
       }
     })
-  }, [players, filteredAttendanceEvents, attendanceByEvent])
+  }, [activePlayers, filteredAttendanceEvents, attendanceByEvent, attendanceTotals])
 
   async function addGame(date, opponent, gameType) {
-  const nextOrder = getNextGameOrder(games)
+    const nextOrder = getNextGameOrder(games)
 
-  const res = await supabase
-    .from('games')
-    .insert({
-      team_id: TEAM_ID,
-      game_date: date || null,
-      opponent: opponent || null,
-      innings: 6,
-      status: 'Planned',
-      game_type: gameType || GAME_TYPES[0],
-      game_order: nextOrder,
-    })
-    .select()
-    .single()
+    const res = await supabase
+      .from('games')
+      .insert({
+        team_id: TEAM_ID,
+        game_date: date || null,
+        opponent: opponent || null,
+        innings: 6,
+        status: 'Planned',
+        game_type: gameType || GAME_TYPES[0],
+        game_order: nextOrder,
+      })
+      .select()
+      .single()
 
-  if (res.error) {
-    setAppError(res.error.message)
-    return null
+    if (res.error) {
+      setAppError(res.error.message)
+      return null
+    }
+
+    const game = {
+      id: res.data.id,
+      date: res.data.game_date || '',
+      opponent: res.data.opponent || '',
+      innings: Number(res.data.innings || 6),
+      status: res.data.status || 'Planned',
+      game_type: res.data.game_type || GAME_TYPES[0],
+      game_order: Number(res.data.game_order || nextOrder),
+    }
+
+    setGames((current) => [...current, game])
+    return game
   }
-
-  const game = {
-    id: res.data.id,
-    date: res.data.game_date || '',
-    opponent: res.data.opponent || '',
-    innings: Number(res.data.innings || 6),
-    status: res.data.status || 'Planned',
-    game_type: res.data.game_type || GAME_TYPES[0],
-    game_order: Number(res.data.game_order || nextOrder),
-  }
-
-  setGames((current) => [...current, game])
-  return game
-}
 
   async function addGameFromGames() {
     const game = await addGame(newGameDate, newGameOpponent, newGameType)
@@ -1165,9 +1190,7 @@ const trackingByGameRows = useMemo(() => {
 
   function updatePlayerLocal(playerId, field, value) {
     setPlayers((current) =>
-      current.map((player) =>
-        pk(player.id) === pk(playerId) ? { ...player, [field]: value } : player
-      )
+      current.map((player) => (pk(player.id) === pk(playerId) ? { ...player, [field]: value } : player))
     )
   }
 
@@ -1427,11 +1450,7 @@ const trackingByGameRows = useMemo(() => {
       const base =
         current[pk(gameId)] ||
         lineupsByGame[pk(gameId)] ||
-        blankLineup(
-          players.map((p) => p.id),
-          Number(baseGame?.innings || 6),
-          activePlayerIds()
-        )
+        blankLineup(players.map((p) => p.id), Number(baseGame?.innings || 6), activePlayerIds())
 
       const existing = normalizeLineup(
         base,
@@ -1784,9 +1803,9 @@ const trackingByGameRows = useMemo(() => {
     }
 
     const newEvent = res.data
-    setAttendanceEvents((current) => [newEvent, ...current])
+    setAttendanceEvents((current) => [...current, newEvent].sort((a, b) => `${a.event_date || ''}`.localeCompare(`${b.event_date || ''}`)))
 
-    const inserts = players.map((player) => ({
+    const inserts = activePlayers.map((player) => ({
       event_id: newEvent.id,
       player_id: player.id,
       attended: false,
@@ -1802,7 +1821,7 @@ const trackingByGameRows = useMemo(() => {
 
     setAttendanceByEvent((current) => ({
       ...current,
-      [pk(newEvent.id)]: Object.fromEntries(players.map((p) => [pk(p.id), false])),
+      [pk(newEvent.id)]: Object.fromEntries(activePlayers.map((p) => [pk(p.id), false])),
     }))
 
     setAttendanceDate('')
@@ -1835,9 +1854,7 @@ const trackingByGameRows = useMemo(() => {
 
   async function updateAttendanceEventField(eventId, field, value) {
     setAttendanceEvents((current) =>
-      current.map((event) =>
-        pk(event.id) === pk(eventId) ? { ...event, [field]: value } : event
-      )
+      current.map((event) => (pk(event.id) === pk(eventId) ? { ...event, [field]: value } : event))
     )
 
     const updates = {}
@@ -1851,10 +1868,28 @@ const trackingByGameRows = useMemo(() => {
     if (res.error) setAppError(res.error.message)
   }
 
-  function toggleAttendanceTypeFilter(type) {
-    setAttendanceTypeFilters((current) =>
-      current.includes(type) ? current.filter((x) => x !== type) : [...current, type]
-    )
+  async function deleteAttendanceEvent(eventId) {
+    const confirmed = window.confirm('Delete this attendance event?')
+    if (!confirmed) return
+
+    const recDel = await supabase.from('attendance_records').delete().eq('event_id', eventId)
+    if (recDel.error) {
+      setAppError(recDel.error.message)
+      return
+    }
+
+    const eventDel = await supabase.from('attendance_events').delete().eq('id', eventId)
+    if (eventDel.error) {
+      setAppError(eventDel.error.message)
+      return
+    }
+
+    setAttendanceEvents((current) => current.filter((event) => pk(event.id) !== pk(eventId)))
+    setAttendanceByEvent((current) => {
+      const next = { ...current }
+      delete next[pk(eventId)]
+      return next
+    })
   }
 
   function renderPlayersPage() {
@@ -1945,9 +1980,7 @@ const trackingByGameRows = useMemo(() => {
         <div className="card" style={{ overflowX: 'auto' }}>
           <h2>Positioning Priority</h2>
           <p className="small-note" style={{ marginBottom: 12 }}>
-            These percentages are used as a target share of that player’s field innings. Example:
-            a 50 for 1B means the optimizer will try to have about 50% of that player’s field time
-            at 1B over time, while still balancing overall team coverage, fit, and sit-outs.
+            These percentages are used as a target share of that player’s field innings.
           </p>
 
           <table className="table-center">
@@ -2057,7 +2090,7 @@ const trackingByGameRows = useMemo(() => {
     )
   }
 
-    function renderGamesPage() {
+  function renderGamesPage() {
     return (
       <div className="stack">
         <div className="card">
@@ -2069,23 +2102,22 @@ const trackingByGameRows = useMemo(() => {
           {appError && <p style={{ color: '#b91c1c' }}>Error: {appError}</p>}
           {loading && <p>Loading...</p>}
 
-          <div className="game-add-row">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1.05fr 1.7fr 1fr auto',
+              gap: 12,
+              alignItems: 'end',
+            }}
+          >
             <div>
               <label>Date</label>
-              <input
-                type="date"
-                value={newGameDate}
-                onChange={(e) => setNewGameDate(e.target.value)}
-              />
+              <input type="date" value={newGameDate} onChange={(e) => setNewGameDate(e.target.value)} />
             </div>
 
             <div>
               <label>Opponent</label>
-              <input
-                value={newGameOpponent}
-                onChange={(e) => setNewGameOpponent(e.target.value)}
-                placeholder="Opponent"
-              />
+              <input value={newGameOpponent} onChange={(e) => setNewGameOpponent(e.target.value)} />
             </div>
 
             <div>
@@ -2097,14 +2129,10 @@ const trackingByGameRows = useMemo(() => {
               </select>
             </div>
 
-            <div className="align-end">
+            <div>
               <button onClick={addGameFromGames}>Add Game</button>
             </div>
           </div>
-
-          <p className="small-note">
-            New games default to the next unused game order number.
-          </p>
         </div>
 
         <div className="card" style={{ overflowX: 'auto' }}>
@@ -2112,9 +2140,7 @@ const trackingByGameRows = useMemo(() => {
             <thead>
               <tr>
                 <th onClick={() => setGameSort(nextSort(gameSort, 'date'))}>Date</th>
-                <th className="order-col" onClick={() => setGameSort(nextSort(gameSort, 'game_order'))}>
-                  Order
-                </th>
+                <th onClick={() => setGameSort(nextSort(gameSort, 'game_order'))} style={{ width: 90 }}>Order</th>
                 <th onClick={() => setGameSort(nextSort(gameSort, 'opponent'))}>Opponent</th>
                 <th onClick={() => setGameSort(nextSort(gameSort, 'game_type'))}>Type</th>
                 <th onClick={() => setGameSort(nextSort(gameSort, 'innings'))}>Innings</th>
@@ -2127,23 +2153,17 @@ const trackingByGameRows = useMemo(() => {
               {sortedGames.map((game) => (
                 <tr key={game.id}>
                   <td>{formatDateShort(game.date)}</td>
-
-                  <td className="center-cell order-col">
+                  <td style={{ width: 90 }}>
                     <input
-                      className="input-center small-input"
+                      className="input-center"
                       type="number"
                       value={game.game_order ?? ''}
                       onChange={(e) => updateGameField(game.id, 'game_order', e.target.value)}
                     />
                   </td>
-
-                  <td className="wide-text-cell">
-                    <input
-                      value={game.opponent}
-                      onChange={(e) => updateGameField(game.id, 'opponent', e.target.value)}
-                    />
+                  <td>
+                    <input value={game.opponent} onChange={(e) => updateGameField(game.id, 'opponent', e.target.value)} />
                   </td>
-
                   <td>
                     <select
                       value={game.game_type || GAME_TYPES[0]}
@@ -2154,10 +2174,8 @@ const trackingByGameRows = useMemo(() => {
                       ))}
                     </select>
                   </td>
-
                   <td className="center-cell">{game.innings}</td>
                   <td className="center-cell">{game.lineupState}</td>
-
                   <td>
                     <div className="button-row">
                       <button
@@ -2191,7 +2209,6 @@ const trackingByGameRows = useMemo(() => {
       return (
         <div className="card">
           <h2>Game Detail</h2>
-          <p style={{ color: '#16a34a', fontSize: 12 }}>Auto-saving changes</p>
           <p>Select a game from Games.</p>
         </div>
       )
@@ -2202,24 +2219,11 @@ const trackingByGameRows = useMemo(() => {
         <div className="card">
           <div className="row-between wrap-row">
             <div>
-              <h2>
-                {selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
-              </h2>
+              <h2>{selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}</h2>
               <p>No lineup saved yet.</p>
             </div>
             <div className="button-row">
               <button onClick={() => setPage('games')}>Back to Games</button>
-              <select
-                value={selectedGameId}
-                onChange={(e) => setSelectedGameId(e.target.value)}
-                style={{ maxWidth: 280 }}
-              >
-                {games.map((game) => (
-                  <option key={game.id} value={pk(game.id)}>
-                    {(formatDateShort(game.date) || 'No Date')} vs {(game.opponent || 'Opponent')}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
         </div>
@@ -2233,25 +2237,16 @@ const trackingByGameRows = useMemo(() => {
         <div className="card no-print">
           <div className="row-between wrap-row">
             <div>
-              <h2>
-                {formatDateShort(selectedGame.date) || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
-              </h2>
+              <h2>{formatDateShort(selectedGame.date) || 'No Date'} vs {selectedGame.opponent || 'Opponent'}</h2>
               <p>
                 Status: <strong>{selectedLocked ? 'Locked' : 'Saved'}</strong> | Type:{' '}
                 <strong>{selectedGame.game_type || GAME_TYPES[0]}</strong>
               </p>
-              <p className="small-note">
-                Any grayed-out locked items are best adjusted from the <strong>Lineup Setter</strong>.
-              </p>
             </div>
 
-                        <div className="button-row">
+            <div className="button-row">
               <button onClick={() => setPage('games')}>Back to Games</button>
-              <select
-                value={selectedGameId}
-                onChange={(e) => setSelectedGameId(e.target.value)}
-                style={{ maxWidth: 280 }}
-              >
+              <select value={selectedGameId} onChange={(e) => setSelectedGameId(e.target.value)} style={{ maxWidth: 280 }}>
                 {games.map((game) => (
                   <option key={game.id} value={pk(game.id)}>
                     {(formatDateShort(game.date) || 'No Date')} vs {(game.opponent || 'Opponent')}
@@ -2270,7 +2265,8 @@ const trackingByGameRows = useMemo(() => {
               <button onClick={() => window.print()}>Print</button>
             </div>
           </div>
-                    <div className="button-row inning-toolbar" style={{ marginTop: 12 }}>
+
+          <div className="button-row" style={{ marginTop: 12 }}>
             <span style={{ fontWeight: 700, alignSelf: 'center' }}>Innings</span>
             <button onClick={() => addSavedInning(selectedGame.id)} disabled={selectedLocked}>
               Add Inning
@@ -2290,7 +2286,7 @@ const trackingByGameRows = useMemo(() => {
         <div className="card no-print">
           <h3>Game Availability</h3>
           <div className="checkbox-grid">
-            {players.map((player) => (
+            {activePlayers.map((player) => (
               <label key={player.id} className="checkbox-item">
                 <input
                   type="checkbox"
@@ -2306,59 +2302,17 @@ const trackingByGameRows = useMemo(() => {
 
         <div className="card no-print" style={{ overflowX: 'auto' }}>
           <LineupGrid
-            players={players}
+            players={activePlayers}
             lineup={selectedLineup}
             fitMap={fitByPlayer}
             showLocks={false}
             lockedLineup={selectedLocked}
             visiblePlayerIds={visibleIds}
-            onCellChange={(playerId, inning, value) =>
-              updateSavedCell(selectedGame.id, playerId, inning, value)
-            }
-            onBattingChange={(playerId, value) =>
-              updateSavedBatting(selectedGame.id, playerId, value)
-            }
+            onCellChange={(playerId, inning, value) => updateSavedCell(selectedGame.id, playerId, inning, value)}
+            onBattingChange={(playerId, value) => updateSavedBatting(selectedGame.id, playerId, value)}
             onCellLockToggle={() => {}}
             onRowLockToggle={() => {}}
           />
-        </div>
-
-        <div className="print-only">
-          <div className="print-title">
-            Thunder Lineup — {formatDateShort(selectedGame.date)} vs {selectedGame.opponent}
-          </div>
-          <table className="print-table-compact">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Player</th>
-                <th>Batting Order</th>
-                {Array.from({ length: selectedLineup.innings }, (_, i) => i + 1).map((inning) => (
-                  <th key={inning}>{inning}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(players || [])
-                .filter((p) => visibleIds.includes(pk(p.id)))
-                .sort((a, b) => {
-                  const aOrder = Number(selectedLineup?.battingOrder?.[pk(a.id)] || 999)
-                  const bOrder = Number(selectedLineup?.battingOrder?.[pk(b.id)] || 999)
-                  if (aOrder !== bOrder) return aOrder - bOrder
-                  return a.name.localeCompare(b.name)
-                })
-                .map((player) => (
-                  <tr key={player.id}>
-                    <td>{player.jersey_number || ''}</td>
-                    <td>{player.name}</td>
-                    <td>{selectedLineup?.battingOrder?.[pk(player.id)] || ''}</td>
-                    {Array.from({ length: selectedLineup.innings }, (_, i) => i + 1).map((inning) => (
-                      <td key={inning}>{selectedLineup?.cells?.[pk(player.id)]?.[inning] || ''}</td>
-                    ))}
-                  </tr>
-                ))}
-            </tbody>
-          </table>
         </div>
       </div>
     )
@@ -2368,7 +2322,7 @@ const trackingByGameRows = useMemo(() => {
     const focusStatuses = optimizerFocusLineup
       ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
           inning,
-          ...inningStatus(optimizerFocusLineup, inning, players, fitByPlayer),
+          ...inningStatus(optimizerFocusLineup, inning, activePlayers, fitByPlayer),
         }))
       : []
 
@@ -2378,32 +2332,14 @@ const trackingByGameRows = useMemo(() => {
       <div className="stack">
         <div className="card">
           <h2>Lineup Setter</h2>
-          <p className="small-note">
-            Step 1: add an existing game to the plan, or create a new game and add it.
-            Step 2: mark who is available for the selected game.
-            Step 3: optimize from the plan table below.
-          </p>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 24,
-              alignItems: 'start',
-            }}
-          >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
             <div>
               <h3 style={{ marginTop: 0 }}>Add Existing Game to Plan</h3>
-              <div
-                className="grid compact-grid"
-                style={{ gridTemplateColumns: '1fr auto', gap: 12 }}
-              >
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12 }}>
                 <div>
                   <label>Existing Game</label>
-                  <select
-                    value={optimizerExistingGameId}
-                    onChange={(e) => setOptimizerExistingGameId(e.target.value)}
-                  >
+                  <select value={optimizerExistingGameId} onChange={(e) => setOptimizerExistingGameId(e.target.value)}>
                     <option value="">Select game</option>
                     {games.map((game) => (
                       <option key={game.id} value={pk(game.id)}>
@@ -2412,7 +2348,6 @@ const trackingByGameRows = useMemo(() => {
                     ))}
                   </select>
                 </div>
-
                 <div className="align-end">
                   <button onClick={addExistingGameToBatch}>Add Existing Game</button>
                 </div>
@@ -2421,47 +2356,25 @@ const trackingByGameRows = useMemo(() => {
 
             <div>
               <h3 style={{ marginTop: 0 }}>Create New Game and Add to Plan</h3>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto',
-                  gap: 12,
-                  alignItems: 'end',
-                }}
-              >
-                <div style={{ display: 'grid', gap: 12 }}>
-                  <div>
-                    <label>Game Date</label>
-                    <input
-                      type="date"
-                      value={optimizerNewDate}
-                      onChange={(e) => setOptimizerNewDate(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label>Opponent</label>
-                    <input
-                      value={optimizerNewOpponent}
-                      onChange={(e) => setOptimizerNewOpponent(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label>Game Type</label>
-                    <select
-                      value={optimizerNewType}
-                      onChange={(e) => setOptimizerNewType(e.target.value)}
-                    >
-                      {GAME_TYPES.map((type) => (
-                        <option key={type}>{type}</option>
-                      ))}
-                    </select>
-                  </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 1fr auto', gap: 12, alignItems: 'end' }}>
+                <div>
+                  <label>Game Date</label>
+                  <input type="date" value={optimizerNewDate} onChange={(e) => setOptimizerNewDate(e.target.value)} />
                 </div>
-
-                <div className="align-end">
-                  <button onClick={addGameFromOptimizer}>Add New Game to Plan</button>
+                <div>
+                  <label>Opponent</label>
+                  <input value={optimizerNewOpponent} onChange={(e) => setOptimizerNewOpponent(e.target.value)} />
+                </div>
+                <div>
+                  <label>Game Type</label>
+                  <select value={optimizerNewType} onChange={(e) => setOptimizerNewType(e.target.value)}>
+                    {GAME_TYPES.map((type) => (
+                      <option key={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <button onClick={addGameFromOptimizer}>Add New Game</button>
                 </div>
               </div>
             </div>
@@ -2472,12 +2385,8 @@ const trackingByGameRows = useMemo(() => {
           <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
             <div className="button-row">
-              <button onClick={runOptimizeCurrent} disabled={!optimizerFocusGameId}>
-                Optimize Game Viewing
-              </button>
-              <button onClick={runOptimizeAll} disabled={!optimizerBatchGames.length}>
-                Optimize All Games in Plan
-              </button>
+              <button onClick={runOptimizeCurrent} disabled={!optimizerFocusGameId}>Optimize Game Viewing</button>
+              <button onClick={runOptimizeAll} disabled={!optimizerBatchGames.length}>Optimize All Games in Plan</button>
             </div>
           </div>
 
@@ -2500,13 +2409,10 @@ const trackingByGameRows = useMemo(() => {
                 const lineup =
                   optimizerPreviewByGame[pk(game.id)] ||
                   lineupsByGame[pk(game.id)] ||
-                  blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
+                  blankLineup(activePlayers.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
 
                 const effectiveInnings = Number(lineup?.innings || game.innings || 6)
-                const effectiveRequiredOuts = requiredOutsForGame(
-                  (lineup.availablePlayerIds || []).length,
-                  effectiveInnings
-                )
+                const effectiveRequiredOuts = requiredOutsForGame((lineup.availablePlayerIds || []).length, effectiveInnings)
 
                 return (
                   <tr key={game.id}>
@@ -2521,12 +2427,8 @@ const trackingByGameRows = useMemo(() => {
                     <td>{game.game_type || GAME_TYPES[0]}</td>
                     <td>{effectiveInnings}</td>
                     <td>{effectiveRequiredOuts}</td>
-                    <td>
-                      <button onClick={() => savePreview(game.id)}>Save</button>
-                    </td>
-                    <td>
-                      <button onClick={() => removeBatchGame(game.id)}>Remove</button>
-                    </td>
+                    <td><button onClick={() => savePreview(game.id)}>Save</button></td>
+                    <td><button onClick={() => removeBatchGame(game.id)}>Remove</button></td>
                   </tr>
                 )
               })}
@@ -2545,23 +2447,14 @@ const trackingByGameRows = useMemo(() => {
             <div className="card">
               <div className="row-between wrap-row">
                 <h3 style={{ margin: 0 }}>
-                  Selected Game: {formatDateShort(optimizerFocusGame.date) || 'No Date'} vs{' '}
-                  {optimizerFocusGame.opponent || 'Opponent'}
+                  Selected Game: {formatDateShort(optimizerFocusGame.date) || 'No Date'} vs {optimizerFocusGame.opponent || 'Opponent'}
                 </h3>
 
                 {optimizerFocusLineup && (
                   <div className="button-row">
-                    <button onClick={() => addPreviewInning(optimizerFocusGame.id)}>
-                      Add Inning
-                    </button>
-                    {Array.from(
-                      { length: Number(optimizerFocusLineup.innings || 0) },
-                      (_, i) => i + 1
-                    ).map((inning) => (
-                      <button
-                        key={inning}
-                        onClick={() => removePreviewInning(optimizerFocusGame.id, inning)}
-                      >
+                    <button onClick={() => addPreviewInning(optimizerFocusGame.id)}>Add Inning</button>
+                    {Array.from({ length: Number(optimizerFocusLineup.innings || 0) }, (_, i) => i + 1).map((inning) => (
+                      <button key={inning} onClick={() => removePreviewInning(optimizerFocusGame.id, inning)}>
                         Remove {inning}
                       </button>
                     ))}
@@ -2571,15 +2464,11 @@ const trackingByGameRows = useMemo(() => {
 
               <h4>Game Availability</h4>
               <div className="checkbox-grid">
-                {players.map((player) => {
+                {activePlayers.map((player) => {
                   const lineup =
                     optimizerPreviewByGame[pk(optimizerFocusGame.id)] ||
                     lineupsByGame[pk(optimizerFocusGame.id)] ||
-                    blankLineup(
-                      players.map((p) => p.id),
-                      Number(optimizerFocusGame.innings || 6),
-                      activePlayerIds()
-                    )
+                    blankLineup(activePlayers.map((p) => p.id), Number(optimizerFocusGame.innings || 6), activePlayerIds())
 
                   return (
                     <label key={player.id} className="checkbox-item">
@@ -2606,9 +2495,7 @@ const trackingByGameRows = useMemo(() => {
                         {status.duplicate.length ? `Duplicate ${status.duplicate.join(', ')}. ` : ''}
                         {status.missing.length ? `Missing ${status.missing.join(', ')}. ` : ''}
                         {status.badFits.length ? `Disallowed ${status.badFits.join('; ')}. ` : ''}
-                        {!status.duplicate.length && !status.missing.length && !status.badFits.length
-                          ? 'Looks good.'
-                          : ''}
+                        {!status.duplicate.length && !status.missing.length && !status.badFits.length ? 'Looks good.' : ''}
                       </div>
                     ))}
                   </div>
@@ -2617,24 +2504,16 @@ const trackingByGameRows = useMemo(() => {
                 <div className="card" style={{ overflowX: 'auto' }}>
                   <h3>Grid</h3>
                   <LineupGrid
-                    players={players}
+                    players={activePlayers}
                     lineup={optimizerFocusLineup}
                     fitMap={fitByPlayer}
                     showLocks={true}
                     lockedLineup={false}
                     visiblePlayerIds={visibleIds}
-                    onCellChange={(playerId, inning, value) =>
-                      updatePreviewCell(optimizerFocusGame.id, playerId, inning, value)
-                    }
-                    onBattingChange={(playerId, value) =>
-                      updatePreviewBatting(optimizerFocusGame.id, playerId, value)
-                    }
-                    onCellLockToggle={(playerId, inning) =>
-                      togglePreviewCellLock(optimizerFocusGame.id, playerId, inning)
-                    }
-                    onRowLockToggle={(playerId) =>
-                      togglePreviewRowLock(optimizerFocusGame.id, playerId)
-                    }
+                    onCellChange={(playerId, inning, value) => updatePreviewCell(optimizerFocusGame.id, playerId, inning, value)}
+                    onBattingChange={(playerId, value) => updatePreviewBatting(optimizerFocusGame.id, playerId, value)}
+                    onCellLockToggle={(playerId, inning) => togglePreviewCellLock(optimizerFocusGame.id, playerId, inning)}
+                    onRowLockToggle={(playerId) => togglePreviewRowLock(optimizerFocusGame.id, playerId)}
                   />
                 </div>
               </>
@@ -2644,21 +2523,21 @@ const trackingByGameRows = useMemo(() => {
               title="Locked Games Before Current Plan"
               universeLabel={`${lockedLineupsOnly.length} locked games`}
               totals={ytdBeforeTotals}
-              players={players}
+              players={activePlayers}
               sortConfig={trackingSort}
               setSortConfig={setTrackingSort}
             />
             <TrackingTable
               title="Current Plan"
               totals={currentBatchTotals}
-              players={players}
+              players={activePlayers}
               sortConfig={trackingSort}
               setSortConfig={setTrackingSort}
             />
             <TrackingTable
               title="Locked + Current Plan"
               totals={ytdAfterTotals}
-              players={players}
+              players={activePlayers}
               sortConfig={trackingSort}
               setSortConfig={setTrackingSort}
             />
@@ -2668,398 +2547,276 @@ const trackingByGameRows = useMemo(() => {
     )
   }
 
-function renderTrackingPage() {
-  const orderedGames = [...games].sort(compareGamesAsc)
+  function renderTrackingPage() {
+    const gamesWithLineups = orderedGamesAsc.filter((g) => lineupsByGame[pk(g.id)])
 
-  const battingRows = buildBattingOrderMatrix(
-    orderedGames,
-    lineupsByGame,
-    activePlayers
-  )
-
-  const sitSummary = buildSitOutSummary(
-    orderedGames,
-    lineupsByGame
-  )
-
-  const sitByPlayer = buildPlayerSitOuts(
-    orderedGames,
-    lineupsByGame,
-    activePlayers
-  )
-
-  const selectedPlayerPositions = trackingPlayerId
-    ? buildPositionByPlayer(
-        orderedGames,
-        lineupsByGame,
-        pk(trackingPlayerId)
-      )
-    : []
-
-  const rows = sortRows(
-    activePlayers.map((player) => {
-      const totals = trackingTotals[pk(player.id)] || {}
-      const priority = priorityByPlayer[pk(player.id)] || {}
-      const fieldTotal = Math.max(totals.fieldTotal || 0, 1)
-
-      const actPct = (n) => {
-        const value = Number((((n || 0) / fieldTotal) * 100).toFixed(1))
-        return value === 0 ? '' : value
-      }
-
-      return {
-        playerId: pk(player.id),
-        name: player.name,
-        fieldTotal: totals.fieldTotal || 0,
-        targP: priority.P?.priority_pct || '',
-        targC: priority.C?.priority_pct || '',
-        targ1B: priority['1B']?.priority_pct || '',
-        targ2B: priority['2B']?.priority_pct || '',
-        targ3B: priority['3B']?.priority_pct || '',
-        targSS: priority.SS?.priority_pct || '',
-        targOF: priority.OF?.priority_pct || '',
-        actP: actPct(totals.P),
-        actC: actPct(totals.C),
-        act1B: actPct(totals['1B']),
-        act2B: actPct(totals['2B']),
-        act3B: actPct(totals['3B']),
-        actSS: actPct(totals.SS),
-        actOF: actPct(totals.OF),
-      }
-    }),
-    trackingSort
-  )
-
-  return (
-    <div className="stack">
-      <div className="card">
-        <h2>Tracking Filters</h2>
-        <div className="grid four-col compact-grid">
-          <div>
-            <label>Through Date</label>
-            <input
-              type="date"
-              value={trackingThroughDate}
-              onChange={(e) => setTrackingThroughDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <label>Game Type</label>
-            <select value={trackingGameType} onChange={(e) => setTrackingGameType(e.target.value)}>
-              <option value="All">All</option>
-              {GAME_TYPES.map((type) => (
-                <option key={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label>Status</label>
-            <select value={trackingState} onChange={(e) => setTrackingState(e.target.value)}>
-              <option value="All">All</option>
-              <option value="Saved">Saved</option>
-              <option value="Locked">Locked</option>
-            </select>
-          </div>
-          <div>
-            <label>Player Detail</label>
-            <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
-              <option value="">Select Player</option>
-              {activePlayers.map((player) => (
-                <option key={player.id} value={pk(player.id)}>
-                  {player.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <h3>Batting Order Tracking</h3>
-        <table className="table-center">
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th>Avg</th>
-              {orderedGames.map((g) => (
-                <th key={g.id}>
-                  <div>{g.game_order || ''}</div>
-                  <div>{g.opponent}</div>
-                  <div style={{ fontSize: 11 }}>{formatDateShort(g.date)}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {battingRows.map((row) => (
-              <tr key={row.playerId}>
-                <td>{row.name}</td>
-                <td>{row.avg}</td>
-                {row.perGame.map((v, i) => (
-                  <td key={i}>{v}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <h3>Sitting Out Summary</h3>
-        <table className="table-center">
-          <thead>
-            <tr>
-              <th>Metric</th>
-              {sitSummary.map((g) => (
-                <th key={g.gameId}>
-                  <div>{g.gameNumber || ''}</div>
-                  <div>{g.opponent}</div>
-                  <div style={{ fontSize: 11 }}>{formatDateShort(g.date)}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Total Players</td>
-              {sitSummary.map((g) => <td key={g.gameId}>{g.totalPlayers}</td>)}
-            </tr>
-            <tr>
-              <td>Innings</td>
-              {sitSummary.map((g) => <td key={g.gameId}>{g.innings}</td>)}
-            </tr>
-            <tr>
-              <td># Sit Outs</td>
-              {sitSummary.map((g) => <td key={g.gameId}>{g.sitOuts}</td>)}
-            </tr>
-            <tr>
-              <td>Injury</td>
-              {sitSummary.map((g) => <td key={g.gameId}>{g.injuries}</td>)}
-            </tr>
-            <tr>
-              <td>Average Out</td>
-              {sitSummary.map((g) => <td key={g.gameId}>{g.avgSit}</td>)}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <h3>Sit Outs by Player</h3>
-        <table className="table-center">
-          <thead>
-            <tr>
-              <th>Player</th>
-              {orderedGames.map((g) => (
-                <th key={g.id}>
-                  <div>{g.game_order || ''}</div>
-                  <div>{g.opponent}</div>
-                  <div style={{ fontSize: 11 }}>{formatDateShort(g.date)}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sitByPlayer.map((row) => (
-              <tr key={row.playerId}>
-                <td>{row.name}</td>
-                {row.perGame.map((v, i) => (
-                  <td key={i}>{v === '' ? '' : v}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <h3>Sit Out Running Total (vs Expected)</h3>
-        <table className="table-center">
-          <thead>
-            <tr>
-              <th>Player</th>
-              {orderedGames.map((g) => (
-                <th key={g.id}>
-                  <div>{g.game_order || ''}</div>
-                  <div>{g.opponent}</div>
-                  <div style={{ fontSize: 11 }}>{formatDateShort(g.date)}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sitByPlayer.map((row) => (
-              <tr key={`running-${row.playerId}`}>
-                <td>{row.name}</td>
-                {row.running.map((v, i) => (
-                  <td key={i}>{v}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
-          <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
-          <div style={{ minWidth: 240 }}>
-            <label>Filter by Player</label>
-            <select
-              value={trackingPlayerId}
-              onChange={(e) => setTrackingPlayerId(e.target.value)}
-            >
-              <option value="">Select Player</option>
-              {activePlayers.map((p) => (
-                <option key={p.id} value={pk(p.id)}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {trackingPlayerId ? (
+    return (
+      <div className="stack">
+        <div className="card" style={{ overflowX: 'auto' }}>
+          <h3>Batting Order Tracking</h3>
           <table className="table-center">
             <thead>
               <tr>
-                <th>Game #</th>
-                <th>Opponent</th>
-                <th>Date</th>
-                <th>Act</th>
-                <th>P</th>
-                <th>C</th>
-                <th>1B</th>
-                <th>2B</th>
-                <th>3B</th>
-                <th>SS</th>
-                <th>LF</th>
-                <th>CF</th>
-                <th>RF</th>
-                <th>Out</th>
-                <th>Injury</th>
+                <th>Player</th>
+                <th>Avg</th>
+                {gamesWithLineups.map((g, idx) => (
+                  <VerticalHeader
+                    key={g.id}
+                    top={String(idx + 1)}
+                    bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
+                    minWidth={52}
+                  />
+                ))}
               </tr>
             </thead>
             <tbody>
-              {selectedPlayerPositions.map((row) => (
-                <tr key={row.gameId}>
-                  <td>{row.gameNumber}</td>
-                  <td>{row.opponent}</td>
-                  <td>{formatDateShort(row.date)}</td>
-                  <td>{row.active}</td>
-                  <td>{row.P || ''}</td>
-                  <td>{row.C || ''}</td>
-                  <td>{row['1B'] || ''}</td>
-                  <td>{row['2B'] || ''}</td>
-                  <td>{row['3B'] || ''}</td>
-                  <td>{row.SS || ''}</td>
-                  <td>{row.LF || ''}</td>
-                  <td>{row.CF || ''}</td>
-                  <td>{row.RF || ''}</td>
-                  <td>{row.Out || ''}</td>
-                  <td>{row.Injury || ''}</td>
+              {battingRows.map((row) => (
+                <tr key={row.playerId}>
+                  <td>{row.name}</td>
+                  <td>{row.avg}</td>
+                  {row.perGame.map((v, i) => (
+                    <td key={i}>{v}</td>
+                  ))}
                 </tr>
               ))}
             </tbody>
           </table>
-        ) : (
-          <p className="small-note" style={{ margin: 0 }}>
-            Select a player to view positioning by game.
-          </p>
-        )}
-      </div>
+        </div>
 
-            <TrackingTable
-        title="Tracking Totals"
-        universeLabel={`${filteredLockedTrackingGames.length} locked games in filter`}
-        totals={trackingTotals}
-        players={activePlayers}
-        sortConfig={trackingSort}
-        setSortConfig={setTrackingSort}
-      />
-
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <h3>Tracking vs Positioning Priority</h3>
-        <table className="table-center grouped-table">
-          <thead>
-            <tr>
-              <th rowSpan="2">Player</th>
-              <th rowSpan="2">Fld</th>
-              <th colSpan="2" className="group-col">P</th>
-              <th colSpan="2" className="group-col">C</th>
-              <th colSpan="2" className="group-col">1B</th>
-              <th colSpan="2" className="group-col">2B</th>
-              <th colSpan="2" className="group-col">3B</th>
-              <th colSpan="2" className="group-col">SS</th>
-              <th colSpan="2" className="group-col">OF</th>
-            </tr>
-            <tr>
-              <th>TGT</th><th className="group-col">ACT</th>
-              <th>TGT</th><th className="group-col">ACT</th>
-              <th>TGT</th><th className="group-col">ACT</th>
-              <th>TGT</th><th className="group-col">ACT</th>
-              <th>TGT</th><th className="group-col">ACT</th>
-              <th>TGT</th><th className="group-col">ACT</th>
-              <th>TGT</th><th className="group-col">ACT</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.playerId}>
-                <td>{row.name}</td>
-                <td>{row.fieldTotal}</td>
-                <td>{row.targP}</td><td className="group-col">{row.actP}</td>
-                <td>{row.targC}</td><td className="group-col">{row.actC}</td>
-                <td>{row.targ1B}</td><td className="group-col">{row.act1B}</td>
-                <td>{row.targ2B}</td><td className="group-col">{row.act2B}</td>
-                <td>{row.targ3B}</td><td className="group-col">{row.act3B}</td>
-                <td>{row.targSS}</td><td className="group-col">{row.actSS}</td>
-                <td>{row.targOF}</td><td className="group-col">{row.actOF}</td>
+        <div className="card" style={{ overflowX: 'auto' }}>
+          <h3>Sitting Out Summary</h3>
+          <table className="table-center">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                {gamesWithLineups.map((g, idx) => (
+                  <VerticalHeader
+                    key={g.id}
+                    top={String(idx + 1)}
+                    bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
+                    minWidth={52}
+                  />
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Total Players</td>
+                {sitSummary.map((g) => <td key={g.gameId}>{g.totalPlayers}</td>)}
+              </tr>
+              <tr>
+                <td>Innings</td>
+                {sitSummary.map((g) => <td key={g.gameId}>{g.innings}</td>)}
+              </tr>
+              <tr>
+                <td># Sit Outs</td>
+                {sitSummary.map((g) => <td key={g.gameId}>{g.sitOuts}</td>)}
+              </tr>
+              <tr>
+                <td>Injury</td>
+                {sitSummary.map((g) => <td key={g.gameId}>{g.injury}</td>)}
+              </tr>
+              <tr>
+                <td>Average Out</td>
+                {sitSummary.map((g) => <td key={g.gameId}>{g.avgSit}</td>)}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card" style={{ overflowX: 'auto' }}>
+          <h3>Sit Outs by Player</h3>
+          <table className="table-center">
+            <thead>
+              <tr>
+                <th>Player</th>
+                {gamesWithLineups.map((g, idx) => (
+                  <VerticalHeader
+                    key={g.id}
+                    top={String(idx + 1)}
+                    bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
+                    minWidth={52}
+                  />
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sitByPlayer.map((row) => (
+                <tr key={row.playerId}>
+                  <td>{row.name}</td>
+                  {row.perGame.map((v, i) => (
+                    <td key={i}>{v}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div style={{ height: 16 }} />
+
+          <h3 style={{ marginTop: 0 }}>Sit Out Running Total (vs Expected)</h3>
+          <table className="table-center">
+            <thead>
+              <tr>
+                <th>Player</th>
+                {gamesWithLineups.map((g, idx) => (
+                  <VerticalHeader
+                    key={g.id}
+                    top={String(idx + 1)}
+                    bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
+                    minWidth={52}
+                  />
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sitByPlayer.map((row) => (
+                <tr key={`${row.playerId}-running`}>
+                  <td>{row.name}</td>
+                  {row.running.map((v, i) => (
+                    <td key={i}>{v}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card" style={{ overflowX: 'auto' }}>
+          <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+            <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
+            <div style={{ minWidth: 260 }}>
+              <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
+                <option value="">Select Player</option>
+                {activePlayers.map((p) => (
+                  <option key={p.id} value={pk(p.id)}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {trackingPlayerId ? (
+            <table className="table-center">
+              <thead>
+                <tr>
+                  <th>Game #</th>
+                  <th>Opponent</th>
+                  <th>Date</th>
+                  <th>Act</th>
+                  <th>P</th>
+                  <th>C</th>
+                  <th>1B</th>
+                  <th>2B</th>
+                  <th>3B</th>
+                  <th>SS</th>
+                  <th>LF</th>
+                  <th>CF</th>
+                  <th>RF</th>
+                  <th>Out</th>
+                  <th>IN</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedPlayerPositions.map((row, idx) => (
+                  <tr key={row.gameId}>
+                    <td>{idx + 1}</td>
+                    <td>{row.opponent}</td>
+                    <td>{formatDateShort(row.date)}</td>
+                    <td>{row.active}</td>
+                    <td>{row.P || ''}</td>
+                    <td>{row.C || ''}</td>
+                    <td>{row['1B'] || ''}</td>
+                    <td>{row['2B'] || ''}</td>
+                    <td>{row['3B'] || ''}</td>
+                    <td>{row.SS || ''}</td>
+                    <td>{row.LF || ''}</td>
+                    <td>{row.CF || ''}</td>
+                    <td>{row.RF || ''}</td>
+                    <td>{row.Out || ''}</td>
+                    <td>Yes</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>Select a player to view by-game positioning.</p>
+          )}
+        </div>
+
+        <TrackingTable
+          title="Tracking Totals"
+          universeLabel={`${trackingLockedLineups.length} locked games`}
+          totals={trackingTotals}
+          players={activePlayers}
+          sortConfig={trackingSort}
+          setSortConfig={setTrackingSort}
+        />
+
+        <div className="card" style={{ overflowX: 'auto' }}>
+          <h3>Tracking vs Positioning Priority</h3>
+          <table className="table-center grouped-table">
+            <thead>
+              <tr>
+                <th rowSpan="2">Player</th>
+                <th rowSpan="2">Fld</th>
+                <th colSpan="2" className="group-col">P</th>
+                <th colSpan="2" className="group-col">C</th>
+                <th colSpan="2" className="group-col">1B</th>
+                <th colSpan="2" className="group-col">2B</th>
+                <th colSpan="2" className="group-col">3B</th>
+                <th colSpan="2" className="group-col">SS</th>
+                <th colSpan="2" className="group-col">OF</th>
+              </tr>
+              <tr>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trackingPriorityRows.map((row) => (
+                <tr key={row.playerId}>
+                  <td>{row.name}</td>
+                  <td>{row.fieldTotal}</td>
+                  <td>{row.targP}</td><td className="group-col">{row.actP}</td>
+                  <td>{row.targC}</td><td className="group-col">{row.actC}</td>
+                  <td>{row.targ1B}</td><td className="group-col">{row.act1B}</td>
+                  <td>{row.targ2B}</td><td className="group-col">{row.act2B}</td>
+                  <td>{row.targ3B}</td><td className="group-col">{row.act3B}</td>
+                  <td>{row.targSS}</td><td className="group-col">{row.actSS}</td>
+                  <td>{row.targOF}</td><td className="group-col">{row.actOF}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
   function renderAttendancePage() {
-    const visibleAttendancePlayers = activePlayers.filter(
-      (p) => !attendancePlayerFilter || pk(p.id) === pk(attendancePlayerFilter)
-    )
-
-    const totalInSeason = filteredAttendanceEvents.filter((e) => e.season_bucket === 'In Season').length
-    const totalOutSeason = filteredAttendanceEvents.filter((e) => e.season_bucket === 'Out of Season').length
-    const totalPC = filteredAttendanceEvents.filter((e) => e.event_type === 'Pitchers/Catchers').length
-    const totalTeam = filteredAttendanceEvents.filter((e) => e.event_type === 'Team Practice').length
-    const totalIndoor = filteredAttendanceEvents.filter((e) => e.surface === 'Indoor').length
-    const totalOutdoor = filteredAttendanceEvents.filter((e) => e.surface === 'Outdoor').length
-
-    const displayPctCell = (value, total) => {
-      if (!value && !total) return ''
-      const parts = String(value || '').split('/')
-      const attended = Number(parts[0] || 0)
-      const denom = Number(parts[1] || total || 0)
-      const pct = denom ? `${Math.round((attended / denom) * 100)}%` : '0%'
-      return `${attended}/${denom} (${pct})`
-    }
-
     return (
       <div className="stack">
         <div className="card">
           <h2>Attendance Tracker</h2>
-
-          <div className="game-add-row">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr 1fr auto',
+              gap: 12,
+              alignItems: 'end',
+            }}
+          >
             <div>
               <label>Date</label>
-              <input
-                type="date"
-                value={attendanceDate}
-                onChange={(e) => setAttendanceDate(e.target.value)}
-              />
+              <input type="date" value={attendanceDate} onChange={(e) => setAttendanceDate(e.target.value)} />
             </div>
-
             <div>
               <label>Season</label>
               <select value={attendanceSeason} onChange={(e) => setAttendanceSeason(e.target.value)}>
@@ -3068,7 +2825,6 @@ function renderTrackingPage() {
                 ))}
               </select>
             </div>
-
             <div>
               <label>Practice Type</label>
               <select value={attendanceType} onChange={(e) => setAttendanceType(e.target.value)}>
@@ -3077,7 +2833,6 @@ function renderTrackingPage() {
                 ))}
               </select>
             </div>
-
             <div>
               <label>Surface</label>
               <select value={attendanceSurface} onChange={(e) => setAttendanceSurface(e.target.value)}>
@@ -3086,69 +2841,29 @@ function renderTrackingPage() {
                 ))}
               </select>
             </div>
-
-            <div className="attendance-title-cell">
-              <label>Title</label>
-              <input value={attendanceTitle} onChange={(e) => setAttendanceTitle(e.target.value)} />
-            </div>
-
-            <div className="align-end">
-              <button onClick={addAttendanceEvent}>Add Practice / Event</button>
+            <div>
+              <button onClick={addAttendanceEvent}>Add Event</button>
             </div>
           </div>
-        </div>
 
-        <div className="card">
-          <h3>Attendance Filters</h3>
-          <div className="grid two-col compact-grid">
-            <div>
-              <label>Player</label>
-              <select
-                value={attendancePlayerFilter}
-                onChange={(e) => setAttendancePlayerFilter(e.target.value)}
-              >
-                <option value="">All Active Players</option>
-                {activePlayers.map((player) => (
-                  <option key={player.id} value={pk(player.id)}>
-                    {player.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label>Practice Type</label>
-              <select
-                value={attendanceTypeFilters[0] || ''}
-                onChange={(e) =>
-                  setAttendanceTypeFilters(e.target.value ? [e.target.value] : [])
-                }
-              >
-                <option value="">All Types</option>
-                {ATTENDANCE_TYPE_OPTIONS.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div style={{ marginTop: 12, maxWidth: 420 }}>
+            <label>Title</label>
+            <input value={attendanceTitle} onChange={(e) => setAttendanceTitle(e.target.value)} />
           </div>
         </div>
 
         <div className="card" style={{ overflowX: 'auto' }}>
           <h3>Attendance by Event</h3>
-          <table className="table-center attendance-event-table">
+          <table className="table-center">
             <thead>
               <tr>
-                <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'event_date'))}>Date</th>
-                <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'season_bucket'))}>Season</th>
-                <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'event_type'))}>Type</th>
-                <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'surface'))}>Surface</th>
-                <th className="title-col">Title</th>
-                {visibleAttendancePlayers.map((player) => (
-                  <th key={player.id} className="vertical-header">
-                    <span>{player.name}</span>
-                  </th>
+                <th>Date</th>
+                <th>Season</th>
+                <th>Type</th>
+                <th>Surface</th>
+                <th style={{ minWidth: 160 }}>Title</th>
+                {activePlayers.map((player) => (
+                  <VerticalHeader key={player.id} bottom={player.name} minWidth={44} />
                 ))}
                 <th>Delete</th>
               </tr>
@@ -3156,61 +2871,47 @@ function renderTrackingPage() {
             <tbody>
               {filteredAttendanceEvents.map((event) => (
                 <tr key={event.id}>
-                  <td>
+                  <td style={{ minWidth: 140 }}>
                     <input
                       type="date"
                       value={event.event_date || ''}
-                      onChange={(e) =>
-                        updateAttendanceEventField(event.id, 'event_date', e.target.value)
-                      }
+                      onChange={(e) => updateAttendanceEventField(event.id, 'event_date', e.target.value)}
                     />
                   </td>
-                  <td>
+                  <td style={{ minWidth: 120 }}>
                     <select
                       value={event.season_bucket || ATTENDANCE_SEASON_OPTIONS[0]}
-                      onChange={(e) =>
-                        updateAttendanceEventField(event.id, 'season_bucket', e.target.value)
-                      }
+                      onChange={(e) => updateAttendanceEventField(event.id, 'season_bucket', e.target.value)}
                     >
                       {ATTENDANCE_SEASON_OPTIONS.map((x) => (
                         <option key={x}>{x}</option>
                       ))}
                     </select>
                   </td>
-                  <td>
+                  <td style={{ minWidth: 150 }}>
                     <select
                       value={event.event_type || ATTENDANCE_TYPE_OPTIONS[0]}
-                      onChange={(e) =>
-                        updateAttendanceEventField(event.id, 'event_type', e.target.value)
-                      }
+                      onChange={(e) => updateAttendanceEventField(event.id, 'event_type', e.target.value)}
                     >
                       {ATTENDANCE_TYPE_OPTIONS.map((x) => (
                         <option key={x}>{x}</option>
                       ))}
                     </select>
                   </td>
-                  <td>
+                  <td style={{ minWidth: 120 }}>
                     <select
                       value={event.surface || ATTENDANCE_SURFACE_OPTIONS[0]}
-                      onChange={(e) =>
-                        updateAttendanceEventField(event.id, 'surface', e.target.value)
-                      }
+                      onChange={(e) => updateAttendanceEventField(event.id, 'surface', e.target.value)}
                     >
                       {ATTENDANCE_SURFACE_OPTIONS.map((x) => (
                         <option key={x}>{x}</option>
                       ))}
                     </select>
                   </td>
-                  <td className="title-col">
-                    <input
-                      value={event.title || ''}
-                      onChange={(e) =>
-                        updateAttendanceEventField(event.id, 'title', e.target.value)
-                      }
-                    />
+                  <td style={{ minWidth: 160 }}>
+                    <input value={event.title || ''} onChange={(e) => updateAttendanceEventField(event.id, 'title', e.target.value)} />
                   </td>
-
-                  {visibleAttendancePlayers.map((player) => (
+                  {activePlayers.map((player) => (
                     <td key={player.id}>
                       <input
                         type="checkbox"
@@ -3219,18 +2920,11 @@ function renderTrackingPage() {
                       />
                     </td>
                   ))}
-
                   <td>
                     <button onClick={() => deleteAttendanceEvent(event.id)}>Delete</button>
                   </td>
                 </tr>
               ))}
-
-              {!filteredAttendanceEvents.length && (
-                <tr>
-                  <td colSpan={6 + visibleAttendancePlayers.length}>No attendance events.</td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
@@ -3241,46 +2935,26 @@ function renderTrackingPage() {
             <thead>
               <tr>
                 <th>Player</th>
-                <th>
-                  <div>In Season</div>
-                  <div className="small-note">Total: {totalInSeason}</div>
-                </th>
-                <th>
-                  <div>Out of Season</div>
-                  <div className="small-note">Total: {totalOutSeason}</div>
-                </th>
-                <th>
-                  <div>P/C</div>
-                  <div className="small-note">Total: {totalPC}</div>
-                </th>
-                <th>
-                  <div>Team Practice</div>
-                  <div className="small-note">Total: {totalTeam}</div>
-                </th>
-                <th>
-                  <div>Indoor</div>
-                  <div className="small-note">Total: {totalIndoor}</div>
-                </th>
-                <th>
-                  <div>Outdoor</div>
-                  <div className="small-note">Total: {totalOutdoor}</div>
-                </th>
+                <th>In Season<br /><span style={{ fontSize: 12 }}>Total: {attendanceTotals.inSeason}</span></th>
+                <th>Out of Season<br /><span style={{ fontSize: 12 }}>Total: {attendanceTotals.outSeason}</span></th>
+                <th>P/C<br /><span style={{ fontSize: 12 }}>Total: {attendanceTotals.pitchersCatchers}</span></th>
+                <th>Team Practice<br /><span style={{ fontSize: 12 }}>Total: {attendanceTotals.teamPractice}</span></th>
+                <th>Indoor<br /><span style={{ fontSize: 12 }}>Total: {attendanceTotals.indoor}</span></th>
+                <th>Outdoor<br /><span style={{ fontSize: 12 }}>Total: {attendanceTotals.outdoor}</span></th>
               </tr>
             </thead>
             <tbody>
-              {attendanceBreakdownByPlayer
-                .filter((row) => activePlayers.some((p) => pk(p.id) === pk(row.playerId)))
-                .map((row) => (
-                  <tr key={row.playerId}>
-                    <td>{row.name}</td>
-                    <td>{displayPctCell(row.inSeason, totalInSeason)}</td>
-                    <td>{displayPctCell(row.outSeason, totalOutSeason)}</td>
-                    <td>{displayPctCell(row.pitchersCatchers, totalPC)}</td>
-                    <td>{displayPctCell(row.teamPractice, totalTeam)}</td>
-                    <td>{displayPctCell(row.indoor, totalIndoor)}</td>
-                    <td>{displayPctCell(row.outdoor, totalOutdoor)}</td>
-                  </tr>
-                ))}
+              {attendanceBreakdownByPlayer.map((row) => (
+                <tr key={row.playerId}>
+                  <td>{row.name}</td>
+                  <td>{row.inSeason}</td>
+                  <td>{row.outSeason}</td>
+                  <td>{row.pitchersCatchers}</td>
+                  <td>{row.teamPractice}</td>
+                  <td>{row.indoor}</td>
+                  <td>{row.outdoor}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
