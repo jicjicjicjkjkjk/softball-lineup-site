@@ -25,20 +25,7 @@ const ATTENDANCE_SEASON_OPTIONS = ['In Season', 'Out of Season']
 const ATTENDANCE_TYPE_OPTIONS = ['Pitchers/Catchers', 'Team Practice', 'Indoor Work', 'Outdoor Practice']
 const ATTENDANCE_SURFACE_OPTIONS = ['Indoor', 'Outdoor']
 
-function autoSave(gameId, lineup) {
-  supabase
-    .from('game_lineups')
-    .upsert({
-      game_id: gameId,
-      lineup_name: 'Main',
-      lineup_data: lineup,
-      optimizer_meta: {
-        innings: lineup.innings,
-        availablePlayerIds: lineup.availablePlayerIds,
-      },
-      lineup_locked: lineupLockedByGame[pk(gameId)] === true,
-    }, { onConflict: 'game_id,lineup_name' })
-}
+
 
 function dbReady() {
   return Boolean(supabase)
@@ -456,6 +443,21 @@ export default function App() {
   const [attendancePlayerFilter, setAttendancePlayerFilter] = useState('')
   const [attendanceTypeFilter, setAttendanceTypeFilter] = useState('All')
 
+function autoSave(gameId, lineup) {
+  supabase
+    .from('game_lineups')
+    .upsert({
+      game_id: gameId,
+      lineup_name: 'Main',
+      lineup_data: lineup,
+      optimizer_meta: {
+        innings: lineup.innings,
+        availablePlayerIds: lineup.availablePlayerIds,
+      },
+      lineup_locked: lineupLockedByGame[pk(gameId)] === true,
+    }, { onConflict: 'game_id,lineup_name' })
+}
+  
   useEffect(() => {
     loadAll()
   }, [])
