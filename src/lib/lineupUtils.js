@@ -484,44 +484,52 @@ function assignPositionsForInning({
   lineup,
   inning,
   players,
-  plannedOuts,
+  availablePlayerIds,
+  plannedOutsByPlayer,
   rollingTotals,
   priorityMap,
   fitMap,
 }) {
-  const availableSet = new Set((lineup?.availablePlayerIds || []).map(pk))
-  const { usedPlayers, assignedPositions } = getLockedAssignmentsForInning(lineup, inning, players)
+  const availableSet = new Set((availablePlayerIds || []).map(pk))
+  const { assignedPositions, usedPlayers } = inningLockedFieldAssignments(lineup, inning, players)
 
-  ;(players || []).forEach((player) => {
+  const eligiblePlayers = (players || []).filter((p) => {
+    const id = pk(p.id)
+    if (!availableSet.has(id)) return false
+    const val = lineup?.cells?.[id]?.[inning] || ''
+    return val !== 'Injury'
+  })
+
+  // STEP 1: CLEAR NON-LOCKED CELLS
+  eligiblePlayers.forEach((player) => {
     const id = pk(player.id)
-    if (!availableSet.has(id)) {
+    const rowLocked = lineup?.lockedRows?.[id]
+    const cellLocked = lineup?.lockedCells?.[id]?.[inning]
+
+    if (!rowLocked && !cellLocked) {
       lineup.cells[id][inning] = ''
-      return
-    }
-
-    const current = lineup?.cells?.[id]?.[inning] || ''
-    if (current === 'Injury') {
-      usedPlayers.add(id)
-      return
-    }
-
-    if (!lockedValue(lineup, id, inning) && plannedOuts[id]?.has(inning)) {
-      lineup.cells[id][inning] = 'Out'
-      usedPlayers.add(id)
+    } else {
+      const val = lineup.cells[id][inning]
+      if (FIELD_POSITIONS.includes(val)) {
+        assignedPositions.add(val)
+        usedPlayers.add(id)
+      }
+      if (val === 'Out') {
+        usedPlayers.add(id)
+      }
     }
   })
 
+  // STEP 2: FILL ALL 9 POSITIONS FIRST (CRITICAL FIX)
   FIELD_POSITIONS.forEach((position) => {
     if (assignedPositions.has(position)) return
 
-    const candidates = (players || [])
+    const candidates = eligiblePlayers
       .filter((player) => {
         const id = pk(player.id)
-        if (!availableSet.has(id)) return false
         if (usedPlayers.has(id)) return false
-        if ((lineup?.cells?.[id]?.[inning] || '') === 'Injury') return false
-        if ((lineup?.cells?.[id]?.[inning] || '') === 'Out') return false
-        return fitTier(fitMap, id, position) !== 'no'
+        if (fitTier(fitMap, id, position) === 'no') return false
+        return true
       })
       .map((player) =>
         scorePlayerForPosition({
@@ -539,7 +547,7 @@ function assignPositionsForInning({
         if (a.fitScore !== b.fitScore) return a.fitScore - b.fitScore
         if (a.gap !== b.gap) return b.gap - a.gap
         if (a.continuityBonus !== b.continuityBonus) return b.continuityBonus - a.continuityBonus
-        return String(a.player.name || '').localeCompare(String(b.player.name || ''))
+        return a.player.name.localeCompare(b.player.name)
       })
 
     const choice = candidates[0]
@@ -547,14 +555,18 @@ function assignPositionsForInning({
 
     lineup.cells[choice.id][inning] = position
     usedPlayers.add(choice.id)
+    assignedPositions.add(position)
   })
 
-  ;(players || []).forEach((player) => {
+  // STEP 3: ONLY NOW ASSIGN OUTS
+  eligiblePlayers.forEach((player) => {
     const id = pk(player.id)
-    if (!availableSet.has(id)) return
     if (usedPlayers.has(id)) return
-    if ((lineup?.cells?.[id]?.[inning] || '') === 'Injury') return
-    if (!lockedValue(lineup, id, inning)) {
+
+    const rowLocked = lineup?.lockedRows?.[id]
+    const cellLocked = lineup?.lockedCells?.[id]?.[inning]
+
+    if (!rowLocked && !cellLocked) {
       lineup.cells[id][inning] = 'Out'
       usedPlayers.add(id)
     }
