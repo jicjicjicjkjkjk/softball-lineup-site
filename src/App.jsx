@@ -24,6 +24,30 @@ const ATTENDANCE_SEASON_OPTIONS = ['In Season', 'Out of Season']
 const ATTENDANCE_TYPE_OPTIONS = ['Pitchers/Catchers', 'Team Practice']
 const ATTENDANCE_SURFACE_OPTIONS = ['Indoor', 'Outdoor']
 
+  async function deleteAttendanceEvent(eventId) {
+    const confirmed = window.confirm('Delete this attendance event?')
+    if (!confirmed) return
+
+    const recDel = await supabase.from('attendance_records').delete().eq('event_id', eventId)
+    if (recDel.error) {
+      setAppError(recDel.error.message)
+      return
+    }
+
+    const eventDel = await supabase.from('attendance_events').delete().eq('id', eventId)
+    if (eventDel.error) {
+      setAppError(eventDel.error.message)
+      return
+    }
+
+    setAttendanceEvents((current) => current.filter((event) => pk(event.id) !== pk(eventId)))
+    setAttendanceByEvent((current) => {
+      const next = { ...current }
+      delete next[pk(eventId)]
+      return next
+    })
+  }
+
 import {
   buildBattingOrderMatrix,
   buildSitOutSummary,
@@ -772,25 +796,27 @@ export default function App() {
   const currentBatchTotals = useMemo(() => computeTotals(Object.values(optimizerPreviewByGame), players), [optimizerPreviewByGame, players])
   const ytdAfterTotals = useMemo(() => addTotals(ytdBeforeTotals, currentBatchTotals, players), [ytdBeforeTotals, currentBatchTotals, players])
 
-  const filteredTrackingLineups = useMemo(() => {
-    return games
+    const filteredLockedTrackingGames = useMemo(() => {
+    return [...games]
+      .sort(compareGamesAsc)
       .filter((game) => {
-        const state = lineupLockedByGame[pk(game.id)]
-          ? 'Locked'
-          : lineupsByGame[pk(game.id)]
-          ? 'Saved'
-          : 'Empty'
-
-        if (trackingState !== 'All' && state !== trackingState) return false
+        const gameId = pk(game.id)
+        if (lineupLockedByGame[gameId] !== true) return false
+        if (!lineupsByGame[gameId]) return false
         if (trackingGameType !== 'All' && game.game_type !== trackingGameType) return false
         if (trackingThroughDate && game.date && game.date > trackingThroughDate) return false
-        if (!lineupsByGame[pk(game.id)]) return false
         return true
       })
-      .map((game) => lineupsByGame[pk(game.id)])
-  }, [games, trackingState, trackingGameType, trackingThroughDate, lineupsByGame, lineupLockedByGame])
+  }, [games, lineupLockedByGame, lineupsByGame, trackingGameType, trackingThroughDate])
 
-  const trackingTotals = useMemo(() => computeTotals(filteredTrackingLineups, players), [filteredTrackingLineups, players])
+  const filteredTrackingLineups = useMemo(() => {
+    return filteredLockedTrackingGames.map((game) => lineupsByGame[pk(game.id)])
+  }, [filteredLockedTrackingGames, lineupsByGame])
+
+  const trackingTotals = useMemo(
+    () => computeTotals(filteredTrackingLineups, activePlayers),
+    [filteredTrackingLineups, activePlayers]
+  )
 
   const averageBattingOrderRows = useMemo(() => {
     return players.map((player) => {
@@ -2055,134 +2081,134 @@ const trackingByGameRows = useMemo(() => {
     )
   }
 
-  function renderGamesPage() {
-  return (
-    <div className="stack">
-      <div className="card">
-        <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
-          <h2>Games</h2>
-          <button onClick={loadAll}>Refresh from Database</button>
+    function renderGamesPage() {
+    return (
+      <div className="stack">
+        <div className="card">
+          <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+            <h2>Games</h2>
+            <button onClick={loadAll}>Refresh from Database</button>
+          </div>
+
+          {appError && <p style={{ color: '#b91c1c' }}>Error: {appError}</p>}
+          {loading && <p>Loading...</p>}
+
+          <div className="game-add-row">
+            <div>
+              <label>Date</label>
+              <input
+                type="date"
+                value={newGameDate}
+                onChange={(e) => setNewGameDate(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label>Opponent</label>
+              <input
+                value={newGameOpponent}
+                onChange={(e) => setNewGameOpponent(e.target.value)}
+                placeholder="Opponent"
+              />
+            </div>
+
+            <div>
+              <label>Type</label>
+              <select value={newGameType} onChange={(e) => setNewGameType(e.target.value)}>
+                {GAME_TYPES.map((type) => (
+                  <option key={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="align-end">
+              <button onClick={addGameFromGames}>Add Game</button>
+            </div>
+          </div>
+
+          <p className="small-note">
+            New games default to the next unused game order number.
+          </p>
         </div>
 
-        {appError && <p style={{ color: '#b91c1c' }}>Error: {appError}</p>}
-        {loading && <p>Loading...</p>}
-
-        <div className="game-add-row">
-          <div>
-            <label>Date</label>
-            <input
-              type="date"
-              value={newGameDate}
-              onChange={(e) => setNewGameDate(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label>Opponent</label>
-            <input
-              value={newGameOpponent}
-              onChange={(e) => setNewGameOpponent(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label>Type</label>
-            <select
-              value={newGameType}
-              onChange={(e) => setNewGameType(e.target.value)}
-            >
-              {GAME_TYPES.map((type) => (
-                <option key={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="align-end">
-            <button onClick={addGameFromGames}>Add Game</button>
-          </div>
-        </div>
-
-        <p className="small-note">
-          “Refresh from Database” reloads all players, games, lineups, priorities, and attendance.
-        </p>
-      </div>
-
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <table>
-          <thead>
-            <tr>
-              <th onClick={() => setGameSort(nextSort(gameSort, 'date'))}>Date</th>
-              <th className="order-col" onClick={() => setGameSort(nextSort(gameSort, 'game_order'))}>Order</th>
-              <th onClick={() => setGameSort(nextSort(gameSort, 'opponent'))}>Opponent</th>
-              <th onClick={() => setGameSort(nextSort(gameSort, 'game_type'))}>Type</th>
-              <th onClick={() => setGameSort(nextSort(gameSort, 'innings'))}>Innings</th>
-              <th onClick={() => setGameSort(nextSort(gameSort, 'lineupState'))}>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {sortedGames.map((game) => (
-              <tr key={game.id}>
-                <td>{formatDateShort(game.date)}</td>
-
-                <td className="center-cell order-col">
-                  <input
-                    className="input-center small-input"
-                    type="number"
-                    value={game.game_order ?? ''}
-                    onChange={(e) => updateGameField(game.id, 'game_order', e.target.value)}
-                  />
-                </td>
-
-                <td className="wide-text-cell">
-                  <input
-                    value={game.opponent}
-                    onChange={(e) => updateGameField(game.id, 'opponent', e.target.value)}
-                  />
-                </td>
-
-                <td>
-                  <select
-                    value={game.game_type || GAME_TYPES[0]}
-                    onChange={(e) => updateGameField(game.id, 'game_type', e.target.value)}
-                  >
-                    {GAME_TYPES.map((type) => (
-                      <option key={type}>{type}</option>
-                    ))}
-                  </select>
-                </td>
-
-                <td className="center-cell">{game.innings}</td>
-                <td className="center-cell">{game.lineupState}</td>
-
-                <td>
-                  <div className="button-row">
-                    <button
-                      onClick={() => {
-                        setSelectedGameId(pk(game.id))
-                        setPage('game-detail')
-                      }}
-                    >
-                      Open
-                    </button>
-                    <button onClick={() => deleteGame(game.id)}>Delete</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-
-            {!sortedGames.length && !loading && (
+        <div className="card" style={{ overflowX: 'auto' }}>
+          <table>
+            <thead>
               <tr>
-                <td colSpan="7">No games yet.</td>
+                <th onClick={() => setGameSort(nextSort(gameSort, 'date'))}>Date</th>
+                <th className="order-col" onClick={() => setGameSort(nextSort(gameSort, 'game_order'))}>
+                  Order
+                </th>
+                <th onClick={() => setGameSort(nextSort(gameSort, 'opponent'))}>Opponent</th>
+                <th onClick={() => setGameSort(nextSort(gameSort, 'game_type'))}>Type</th>
+                <th onClick={() => setGameSort(nextSort(gameSort, 'innings'))}>Innings</th>
+                <th onClick={() => setGameSort(nextSort(gameSort, 'lineupState'))}>Status</th>
+                <th>Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {sortedGames.map((game) => (
+                <tr key={game.id}>
+                  <td>{formatDateShort(game.date)}</td>
+
+                  <td className="center-cell order-col">
+                    <input
+                      className="input-center small-input"
+                      type="number"
+                      value={game.game_order ?? ''}
+                      onChange={(e) => updateGameField(game.id, 'game_order', e.target.value)}
+                    />
+                  </td>
+
+                  <td className="wide-text-cell">
+                    <input
+                      value={game.opponent}
+                      onChange={(e) => updateGameField(game.id, 'opponent', e.target.value)}
+                    />
+                  </td>
+
+                  <td>
+                    <select
+                      value={game.game_type || GAME_TYPES[0]}
+                      onChange={(e) => updateGameField(game.id, 'game_type', e.target.value)}
+                    >
+                      {GAME_TYPES.map((type) => (
+                        <option key={type}>{type}</option>
+                      ))}
+                    </select>
+                  </td>
+
+                  <td className="center-cell">{game.innings}</td>
+                  <td className="center-cell">{game.lineupState}</td>
+
+                  <td>
+                    <div className="button-row">
+                      <button
+                        onClick={() => {
+                          setSelectedGameId(pk(game.id))
+                          setPage('game-detail')
+                        }}
+                      >
+                        Open
+                      </button>
+                      <button onClick={() => deleteGame(game.id)}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {!sortedGames.length && !loading && (
+                <tr>
+                  <td colSpan="7">No games yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
   function renderGameDetailPage() {
     if (!selectedGame) {
@@ -2243,7 +2269,7 @@ const trackingByGameRows = useMemo(() => {
               </p>
             </div>
 
-            <div className="button-row">
+                        <div className="button-row">
               <button onClick={() => setPage('games')}>Back to Games</button>
               <select
                 value={selectedGameId}
@@ -2256,9 +2282,6 @@ const trackingByGameRows = useMemo(() => {
                   </option>
                 ))}
               </select>
-              <button onClick={() => addSavedInning(selectedGame.id)} disabled={selectedLocked}>
-                Add Inning
-              </button>
               <button onClick={() => saveSavedLineup(selectedGame.id)} disabled={selectedLocked}>
                 Save Changes
               </button>
@@ -2271,16 +2294,18 @@ const trackingByGameRows = useMemo(() => {
               <button onClick={() => window.print()}>Print</button>
             </div>
           </div>
-
-          <div className="button-row" style={{ marginTop: 12 }}>
-            <span style={{ fontWeight: 700, alignSelf: 'center' }}>Remove Inning</span>
+                    <div className="button-row inning-toolbar" style={{ marginTop: 12 }}>
+            <span style={{ fontWeight: 700, alignSelf: 'center' }}>Innings</span>
+            <button onClick={() => addSavedInning(selectedGame.id)} disabled={selectedLocked}>
+              Add Inning
+            </button>
             {Array.from({ length: selectedLineup.innings }, (_, i) => i + 1).map((inning) => (
               <button
                 key={inning}
                 onClick={() => removeSavedInning(selectedGame.id, inning)}
                 disabled={selectedLocked}
               >
-                {inning}
+                Remove {inning}
               </button>
             ))}
           </div>
@@ -2968,9 +2993,9 @@ function renderTrackingPage() {
         )}
       </div>
 
-      <TrackingTable
+            <TrackingTable
         title="Tracking Totals"
-        universeLabel={`${filteredTrackingLineups.length} saved/locked games in filter`}
+        universeLabel={`${filteredLockedTrackingGames.length} locked games in filter`}
         totals={trackingTotals}
         players={activePlayers}
         sortConfig={trackingSort}
@@ -3024,11 +3049,32 @@ function renderTrackingPage() {
 }
 
   function renderAttendancePage() {
+    const visibleAttendancePlayers = activePlayers.filter(
+      (p) => !attendancePlayerFilter || pk(p.id) === pk(attendancePlayerFilter)
+    )
+
+    const totalInSeason = filteredAttendanceEvents.filter((e) => e.season_bucket === 'In Season').length
+    const totalOutSeason = filteredAttendanceEvents.filter((e) => e.season_bucket === 'Out of Season').length
+    const totalPC = filteredAttendanceEvents.filter((e) => e.event_type === 'Pitchers/Catchers').length
+    const totalTeam = filteredAttendanceEvents.filter((e) => e.event_type === 'Team Practice').length
+    const totalIndoor = filteredAttendanceEvents.filter((e) => e.surface === 'Indoor').length
+    const totalOutdoor = filteredAttendanceEvents.filter((e) => e.surface === 'Outdoor').length
+
+    const displayPctCell = (value, total) => {
+      if (!value && !total) return ''
+      const parts = String(value || '').split('/')
+      const attended = Number(parts[0] || 0)
+      const denom = Number(parts[1] || total || 0)
+      const pct = denom ? `${Math.round((attended / denom) * 100)}%` : '0%'
+      return `${attended}/${denom} (${pct})`
+    }
+
     return (
       <div className="stack">
         <div className="card">
           <h2>Attendance Tracker</h2>
-          <div className="grid four-col compact-grid">
+
+          <div className="game-add-row">
             <div>
               <label>Date</label>
               <input
@@ -3037,6 +3083,7 @@ function renderTrackingPage() {
                 onChange={(e) => setAttendanceDate(e.target.value)}
               />
             </div>
+
             <div>
               <label>Season</label>
               <select value={attendanceSeason} onChange={(e) => setAttendanceSeason(e.target.value)}>
@@ -3045,6 +3092,7 @@ function renderTrackingPage() {
                 ))}
               </select>
             </div>
+
             <div>
               <label>Practice Type</label>
               <select value={attendanceType} onChange={(e) => setAttendanceType(e.target.value)}>
@@ -3053,6 +3101,7 @@ function renderTrackingPage() {
                 ))}
               </select>
             </div>
+
             <div>
               <label>Surface</label>
               <select value={attendanceSurface} onChange={(e) => setAttendanceSurface(e.target.value)}>
@@ -3061,13 +3110,12 @@ function renderTrackingPage() {
                 ))}
               </select>
             </div>
-          </div>
 
-          <div className="grid four-col compact-grid" style={{ marginTop: 12 }}>
-            <div>
+            <div className="attendance-title-cell">
               <label>Title</label>
               <input value={attendanceTitle} onChange={(e) => setAttendanceTitle(e.target.value)} />
             </div>
+
             <div className="align-end">
               <button onClick={addAttendanceEvent}>Add Practice / Event</button>
             </div>
@@ -3083,8 +3131,8 @@ function renderTrackingPage() {
                 value={attendancePlayerFilter}
                 onChange={(e) => setAttendancePlayerFilter(e.target.value)}
               >
-                <option value="">All Players</option>
-                {players.map((player) => (
+                <option value="">All Active Players</option>
+                {activePlayers.map((player) => (
                   <option key={player.id} value={pk(player.id)}>
                     {player.name}
                   </option>
@@ -3093,38 +3141,40 @@ function renderTrackingPage() {
             </div>
 
             <div>
-              <label>Practice Types</label>
-              <div className="checkbox-grid">
+              <label>Practice Type</label>
+              <select
+                value={attendanceTypeFilters[0] || ''}
+                onChange={(e) =>
+                  setAttendanceTypeFilters(e.target.value ? [e.target.value] : [])
+                }
+              >
+                <option value="">All Types</option>
                 {ATTENDANCE_TYPE_OPTIONS.map((type) => (
-                  <label key={type} className="checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={attendanceTypeFilters.includes(type)}
-                      onChange={() => toggleAttendanceTypeFilter(type)}
-                    />
+                  <option key={type} value={type}>
                     {type}
-                  </label>
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
           </div>
         </div>
 
         <div className="card" style={{ overflowX: 'auto' }}>
           <h3>Attendance by Event</h3>
-          <table className="table-center">
+          <table className="table-center attendance-event-table">
             <thead>
               <tr>
                 <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'event_date'))}>Date</th>
                 <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'season_bucket'))}>Season</th>
                 <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'event_type'))}>Type</th>
                 <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'surface'))}>Surface</th>
-                <th>Title</th>
-                {players
-                  .filter((p) => !attendancePlayerFilter || pk(p.id) === pk(attendancePlayerFilter))
-                  .map((player) => (
-                    <th key={player.id}>{player.name}</th>
-                  ))}
+                <th className="title-col">Title</th>
+                {visibleAttendancePlayers.map((player) => (
+                  <th key={player.id} className="vertical-header">
+                    <span>{player.name}</span>
+                  </th>
+                ))}
+                <th>Delete</th>
               </tr>
             </thead>
             <tbody>
@@ -3175,7 +3225,7 @@ function renderTrackingPage() {
                       ))}
                     </select>
                   </td>
-                  <td>
+                  <td className="title-col">
                     <input
                       value={event.title || ''}
                       onChange={(e) =>
@@ -3183,19 +3233,28 @@ function renderTrackingPage() {
                       }
                     />
                   </td>
-                  {players
-                    .filter((p) => !attendancePlayerFilter || pk(p.id) === pk(attendancePlayerFilter))
-                    .map((player) => (
-                      <td key={player.id}>
-                        <input
-                          type="checkbox"
-                          checked={attendanceByEvent[pk(event.id)]?.[pk(player.id)] === true}
-                          onChange={(e) => toggleAttendance(event.id, player.id, e.target.checked)}
-                        />
-                      </td>
-                    ))}
+
+                  {visibleAttendancePlayers.map((player) => (
+                    <td key={player.id}>
+                      <input
+                        type="checkbox"
+                        checked={attendanceByEvent[pk(event.id)]?.[pk(player.id)] === true}
+                        onChange={(e) => toggleAttendance(event.id, player.id, e.target.checked)}
+                      />
+                    </td>
+                  ))}
+
+                  <td>
+                    <button onClick={() => deleteAttendanceEvent(event.id)}>Delete</button>
+                  </td>
                 </tr>
               ))}
+
+              {!filteredAttendanceEvents.length && (
+                <tr>
+                  <td colSpan={6 + visibleAttendancePlayers.length}>No attendance events.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -3206,52 +3265,46 @@ function renderTrackingPage() {
             <thead>
               <tr>
                 <th>Player</th>
-                <th>In Season</th>
-                <th>Out of Season</th>
-                <th>P/C</th>
-                <th>Team Practice</th>
-                <th>Indoor</th>
-                <th>Outdoor</th>
+                <th>
+                  <div>In Season</div>
+                  <div className="small-note">Total: {totalInSeason}</div>
+                </th>
+                <th>
+                  <div>Out of Season</div>
+                  <div className="small-note">Total: {totalOutSeason}</div>
+                </th>
+                <th>
+                  <div>P/C</div>
+                  <div className="small-note">Total: {totalPC}</div>
+                </th>
+                <th>
+                  <div>Team Practice</div>
+                  <div className="small-note">Total: {totalTeam}</div>
+                </th>
+                <th>
+                  <div>Indoor</div>
+                  <div className="small-note">Total: {totalIndoor}</div>
+                </th>
+                <th>
+                  <div>Outdoor</div>
+                  <div className="small-note">Total: {totalOutdoor}</div>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {attendanceBreakdownByPlayer.map((row) => (
-                <tr key={row.playerId}>
-                  <td>{row.name}</td>
-                  <td>{row.inSeason}</td>
-                  <td>{row.outSeason}</td>
-                  <td>{row.pitchersCatchers}</td>
-                  <td>{row.teamPractice}</td>
-                  <td>{row.indoorWork}</td>
-                  <td>{row.outdoorPractice}</td>
-                  <td>{row.indoor}</td>
-                  <td>{row.outdoor}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="card" style={{ overflowX: 'auto' }}>
-          <h3>Attendance Summary by Player</h3>
-          <table className="table-center">
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Attended</th>
-                <th>Total</th>
-                <th>%</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attendanceSummaryByPlayer.map((row) => (
-                <tr key={row.playerId}>
-                  <td>{row.name}</td>
-                  <td>{row.attended}</td>
-                  <td>{row.total}</td>
-                  <td>{row.pct}</td>
-                </tr>
-              ))}
+              {attendanceBreakdownByPlayer
+                .filter((row) => activePlayers.some((p) => pk(p.id) === pk(row.playerId)))
+                .map((row) => (
+                  <tr key={row.playerId}>
+                    <td>{row.name}</td>
+                    <td>{displayPctCell(row.inSeason, totalInSeason)}</td>
+                    <td>{displayPctCell(row.outSeason, totalOutSeason)}</td>
+                    <td>{displayPctCell(row.pitchersCatchers, totalPC)}</td>
+                    <td>{displayPctCell(row.teamPractice, totalTeam)}</td>
+                    <td>{displayPctCell(row.indoor, totalIndoor)}</td>
+                    <td>{displayPctCell(row.outdoor, totalOutdoor)}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
