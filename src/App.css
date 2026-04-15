@@ -182,3 +182,34 @@
     border-right-color: var(--border);
   }
 }
+
+
+@media (max-width: 900px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    width: 100%;
+    position: static;
+    height: auto;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+
+  .button-row {
+    flex-wrap: wrap;
+  }
+
+  table {
+    font-size: 14px;
+  }
+
+  input,
+  select,
+  button {
+    min-height: 40px;
+  }
+}
