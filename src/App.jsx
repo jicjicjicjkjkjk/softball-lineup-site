@@ -760,7 +760,7 @@ export default function App() {
     })
   }, [players, games, lineupsByGame])
 
-  const perPlayerTrackingRows = useMemo(() => {
+    const perPlayerTrackingRows = useMemo(() => {
     if (!trackingPlayerId) return []
 
     return games
@@ -776,15 +776,38 @@ export default function App() {
         const playerId = pk(trackingPlayerId)
         const row = lineup.cells?.[playerId] || {}
         const values = Object.values(row)
-        const outCount = values.filter((v) => v === 'Out').length
-        const injuryCount = values.filter((v) => v === 'Injury').length
+
+        const counts = {
+          P: 0,
+          C: 0,
+          '1B': 0,
+          '2B': 0,
+          '3B': 0,
+          SS: 0,
+          LF: 0,
+          CF: 0,
+          RF: 0,
+          Out: 0,
+          Injury: 0,
+        }
+
+        values.forEach((value) => {
+          if (counts[value] !== undefined) counts[value] += 1
+        })
+
         const eligiblePlayers = (lineup.availablePlayerIds || []).filter((id) => {
           const playerRow = lineup.cells?.[id] || {}
           const hasInjuryEveryInning = Object.values(playerRow).every((v) => v === 'Injury')
           return !hasInjuryEveryInning
         })
+
         const expectedPerPlayer = eligiblePlayers.length
-          ? Number((requiredOutsForGame(eligiblePlayers.length, lineup.innings) / eligiblePlayers.length).toFixed(2))
+          ? Number(
+              (
+                requiredOutsForGame(eligiblePlayers.length, lineup.innings) /
+                eligiblePlayers.length
+              ).toFixed(2)
+            )
           : 0
 
         return {
@@ -794,34 +817,27 @@ export default function App() {
           opponent: game.opponent || '',
           game_type: game.game_type || '',
           battingOrder: lineup.battingOrder?.[playerId] || '',
-          outCount,
           expectedOuts: expectedPerPlayer,
-          delta: Number((outCount - expectedPerPlayer).toFixed(2)),
-          P: values.filter((v) => v === 'P').length,
-          C: values.filter((v) => v === 'C').length,
-          '1B': values.filter((v) => v === '1B').length,
-          '2B': values.filter((v) => v === '2B').length,
-          '3B': values.filter((v) => v === '3B').length,
-          SS: values.filter((v) => v === 'SS').length,
-          LF: values.filter((v) => v === 'LF').length,
-          CF: values.filter((v) => v === 'CF').length,
-          RF: values.filter((v) => v === 'RF').length,
-          injuryCount,
+          delta: Number((counts.Out - expectedPerPlayer).toFixed(2)),
+          ...counts,
         }
       })
       .filter(Boolean)
       .sort((a, b) => `${a.date}-${a.gameId}`.localeCompare(`${b.date}-${b.gameId}`))
   }, [trackingPlayerId, games, lineupsByGame, trackingGameType, trackingThroughDate])
 
-  const filteredAttendanceEvents = useMemo(() => {
+    const filteredAttendanceEvents = useMemo(() => {
     return sortRows(
       attendanceEvents.filter((event) => {
-        if (attendanceTypeFilters.length && !attendanceTypeFilters.includes(event.event_type)) return false
+        if (attendanceTypeFilters.length && !attendanceTypeFilters.includes(event.event_type)) {
+          return false
+        }
         return true
       }),
       attendanceSort
     )
   }, [attendanceEvents, attendanceTypeFilters, attendanceSort])
+  
 
   const attendanceSummaryByPlayer = useMemo(() => {
     return players.map((player) => {
@@ -842,6 +858,35 @@ export default function App() {
     })
   }, [players, filteredAttendanceEvents, attendanceByEvent, attendancePlayerFilter])
 
+    const attendanceBreakdownByPlayer = useMemo(() => {
+    return players.map((player) => {
+      const id = pk(player.id)
+      const eventRows = filteredAttendanceEvents
+
+      function countMatching(predicate) {
+        const matching = eventRows.filter(predicate)
+        const total = matching.length
+        const attended = matching.filter(
+          (event) => attendanceByEvent[pk(event.id)]?.[id] === true
+        ).length
+        return total ? `${attended}/${total}` : ''
+      }
+
+      return {
+        playerId: id,
+        name: player.name,
+        inSeason: countMatching((event) => event.season_bucket === 'In Season'),
+        outSeason: countMatching((event) => event.season_bucket === 'Out of Season'),
+        pitchersCatchers: countMatching((event) => event.event_type === 'Pitchers/Catchers'),
+        teamPractice: countMatching((event) => event.event_type === 'Team Practice'),
+        indoorWork: countMatching((event) => event.event_type === 'Indoor Work'),
+        outdoorPractice: countMatching((event) => event.event_type === 'Outdoor Practice'),
+        indoor: countMatching((event) => event.surface === 'Indoor'),
+        outdoor: countMatching((event) => event.surface === 'Outdoor'),
+      }
+    })
+  }, [players, filteredAttendanceEvents, attendanceByEvent])
+  
   const attendanceParticipationRows = useMemo(() => {
     return players.map((player) => {
       const playerId = pk(player.id)
@@ -1384,6 +1429,76 @@ export default function App() {
     })
   }
 
+  function addPreviewInning(gameId) {
+    updatePreview(gameId, (lineup) => {
+      const newInning = Number(lineup.innings || 0) + 1
+      lineup.innings = newInning
+
+      Object.keys(lineup.cells || {}).forEach((id) => {
+        if (!lineup.cells[id]) lineup.cells[id] = {}
+        if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
+        lineup.cells[id][newInning] = ''
+        lineup.lockedCells[id][newInning] = false
+      })
+
+      return lineup
+    })
+  }
+
+  function removePreviewInning(gameId, inningToRemove) {
+    const confirmed = window.confirm(`Remove inning ${inningToRemove}?`)
+    if (!confirmed) return
+
+    updatePreview(gameId, (lineup) => {
+      if (Number(lineup.innings || 0) <= 1) return lineup
+
+      Object.keys(lineup.cells || {}).forEach((id) => {
+        const nextCells = {}
+        const nextLocks = {}
+        let nextInning = 1
+
+        for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+          if (inning === inningToRemove) continue
+          nextCells[nextInning] = lineup.cells?.[id]?.[inning] || ''
+          nextLocks[nextInning] = lineup.lockedCells?.[id]?.[inning] || false
+          nextInning += 1
+        }
+
+        lineup.cells[id] = nextCells
+        lineup.lockedCells[id] = nextLocks
+      })
+
+      lineup.innings = Number(lineup.innings || 0) - 1
+      return lineup
+    })
+  }
+
+  async function updateAttendanceEventField(eventId, field, value) {
+    setAttendanceEvents((current) =>
+      current.map((event) =>
+        pk(event.id) === pk(eventId) ? { ...event, [field]: value } : event
+      )
+    )
+
+    const updates = {}
+    if (field === 'event_date') updates.event_date = value || null
+    if (field === 'season_bucket') updates.season_bucket = value
+    if (field === 'event_type') updates.event_type = value
+    if (field === 'surface') updates.surface = value
+    if (field === 'title') updates.title = value || null
+
+    const res = await supabase.from('attendance_events').update(updates).eq('id', eventId)
+    if (res.error) setAppError(res.error.message)
+  }
+
+  function toggleAttendanceTypeFilter(type) {
+    setAttendanceTypeFilters((current) =>
+      current.includes(type)
+        ? current.filter((x) => x !== type)
+        : [...current, type]
+    )
+  }
+  
   async function savePreview(gameId) {
     const lineup = optimizerPreviewByGame[pk(gameId)]
     if (!lineup) return
@@ -2214,7 +2329,7 @@ export default function App() {
     )
   }
 
-  function renderLineupSetterPage() {
+    function renderLineupSetterPage() {
     const focusStatuses = optimizerFocusLineup
       ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
           inning,
@@ -2279,7 +2394,7 @@ export default function App() {
                   alignItems: 'end',
                 }}
               >
-                <div className="stack" style={{ gap: 12 }}>
+                <div style={{ display: 'grid', gap: 12 }}>
                   <div>
                     <label>Game Date</label>
                     <input
@@ -2398,11 +2513,20 @@ export default function App() {
                   Selected Game: {formatDateShort(optimizerFocusGame.date) || 'No Date'} vs{' '}
                   {optimizerFocusGame.opponent || 'Opponent'}
                 </h3>
+
                 {optimizerFocusLineup && (
                   <div className="button-row">
-                    <button onClick={() => addPreviewInning(optimizerFocusGame.id)}>Add Inning</button>
-                    {Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => (
-                      <button key={inning} onClick={() => removePreviewInning(optimizerFocusGame.id, inning)}>
+                    <button onClick={() => addPreviewInning(optimizerFocusGame.id)}>
+                      Add Inning
+                    </button>
+                    {Array.from(
+                      { length: Number(optimizerFocusLineup.innings || 0) },
+                      (_, i) => i + 1
+                    ).map((inning) => (
+                      <button
+                        key={inning}
+                        onClick={() => removePreviewInning(optimizerFocusGame.id, inning)}
+                      >
                         Remove {inning}
                       </button>
                     ))}
@@ -2455,7 +2579,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="card no-print" style={{ overflowX: 'auto' }}>
+                <div className="card" style={{ overflowX: 'auto' }}>
                   <h3>Grid</h3>
                   <LineupGrid
                     players={players}
@@ -2508,7 +2632,7 @@ export default function App() {
       </div>
     )
   }
-
+  
   function renderTrackingPage() {
     const rows = sortRows(
       players.map((player) => {
@@ -2662,7 +2786,7 @@ export default function App() {
           </table>
         </div>
 
-        {trackingPlayerId && (
+                {trackingPlayerId && (
           <div className="card" style={{ overflowX: 'auto' }}>
             <h3>Player Game-by-Game Tracking</h3>
             <table className="table-center">
@@ -2672,7 +2796,6 @@ export default function App() {
                   <th>Opponent</th>
                   <th>Type</th>
                   <th>Batting Order</th>
-                  <th>Out</th>
                   <th>Exp Sit</th>
                   <th>Delta</th>
                   <th>P</th>
@@ -2684,6 +2807,7 @@ export default function App() {
                   <th>LF</th>
                   <th>CF</th>
                   <th>RF</th>
+                  <th>Out</th>
                   <th>Injury</th>
                 </tr>
               </thead>
@@ -2694,7 +2818,6 @@ export default function App() {
                     <td>{row.opponent}</td>
                     <td>{row.game_type}</td>
                     <td>{row.battingOrder}</td>
-                    <td>{row.outCount}</td>
                     <td>{row.expectedOuts}</td>
                     <td>{row.delta}</td>
                     <td>{row.P}</td>
@@ -2706,7 +2829,8 @@ export default function App() {
                     <td>{row.LF}</td>
                     <td>{row.CF}</td>
                     <td>{row.RF}</td>
-                    <td>{row.injuryCount}</td>
+                    <td>{row.Out}</td>
+                    <td>{row.Injury}</td>
                   </tr>
                 ))}
                 {!perPlayerTrackingRows.length && (
@@ -2730,7 +2854,11 @@ export default function App() {
           <div className="grid four-col compact-grid">
             <div>
               <label>Date</label>
-              <input type="date" value={attendanceDate} onChange={(e) => setAttendanceDate(e.target.value)} />
+              <input
+                type="date"
+                value={attendanceDate}
+                onChange={(e) => setAttendanceDate(e.target.value)}
+              />
             </div>
             <div>
               <label>Season</label>
@@ -2771,10 +2899,13 @@ export default function App() {
 
         <div className="card">
           <h3>Attendance Filters</h3>
-          <div className="grid four-col compact-grid">
+          <div className="grid two-col compact-grid">
             <div>
               <label>Player</label>
-              <select value={attendancePlayerFilter} onChange={(e) => setAttendancePlayerFilter(e.target.value)}>
+              <select
+                value={attendancePlayerFilter}
+                onChange={(e) => setAttendancePlayerFilter(e.target.value)}
+              >
                 <option value="">All Players</option>
                 {players.map((player) => (
                   <option key={player.id} value={pk(player.id)}>
@@ -2783,7 +2914,8 @@ export default function App() {
                 ))}
               </select>
             </div>
-            <div style={{ gridColumn: 'span 3' }}>
+
+            <div>
               <label>Practice Types</label>
               <div className="checkbox-grid">
                 {ATTENDANCE_TYPE_OPTIONS.map((type) => (
@@ -2797,9 +2929,6 @@ export default function App() {
                   </label>
                 ))}
               </div>
-              <p className="small-note" style={{ marginTop: 8 }}>
-                Leave all unchecked to show all practice types.
-              </p>
             </div>
           </div>
         </div>
@@ -2809,10 +2938,10 @@ export default function App() {
           <table className="table-center">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Season</th>
-                <th>Type</th>
-                <th>Surface</th>
+                <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'event_date'))}>Date</th>
+                <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'season_bucket'))}>Season</th>
+                <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'event_type'))}>Type</th>
+                <th onClick={() => setAttendanceSort(nextSort(attendanceSort, 'surface'))}>Surface</th>
                 <th>Title</th>
                 {players
                   .filter((p) => !attendancePlayerFilter || pk(p.id) === pk(attendancePlayerFilter))
@@ -2828,13 +2957,17 @@ export default function App() {
                     <input
                       type="date"
                       value={event.event_date || ''}
-                      onChange={(e) => updateAttendanceEventField(event.id, 'event_date', e.target.value)}
+                      onChange={(e) =>
+                        updateAttendanceEventField(event.id, 'event_date', e.target.value)
+                      }
                     />
                   </td>
                   <td>
                     <select
-                      value={event.season_bucket}
-                      onChange={(e) => updateAttendanceEventField(event.id, 'season_bucket', e.target.value)}
+                      value={event.season_bucket || ATTENDANCE_SEASON_OPTIONS[0]}
+                      onChange={(e) =>
+                        updateAttendanceEventField(event.id, 'season_bucket', e.target.value)
+                      }
                     >
                       {ATTENDANCE_SEASON_OPTIONS.map((x) => (
                         <option key={x}>{x}</option>
@@ -2843,8 +2976,10 @@ export default function App() {
                   </td>
                   <td>
                     <select
-                      value={event.event_type}
-                      onChange={(e) => updateAttendanceEventField(event.id, 'event_type', e.target.value)}
+                      value={event.event_type || ATTENDANCE_TYPE_OPTIONS[0]}
+                      onChange={(e) =>
+                        updateAttendanceEventField(event.id, 'event_type', e.target.value)
+                      }
                     >
                       {ATTENDANCE_TYPE_OPTIONS.map((x) => (
                         <option key={x}>{x}</option>
@@ -2853,8 +2988,10 @@ export default function App() {
                   </td>
                   <td>
                     <select
-                      value={event.surface}
-                      onChange={(e) => updateAttendanceEventField(event.id, 'surface', e.target.value)}
+                      value={event.surface || ATTENDANCE_SURFACE_OPTIONS[0]}
+                      onChange={(e) =>
+                        updateAttendanceEventField(event.id, 'surface', e.target.value)
+                      }
                     >
                       {ATTENDANCE_SURFACE_OPTIONS.map((x) => (
                         <option key={x}>{x}</option>
@@ -2864,7 +3001,9 @@ export default function App() {
                   <td>
                     <input
                       value={event.title || ''}
-                      onChange={(e) => updateAttendanceEventField(event.id, 'title', e.target.value)}
+                      onChange={(e) =>
+                        updateAttendanceEventField(event.id, 'title', e.target.value)
+                      }
                     />
                   </td>
                   {players
@@ -2878,6 +3017,40 @@ export default function App() {
                         />
                       </td>
                     ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card" style={{ overflowX: 'auto' }}>
+          <h3>Attendance Participation Breakdown</h3>
+          <table className="table-center">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>In Season</th>
+                <th>Out of Season</th>
+                <th>P/C</th>
+                <th>Team Practice</th>
+                <th>Indoor Work</th>
+                <th>Outdoor Practice</th>
+                <th>Indoor</th>
+                <th>Outdoor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {attendanceBreakdownByPlayer.map((row) => (
+                <tr key={row.playerId}>
+                  <td>{row.name}</td>
+                  <td>{row.inSeason}</td>
+                  <td>{row.outSeason}</td>
+                  <td>{row.pitchersCatchers}</td>
+                  <td>{row.teamPractice}</td>
+                  <td>{row.indoorWork}</td>
+                  <td>{row.outdoorPractice}</td>
+                  <td>{row.indoor}</td>
+                  <td>{row.outdoor}</td>
                 </tr>
               ))}
             </tbody>
@@ -2902,36 +3075,6 @@ export default function App() {
                   <td>{row.attended}</td>
                   <td>{row.total}</td>
                   <td>{row.pct}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="card" style={{ overflowX: 'auto' }}>
-          <h3>Participation Summary</h3>
-          <table className="table-center">
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>In Season</th>
-                <th>Out Season</th>
-                <th>Pitchers/Catchers</th>
-                <th>Team Practice</th>
-                <th>Indoor</th>
-                <th>Outdoor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attendanceParticipationRows.map((row) => (
-                <tr key={row.playerId}>
-                  <td>{row.name}</td>
-                  <td>{row.inSeason}</td>
-                  <td>{row.outSeason}</td>
-                  <td>{row.pitchersCatchers}</td>
-                  <td>{row.teamPractice}</td>
-                  <td>{row.indoor}</td>
-                  <td>{row.outdoor}</td>
                 </tr>
               ))}
             </tbody>
