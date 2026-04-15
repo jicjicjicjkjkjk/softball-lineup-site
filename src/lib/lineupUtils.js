@@ -205,30 +205,31 @@ export function computeTotals(lineups, players) {
     })
 
     for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
-      const eligible = availableIds.filter((id) => {
-        const value = lineup.cells?.[id]?.[inning] || ''
-        return value !== 'Injury'
-      })
+    const eligible = availableIds.filter((id) => {
+  const value = lineup.cells?.[id]?.[inning] || ''
+  return value !== 'Injury'
+})
 
-      const expected = eligible.length ? Math.max(0, eligible.length - 9) / eligible.length : 0
+const requiredSits = Math.max(0, eligible.length - 9)
+const expected = availableIds.length ? requiredSits / availableIds.length : 0
 
-      availableIds.forEach((id) => {
-        const row = totals[id]
-        if (!row) return
+availableIds.forEach((id) => {
+  const row = totals[id]
+  if (!row) return
 
-        if (!countedGameForPlayer.has(id)) {
-          row.games += 1
-          countedGameForPlayer.add(id)
-        }
+  if (!countedGameForPlayer.has(id)) {
+    row.games += 1
+    countedGameForPlayer.add(id)
+  }
 
-        const value = lineup.cells?.[id]?.[inning] || ''
+  const value = lineup.cells?.[id]?.[inning] || ''
 
-        if (value === 'Injury') {
-          row.Injury += 1
-          return
-        }
+  row.expectedOuts += expected
 
-        if (eligible.includes(id)) row.expectedOuts += expected
+  if (value === 'Injury') {
+    row.Injury += 1
+    return
+  }
 
         if (value === 'Out') {
           row.Out += 1
