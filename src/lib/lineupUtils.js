@@ -571,12 +571,18 @@ function assignPositionsForInning({
         }
       })
       .sort((a, b) => {
-        if (a.fitScore !== b.fitScore) return a.fitScore - b.fitScore
-        if (a.gap !== b.gap) return b.gap - a.gap
-        if (a.continuity !== b.continuity) return b.continuity - a.continuity
-        return a.player.name.localeCompare(b.player.name)
-      })
+  // 🥇 BEST FIT FIRST
+  if (a.fitScore !== b.fitScore) return a.fitScore - b.fitScore
 
+  // 🥈 PRIORITY GAP (who SHOULD be here)
+  if (a.gap !== b.gap) return b.gap - a.gap
+
+  // 🥉 KEEP PLAYER IN SAME POSITION IF GOOD
+  if (a.continuityBonus !== b.continuityBonus)
+    return b.continuityBonus - a.continuityBonus
+
+  return a.player.name.localeCompare(b.player.name)
+})
     const choice = candidates[0]
     if (!choice) return
 
