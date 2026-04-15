@@ -98,8 +98,14 @@ export function requiredOutsForGame(playerCount, innings) {
 export function fitTier(fitMap, playerId, position) {
   const id = pk(playerId)
 
-  if (position === 'LF' || position === 'RF' || position === 'CF') {
-    return fitMap?.[id]?.[position] || fitMap?.[id]?.OF || 'secondary'
+  // ✅ LF/RF use OF
+  if (position === 'LF' || position === 'RF') {
+    return fitMap?.[id]?.OF || 'secondary'
+  }
+
+  // ✅ CF is its OWN thing
+  if (position === 'CF') {
+    return fitMap?.[id]?.CF || 'secondary'
   }
 
   return fitMap?.[id]?.[position] || 'secondary'
@@ -108,12 +114,19 @@ export function fitTier(fitMap, playerId, position) {
 export function priorityValue(priorityMap, playerId, position) {
   const id = pk(playerId)
 
-  if (['LF', 'CF', 'RF'].includes(position)) {
+  // LF/RF use OF
+  if (position === 'LF' || position === 'RF') {
     return Number(priorityMap?.[id]?.OF?.priority_pct || 0)
+  }
+
+  // CF is separate
+  if (position === 'CF') {
+    return Number(priorityMap?.[id]?.CF?.priority_pct || 0)
   }
 
   return Number(priorityMap?.[id]?.[position]?.priority_pct || 0)
 }
+
 
 export function positionCountsForInning(lineup, inning, availableIds) {
   const counts = {}
