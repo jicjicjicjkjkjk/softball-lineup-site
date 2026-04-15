@@ -871,7 +871,7 @@ export default function App() {
       innings: Number(res.data.innings || 6),
       status: res.data.status || 'Planned',
       game_type: res.data.game_type || GAME_TYPES[0],
-      game_order: Number(res.data.game_order || 1),
+      game_order: Number(res.data.game_order || null),
     }
 
     setGames((current) => [...current, game])
