@@ -50,6 +50,30 @@ function sortRows(rows, sort) {
   })
 }
 
+async function deleteAttendanceEvent(eventId) {
+  const confirmed = window.confirm('Delete this attendance event?')
+  if (!confirmed) return
+
+  const recDel = await supabase.from('attendance_records').delete().eq('event_id', eventId)
+  if (recDel.error) {
+    setAppError(recDel.error.message)
+    return
+  }
+
+  const eventDel = await supabase.from('attendance_events').delete().eq('id', eventId)
+  if (eventDel.error) {
+    setAppError(eventDel.error.message)
+    return
+  }
+
+  setAttendanceEvents((current) => current.filter((event) => pk(event.id) !== pk(eventId)))
+  setAttendanceByEvent((current) => {
+    const next = { ...current }
+    delete next[pk(eventId)]
+    return next
+  })
+}
+
 function formatDateShort(value) {
   if (!value) return ''
   const [y, m, d] = value.split('-')
@@ -61,6 +85,26 @@ function avg(numbers) {
   if (!numbers.length) return ''
   return (numbers.reduce((a, b) => a + b, 0) / numbers.length).toFixed(2)
 }
+
+function getNextGameOrder(games) {
+  const used = new Set(
+    (games || [])
+      .map((g) => Number(g.game_order))
+      .filter((n) => Number.isFinite(n) && n > 0)
+  )
+
+  let next = 1
+  while (used.has(next)) next += 1
+  return next
+}
+
+function compareGamesAsc(a, b) {
+  const aKey = `${a.date || ''}-${String(a.game_order || 999).padStart(3, '0')}-${pk(a.id)}`
+  const bKey = `${b.date || ''}-${String(b.game_order || 999).padStart(3, '0')}-${pk(b.id)}`
+  return aKey.localeCompare(bKey)
+}
+
+
 
 function MiniDiamond({ status }) {
   const posCoords = {
@@ -758,6 +802,79 @@ export default function App() {
     })
   }, [players, games, lineupsByGame])
 
+const orderedGamesAsc = useMemo(() => {
+  return [...games].sort(compareGamesAsc)
+}, [games])
+
+const trackingByGameRows = useMemo(() => {
+  return orderedGamesAsc
+    .filter((game) => {
+      const state = lineupLockedByGame[pk(game.id)]
+        ? 'Locked'
+        : lineupsByGame[pk(game.id)]
+        ? 'Saved'
+        : 'Empty'
+
+      if (trackingState !== 'All' && state !== trackingState) return false
+      if (trackingGameType !== 'All' && game.game_type !== trackingGameType) return false
+      if (trackingThroughDate && game.date && game.date > trackingThroughDate) return false
+      return Boolean(lineupsByGame[pk(game.id)])
+    })
+    .map((game) => {
+      const lineup = lineupsByGame[pk(game.id)]
+      const availableIds = (lineup?.availablePlayerIds || []).filter((id) =>
+        activePlayers.some((p) => pk(p.id) === pk(id))
+      )
+
+      const battingMap = {}
+      activePlayers.forEach((player) => {
+        battingMap[player.name] = lineup?.battingOrder?.[pk(player.id)] || ''
+      })
+
+      const positionCounts = {
+        P: 0,
+        C: 0,
+        '1B': 0,
+        '2B': 0,
+        '3B': 0,
+        SS: 0,
+        LF: 0,
+        CF: 0,
+        RF: 0,
+        Out: 0,
+        Injury: 0,
+      }
+
+      availableIds.forEach((playerId) => {
+        for (let inning = 1; inning <= Number(lineup?.innings || 0); inning += 1) {
+          const value = lineup?.cells?.[playerId]?.[inning]
+          if (positionCounts[value] !== undefined) positionCounts[value] += 1
+        }
+      })
+
+      return {
+        gameId: pk(game.id),
+        date: game.date,
+        dateText: formatDateShort(game.date),
+        order: game.game_order ?? '',
+        opponent: game.opponent || '',
+        type: game.game_type || '',
+        totalPlayers: availableIds.length,
+        innings: Number(lineup?.innings || game.innings || 0),
+        battingMap,
+        ...positionCounts,
+      }
+    })
+}, [
+  orderedGamesAsc,
+  lineupLockedByGame,
+  lineupsByGame,
+  trackingState,
+  trackingGameType,
+  trackingThroughDate,
+  activePlayers,
+])
+  
   const perPlayerTrackingRows = useMemo(() => {
     if (!trackingPlayerId) return []
 
@@ -883,38 +1000,40 @@ export default function App() {
   }, [players, filteredAttendanceEvents, attendanceByEvent])
 
   async function addGame(date, opponent, gameType) {
-    const res = await supabase
-      .from('games')
-      .insert({
-        team_id: TEAM_ID,
-        game_date: date || null,
-        opponent: opponent || null,
-        innings: 6,
-        status: 'Planned',
-        game_type: gameType || GAME_TYPES[0],
-        game_order: null,
-      })
-      .select()
-      .single()
+  const nextOrder = getNextGameOrder(games)
 
-    if (res.error) {
-      setAppError(res.error.message)
-      return null
-    }
+  const res = await supabase
+    .from('games')
+    .insert({
+      team_id: TEAM_ID,
+      game_date: date || null,
+      opponent: opponent || null,
+      innings: 6,
+      status: 'Planned',
+      game_type: gameType || GAME_TYPES[0],
+      game_order: nextOrder,
+    })
+    .select()
+    .single()
 
-    const game = {
-      id: res.data.id,
-      date: res.data.game_date || '',
-      opponent: res.data.opponent || '',
-      innings: Number(res.data.innings || 6),
-      status: res.data.status || 'Planned',
-      game_type: res.data.game_type || GAME_TYPES[0],
-      game_order: Number(res.data.game_order || null),
-    }
-
-    setGames((current) => [...current, game])
-    return game
+  if (res.error) {
+    setAppError(res.error.message)
+    return null
   }
+
+  const game = {
+    id: res.data.id,
+    date: res.data.game_date || '',
+    opponent: res.data.opponent || '',
+    innings: Number(res.data.innings || 6),
+    status: res.data.status || 'Planned',
+    game_type: res.data.game_type || GAME_TYPES[0],
+    game_order: Number(res.data.game_order || nextOrder),
+  }
+
+  setGames((current) => [...current, game])
+  return game
+}
 
   async function addGameFromGames() {
     const game = await addGame(newGameDate, newGameOpponent, newGameType)
@@ -1930,133 +2049,133 @@ export default function App() {
   }
 
   function renderGamesPage() {
-    return (
-      <div className="stack">
-        <div className="card">
-          <div className="row-between wrap-row">
-            <h2>Games</h2>
-            <button onClick={loadAll}>Refresh from Database</button>
-          </div>
-
-          {appError && <p style={{ color: '#b91c1c' }}>Error: {appError}</p>}
-          {loading && <p>Loading...</p>}
-
-          <div className="grid four-col compact-grid">
-            <div>
-              <label>Date</label>
-              <input
-                type="date"
-                value={newGameDate}
-                onChange={(e) => setNewGameDate(e.target.value)}
-              />
-            </div>
-            <div>
-              <label>Opponent</label>
-              <input
-                value={newGameOpponent}
-                onChange={(e) => setNewGameOpponent(e.target.value)}
-              />
-            </div>
-            <div>
-              <label>Type</label>
-              <select
-                value={newGameType}
-                onChange={(e) => setNewGameType(e.target.value)}
-              >
-                {GAME_TYPES.map((type) => (
-                  <option key={type}>{type}</option>
-                ))}
-              </select>
-            </div>
-            <div className="align-end">
-              <button onClick={addGameFromGames}>Add Game</button>
-            </div>
-          </div>
-
-          <p className="small-note">
-            “Refresh from Database” reloads all players, games, lineups, priorities, and attendance.
-          </p>
+  return (
+    <div className="stack">
+      <div className="card">
+        <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+          <h2>Games</h2>
+          <button onClick={loadAll}>Refresh from Database</button>
         </div>
 
-        <div className="card" style={{ overflowX: 'auto' }}>
-          <table>
-            <thead>
-              <tr>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'date'))}>Date</th>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'game_order'))}>Order</th>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'opponent'))}>Opponent</th>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'game_type'))}>Type</th>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'innings'))}>Innings</th>
-                <th onClick={() => setGameSort(nextSort(gameSort, 'lineupState'))}>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
+        {appError && <p style={{ color: '#b91c1c' }}>Error: {appError}</p>}
+        {loading && <p>Loading...</p>}
 
-            <tbody>
-              {sortedGames.map((game) => (
-                <tr key={game.id}>
-                  <td>{formatDateShort(game.date)}</td>
+        <div className="game-add-row">
+          <div>
+            <label>Date</label>
+            <input
+              type="date"
+              value={newGameDate}
+              onChange={(e) => setNewGameDate(e.target.value)}
+            />
+          </div>
 
-                  <td className="center-cell narrow-cell">
-                    <input
-                      className="input-center"
-                      type="number"
-                      value={game.game_order ?? ''}
-                      onChange={(e) => updateGameField(game.id, 'game_order', e.target.value)}
-                    />
-                  </td>
+          <div>
+            <label>Opponent</label>
+            <input
+              value={newGameOpponent}
+              onChange={(e) => setNewGameOpponent(e.target.value)}
+            />
+          </div>
 
-                  <td className="wide-text-cell">
-                    <input
-                      value={game.opponent}
-                      onChange={(e) => updateGameField(game.id, 'opponent', e.target.value)}
-                    />
-                  </td>
-
-                  <td>
-                    <select
-                      value={game.game_type || GAME_TYPES[0]}
-                      onChange={(e) => updateGameField(game.id, 'game_type', e.target.value)}
-                    >
-                      {GAME_TYPES.map((type) => (
-                        <option key={type}>{type}</option>
-                      ))}
-                    </select>
-                  </td>
-
-                  <td className="center-cell">{game.innings}</td>
-                  <td className="center-cell">{game.lineupState}</td>
-
-                  <td>
-                    <div className="button-row">
-                      <button
-                        onClick={() => {
-                          setSelectedGameId(pk(game.id))
-                          setPage('game-detail')
-                        }}
-                      >
-                        Open
-                      </button>
-
-                      <button onClick={() => deleteGame(game.id)}>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+          <div>
+            <label>Type</label>
+            <select
+              value={newGameType}
+              onChange={(e) => setNewGameType(e.target.value)}
+            >
+              {GAME_TYPES.map((type) => (
+                <option key={type}>{type}</option>
               ))}
+            </select>
+          </div>
 
-              {!sortedGames.length && !loading && (
-                <tr>
-                  <td colSpan="7">No games yet.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <div className="align-end">
+            <button onClick={addGameFromGames}>Add Game</button>
+          </div>
         </div>
+
+        <p className="small-note">
+          “Refresh from Database” reloads all players, games, lineups, priorities, and attendance.
+        </p>
       </div>
-    )
-  }
+
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <table>
+          <thead>
+            <tr>
+              <th onClick={() => setGameSort(nextSort(gameSort, 'date'))}>Date</th>
+              <th className="order-col" onClick={() => setGameSort(nextSort(gameSort, 'game_order'))}>Order</th>
+              <th onClick={() => setGameSort(nextSort(gameSort, 'opponent'))}>Opponent</th>
+              <th onClick={() => setGameSort(nextSort(gameSort, 'game_type'))}>Type</th>
+              <th onClick={() => setGameSort(nextSort(gameSort, 'innings'))}>Innings</th>
+              <th onClick={() => setGameSort(nextSort(gameSort, 'lineupState'))}>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {sortedGames.map((game) => (
+              <tr key={game.id}>
+                <td>{formatDateShort(game.date)}</td>
+
+                <td className="center-cell order-col">
+                  <input
+                    className="input-center small-input"
+                    type="number"
+                    value={game.game_order ?? ''}
+                    onChange={(e) => updateGameField(game.id, 'game_order', e.target.value)}
+                  />
+                </td>
+
+                <td className="wide-text-cell">
+                  <input
+                    value={game.opponent}
+                    onChange={(e) => updateGameField(game.id, 'opponent', e.target.value)}
+                  />
+                </td>
+
+                <td>
+                  <select
+                    value={game.game_type || GAME_TYPES[0]}
+                    onChange={(e) => updateGameField(game.id, 'game_type', e.target.value)}
+                  >
+                    {GAME_TYPES.map((type) => (
+                      <option key={type}>{type}</option>
+                    ))}
+                  </select>
+                </td>
+
+                <td className="center-cell">{game.innings}</td>
+                <td className="center-cell">{game.lineupState}</td>
+
+                <td>
+                  <div className="button-row">
+                    <button
+                      onClick={() => {
+                        setSelectedGameId(pk(game.id))
+                        setPage('game-detail')
+                      }}
+                    >
+                      Open
+                    </button>
+                    <button onClick={() => deleteGame(game.id)}>Delete</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+
+            {!sortedGames.length && !loading && (
+              <tr>
+                <td colSpan="7">No games yet.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
 
   function renderGameDetailPage() {
     if (!selectedGame) {
@@ -2542,217 +2661,307 @@ export default function App() {
   }
 
   function renderTrackingPage() {
-    const rows = sortRows(
-      players.map((player) => {
-        const totals = trackingTotals[pk(player.id)] || {}
-        const priority = priorityByPlayer[pk(player.id)] || {}
-        const fieldTotal = Math.max(totals.fieldTotal || 0, 1)
+  const rows = sortRows(
+    activePlayers.map((player) => {
+      const totals = trackingTotals[pk(player.id)] || {}
+      const priority = priorityByPlayer[pk(player.id)] || {}
+      const fieldTotal = Math.max(totals.fieldTotal || 0, 1)
 
-        const actPct = (n) => {
-          const value = Number((((n || 0) / fieldTotal) * 100).toFixed(1))
-          return value === 0 ? '' : value
-        }
+      const actPct = (n) => {
+        const value = Number((((n || 0) / fieldTotal) * 100).toFixed(1))
+        return value === 0 ? '' : value
+      }
 
-        return {
-          playerId: pk(player.id),
-          name: player.name,
-          fieldTotal: totals.fieldTotal || 0,
-          targP: priority.P?.priority_pct || '',
-          targC: priority.C?.priority_pct || '',
-          targ1B: priority['1B']?.priority_pct || '',
-          targ2B: priority['2B']?.priority_pct || '',
-          targ3B: priority['3B']?.priority_pct || '',
-          targSS: priority.SS?.priority_pct || '',
-          targOF: priority.OF?.priority_pct || '',
-          actP: actPct(totals.P),
-          actC: actPct(totals.C),
-          act1B: actPct(totals['1B']),
-          act2B: actPct(totals['2B']),
-          act3B: actPct(totals['3B']),
-          actSS: actPct(totals.SS),
-          actOF: actPct(totals.OF),
-        }
-      }),
-      trackingSort
-    )
+      return {
+        playerId: pk(player.id),
+        name: player.name,
+        fieldTotal: totals.fieldTotal || 0,
+        targP: priority.P?.priority_pct || '',
+        targC: priority.C?.priority_pct || '',
+        targ1B: priority['1B']?.priority_pct || '',
+        targ2B: priority['2B']?.priority_pct || '',
+        targ3B: priority['3B']?.priority_pct || '',
+        targSS: priority.SS?.priority_pct || '',
+        targOF: priority.OF?.priority_pct || '',
+        actP: actPct(totals.P),
+        actC: actPct(totals.C),
+        act1B: actPct(totals['1B']),
+        act2B: actPct(totals['2B']),
+        act3B: actPct(totals['3B']),
+        actSS: actPct(totals.SS),
+        actOF: actPct(totals.OF),
+      }
+    }),
+    trackingSort
+  )
 
-    return (
-      <div className="stack">
-        <div className="card">
-          <h2>Tracking Filters</h2>
-          <div className="grid four-col compact-grid">
-            <div>
-              <label>Through Date</label>
-              <input
-                type="date"
-                value={trackingThroughDate}
-                onChange={(e) => setTrackingThroughDate(e.target.value)}
-              />
-            </div>
-            <div>
-              <label>Game Type</label>
-              <select value={trackingGameType} onChange={(e) => setTrackingGameType(e.target.value)}>
-                <option value="All">All</option>
-                {GAME_TYPES.map((type) => (
-                  <option key={type}>{type}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label>Status</label>
-              <select value={trackingState} onChange={(e) => setTrackingState(e.target.value)}>
-                <option value="All">All</option>
-                <option value="Saved">Saved</option>
-                <option value="Locked">Locked</option>
-              </select>
-            </div>
-            <div>
-              <label>Player Detail</label>
-              <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
-                <option value="">All Players</option>
-                {players.map((player) => (
-                  <option key={player.id} value={pk(player.id)}>
-                    {player.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+  return (
+    <div className="stack">
+      <div className="card">
+        <h2>Tracking Filters</h2>
+        <div className="grid four-col compact-grid">
+          <div>
+            <label>Through Date</label>
+            <input
+              type="date"
+              value={trackingThroughDate}
+              onChange={(e) => setTrackingThroughDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <label>Game Type</label>
+            <select value={trackingGameType} onChange={(e) => setTrackingGameType(e.target.value)}>
+              <option value="All">All</option>
+              {GAME_TYPES.map((type) => (
+                <option key={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label>Status</label>
+            <select value={trackingState} onChange={(e) => setTrackingState(e.target.value)}>
+              <option value="All">All</option>
+              <option value="Saved">Saved</option>
+              <option value="Locked">Locked</option>
+            </select>
+          </div>
+          <div>
+            <label>Player Detail</label>
+            <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
+              <option value="">All Players</option>
+              {activePlayers.map((player) => (
+                <option key={player.id} value={pk(player.id)}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
+      </div>
 
-        <div className="card" style={{ overflowX: 'auto' }}>
-          <h3>Average Batting Order</h3>
-          <table className="table-center">
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Avg Batting Order</th>
-                <th>Games Counted</th>
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <h3>Game-by-Game Tracking Summary</h3>
+        <table className="table-center">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Order</th>
+              <th>Opponent</th>
+              <th>Type</th>
+              <th>Players</th>
+              <th>Innings</th>
+              {activePlayers.map((player) => (
+                <th key={player.id}>{player.name}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {trackingByGameRows.map((row) => (
+              <tr key={row.gameId}>
+                <td>{row.dateText}</td>
+                <td>{row.order}</td>
+                <td>{row.opponent}</td>
+                <td>{row.type}</td>
+                <td>{row.totalPlayers}</td>
+                <td>{row.innings}</td>
+                {activePlayers.map((player) => (
+                  <td key={player.id}>{row.battingMap[player.name] || ''}</td>
+                ))}
               </tr>
-            </thead>
-            <tbody>
-              {averageBattingOrderRows.map((row) => (
+            ))}
+            {!trackingByGameRows.length && (
+              <tr>
+                <td colSpan={6 + activePlayers.length}>No games in filter.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <h3>Position Totals by Game</h3>
+        <table className="table-center">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Order</th>
+              <th>Opponent</th>
+              <th>P</th>
+              <th>C</th>
+              <th>1B</th>
+              <th>2B</th>
+              <th>3B</th>
+              <th>SS</th>
+              <th>LF</th>
+              <th>CF</th>
+              <th>RF</th>
+              <th>Out</th>
+              <th>Injury</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trackingByGameRows.map((row) => (
+              <tr key={`pos-${row.gameId}`}>
+                <td>{row.dateText}</td>
+                <td>{row.order}</td>
+                <td>{row.opponent}</td>
+                <td>{row.P}</td>
+                <td>{row.C}</td>
+                <td>{row['1B']}</td>
+                <td>{row['2B']}</td>
+                <td>{row['3B']}</td>
+                <td>{row.SS}</td>
+                <td>{row.LF}</td>
+                <td>{row.CF}</td>
+                <td>{row.RF}</td>
+                <td>{row.Out}</td>
+                <td>{row.Injury}</td>
+              </tr>
+            ))}
+            {!trackingByGameRows.length && (
+              <tr>
+                <td colSpan="14">No games in filter.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <h3>Average Batting Order</h3>
+        <table className="table-center">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Avg Batting Order</th>
+              <th>Games Counted</th>
+            </tr>
+          </thead>
+          <tbody>
+            {averageBattingOrderRows
+              .filter((row) => activePlayers.some((p) => pk(p.id) === pk(row.playerId)))
+              .map((row) => (
                 <tr key={row.playerId}>
                   <td>{row.name}</td>
                   <td>{row.averageBattingOrder}</td>
                   <td>{row.gamesWithBattingOrder}</td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+          </tbody>
+        </table>
+      </div>
 
-        <TrackingTable
-          title="Tracking Totals"
-          universeLabel={`${filteredTrackingLineups.length} saved/locked games in filter`}
-          totals={trackingTotals}
-          players={players}
-          sortConfig={trackingSort}
-          setSortConfig={setTrackingSort}
-        />
+      <TrackingTable
+        title="Tracking Totals"
+        universeLabel={`${filteredTrackingLineups.length} saved/locked games in filter`}
+        totals={trackingTotals}
+        players={activePlayers}
+        sortConfig={trackingSort}
+        setSortConfig={setTrackingSort}
+      />
 
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <h3>Tracking vs Positioning Priority</h3>
+        <table className="table-center grouped-table">
+          <thead>
+            <tr>
+              <th rowSpan="2">Player</th>
+              <th rowSpan="2">Fld</th>
+              <th colSpan="2" className="group-col">P</th>
+              <th colSpan="2" className="group-col">C</th>
+              <th colSpan="2" className="group-col">1B</th>
+              <th colSpan="2" className="group-col">2B</th>
+              <th colSpan="2" className="group-col">3B</th>
+              <th colSpan="2" className="group-col">SS</th>
+              <th colSpan="2" className="group-col">OF</th>
+            </tr>
+            <tr>
+              <th>TGT</th><th className="group-col">ACT</th>
+              <th>TGT</th><th className="group-col">ACT</th>
+              <th>TGT</th><th className="group-col">ACT</th>
+              <th>TGT</th><th className="group-col">ACT</th>
+              <th>TGT</th><th className="group-col">ACT</th>
+              <th>TGT</th><th className="group-col">ACT</th>
+              <th>TGT</th><th className="group-col">ACT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.playerId}>
+                <td>{row.name}</td>
+                <td>{row.fieldTotal}</td>
+                <td>{row.targP}</td><td className="group-col">{row.actP}</td>
+                <td>{row.targC}</td><td className="group-col">{row.actC}</td>
+                <td>{row.targ1B}</td><td className="group-col">{row.act1B}</td>
+                <td>{row.targ2B}</td><td className="group-col">{row.act2B}</td>
+                <td>{row.targ3B}</td><td className="group-col">{row.act3B}</td>
+                <td>{row.targSS}</td><td className="group-col">{row.actSS}</td>
+                <td>{row.targOF}</td><td className="group-col">{row.actOF}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {trackingPlayerId && (
         <div className="card" style={{ overflowX: 'auto' }}>
-          <h3>Tracking vs Positioning Priority</h3>
-          <table className="table-center grouped-table">
+          <h3>Player Game-by-Game Tracking</h3>
+          <table className="table-center">
             <thead>
               <tr>
-                <th rowSpan="2">Player</th>
-                <th rowSpan="2">Fld</th>
-                <th colSpan="2" className="group-col">P</th>
-                <th colSpan="2" className="group-col">C</th>
-                <th colSpan="2" className="group-col">1B</th>
-                <th colSpan="2" className="group-col">2B</th>
-                <th colSpan="2" className="group-col">3B</th>
-                <th colSpan="2" className="group-col">SS</th>
-                <th colSpan="2" className="group-col">OF</th>
-              </tr>
-              <tr>
-                <th>TGT</th><th className="group-col">ACT</th>
-                <th>TGT</th><th className="group-col">ACT</th>
-                <th>TGT</th><th className="group-col">ACT</th>
-                <th>TGT</th><th className="group-col">ACT</th>
-                <th>TGT</th><th className="group-col">ACT</th>
-                <th>TGT</th><th className="group-col">ACT</th>
-                <th>TGT</th><th className="group-col">ACT</th>
+                <th>Date</th>
+                <th>Opponent</th>
+                <th>Type</th>
+                <th>Batting Order</th>
+                <th>Exp Sit</th>
+                <th>Delta</th>
+                <th>P</th>
+                <th>C</th>
+                <th>1B</th>
+                <th>2B</th>
+                <th>3B</th>
+                <th>SS</th>
+                <th>LF</th>
+                <th>CF</th>
+                <th>RF</th>
+                <th>Out</th>
+                <th>Injury</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.playerId}>
-                  <td>{row.name}</td>
-                  <td>{row.fieldTotal}</td>
-                  <td>{row.targP}</td><td className="group-col">{row.actP}</td>
-                  <td>{row.targC}</td><td className="group-col">{row.actC}</td>
-                  <td>{row.targ1B}</td><td className="group-col">{row.act1B}</td>
-                  <td>{row.targ2B}</td><td className="group-col">{row.act2B}</td>
-                  <td>{row.targ3B}</td><td className="group-col">{row.act3B}</td>
-                  <td>{row.targSS}</td><td className="group-col">{row.actSS}</td>
-                  <td>{row.targOF}</td><td className="group-col">{row.actOF}</td>
+              {perPlayerTrackingRows.map((row) => (
+                <tr key={row.gameId}>
+                  <td>{row.dateText}</td>
+                  <td>{row.opponent}</td>
+                  <td>{row.game_type}</td>
+                  <td>{row.battingOrder}</td>
+                  <td>{row.expectedOuts}</td>
+                  <td>{row.delta}</td>
+                  <td>{row.P}</td>
+                  <td>{row.C}</td>
+                  <td>{row['1B']}</td>
+                  <td>{row['2B']}</td>
+                  <td>{row['3B']}</td>
+                  <td>{row.SS}</td>
+                  <td>{row.LF}</td>
+                  <td>{row.CF}</td>
+                  <td>{row.RF}</td>
+                  <td>{row.Out}</td>
+                  <td>{row.Injury}</td>
                 </tr>
               ))}
+              {!perPlayerTrackingRows.length && (
+                <tr>
+                  <td colSpan="17">No games for the selected player/filter.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-
-        {trackingPlayerId && (
-          <div className="card" style={{ overflowX: 'auto' }}>
-            <h3>Player Game-by-Game Tracking</h3>
-            <table className="table-center">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Opponent</th>
-                  <th>Type</th>
-                  <th>Batting Order</th>
-                  <th>Exp Sit</th>
-                  <th>Delta</th>
-                  <th>P</th>
-                  <th>C</th>
-                  <th>1B</th>
-                  <th>2B</th>
-                  <th>3B</th>
-                  <th>SS</th>
-                  <th>LF</th>
-                  <th>CF</th>
-                  <th>RF</th>
-                  <th>Out</th>
-                  <th>Injury</th>
-                </tr>
-              </thead>
-              <tbody>
-                {perPlayerTrackingRows.map((row) => (
-                  <tr key={row.gameId}>
-                    <td>{row.dateText}</td>
-                    <td>{row.opponent}</td>
-                    <td>{row.game_type}</td>
-                    <td>{row.battingOrder}</td>
-                    <td>{row.expectedOuts}</td>
-                    <td>{row.delta}</td>
-                    <td>{row.P}</td>
-                    <td>{row.C}</td>
-                    <td>{row['1B']}</td>
-                    <td>{row['2B']}</td>
-                    <td>{row['3B']}</td>
-                    <td>{row.SS}</td>
-                    <td>{row.LF}</td>
-                    <td>{row.CF}</td>
-                    <td>{row.RF}</td>
-                    <td>{row.Out}</td>
-                    <td>{row.Injury}</td>
-                  </tr>
-                ))}
-                {!perPlayerTrackingRows.length && (
-                  <tr>
-                    <td colSpan="17">No games for the selected player/filter.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    )
-  }
+      )}
+    </div>
+  )
+}
 
   function renderAttendancePage() {
     return (
