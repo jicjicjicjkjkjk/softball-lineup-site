@@ -1787,9 +1787,9 @@ function runOptimizeAll() {
                   {ALLOWED_POSITIONS.map((position) => {
                     const tier = fitByPlayer[row.playerId]?.[position] || 'secondary'
                     const lockedPrimary =
-                      Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0 ||
-(['LF', 'RF'].includes(position) &&
- Number(priorityByPlayer[row.playerId]?.OF?.priority_pct || 0) > 0)
+  Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0 ||
+  (['LF', 'RF'].includes(position) &&
+    Number(priorityByPlayer[row.playerId]?.OF?.priority_pct || 0) > 0)
 
                     const background =
                       tier === 'primary'
