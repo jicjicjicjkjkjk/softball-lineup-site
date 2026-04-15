@@ -399,3 +399,321 @@ th {
     background: white;
   }
 }
+
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: 100vh;
+  background: #f4f6fa;
+}
+
+.sidebar {
+  background: #163847;
+  color: #fff;
+  padding: 24px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar h1 {
+  margin: 0 0 20px;
+  line-height: 1.15;
+  font-size: 26px;
+}
+
+.nav-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.nav-button {
+  border: 0;
+  border-radius: 14px;
+  background: #2a5f77;
+  color: #fff;
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 16px;
+}
+
+.nav-button.active {
+  background: #3c817d;
+}
+
+.main-content {
+  padding: 22px;
+}
+
+.stack {
+  display: grid;
+  gap: 18px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: #20324b;
+}
+
+input,
+select,
+button,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 42px;
+  border: 1px solid #c9d3df;
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px 12px;
+  color: #1f2f46;
+}
+
+button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 16px;
+  background: #3c817d;
+  color: #fff;
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.55;
+}
+
+.small-input {
+  max-width: 72px;
+}
+
+.order-col {
+  width: 80px;
+  min-width: 80px;
+}
+
+.wide-text-cell input {
+  min-width: 280px;
+}
+
+.center-cell,
+.input-center {
+  text-align: center;
+}
+
+.row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.wrap-row {
+  flex-wrap: wrap;
+}
+
+.button-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.inning-toolbar {
+  padding-top: 6px;
+  border-top: 1px solid #e4e9f0;
+}
+
+.grid {
+  display: grid;
+  gap: 14px;
+}
+
+.four-col {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.two-col {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.compact-grid {
+  gap: 12px;
+}
+
+.align-end {
+  display: flex;
+  align-items: end;
+}
+
+.game-add-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1.5fr 1fr auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.attendance-title-cell {
+  grid-column: span 2;
+}
+
+.small-note {
+  color: #5f6f84;
+  font-size: 12px;
+}
+
+.summary-box {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f7fafc;
+  border: 1px solid #dde5ee;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px 14px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.checkbox-item input {
+  width: auto;
+  min-height: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+th,
+td {
+  border: 1px solid #d7e0ea;
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+
+th {
+  background: #dff0ef;
+  color: #20324b;
+  font-size: 15px;
+}
+
+.table-center th,
+.table-center td {
+  text-align: center;
+}
+
+.table-center td:first-child,
+.table-center th:first-child {
+  text-align: left;
+}
+
+.grouped-table .group-col {
+  border-right: 3px solid #98a6b9;
+}
+
+.attendance-event-table .title-col {
+  min-width: 180px;
+}
+
+.attendance-event-table input[type='date'],
+.attendance-event-table select,
+.attendance-event-table input[type='text'],
+.attendance-event-table input:not([type='checkbox']) {
+  min-width: 110px;
+}
+
+.vertical-header {
+  width: 52px;
+  min-width: 52px;
+  height: 170px;
+  padding: 6px 4px;
+  vertical-align: bottom;
+}
+
+.vertical-header > span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  display: inline-block;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.no-print {
+  display: block;
+}
+
+.print-only {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .game-add-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .attendance-title-cell {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    width: 100%;
+    position: static;
+    height: auto;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+
+  .button-row {
+    flex-wrap: wrap;
+  }
+
+  table {
+    font-size: 14px;
+  }
+
+  input,
+  select,
+  button {
+    min-height: 40px;
+  }
+
+  .game-add-row,
+  .four-col,
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+}
