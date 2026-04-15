@@ -493,7 +493,7 @@ export default function App() {
         innings: Number(row.innings || 6),
         status: row.status || 'Planned',
         game_type: row.game_type || GAME_TYPES[0],
-        game_order: Number(row.game_order || 1),
+        game_order: Number(row.game_order || null),
       }))
 
       setGames(loadedGames)
@@ -854,7 +854,7 @@ export default function App() {
         innings: 6,
         status: 'Planned',
         game_type: gameType || GAME_TYPES[0],
-        game_order: 1,
+        game_order: null,
       })
       .select()
       .single()
@@ -1182,8 +1182,8 @@ export default function App() {
     const next = {}
 
     const orderedGames = [...optimizerBatchGames].sort((a, b) => {
-      const aKey = `${a.date || ''}-${String(a.game_order || 1).padStart(2, '0')}-${a.id}`
-      const bKey = `${b.date || ''}-${String(b.game_order || 1).padStart(2, '0')}-${b.id}`
+      const aKey = `${a.date || ''}-${String(a.game_order || null).padStart(2, '0')}-${a.id}`
+      const bKey = `${b.date || ''}-${String(b.game_order || null).padStart(2, '0')}-${b.id}`
       return aKey.localeCompare(bKey)
     })
 
@@ -1889,7 +1889,7 @@ function renderGamesPage() {
                   <input
                     className="input-center"
                     type="number"
-                    value={game.game_order || 1}
+                    value={game.game_order || null}
                     onChange={(e) =>
                       updateGameField(game.id, 'game_order', Number(e.target.value))
                     }
@@ -2227,7 +2227,7 @@ function renderGamesPage() {
                       </button>
                     </td>
                     <td>{formatDateShort(game.date)}</td>
-                    <td>{game.game_order || 1}</td>
+                    <td>{game.game_order || null}</td>
                     <td>{game.opponent || 'Opponent'}</td>
                     <td>{game.game_type || GAME_TYPES[0]}</td>
                     <td>{game.innings}</td>
