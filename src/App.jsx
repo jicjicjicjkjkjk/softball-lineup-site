@@ -21,7 +21,7 @@ import {
 const TEAM_ID = 'f76ea5a1-7c44-4789-bfbd-9771edd54f10'
 
 const ATTENDANCE_SEASON_OPTIONS = ['In Season', 'Out of Season']
-const ATTENDANCE_TYPE_OPTIONS = ['Pitchers/Catchers', 'Team Practice', 'Indoor Work', 'Outdoor Practice']
+const ATTENDANCE_TYPE_OPTIONS = ['Pitchers/Catchers', 'Team Practice']
 const ATTENDANCE_SURFACE_OPTIONS = ['Indoor', 'Outdoor']
 
 function dbReady() {
@@ -876,8 +876,6 @@ export default function App() {
         outSeason: countMatching((event) => event.season_bucket === 'Out of Season'),
         pitchersCatchers: countMatching((event) => event.event_type === 'Pitchers/Catchers'),
         teamPractice: countMatching((event) => event.event_type === 'Team Practice'),
-        indoorWork: countMatching((event) => event.event_type === 'Indoor Work'),
-        outdoorPractice: countMatching((event) => event.event_type === 'Outdoor Practice'),
         indoor: countMatching((event) => event.surface === 'Indoor'),
         outdoor: countMatching((event) => event.surface === 'Outdoor'),
       }
@@ -2943,8 +2941,6 @@ export default function App() {
                 <th>Out of Season</th>
                 <th>P/C</th>
                 <th>Team Practice</th>
-                <th>Indoor Work</th>
-                <th>Outdoor Practice</th>
                 <th>Indoor</th>
                 <th>Outdoor</th>
               </tr>
