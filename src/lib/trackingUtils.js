@@ -1,13 +1,36 @@
 import { pk } from './lineupUtils'
 
+function compareGamesAsc(a, b) {
+  const aKey = `${a.date || ''}-${String(a.game_order || 999).padStart(3, '0')}-${pk(a.id)}`
+  const bKey = `${b.date || ''}-${String(b.game_order || 999).padStart(3, '0')}-${pk(b.id)}`
+  return aKey.localeCompare(bKey)
+}
+
+function getOrderedGames(games) {
+  return [...(games || [])].sort(compareGamesAsc)
+}
+
+function getAvailableIds(lineup) {
+  return (lineup?.availablePlayerIds || []).map((id) => pk(id))
+}
+
 export function buildBattingOrderMatrix(games, lineupsByGame, players) {
-  const rows = players.map((p) => {
+  const orderedGames = getOrderedGames(games)
+
+  return players.map((p) => {
     const orders = []
 
-    const perGame = games.map((game) => {
+    const perGame = orderedGames.map((game) => {
       const lineup = lineupsByGame[pk(game.id)]
+      const availableIds = getAvailableIds(lineup)
+      const isAvailable = availableIds.includes(pk(p.id))
+
+      if (!lineup || !isAvailable) return ''
+
       const value = lineup?.battingOrder?.[pk(p.id)] || ''
-      if (value) orders.push(Number(value))
+      if (value !== '' && value !== null && value !== undefined) {
+        orders.push(Number(value))
+      }
       return value
     })
 
@@ -23,76 +46,141 @@ export function buildBattingOrderMatrix(games, lineupsByGame, players) {
       perGame,
     }
   })
-
-  return rows
 }
 
-export function buildSitOutSummary(games, lineupsByGame, players) {
-  return games.map((game) => {
-    const lineup = lineupsByGame[pk(game.id)]
-    if (!lineup) return null
+export function buildSitOutSummary(games, lineupsByGame) {
+  const orderedGames = getOrderedGames(games)
 
-    const totalPlayers = lineup.availablePlayerIds.length
-    const innings = lineup.innings
+  return orderedGames
+    .map((game) => {
+      const lineup = lineupsByGame[pk(game.id)]
+      if (!lineup) return null
 
-    let sitOuts = 0
+      const availableIds = getAvailableIds(lineup)
+      const totalPlayers = availableIds.length
+      const innings = Number(lineup.innings || game.innings || 0)
 
-    lineup.availablePlayerIds.forEach((pid) => {
-      for (let i = 1; i <= innings; i++) {
-        if (lineup.cells?.[pid]?.[i] === 'Out') sitOuts++
+      let sitOuts = 0
+      let injuries = 0
+
+      availableIds.forEach((pid) => {
+        for (let i = 1; i <= innings; i += 1) {
+          const value = lineup.cells?.[pid]?.[i]
+          if (value === 'Out') sitOuts += 1
+          if (value === 'Injury') injuries += 1
+        }
+      })
+
+      return {
+        gameId: pk(game.id),
+        gameNumber: game.game_order ?? '',
+        date: game.date || '',
+        opponent: game.opponent || '',
+        totalPlayers,
+        innings,
+        sitOuts,
+        injuries,
+        avgSit: totalPlayers ? (sitOuts / totalPlayers).toFixed(1) : '',
       }
     })
-
-    return {
-      gameId: pk(game.id),
-      totalPlayers,
-      innings,
-      sitOuts,
-      avgSit: totalPlayers ? (sitOuts / totalPlayers).toFixed(1) : 0,
-    }
-  }).filter(Boolean)
+    .filter(Boolean)
 }
 
 export function buildPlayerSitOuts(games, lineupsByGame, players) {
-  return players.map((p) => {
-    const perGame = games.map((game) => {
-      const lineup = lineupsByGame[pk(game.id)]
-      if (!lineup) return ''
+  const orderedGames = getOrderedGames(games)
 
-      let count = 0
-      for (let i = 1; i <= lineup.innings; i++) {
-        if (lineup.cells?.[pk(p.id)]?.[i] === 'Out') count++
+  return players.map((p) => {
+    const perGame = []
+    const running = []
+
+    let runningTotal = 0
+
+    orderedGames.forEach((game) => {
+      const lineup = lineupsByGame[pk(game.id)]
+
+      if (!lineup) {
+        perGame.push('')
+        running.push('')
+        return
       }
 
-      return count || ''
+      const availableIds = getAvailableIds(lineup)
+      const playerId = pk(p.id)
+      const isAvailable = availableIds.includes(playerId)
+
+      if (!isAvailable) {
+        perGame.push('')
+        running.push(runningTotal === 0 ? '' : runningTotal.toFixed(1).replace(/\.0$/, ''))
+        return
+      }
+
+      const innings = Number(lineup.innings || game.innings || 0)
+
+      let actualOuts = 0
+      for (let i = 1; i <= innings; i += 1) {
+        if (lineup.cells?.[playerId]?.[i] === 'Out') actualOuts += 1
+      }
+
+      const requiredOuts = Math.max(0, availableIds.length * innings - 9 * innings)
+      const expectedOuts = availableIds.length ? requiredOuts / availableIds.length : 0
+      const delta = actualOuts - expectedOuts
+
+      runningTotal = Number((runningTotal + delta).toFixed(1))
+
+      perGame.push(actualOuts === 0 ? 0 : actualOuts)
+      running.push(runningTotal.toFixed(1).replace(/\.0$/, ''))
     })
 
     return {
       playerId: pk(p.id),
       name: p.name,
       perGame,
+      running,
     }
   })
 }
 
 export function buildPositionByPlayer(games, lineupsByGame, playerId) {
-  return games.map((game) => {
-    const lineup = lineupsByGame[pk(game.id)]
-    if (!lineup) return null
+  const orderedGames = getOrderedGames(games)
 
-    const counts = {}
+  return orderedGames
+    .map((game) => {
+      const lineup = lineupsByGame[pk(game.id)]
+      if (!lineup) return null
 
-    for (let i = 1; i <= lineup.innings; i++) {
-      const pos = lineup.cells?.[playerId]?.[i]
-      if (!pos) continue
-      counts[pos] = (counts[pos] || 0) + 1
-    }
+      const normalizedPlayerId = pk(playerId)
+      const availableIds = getAvailableIds(lineup)
+      const isAvailable = availableIds.includes(normalizedPlayerId)
+      const innings = Number(lineup.innings || game.innings || 0)
 
-    return {
-      gameId: pk(game.id),
-      date: game.date,
-      opponent: game.opponent,
-      ...counts,
-    }
-  }).filter(Boolean)
+      const counts = {
+        P: 0,
+        C: 0,
+        '1B': 0,
+        '2B': 0,
+        '3B': 0,
+        SS: 0,
+        LF: 0,
+        CF: 0,
+        RF: 0,
+        Out: 0,
+        Injury: 0,
+      }
+
+      for (let i = 1; i <= innings; i += 1) {
+        const pos = lineup.cells?.[normalizedPlayerId]?.[i]
+        if (!pos) continue
+        if (counts[pos] !== undefined) counts[pos] += 1
+      }
+
+      return {
+        gameId: pk(game.id),
+        gameNumber: game.game_order ?? '',
+        opponent: game.opponent || '',
+        date: game.date || '',
+        active: isAvailable ? 'Yes' : 'No',
+        ...counts,
+      }
+    })
+    .filter(Boolean)
 }
