@@ -94,46 +94,45 @@ export default function LineupSetterPage({
           </div>
 
           <div>
-            <h3 style={{ marginTop: 0 }}>Create New Game and Add to Plan</h3>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1.4fr 1fr auto',
-                gap: 12,
-                alignItems: 'end',
-              }}
-            >
-              <div>
-                <label>Game Date</label>
-                <input
-                  type="date"
-                  value={optimizerNewDate}
-                  onChange={(e) => setOptimizerNewDate(e.target.value)}
-                />
-              </div>
-              <div>
-                <label>Opponent</label>
-                <input
-                  value={optimizerNewOpponent}
-                  onChange={(e) => setOptimizerNewOpponent(e.target.value)}
-                />
-              </div>
-              <div>
-                <label>Game Type</label>
-                <select
-                  value={optimizerNewType}
-                  onChange={(e) => setOptimizerNewType(e.target.value)}
-                >
-                  {GAME_TYPES.map((type) => (
-                    <option key={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <button onClick={addGameFromOptimizer}>Add New Game</button>
-              </div>
-            </div>
-          </div>
+  <h3 style={{ marginTop: 0 }}>Create New Game and Add to Plan</h3>
+
+  <div className="lineup-setter-new-game">
+    <div className="lineup-setter-new-game-fields">
+      <div>
+        <label>Game Date</label>
+        <input
+          type="date"
+          value={optimizerNewDate}
+          onChange={(e) => setOptimizerNewDate(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label>Opponent</label>
+        <input
+          value={optimizerNewOpponent}
+          onChange={(e) => setOptimizerNewOpponent(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label>Game Type</label>
+        <select
+          value={optimizerNewType}
+          onChange={(e) => setOptimizerNewType(e.target.value)}
+        >
+          {GAME_TYPES.map((type) => (
+            <option key={type}>{type}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    <div className="lineup-setter-new-game-action">
+      <button onClick={addGameFromOptimizer}>Add New Game</button>
+    </div>
+  </div>
+</div>
         </div>
       </div>
 
