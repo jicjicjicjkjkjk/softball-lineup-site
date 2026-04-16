@@ -18,6 +18,8 @@ import {
   inningStatus,
 } from './lib/lineupUtils'
 
+import GamesPage from './pages/GamesPage'
+
 const TEAM_ID = 'f76ea5a1-7c44-4789-bfbd-9771edd54f10'
 
 const ATTENDANCE_SEASON_OPTIONS = ['In Season', 'Out of Season']
