@@ -69,6 +69,52 @@ function RotatedGameHeader({ game }) {
 const centerCell = { textAlign: 'center', verticalAlign: 'middle' }
 const centerHeader = { textAlign: 'center', verticalAlign: 'middle' }
 
+const playerHeaderStyle = {
+  width: 86,
+  minWidth: 86,
+  maxWidth: 86,
+  textAlign: 'left',
+  verticalAlign: 'middle',
+}
+
+const playerCellStyle = {
+  width: 86,
+  minWidth: 86,
+  maxWidth: 86,
+  textAlign: 'left',
+}
+
+const avgHeaderStyle = {
+  width: 52,
+  minWidth: 52,
+  maxWidth: 52,
+  textAlign: 'center',
+  verticalAlign: 'middle',
+}
+
+const avgCellStyle = {
+  width: 52,
+  minWidth: 52,
+  maxWidth: 52,
+  textAlign: 'center',
+  verticalAlign: 'middle',
+}
+
+const metricHeaderStyle = {
+  width: 110,
+  minWidth: 110,
+  maxWidth: 110,
+  textAlign: 'left',
+  verticalAlign: 'middle',
+}
+
+const metricCellStyle = {
+  width: 110,
+  minWidth: 110,
+  maxWidth: 110,
+  textAlign: 'left',
+}
+
 export default function TrackingPage({
   trackingLockedLineups,
   trackingTotals,
@@ -94,12 +140,12 @@ export default function TrackingPage({
           <table className="tracking-table">
             <thead>
               <tr>
-                <th className="sticky-col-1 col-player" style={{ textAlign: 'left', verticalAlign: 'middle' }}>
-                  Player
-                </th>
-                <th className="sticky-col-2 col-avg" style={centerHeader}>
-                  Avg
-                </th>
+                <th className="sticky-col-1 col-player" style={playerHeaderStyle}>
+  Player
+</th>
+<th className="sticky-col-2 col-avg" style={avgHeaderStyle}>
+  Avg
+</th>
                 {gamesWithLineups.map((g) => (
                   <RotatedGameHeader key={g.id} game={g} />
                 ))}
@@ -108,12 +154,12 @@ export default function TrackingPage({
             <tbody>
               {battingRows.map((row) => (
                 <tr key={row.playerId}>
-                  <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>
-                    {row.name}
-                  </td>
-                  <td className="sticky-col-2 col-avg" style={centerCell}>
-                    {row.avg}
-                  </td>
+                  <td className="sticky-col-1 col-player" style={playerCellStyle}>
+  {row.name}
+</td>
+<td className="sticky-col-2 col-avg" style={avgCellStyle}>
+  {row.avg}
+</td>
                   {row.perGame.map((v, i) => (
                     <td key={i} className="col-small" style={centerCell}>
                       {v}
@@ -132,9 +178,9 @@ export default function TrackingPage({
           <table className="tracking-table">
             <thead>
               <tr>
-                <th className="sticky-col-1 col-metric" style={{ textAlign: 'left', verticalAlign: 'middle' }}>
-                  Metric
-                </th>
+                <th className="sticky-col-1 col-metric" style={metricHeaderStyle}>
+  Metric
+</th>
                 {gamesWithLineups.map((g) => (
                   <RotatedGameHeader key={g.id} game={g} />
                 ))}
@@ -142,31 +188,31 @@ export default function TrackingPage({
             </thead>
             <tbody>
               <tr>
-                <td className="sticky-col-1 col-metric" style={{ textAlign: 'left' }}>Total Players</td>
+                <td className="sticky-col-1 col-metric" style={metricCellStyle}>Total Players</td>
                 {sitSummary.map((g) => (
                   <td key={g.gameId} className="col-small" style={centerCell}>{g.totalPlayers}</td>
                 ))}
               </tr>
               <tr>
-                <td className="sticky-col-1 col-metric" style={{ textAlign: 'left' }}>Innings</td>
+                <td className="sticky-col-1 col-metric" style={metricCellStyle}>Innings</td>
                 {sitSummary.map((g) => (
                   <td key={g.gameId} className="col-small" style={centerCell}>{g.innings}</td>
                 ))}
               </tr>
               <tr>
-                <td className="sticky-col-1 col-metric" style={{ textAlign: 'left' }}># Sit Outs</td>
+                <td className="sticky-col-1 col-metric" style={metricCellStyle}># Sit Outs</td>
                 {sitSummary.map((g) => (
                   <td key={g.gameId} className="col-small" style={centerCell}>{g.sitOuts}</td>
                 ))}
               </tr>
               <tr>
-                <td className="sticky-col-1 col-metric" style={{ textAlign: 'left' }}>Injury</td>
+                <td className="sticky-col-1 col-metric" style={metricCellStyle}>Injury</td>
                 {sitSummary.map((g) => (
                   <td key={g.gameId} className="col-small" style={centerCell}>{g.injury}</td>
                 ))}
               </tr>
               <tr>
-                <td className="sticky-col-1 col-metric" style={{ textAlign: 'left' }}>Average Out</td>
+                <td className="sticky-col-1 col-metric" style={metricCellStyle}>Average Out</td>
                 {sitSummary.map((g) => (
                   <td key={g.gameId} className="col-small" style={centerCell}>{g.avgSit}</td>
                 ))}
@@ -182,9 +228,9 @@ export default function TrackingPage({
           <table className="tracking-table">
             <thead>
               <tr>
-                <th className="sticky-col-1 col-player" style={{ textAlign: 'left', verticalAlign: 'middle' }}>
-                  Player
-                </th>
+                <th className="sticky-col-1 col-player" style={playerHeaderStyle}>
+  Player
+</th>
                 {gamesWithLineups.map((g) => (
                   <RotatedGameHeader key={g.id} game={g} />
                 ))}
@@ -193,9 +239,9 @@ export default function TrackingPage({
             <tbody>
               {sitByPlayer.map((row) => (
                 <tr key={row.playerId}>
-                  <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>
-                    {row.name}
-                  </td>
+                  <td className="sticky-col-1 col-player" style={playerCellStyle}>
+  {row.name}
+</td>
                   {row.perGame.map((v, i) => (
                     <td key={i} className="col-small" style={centerCell}>
                       {v}
@@ -212,9 +258,9 @@ export default function TrackingPage({
           <table className="tracking-table">
             <thead>
               <tr>
-                <th className="sticky-col-1 col-player" style={{ textAlign: 'left', verticalAlign: 'middle' }}>
-                  Player
-                </th>
+                <th className="sticky-col-1 col-player" style={playerHeaderStyle}>
+  Player
+</th>
                 {gamesWithLineups.map((g) => (
                   <RotatedGameHeader key={g.id} game={g} />
                 ))}
@@ -223,9 +269,9 @@ export default function TrackingPage({
             <tbody>
               {sitByPlayer.map((row) => (
                 <tr key={`${row.playerId}-running`}>
-                  <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>
-                    {row.name}
-                  </td>
+                  <td className="sticky-col-1 col-player" style={playerCellStyle}>
+  {row.name}
+</td>
                   {row.running.map((v, i) => (
                     <td key={i} className="col-small" style={centerCell}>
                       {v}
