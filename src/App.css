@@ -879,3 +879,16 @@ thead th {
     max-width: 100%;
   }
 }
+
+
+/* Center grouped header labels (P, C, 1B...) */
+.tracking-table thead tr:first-child th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Ensure TGT / ACT row is centered */
+.tracking-table thead tr:nth-child(2) th {
+  text-align: center;
+  font-weight: 600;
+}
