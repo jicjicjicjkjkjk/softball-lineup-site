@@ -892,3 +892,9 @@ thead th {
   text-align: center;
   font-weight: 600;
 }
+
+
+/* Slight visual separation for grouped headers */
+.tracking-table thead tr:first-child th[colspan="2"] {
+  border-bottom: 2px solid #c9d6dc;
+}
