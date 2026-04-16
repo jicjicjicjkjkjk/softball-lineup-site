@@ -2719,7 +2719,32 @@ export default function App() {
         {page === 'game-detail' && renderGameDetailPage()}
         {page === 'lineup-setter' && renderLineupSetterPage()}
         {page === 'tracking' && renderTrackingPage()}
-        {page === 'attendance' && renderAttendancePage()}
+        {page === 'attendance' && (
+  <AttendancePage
+    attendanceDate={attendanceDate}
+    setAttendanceDate={setAttendanceDate}
+    attendanceSeason={attendanceSeason}
+    setAttendanceSeason={setAttendanceSeason}
+    attendanceType={attendanceType}
+    setAttendanceType={setAttendanceType}
+    attendanceSurface={attendanceSurface}
+    setAttendanceSurface={setAttendanceSurface}
+    attendanceTitle={attendanceTitle}
+    setAttendanceTitle={setAttendanceTitle}
+    addAttendanceEvent={addAttendanceEvent}
+    ATTENDANCE_SEASON_OPTIONS={ATTENDANCE_SEASON_OPTIONS}
+    ATTENDANCE_TYPE_OPTIONS={ATTENDANCE_TYPE_OPTIONS}
+    ATTENDANCE_SURFACE_OPTIONS={ATTENDANCE_SURFACE_OPTIONS}
+    activePlayers={activePlayers}
+    filteredAttendanceEvents={filteredAttendanceEvents}
+    updateAttendanceEventField={updateAttendanceEventField}
+    attendanceByEvent={attendanceByEvent}
+    toggleAttendance={toggleAttendance}
+    deleteAttendanceEvent={deleteAttendanceEvent}
+    attendanceTotals={attendanceTotals}
+    attendanceBreakdownByPlayer={attendanceBreakdownByPlayer}
+  />
+)}
       </main>
     </div>
   )
