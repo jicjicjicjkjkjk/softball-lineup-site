@@ -225,14 +225,6 @@ function buildPositionByPlayer(games, lineupsByGame, playerId) {
     .filter(Boolean)
 }
 
-function verticalHeaderStyle(minWidth = 44) {
-  return {
-    minWidth,
-    width: minWidth,
-    padding: '8px 4px',
-    verticalAlign: 'bottom',
-  }
-}
 
 function verticalHeaderStyle(minWidth = 56, height = 220) {
   return {
