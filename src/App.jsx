@@ -2185,7 +2185,24 @@ export default function App() {
           </div>
         )}
 
-        {page === 'players' && renderPlayersPage()}
+        {page === 'players' && (
+  <PlayersPage
+    newPlayerName={newPlayerName}
+    setNewPlayerName={setNewPlayerName}
+    newPlayerNumber={newPlayerNumber}
+    setNewPlayerNumber={setNewPlayerNumber}
+    newPlayerActive={newPlayerActive}
+    setNewPlayerActive={setNewPlayerActive}
+    addPlayer={addPlayer}
+    sortedPlayers={sortedPlayers}
+    playerSort={playerSort}
+    setPlayerSort={setPlayerSort}
+    nextSort={nextSort}
+    updatePlayerLocal={updatePlayerLocal}
+    upsertPlayer={upsertPlayer}
+    deletePlayer={deletePlayer}
+  />
+)}
         {page === 'positioning-priority' && renderPositioningPriorityPage()}
         {page === 'games' && (
           <GamesPage
