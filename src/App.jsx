@@ -1549,7 +1549,7 @@ export default function App() {
     })
   }
 
-  function renderPlayersPage() {
+    function renderPlayersPage() {
     return (
       <div className="stack">
         <div className="card">
@@ -1580,53 +1580,54 @@ export default function App() {
         </div>
 
         <div className="card">
-  <div className="table-scroll">
-          <table className="games-table">
-            <thead>
-              <tr>
-                <th onClick={() => setPlayerSort(nextSort(playerSort, 'name'))}>Player</th>
-                <th onClick={() => setPlayerSort(nextSort(playerSort, 'jersey_number'))}>#</th>
-                <th onClick={() => setPlayerSort(nextSort(playerSort, 'activeText'))}>Active</th>
-                <th>Delete</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedPlayers.map((player) => (
-                <tr key={player.id}>
-                  <td>
-                    <input
-                      value={player.name}
-                      onChange={(e) => updatePlayerLocal(player.id, 'name', e.target.value)}
-                      onBlur={() => upsertPlayer(player)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      value={player.jersey_number || ''}
-                      onChange={(e) => updatePlayerLocal(player.id, 'jersey_number', e.target.value)}
-                      onBlur={() => upsertPlayer(player)}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={player.active === false ? 'No' : 'Yes'}
-                      onChange={(e) => {
-                        const value = e.target.value === 'Yes'
-                        updatePlayerLocal(player.id, 'active', value)
-                        upsertPlayer({ ...player, active: value })
-                      }}
-                    >
-                      <option>Yes</option>
-                      <option>No</option>
-                    </select>
-                  </td>
-                  <td>
-                    <button onClick={() => deletePlayer(player.id)}>Delete</button>
-                  </td>
+          <div className="table-scroll">
+            <table className="games-table">
+              <thead>
+                <tr>
+                  <th onClick={() => setPlayerSort(nextSort(playerSort, 'name'))}>Player</th>
+                  <th onClick={() => setPlayerSort(nextSort(playerSort, 'jersey_number'))}>#</th>
+                  <th onClick={() => setPlayerSort(nextSort(playerSort, 'activeText'))}>Active</th>
+                  <th>Delete</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sortedPlayers.map((player) => (
+                  <tr key={player.id}>
+                    <td>
+                      <input
+                        value={player.name}
+                        onChange={(e) => updatePlayerLocal(player.id, 'name', e.target.value)}
+                        onBlur={() => upsertPlayer(player)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        value={player.jersey_number || ''}
+                        onChange={(e) => updatePlayerLocal(player.id, 'jersey_number', e.target.value)}
+                        onBlur={() => upsertPlayer(player)}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        value={player.active === false ? 'No' : 'Yes'}
+                        onChange={(e) => {
+                          const value = e.target.value === 'Yes'
+                          updatePlayerLocal(player.id, 'active', value)
+                          upsertPlayer({ ...player, active: value })
+                        }}
+                      >
+                        <option>Yes</option>
+                        <option>No</option>
+                      </select>
+                    </td>
+                    <td>
+                      <button onClick={() => deletePlayer(player.id)}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     )
