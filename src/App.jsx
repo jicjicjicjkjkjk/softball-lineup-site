@@ -2094,8 +2094,25 @@ export default function App() {
     )
   }
 
-  function renderTrackingPage() {
-    function renderAttendancePage() {
+    function renderTrackingPage() {
+    return (
+      <div className="card">
+        <h2>Tracking</h2>
+        <p>Tracking page is still connected in state, but this section is being cleaned up.</p>
+
+        <TrackingTable
+          title="Tracking Totals"
+          universeLabel={`${trackingLockedLineups.length} locked games`}
+          totals={trackingTotals}
+          players={activePlayers}
+          sortConfig={trackingSort}
+          setSortConfig={setTrackingSort}
+        />
+      </div>
+    )
+  }
+
+  function renderAttendancePage() {
     return (
       <AttendancePage
         attendanceDate={attendanceDate}
