@@ -654,35 +654,96 @@ thead th {
 }
 
 
-/* Tracking tables */
+/* =========================
+   TRACKING TABLES
+========================= */
+
 .tracking-card {
   overflow: hidden;
 }
 
 .tracking-scroll {
   overflow-x: auto;
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
 }
 
 .tracking-table {
+  border-collapse: collapse;
+  table-layout: fixed;
   width: max-content;
   min-width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;
+  background: #fff;
 }
 
 .tracking-table th,
 .tracking-table td {
   border: 1px solid #d7dee3;
-  padding: 10px 12px;
+  padding: 10px 10px;
   text-align: center;
   vertical-align: middle;
   white-space: nowrap;
+  background: #fff;
 }
 
 .tracking-table thead th {
   background: #e6f4f4;
   font-weight: 700;
+  z-index: 2;
+}
+
+.tracking-table .col-player {
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+  text-align: left;
+}
+
+.tracking-table .col-avg {
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+}
+
+.tracking-table .col-metric {
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  text-align: left;
+}
+
+.tracking-table .col-small {
+  width: 54px;
+  min-width: 54px;
+  max-width: 54px;
+}
+
+.tracking-table .col-game {
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+}
+
+.tracking-table .col-date {
+  width: 92px;
+  min-width: 92px;
+  max-width: 92px;
+}
+
+.tracking-table .col-act {
+  width: 62px;
+  min-width: 62px;
+  max-width: 62px;
+}
+
+.tracking-table .col-opponent {
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+  white-space: normal;
+  line-height: 1.35;
+  text-align: left;
 }
 
 .tracking-table .sticky-col-1,
@@ -690,14 +751,14 @@ thead th {
 .tracking-table .sticky-col-3 {
   position: sticky;
   background: #fff;
-  z-index: 2;
+  z-index: 3;
 }
 
 .tracking-table thead .sticky-col-1,
 .tracking-table thead .sticky-col-2,
 .tracking-table thead .sticky-col-3 {
   background: #e6f4f4;
-  z-index: 3;
+  z-index: 4;
 }
 
 .tracking-table .sticky-col-1 {
@@ -705,71 +766,45 @@ thead th {
 }
 
 .tracking-table .sticky-col-2 {
-  left: 110px;
+  left: 140px;
 }
 
 .tracking-table .sticky-col-3 {
-  left: 230px;
-}
-
-.tracking-table .col-player {
-  min-width: 110px;
-  width: 110px;
-  text-align: center;
-}
-
-.tracking-table .col-avg {
-  min-width: 70px;
-  width: 70px;
-  text-align: center;
-}
-
-.tracking-table .col-metric {
-  min-width: 110px;
-  width: 110px;
-  text-align: center;
-}
-
-.tracking-table .col-small {
-  min-width: 56px;
-  width: 56px;
-}
-
-.tracking-table .col-medium {
-  min-width: 84px;
-  width: 84px;
-}
-
-.tracking-table .col-opponent {
-  min-width: 170px;
-  width: 170px;
-  white-space: normal;
-  line-height: 1.3;
-}
-
-.tracking-table .col-date {
-  min-width: 92px;
-  width: 92px;
-}
-
-.tracking-table .col-game {
-  min-width: 70px;
-  width: 70px;
-}
-
-.tracking-table .col-act {
-  min-width: 60px;
-  width: 60px;
+  left: 320px; /* 140 + 180 */
 }
 
 .tracking-vertical {
+  width: 54px;
+  min-width: 54px;
+  max-width: 54px;
+  height: 190px;
+  min-height: 190px;
+  max-height: 190px;
+  padding: 0 2px;
+  vertical-align: bottom;
+}
+
+.tracking-vertical-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 8px;
+}
+
+.tracking-vertical-top {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.tracking-vertical-bottom {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   white-space: nowrap;
   line-height: 1;
   font-size: 13px;
-  padding: 8px 4px;
-  min-width: 34px;
 }
 
 .positioning-controls {
@@ -782,7 +817,7 @@ thead th {
 }
 
 .positioning-player-select {
-  min-width: 280px;
+  min-width: 260px;
   max-width: 320px;
 }
 
@@ -791,17 +826,35 @@ thead th {
   text-align: center;
 }
 
-.positioning-table .left-text {
-  text-align: center;
+.positioning-table .col-opponent {
+  text-align: left;
 }
 
 @media (max-width: 900px) {
+  .tracking-table .col-player {
+    width: 120px;
+    min-width: 120px;
+    max-width: 120px;
+  }
+
+  .tracking-table .col-opponent {
+    width: 150px;
+    min-width: 150px;
+    max-width: 150px;
+  }
+
   .tracking-table .sticky-col-2 {
-    left: 100px;
+    left: 120px;
   }
 
   .tracking-table .sticky-col-3 {
-    left: 210px;
+    left: 270px; /* 120 + 150 */
+  }
+
+  .tracking-vertical {
+    height: 165px;
+    min-height: 165px;
+    max-height: 165px;
   }
 
   .positioning-player-select {
