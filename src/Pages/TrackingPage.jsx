@@ -1,5 +1,7 @@
 import { formatDateShort } from '../lib/appHelpers'
 
+console.log('TRACKING PAGE NEW VERSION')
+
 function shortenOpponent(name = '') {
   const cleaned = String(name || '')
     .replace(/\b(8u|9u|10u|11u|12u|13u|14u|15u|16u|18u)\b/gi, '')
