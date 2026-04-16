@@ -652,3 +652,160 @@ thead th {
   text-align: left;
   padding-left: 10px;
 }
+
+
+/* Tracking tables */
+.tracking-card {
+  overflow: hidden;
+}
+
+.tracking-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tracking-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.tracking-table th,
+.tracking-table td {
+  border: 1px solid #d7dee3;
+  padding: 10px 12px;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.tracking-table thead th {
+  background: #e6f4f4;
+  font-weight: 700;
+}
+
+.tracking-table .sticky-col-1,
+.tracking-table .sticky-col-2,
+.tracking-table .sticky-col-3 {
+  position: sticky;
+  background: #fff;
+  z-index: 2;
+}
+
+.tracking-table thead .sticky-col-1,
+.tracking-table thead .sticky-col-2,
+.tracking-table thead .sticky-col-3 {
+  background: #e6f4f4;
+  z-index: 3;
+}
+
+.tracking-table .sticky-col-1 {
+  left: 0;
+}
+
+.tracking-table .sticky-col-2 {
+  left: 110px;
+}
+
+.tracking-table .sticky-col-3 {
+  left: 230px;
+}
+
+.tracking-table .col-player {
+  min-width: 110px;
+  width: 110px;
+  text-align: center;
+}
+
+.tracking-table .col-avg {
+  min-width: 70px;
+  width: 70px;
+  text-align: center;
+}
+
+.tracking-table .col-metric {
+  min-width: 110px;
+  width: 110px;
+  text-align: center;
+}
+
+.tracking-table .col-small {
+  min-width: 56px;
+  width: 56px;
+}
+
+.tracking-table .col-medium {
+  min-width: 84px;
+  width: 84px;
+}
+
+.tracking-table .col-opponent {
+  min-width: 170px;
+  width: 170px;
+  white-space: normal;
+  line-height: 1.3;
+}
+
+.tracking-table .col-date {
+  min-width: 92px;
+  width: 92px;
+}
+
+.tracking-table .col-game {
+  min-width: 70px;
+  width: 70px;
+}
+
+.tracking-table .col-act {
+  min-width: 60px;
+  width: 60px;
+}
+
+.tracking-vertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  line-height: 1;
+  font-size: 13px;
+  padding: 8px 4px;
+  min-width: 34px;
+}
+
+.positioning-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.positioning-player-select {
+  min-width: 280px;
+  max-width: 320px;
+}
+
+.positioning-table td,
+.positioning-table th {
+  text-align: center;
+}
+
+.positioning-table .left-text {
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .tracking-table .sticky-col-2 {
+    left: 100px;
+  }
+
+  .tracking-table .sticky-col-3 {
+    left: 210px;
+  }
+
+  .positioning-player-select {
+    min-width: 220px;
+    max-width: 100%;
+  }
+}
