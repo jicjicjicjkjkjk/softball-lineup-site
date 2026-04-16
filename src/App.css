@@ -589,3 +589,66 @@ th {
     background: white;
   }
 }
+
+
+/* ===== TABLE BASE ===== */
+.table-center {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* ===== PLAYER COLUMN (FROZEN) ===== */
+.player-col {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #f8fafc; /* match your table background */
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
+  border-right: 2px solid #cbd5f5;
+}
+
+/* Header version (slightly darker + above cells) */
+th.player-col {
+  z-index: 4;
+  background: #e2e8f0;
+}
+
+/* ===== SMOOTH SCROLL WRAPPER ===== */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 8px;
+}
+
+/* Optional: nicer scroll bar (desktop) */
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+/* ===== KEEP HEADER ABOVE CELLS ===== */
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* ===== TIGHTER CELLS ===== */
+.table-center th,
+.table-center td {
+  padding: 6px 4px;
+  text-align: center;
+}
+
+/* Left align player names */
+.player-col {
+  text-align: left;
+  padding-left: 10px;
+}
