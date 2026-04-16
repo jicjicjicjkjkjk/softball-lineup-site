@@ -680,7 +680,7 @@ thead th {
 .tracking-table th,
 .tracking-table td {
   border: 1px solid #d7dee3;
-  padding: 10px 10px;
+  padding: 8px 8px;
   text-align: center;
   vertical-align: middle;
   white-space: nowrap;
@@ -692,6 +692,8 @@ thead th {
   font-weight: 700;
   z-index: 2;
 }
+
+/* ===== COLUMN SIZING ===== */
 
 .tracking-table .col-player {
   width: 140px;
@@ -717,6 +719,7 @@ thead th {
   width: 44px;
   min-width: 44px;
   max-width: 44px;
+  padding: 6px 4px;
 }
 
 .tracking-table .col-game {
@@ -746,6 +749,8 @@ thead th {
   text-align: left;
 }
 
+/* ===== STICKY COLUMNS ===== */
+
 .tracking-table .sticky-col-1,
 .tracking-table .sticky-col-2,
 .tracking-table .sticky-col-3 {
@@ -773,6 +778,8 @@ thead th {
   left: 320px; /* 140 + 180 */
 }
 
+/* ===== TRUE 90° ROTATED HEADERS ===== */
+
 .tracking-vertical {
   width: 44px;
   min-width: 44px;
@@ -780,31 +787,31 @@ thead th {
   height: 150px;
   min-height: 150px;
   max-height: 150px;
-  padding: 0 2px;
+  padding: 0;
   vertical-align: bottom;
+  text-align: center;
 }
 
 .tracking-vertical-wrap {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  position: relative;
+  width: 100%;
   height: 100%;
 }
 
-.tracking-vertical-bottom {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
+.tracking-vertical-text {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%) rotate(-90deg);
+  transform-origin: center;
   white-space: nowrap;
-  line-height: 1;
+  line-height: 1.15;
   font-size: 12px;
   font-weight: 700;
+  text-align: left;
 }
 
-.tracking-vertical-top {
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-}
+/* ===== POSITIONING TABLE ===== */
 
 .positioning-controls {
   display: flex;
@@ -829,6 +836,8 @@ thead th {
   text-align: left;
 }
 
+/* ===== MOBILE ===== */
+
 @media (max-width: 900px) {
   .tracking-table .col-player {
     width: 120px;
@@ -847,7 +856,7 @@ thead th {
   }
 
   .tracking-table .sticky-col-3 {
-    left: 270px; /* 120 + 150 */
+    left: 270px;
   }
 
   .tracking-vertical {
