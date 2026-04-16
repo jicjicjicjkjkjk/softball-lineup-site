@@ -890,4 +890,40 @@ thead th {
   }
 }
 
+.lineup-setter-new-game {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: stretch;
+}
 
+.lineup-setter-new-game-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.lineup-setter-new-game-action {
+  display: flex;
+  align-items: stretch;
+}
+
+.lineup-setter-new-game-action button {
+  height: 100%;
+  min-height: 100%;
+  padding: 12px 18px;
+}
+
+@media (max-width: 900px) {
+  .lineup-setter-new-game {
+    grid-template-columns: 1fr;
+  }
+
+  .lineup-setter-new-game-action {
+    align-items: stretch;
+  }
+
+  .lineup-setter-new-game-action button {
+    width: 100%;
+  }
+}
