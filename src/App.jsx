@@ -234,27 +234,56 @@ function verticalHeaderStyle(minWidth = 44) {
   }
 }
 
-function VerticalHeader({ top, bottom, minWidth = 44 }) {
+function verticalHeaderStyle(minWidth = 56, height = 220) {
+  return {
+    minWidth,
+    width: minWidth,
+    maxWidth: minWidth,
+    height,
+    minHeight: height,
+    maxHeight: height,
+    padding: '8px 4px 12px',
+    verticalAlign: 'bottom',
+    textAlign: 'center',
+    overflow: 'hidden',
+  }
+}
+
+function VerticalHeader({ top, bottom, minWidth = 56, height = 220 }) {
   return (
-    <th style={verticalHeaderStyle(minWidth)}>
+    <th style={verticalHeaderStyle(minWidth, height)}>
       <div
         style={{
-          height: 150,
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-end',
           alignItems: 'center',
-          gap: 8,
+          gap: 6,
+          overflow: 'hidden',
         }}
       >
-        {top ? <div style={{ fontWeight: 700 }}>{top}</div> : null}
+        {top ? (
+          <div
+            style={{
+              fontWeight: 700,
+              lineHeight: 1,
+              flex: '0 0 auto',
+            }}
+          >
+            {top}
+          </div>
+        ) : null}
+
         <div
           style={{
             writingMode: 'vertical-rl',
             transform: 'rotate(180deg)',
             whiteSpace: 'nowrap',
             fontWeight: 700,
-            lineHeight: 1,
+            lineHeight: 1.05,
+            overflow: 'hidden',
+            maxHeight: height - (top ? 34 : 10),
           }}
         >
           {bottom}
@@ -1983,7 +2012,7 @@ export default function App() {
             These percentages are used as a target share of that player’s field innings.
           </p>
 
-          <table className="table-center">
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th onClick={() => setPrioritySort(nextSort(prioritySort, 'name'))}>Player</th>
@@ -2032,7 +2061,7 @@ export default function App() {
 
         <div className="card" style={{ overflowX: 'auto' }}>
           <h3>Allowed Positions</h3>
-          <table className="table-center">
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th onClick={() => setAllowedSort(nextSort(allowedSort, 'name'))}>Player</th>
@@ -2419,7 +2448,7 @@ export default function App() {
             </div>
           </div>
 
-          <table className="table-center">
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th>Focus</th>
@@ -2583,18 +2612,19 @@ export default function App() {
       <div className="stack">
         <div className="card" style={{ overflowX: 'auto' }}>
           <h3>Batting Order Tracking</h3>
-          <table className="table-center">
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th>Player</th>
                 <th>Avg</th>
                 {gamesWithLineups.map((g, idx) => (
                   <VerticalHeader
-                    key={g.id}
-                    top={String(idx + 1)}
-                    bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
-                    minWidth={52}
-                  />
+  key={g.id}
+  top={String(idx + 1)}
+  bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
+  minWidth={60}
+  height={230}
+/>
                 ))}
               </tr>
             </thead>
@@ -2614,17 +2644,18 @@ export default function App() {
 
         <div className="card" style={{ overflowX: 'auto' }}>
           <h3>Sitting Out Summary</h3>
-          <table className="table-center">
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th>Metric</th>
                 {gamesWithLineups.map((g, idx) => (
                   <VerticalHeader
-                    key={g.id}
-                    top={String(idx + 1)}
-                    bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
-                    minWidth={52}
-                  />
+  key={g.id}
+  top={String(idx + 1)}
+  bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
+  minWidth={60}
+  height={230}
+/>
                 ))}
               </tr>
             </thead>
@@ -2655,17 +2686,18 @@ export default function App() {
 
         <div className="card" style={{ overflowX: 'auto' }}>
           <h3>Sit Outs by Player</h3>
-          <table className="table-center">
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th>Player</th>
                 {gamesWithLineups.map((g, idx) => (
                   <VerticalHeader
-                    key={g.id}
-                    top={String(idx + 1)}
-                    bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
-                    minWidth={52}
-                  />
+  key={g.id}
+  top={String(idx + 1)}
+  bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
+  minWidth={60}
+  height={230}
+/>
                 ))}
               </tr>
             </thead>
@@ -2684,17 +2716,18 @@ export default function App() {
           <div style={{ height: 16 }} />
 
           <h3 style={{ marginTop: 0 }}>Sit Out Running Total (vs Expected)</h3>
-          <table className="table-center">
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th>Player</th>
                 {gamesWithLineups.map((g, idx) => (
                   <VerticalHeader
-                    key={g.id}
-                    top={String(idx + 1)}
-                    bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
-                    minWidth={52}
-                  />
+  key={g.id}
+  top={String(idx + 1)}
+  bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
+  minWidth={60}
+  height={230}
+/>
                 ))}
               </tr>
             </thead>
@@ -2727,7 +2760,7 @@ export default function App() {
           </div>
 
           {trackingPlayerId ? (
-            <table className="table-center">
+            <table className="table-center" style={{ tableLayout: 'fixed' }}>
               <thead>
                 <tr>
                   <th>Game #</th>
@@ -2883,7 +2916,7 @@ export default function App() {
 
         <div className="card" style={{ overflowX: 'auto' }}>
           <h3>Attendance by Event</h3>
-          <table className="table-center">
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th>Date</th>
@@ -2892,7 +2925,12 @@ export default function App() {
                 <th>Surface</th>
                 <th style={{ minWidth: 160 }}>Title</th>
                 {activePlayers.map((player) => (
-                  <VerticalHeader key={player.id} bottom={player.name} minWidth={44} />
+                  <VerticalHeader
+  key={player.id}
+  bottom={player.name}
+  minWidth={52}
+  height={180}
+/>
                 ))}
                 <th>Delete</th>
               </tr>
@@ -2960,7 +2998,7 @@ export default function App() {
 
         <div className="card" style={{ overflowX: 'auto' }}>
           <h3>Attendance Participation Breakdown</h3>
-          <table className="table-center">
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th>Player</th>
