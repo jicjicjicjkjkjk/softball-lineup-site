@@ -11,18 +11,27 @@ function abbreviateOpponent(name) {
     .filter(Boolean)
     .map((word) => word.slice(0, 3))
     .join(' ')
-    .slice(0, 12)
+    .slice(0, 10)
 }
 
 function VerticalGameHeader({ game, showOpponent = false }) {
-  const label = showOpponent
-    ? `${abbreviateOpponent(game.opponent)} ${formatDateShort(game.date)}`
-    : formatDateShort(game.date)
+  const top = showOpponent ? abbreviateOpponent(game.opponent) : ''
+  const bottom = formatDateShort(game.date)
 
   return (
     <th className="tracking-vertical col-small">
       <div className="tracking-vertical-wrap">
-        <span className="tracking-vertical-bottom">{label}</span>
+        <span className="tracking-vertical-text">
+          {top ? (
+            <>
+              {top}
+              <br />
+              {bottom}
+            </>
+          ) : (
+            bottom
+          )}
+        </span>
       </div>
     </th>
   )
@@ -85,7 +94,7 @@ export default function TrackingPage({
               <tr>
                 <th className="sticky-col-1 col-metric">Metric</th>
                 {gamesWithLineups.map((g) => (
-                  <VerticalGameHeader key={g.id} game={g} />
+                  <VerticalGameHeader key={g.id} game={g} showOpponent />
                 ))}
               </tr>
             </thead>
@@ -93,41 +102,31 @@ export default function TrackingPage({
               <tr>
                 <td className="sticky-col-1 col-metric">Total Players</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small">
-                    {g.totalPlayers}
-                  </td>
+                  <td key={g.gameId} className="col-small">{g.totalPlayers}</td>
                 ))}
               </tr>
               <tr>
                 <td className="sticky-col-1 col-metric">Innings</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small">
-                    {g.innings}
-                  </td>
+                  <td key={g.gameId} className="col-small">{g.innings}</td>
                 ))}
               </tr>
               <tr>
                 <td className="sticky-col-1 col-metric"># Sit Outs</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small">
-                    {g.sitOuts}
-                  </td>
+                  <td key={g.gameId} className="col-small">{g.sitOuts}</td>
                 ))}
               </tr>
               <tr>
                 <td className="sticky-col-1 col-metric">Injury</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small">
-                    {g.injury}
-                  </td>
+                  <td key={g.gameId} className="col-small">{g.injury}</td>
                 ))}
               </tr>
               <tr>
                 <td className="sticky-col-1 col-metric">Average Out</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small">
-                    {g.avgSit}
-                  </td>
+                  <td key={g.gameId} className="col-small">{g.avgSit}</td>
                 ))}
               </tr>
             </tbody>
@@ -143,7 +142,7 @@ export default function TrackingPage({
               <tr>
                 <th className="sticky-col-1 col-player">Player</th>
                 {gamesWithLineups.map((g) => (
-                  <VerticalGameHeader key={g.id} game={g} />
+                  <VerticalGameHeader key={g.id} game={g} showOpponent />
                 ))}
               </tr>
             </thead>
@@ -169,7 +168,7 @@ export default function TrackingPage({
               <tr>
                 <th className="sticky-col-1 col-player">Player</th>
                 {gamesWithLineups.map((g) => (
-                  <VerticalGameHeader key={g.id} game={g} />
+                  <VerticalGameHeader key={g.id} game={g} showOpponent />
                 ))}
               </tr>
             </thead>
