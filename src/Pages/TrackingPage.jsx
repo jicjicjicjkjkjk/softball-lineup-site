@@ -20,20 +20,20 @@ export default function TrackingPage({
 }) {
   return (
     <div className="stack">
-      <div className="card">
-        <div className="table-scroll">
-          <h3>Batting Order Tracking</h3>
-          <table className="table-center" style={{ tableLayout: 'fixed' }}>
+      <div className="card tracking-card">
+        <h3>Batting Order Tracking</h3>
+        <div className="tracking-scroll">
+          <table className="tracking-table">
             <thead>
               <tr>
-                <th className="player-col">Player</th>
-                <th>Avg</th>
+                <th className="sticky-col-1 col-player">Player</th>
+                <th className="sticky-col-2 col-avg">Avg</th>
                 {gamesWithLineups.map((g, idx) => (
                   <VerticalHeader
                     key={g.id}
                     top={String(idx + 1)}
                     bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
-                    minWidth={60}
+                    minWidth={56}
                     height={230}
                   />
                 ))}
@@ -42,10 +42,12 @@ export default function TrackingPage({
             <tbody>
               {battingRows.map((row) => (
                 <tr key={row.playerId}>
-                  <td className="player-col">{row.name}</td>
-                  <td>{row.avg}</td>
+                  <td className="sticky-col-1 col-player">{row.name}</td>
+                  <td className="sticky-col-2 col-avg">{row.avg}</td>
                   {row.perGame.map((v, i) => (
-                    <td key={i}>{v}</td>
+                    <td key={i} className="col-small">
+                      {v}
+                    </td>
                   ))}
                 </tr>
               ))}
@@ -54,13 +56,13 @@ export default function TrackingPage({
         </div>
       </div>
 
-      <div className="card">
-        <div className="table-scroll">
-          <h3>Sitting Out Summary</h3>
-          <table className="table-center" style={{ tableLayout: 'fixed' }}>
+      <div className="card tracking-card">
+        <h3>Sitting Out Summary</h3>
+        <div className="tracking-scroll">
+          <table className="tracking-table">
             <thead>
               <tr>
-                <th>Metric</th>
+                <th className="sticky-col-1 col-metric">Metric</th>
                 {gamesWithLineups.map((g, idx) => (
                   <VerticalHeader
                     key={g.id}
@@ -74,33 +76,43 @@ export default function TrackingPage({
             </thead>
             <tbody>
               <tr>
-                <td>Total Players</td>
+                <td className="sticky-col-1 col-metric">Total Players</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId}>{g.totalPlayers}</td>
+                  <td key={g.gameId} className="col-small">
+                    {g.totalPlayers}
+                  </td>
                 ))}
               </tr>
               <tr>
-                <td>Innings</td>
+                <td className="sticky-col-1 col-metric">Innings</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId}>{g.innings}</td>
+                  <td key={g.gameId} className="col-small">
+                    {g.innings}
+                  </td>
                 ))}
               </tr>
               <tr>
-                <td># Sit Outs</td>
+                <td className="sticky-col-1 col-metric"># Sit Outs</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId}>{g.sitOuts}</td>
+                  <td key={g.gameId} className="col-small">
+                    {g.sitOuts}
+                  </td>
                 ))}
               </tr>
               <tr>
-                <td>Injury</td>
+                <td className="sticky-col-1 col-metric">Injury</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId}>{g.injury}</td>
+                  <td key={g.gameId} className="col-small">
+                    {g.injury}
+                  </td>
                 ))}
               </tr>
               <tr>
-                <td>Average Out</td>
+                <td className="sticky-col-1 col-metric">Average Out</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId}>{g.avgSit}</td>
+                  <td key={g.gameId} className="col-small">
+                    {g.avgSit}
+                  </td>
                 ))}
               </tr>
             </tbody>
@@ -108,13 +120,13 @@ export default function TrackingPage({
         </div>
       </div>
 
-      <div className="card">
-        <div className="table-scroll">
-          <h3>Sit Outs by Player</h3>
-          <table className="table-center" style={{ tableLayout: 'fixed' }}>
+      <div className="card tracking-card">
+        <h3>Sit Outs by Player</h3>
+        <div className="tracking-scroll">
+          <table className="tracking-table">
             <thead>
               <tr>
-                <th className="player-col">Player</th>
+                <th className="sticky-col-1 col-player">Player</th>
                 {gamesWithLineups.map((g, idx) => (
                   <VerticalHeader
                     key={g.id}
@@ -129,9 +141,11 @@ export default function TrackingPage({
             <tbody>
               {sitByPlayer.map((row) => (
                 <tr key={row.playerId}>
-                  <td className="player-col">{row.name}</td>
+                  <td className="sticky-col-1 col-player">{row.name}</td>
                   {row.perGame.map((v, i) => (
-                    <td key={i}>{v}</td>
+                    <td key={i} className="col-small">
+                      {v}
+                    </td>
                   ))}
                 </tr>
               ))}
@@ -141,10 +155,10 @@ export default function TrackingPage({
           <div style={{ height: 16 }} />
 
           <h3 style={{ marginTop: 0 }}>Sit Out Running Total (vs Expected)</h3>
-          <table className="table-center" style={{ tableLayout: 'fixed' }}>
+          <table className="tracking-table">
             <thead>
               <tr>
-                <th className="player-col">Player</th>
+                <th className="sticky-col-1 col-player">Player</th>
                 {gamesWithLineups.map((g, idx) => (
                   <VerticalHeader
                     key={g.id}
@@ -159,9 +173,11 @@ export default function TrackingPage({
             <tbody>
               {sitByPlayer.map((row) => (
                 <tr key={`${row.playerId}-running`}>
-                  <td className="player-col">{row.name}</td>
+                  <td className="sticky-col-1 col-player">{row.name}</td>
                   {row.running.map((v, i) => (
-                    <td key={i}>{v}</td>
+                    <td key={i} className="col-small">
+                      {v}
+                    </td>
                   ))}
                 </tr>
               ))}
@@ -170,69 +186,69 @@ export default function TrackingPage({
         </div>
       </div>
 
-      <div className="card">
-        <div className="table-scroll">
-          <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
-            <div style={{ minWidth: 260 }}>
-              <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
-                <option value="">Select Player</option>
-                {activePlayers.map((p) => (
-                  <option key={p.id} value={pk(p.id)}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+      <div className="card tracking-card">
+        <div className="positioning-controls">
+          <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
+          <div className="positioning-player-select">
+            <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
+              <option value="">Select Player</option>
+              {activePlayers.map((p) => (
+                <option key={p.id} value={pk(p.id)}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
 
-          {trackingPlayerId ? (
-            <table className="table-center" style={{ tableLayout: 'fixed' }}>
+        {trackingPlayerId ? (
+          <div className="tracking-scroll">
+            <table className="tracking-table positioning-table">
               <thead>
                 <tr>
-                  <th>Game #</th>
-                  <th>Opponent</th>
-                  <th>Date</th>
-                  <th>Act</th>
-                  <th>P</th>
-                  <th>C</th>
-                  <th>1B</th>
-                  <th>2B</th>
-                  <th>3B</th>
-                  <th>SS</th>
-                  <th>LF</th>
-                  <th>CF</th>
-                  <th>RF</th>
-                  <th>Out</th>
-                  <th>IN</th>
+                  <th className="sticky-col-1 col-game">Game #</th>
+                  <th className="sticky-col-2 col-opponent">Opponent</th>
+                  <th className="sticky-col-3 col-date">Date</th>
+                  <th className="col-act">Act</th>
+                  <th className="col-small">P</th>
+                  <th className="col-small">C</th>
+                  <th className="col-small">1B</th>
+                  <th className="col-small">2B</th>
+                  <th className="col-small">3B</th>
+                  <th className="col-small">SS</th>
+                  <th className="col-small">LF</th>
+                  <th className="col-small">CF</th>
+                  <th className="col-small">RF</th>
+                  <th className="col-small">Out</th>
+                  <th className="col-small">IN</th>
                 </tr>
               </thead>
               <tbody>
                 {selectedPlayerPositions.map((row, idx) => (
                   <tr key={row.gameId}>
-                    <td>{idx + 1}</td>
-                    <td>{row.opponent}</td>
-                    <td>{formatDateShort(row.date)}</td>
-                    <td>{row.active}</td>
-                    <td>{row.P || ''}</td>
-                    <td>{row.C || ''}</td>
-                    <td>{row['1B'] || ''}</td>
-                    <td>{row['2B'] || ''}</td>
-                    <td>{row['3B'] || ''}</td>
-                    <td>{row.SS || ''}</td>
-                    <td>{row.LF || ''}</td>
-                    <td>{row.CF || ''}</td>
-                    <td>{row.RF || ''}</td>
-                    <td>{row.Out || ''}</td>
-                    <td>Yes</td>
+                    <td className="sticky-col-1 col-game">{idx + 1}</td>
+                    <td className="sticky-col-2 col-opponent">{row.opponent}</td>
+                    <td className="sticky-col-3 col-date">{formatDateShort(row.date)}</td>
+                    <td className="col-act">{row.active}</td>
+                    <td className="col-small">{row.P || ''}</td>
+                    <td className="col-small">{row.C || ''}</td>
+                    <td className="col-small">{row['1B'] || ''}</td>
+                    <td className="col-small">{row['2B'] || ''}</td>
+                    <td className="col-small">{row['3B'] || ''}</td>
+                    <td className="col-small">{row.SS || ''}</td>
+                    <td className="col-small">{row.LF || ''}</td>
+                    <td className="col-small">{row.CF || ''}</td>
+                    <td className="col-small">{row.RF || ''}</td>
+                    <td className="col-small">{row.Out || ''}</td>
+                    <td className="col-small">Yes</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          ) : (
-            <p>Select a player to view by-game positioning.</p>
-          )}
-        </div>
+          </div>
+        ) : (
+          <p>Select a player to view by-game positioning.</p>
+        )}
       </div>
 
       <TrackingTable
