@@ -910,8 +910,8 @@ thead th {
 
 .lineup-setter-new-game-action button {
   height: 100%;
-  min-height: 100%;
   padding: 12px 18px;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {
@@ -925,5 +925,6 @@ thead th {
 
   .lineup-setter-new-game-action button {
     width: 100%;
+    height: auto;
   }
 }
