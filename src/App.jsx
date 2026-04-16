@@ -19,6 +19,7 @@ import {
 } from './lib/lineupUtils'
 
 import GamesPage from './pages/GamesPage'
+import TrackingTable from './components/TrackingTable'
 
 const TEAM_ID = 'f76ea5a1-7c44-4789-bfbd-9771edd54f10'
 
@@ -110,7 +111,7 @@ import MiniDiamond from './components/MiniDiamond'
   )
 }
 
-import TrackingTable from './components/TrackingTable'
+
 
 function LineupGrid({
   players,
