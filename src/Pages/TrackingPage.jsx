@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import { formatDateShort } from '../lib/appHelpers'
 
 console.log('TRACKING PAGE NEW VERSION')
@@ -16,7 +17,7 @@ function shortenOpponent(name = '') {
   return `${words[0].slice(0, 3)} ${words[1].slice(0, 3)}`
 }
 
-function RotatedGameHeader({ game }) {
+function RotatedGameHeader({ game, onClick }) {
   const shortName = shortenOpponent(game?.opponent || '')
   const shortDate = formatDateShort(game?.date || '')
   const label = [shortName, shortDate].filter(Boolean).join(' ')
@@ -24,6 +25,7 @@ function RotatedGameHeader({ game }) {
   return (
     <th
       className="tracking-vertical"
+      onClick={onClick}
       style={{
         width: 34,
         minWidth: 34,
@@ -36,6 +38,7 @@ function RotatedGameHeader({ game }) {
         textAlign: 'center',
         overflow: 'hidden',
         background: '#e6f4f4',
+        cursor: 'pointer',
       }}
     >
       <div
@@ -55,8 +58,36 @@ function RotatedGameHeader({ game }) {
   )
 }
 
+function nextSort(current, key) {
+  if (current.key !== key) return { key, direction: 'asc' }
+  return {
+    key,
+    direction: current.direction === 'asc' ? 'desc' : 'asc',
+  }
+}
+
+function compareValues(a, b, direction = 'asc') {
+  const aVal = a ?? ''
+  const bVal = b ?? ''
+
+  const aNum = Number(aVal)
+  const bNum = Number(bVal)
+  const aIsNum = aVal !== '' && !Number.isNaN(aNum)
+  const bIsNum = bVal !== '' && !Number.isNaN(bNum)
+
+  let result = 0
+
+  if (aIsNum && bIsNum) {
+    result = aNum - bNum
+  } else {
+    result = String(aVal).localeCompare(String(bVal))
+  }
+
+  return direction === 'asc' ? result : -result
+}
+
 const centerCell = { textAlign: 'center', verticalAlign: 'middle' }
-const centerHeader = { textAlign: 'center', verticalAlign: 'middle' }
+const centerHeader = { textAlign: 'center', verticalAlign: 'middle', cursor: 'pointer' }
 
 const playerHeaderStyle = {
   width: 86,
@@ -64,6 +95,7 @@ const playerHeaderStyle = {
   maxWidth: 86,
   textAlign: 'left',
   verticalAlign: 'middle',
+  cursor: 'pointer',
 }
 
 const playerCellStyle = {
@@ -79,6 +111,7 @@ const avgHeaderStyle = {
   maxWidth: 52,
   textAlign: 'center',
   verticalAlign: 'middle',
+  cursor: 'pointer',
 }
 
 const avgCellStyle = {
@@ -121,6 +154,41 @@ export default function TrackingPage({
   trackingPriorityRows,
   pk,
 }) {
+  const [battingSort, setBattingSort] = useState({ key: 'name', direction: 'asc' })
+  const [sitOutSort, setSitOutSort] = useState({ key: 'name', direction: 'asc' })
+  const [runningSort, setRunningSort] = useState({ key: 'name', direction: 'asc' })
+
+  const sortedBattingRows = useMemo(() => {
+    const rows = [...battingRows]
+    return rows.sort((a, b) => {
+      if (battingSort.key === 'name') return compareValues(a.name, b.name, battingSort.direction)
+      if (battingSort.key === 'avg') return compareValues(a.avg, b.avg, battingSort.direction)
+
+      const gameIndex = Number(battingSort.key.replace('game-', ''))
+      return compareValues(a.perGame[gameIndex], b.perGame[gameIndex], battingSort.direction)
+    })
+  }, [battingRows, battingSort])
+
+  const sortedSitByPlayerRows = useMemo(() => {
+    const rows = [...sitByPlayer]
+    return rows.sort((a, b) => {
+      if (sitOutSort.key === 'name') return compareValues(a.name, b.name, sitOutSort.direction)
+
+      const gameIndex = Number(sitOutSort.key.replace('game-', ''))
+      return compareValues(a.perGame[gameIndex], b.perGame[gameIndex], sitOutSort.direction)
+    })
+  }, [sitByPlayer, sitOutSort])
+
+  const sortedRunningRows = useMemo(() => {
+    const rows = [...sitByPlayer]
+    return rows.sort((a, b) => {
+      if (runningSort.key === 'name') return compareValues(a.name, b.name, runningSort.direction)
+
+      const gameIndex = Number(runningSort.key.replace('game-', ''))
+      return compareValues(a.running[gameIndex], b.running[gameIndex], runningSort.direction)
+    })
+  }, [sitByPlayer, runningSort])
+
   return (
     <div className="stack">
       <div className="card tracking-card">
@@ -129,26 +197,38 @@ export default function TrackingPage({
           <table className="tracking-table">
             <thead>
               <tr>
-                <th className="sticky-col-1 col-player" style={playerHeaderStyle}>
-  Player
-</th>
-<th className="sticky-col-2 col-avg" style={avgHeaderStyle}>
-  Avg
-</th>
-                {gamesWithLineups.map((g) => (
-                  <RotatedGameHeader key={g.id} game={g} />
+                <th
+                  className="sticky-col-1 col-player"
+                  style={playerHeaderStyle}
+                  onClick={() => setBattingSort((s) => nextSort(s, 'name'))}
+                >
+                  Player
+                </th>
+                <th
+                  className="sticky-col-2 col-avg"
+                  style={avgHeaderStyle}
+                  onClick={() => setBattingSort((s) => nextSort(s, 'avg'))}
+                >
+                  Avg
+                </th>
+                {gamesWithLineups.map((g, i) => (
+                  <RotatedGameHeader
+                    key={g.id}
+                    game={g}
+                    onClick={() => setBattingSort((s) => nextSort(s, `game-${i}`))}
+                  />
                 ))}
               </tr>
             </thead>
             <tbody>
-              {battingRows.map((row) => (
+              {sortedBattingRows.map((row) => (
                 <tr key={row.playerId}>
                   <td className="sticky-col-1 col-player" style={playerCellStyle}>
-  {row.name}
-</td>
-<td className="sticky-col-2 col-avg" style={avgCellStyle}>
-  {row.avg}
-</td>
+                    {row.name}
+                  </td>
+                  <td className="sticky-col-2 col-avg" style={avgCellStyle}>
+                    {row.avg}
+                  </td>
                   {row.perGame.map((v, i) => (
                     <td key={i} className="col-small" style={centerCell}>
                       {v}
@@ -168,8 +248,8 @@ export default function TrackingPage({
             <thead>
               <tr>
                 <th className="sticky-col-1 col-metric" style={metricHeaderStyle}>
-  Metric
-</th>
+                  Metric
+                </th>
                 {gamesWithLineups.map((g) => (
                   <RotatedGameHeader key={g.id} game={g} />
                 ))}
@@ -177,33 +257,53 @@ export default function TrackingPage({
             </thead>
             <tbody>
               <tr>
-                <td className="sticky-col-1 col-metric" style={metricCellStyle}>Total Players</td>
+                <td className="sticky-col-1 col-metric" style={metricCellStyle}>
+                  Total Players
+                </td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small" style={centerCell}>{g.totalPlayers}</td>
+                  <td key={g.gameId} className="col-small" style={centerCell}>
+                    {g.totalPlayers}
+                  </td>
                 ))}
               </tr>
               <tr>
-                <td className="sticky-col-1 col-metric" style={metricCellStyle}>Innings</td>
+                <td className="sticky-col-1 col-metric" style={metricCellStyle}>
+                  Innings
+                </td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small" style={centerCell}>{g.innings}</td>
+                  <td key={g.gameId} className="col-small" style={centerCell}>
+                    {g.innings}
+                  </td>
                 ))}
               </tr>
               <tr>
-                <td className="sticky-col-1 col-metric" style={metricCellStyle}># Sit Outs</td>
+                <td className="sticky-col-1 col-metric" style={metricCellStyle}>
+                  # Sit Outs
+                </td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small" style={centerCell}>{g.sitOuts}</td>
+                  <td key={g.gameId} className="col-small" style={centerCell}>
+                    {g.sitOuts}
+                  </td>
                 ))}
               </tr>
               <tr>
-                <td className="sticky-col-1 col-metric" style={metricCellStyle}>Injury</td>
+                <td className="sticky-col-1 col-metric" style={metricCellStyle}>
+                  Injury
+                </td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small" style={centerCell}>{g.injury}</td>
+                  <td key={g.gameId} className="col-small" style={centerCell}>
+                    {g.injury}
+                  </td>
                 ))}
               </tr>
               <tr>
-                <td className="sticky-col-1 col-metric" style={metricCellStyle}>Average Out</td>
+                <td className="sticky-col-1 col-metric" style={metricCellStyle}>
+                  Average Out
+                </td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small" style={centerCell}>{g.avgSit}</td>
+                  <td key={g.gameId} className="col-small" style={centerCell}>
+                    {g.avgSit}
+                  </td>
                 ))}
               </tr>
             </tbody>
@@ -217,23 +317,31 @@ export default function TrackingPage({
           <table className="tracking-table">
             <thead>
               <tr>
-                <th className="sticky-col-1 col-player" style={playerHeaderStyle}>
-  Player
-</th>
-                {gamesWithLineups.map((g) => (
-                  <RotatedGameHeader key={g.id} game={g} />
+                <th
+                  className="sticky-col-1 col-player"
+                  style={playerHeaderStyle}
+                  onClick={() => setSitOutSort((s) => nextSort(s, 'name'))}
+                >
+                  Player
+                </th>
+                {gamesWithLineups.map((g, i) => (
+                  <RotatedGameHeader
+                    key={g.id}
+                    game={g}
+                    onClick={() => setSitOutSort((s) => nextSort(s, `game-${i}`))}
+                  />
                 ))}
               </tr>
             </thead>
             <tbody>
-              {sitByPlayer.map((row) => (
+              {sortedSitByPlayerRows.map((row) => (
                 <tr key={row.playerId}>
                   <td className="sticky-col-1 col-player" style={playerCellStyle}>
-  {row.name}
-</td>
+                    {row.name}
+                  </td>
                   {row.perGame.map((v, i) => (
                     <td key={i} className="col-small" style={centerCell}>
-                      {v}
+                      {v === '' || v === null || v === undefined ? 'x' : v}
                     </td>
                   ))}
                 </tr>
@@ -247,20 +355,28 @@ export default function TrackingPage({
           <table className="tracking-table">
             <thead>
               <tr>
-                <th className="sticky-col-1 col-player" style={playerHeaderStyle}>
-  Player
-</th>
-                {gamesWithLineups.map((g) => (
-                  <RotatedGameHeader key={g.id} game={g} />
+                <th
+                  className="sticky-col-1 col-player"
+                  style={playerHeaderStyle}
+                  onClick={() => setRunningSort((s) => nextSort(s, 'name'))}
+                >
+                  Player
+                </th>
+                {gamesWithLineups.map((g, i) => (
+                  <RotatedGameHeader
+                    key={g.id}
+                    game={g}
+                    onClick={() => setRunningSort((s) => nextSort(s, `game-${i}`))}
+                  />
                 ))}
               </tr>
             </thead>
             <tbody>
-              {sitByPlayer.map((row) => (
+              {sortedRunningRows.map((row) => (
                 <tr key={`${row.playerId}-running`}>
                   <td className="sticky-col-1 col-player" style={playerCellStyle}>
-  {row.name}
-</td>
+                    {row.name}
+                  </td>
                   {row.running.map((v, i) => (
                     <td key={i} className="col-small" style={centerCell}>
                       {v}
