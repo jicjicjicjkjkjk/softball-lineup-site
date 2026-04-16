@@ -116,6 +116,57 @@ export default function App() {
     loadAll()
   }, [])
 
+const {
+  activePlayers,
+  activePlayerIds,
+  selectedGame,
+  selectedLineup,
+  selectedLocked,
+  sortedPlayers,
+  sortedGames,
+  orderedGamesAsc,
+  activePriorityRows,
+  allowedRows,
+  priorityFooter,
+  optimizerBatchGames,
+  optimizerFocusGame,
+  optimizerFocusLineup,
+  lockedLineupsOnly,
+  trackingLockedLineups,
+  ytdBeforeTotals,
+  currentBatchTotals,
+  ytdAfterTotals,
+  trackingTotals,
+  battingRows,
+  sitSummary,
+  sitByPlayer,
+  selectedPlayerPositions,
+  trackingPriorityRows,
+  filteredAttendanceEvents,
+  attendanceTotals,
+  attendanceBreakdownByPlayer,
+} = useAppDerivedData({
+  players,
+  games,
+  lineupsByGame,
+  lineupLockedByGame,
+  priorityByPlayer,
+  fitByPlayer,
+  optimizerBatchGameIds,
+  optimizerFocusGameId,
+  optimizerPreviewByGame,
+  selectedGameId,
+  playerSort,
+  gameSort,
+  prioritySort,
+  allowedSort,
+  trackingSort,
+  attendanceEvents,
+  attendanceSort,
+  attendanceByEvent,
+  trackingPlayerId,
+})
+  
   async function loadAll() {
     setLoading(true)
     setAppError('')
