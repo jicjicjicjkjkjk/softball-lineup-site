@@ -1632,123 +1632,126 @@ export default function App() {
     )
   }
 
-  function renderPositioningPriorityPage() {
+
+    function renderPositioningPriorityPage() {
     return (
       <div className="stack">
         <div className="card">
-  <div className="table-scroll">
-          <h2>Positioning Priority</h2>
-          <p className="small-note" style={{ marginBottom: 12 }}>
-            These percentages are used as a target share of that player’s field innings.
-          </p>
+          <div className="table-scroll">
+            <h2>Positioning Priority</h2>
+            <p className="small-note" style={{ marginBottom: 12 }}>
+              These percentages are used as a target share of that player’s field innings.
+            </p>
 
-          <table className="table-center" style={{ tableLayout: 'fixed' }}>
-            <thead>
-              <tr>
-                <th onClick={() => setPrioritySort(nextSort(prioritySort, 'name'))}>Player</th>
-                <th onClick={() => setPrioritySort(nextSort(prioritySort, 'jersey_number'))}>#</th>
-                {PRIORITY_POSITIONS.map((position) => (
-                  <th key={position} onClick={() => setPrioritySort(nextSort(prioritySort, position))}>
-                    {position}
-                  </th>
-                ))}
-                <th onClick={() => setPrioritySort(nextSort(prioritySort, 'subtotal'))}>Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activePriorityRows.map((row) => (
-                <tr key={row.playerId}>
-                  <td className="player-col">{row.name}</td>
-                  <td>{row.jersey_number}</td>
+            <table className="table-center" style={{ tableLayout: 'fixed' }}>
+              <thead>
+                <tr>
+                  <th onClick={() => setPrioritySort(nextSort(prioritySort, 'name'))}>Player</th>
+                  <th onClick={() => setPrioritySort(nextSort(prioritySort, 'jersey_number'))}>#</th>
                   {PRIORITY_POSITIONS.map((position) => (
-                    <td key={position}>
-                      <input
-                        className="input-center"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={row[position]}
-                        onChange={(e) => updatePriorityLocal(row.playerId, position, e.target.value)}
-                        onBlur={(e) => persistPriority(row.playerId, position, e.target.value)}
-                      />
-                    </td>
+                    <th key={position} onClick={() => setPrioritySort(nextSort(prioritySort, position))}>
+                      {position}
+                    </th>
                   ))}
-                  <td>{row.subtotal}</td>
+                  <th onClick={() => setPrioritySort(nextSort(prioritySort, 'subtotal'))}>Subtotal</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th colSpan="2">Subtotal</th>
-                {PRIORITY_POSITIONS.map((position) => (
-                  <th key={position}>{priorityFooter[position]}</th>
+              </thead>
+              <tbody>
+                {activePriorityRows.map((row) => (
+                  <tr key={row.playerId}>
+                    <td className="player-col">{row.name}</td>
+                    <td>{row.jersey_number}</td>
+                    {PRIORITY_POSITIONS.map((position) => (
+                      <td key={position}>
+                        <input
+                          className="input-center"
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={row[position]}
+                          onChange={(e) => updatePriorityLocal(row.playerId, position, e.target.value)}
+                          onBlur={(e) => persistPriority(row.playerId, position, e.target.value)}
+                        />
+                      </td>
+                    ))}
+                    <td>{row.subtotal}</td>
+                  </tr>
                 ))}
-                <th>{priorityFooter.subtotal}</th>
-              </tr>
-            </tfoot>
-          </table>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th colSpan="2">Subtotal</th>
+                  {PRIORITY_POSITIONS.map((position) => (
+                    <th key={position}>{priorityFooter[position]}</th>
+                  ))}
+                  <th>{priorityFooter.subtotal}</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
 
         <div className="card">
-  <div className="table-scroll">
-          <h3>Allowed Positions</h3>
-          <table className="table-center" style={{ tableLayout: 'fixed' }}>
-            <thead>
-              <tr>
-                <th onClick={() => setAllowedSort(nextSort(allowedSort, 'name'))}>Player</th>
-                <th onClick={() => setAllowedSort(nextSort(allowedSort, 'jersey_number'))}>#</th>
-                {ALLOWED_POSITIONS.map((position) => (
-                  <th key={position} onClick={() => setAllowedSort(nextSort(allowedSort, position))}>
-                    {position}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {allowedRows.map((row) => (
-                <tr key={row.playerId}>
-                  <td className="player-col">{row.name}</td>
-                  <td>{row.jersey_number}</td>
-                  {ALLOWED_POSITIONS.map((position) => {
-                    const tier = fitByPlayer[row.playerId]?.[position] || 'secondary'
-                    const lockedPrimary =
-                      Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0 ||
-                      (['LF', 'RF'].includes(position) &&
-                        Number(priorityByPlayer[row.playerId]?.OF?.priority_pct || 0) > 0)
-
-                    const background =
-                      tier === 'primary'
-                        ? '#dcfce7'
-                        : tier === 'secondary'
-                        ? '#fef3c7'
-                        : '#fee2e2'
-
-                    return (
-                      <td key={position}>
-                        <select
-                          value={lockedPrimary ? 'primary' : tier}
-                          style={{ background }}
-                          disabled={lockedPrimary}
-                          onChange={(e) => {
-                            updateFitLocal(row.playerId, position, e.target.value)
-                            persistFitTier(row.playerId, position, e.target.value)
-                          }}
-                        >
-                          <option value="primary">Primary</option>
-                          <option value="secondary">Non-Primary</option>
-                          <option value="no">No</option>
-                        </select>
-                      </td>
-                    )
-                  })}
+          <div className="table-scroll">
+            <h3>Allowed Positions</h3>
+            <table className="table-center" style={{ tableLayout: 'fixed' }}>
+              <thead>
+                <tr>
+                  <th onClick={() => setAllowedSort(nextSort(allowedSort, 'name'))}>Player</th>
+                  <th onClick={() => setAllowedSort(nextSort(allowedSort, 'jersey_number'))}>#</th>
+                  {ALLOWED_POSITIONS.map((position) => (
+                    <th key={position} onClick={() => setAllowedSort(nextSort(allowedSort, position))}>
+                      {position}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {allowedRows.map((row) => (
+                  <tr key={row.playerId}>
+                    <td className="player-col">{row.name}</td>
+                    <td>{row.jersey_number}</td>
+                    {ALLOWED_POSITIONS.map((position) => {
+                      const tier = fitByPlayer[row.playerId]?.[position] || 'secondary'
+                      const lockedPrimary =
+                        Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0 ||
+                        (['LF', 'RF'].includes(position) &&
+                          Number(priorityByPlayer[row.playerId]?.OF?.priority_pct || 0) > 0)
+
+                      const background =
+                        tier === 'primary'
+                          ? '#dcfce7'
+                          : tier === 'secondary'
+                          ? '#fef3c7'
+                          : '#fee2e2'
+
+                      return (
+                        <td key={position}>
+                          <select
+                            value={lockedPrimary ? 'primary' : tier}
+                            style={{ background }}
+                            disabled={lockedPrimary}
+                            onChange={(e) => {
+                              updateFitLocal(row.playerId, position, e.target.value)
+                              persistFitTier(row.playerId, position, e.target.value)
+                            }}
+                          >
+                            <option value="primary">Primary</option>
+                            <option value="secondary">Non-Primary</option>
+                            <option value="no">No</option>
+                          </select>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     )
-  }
+  }      
 
  
   function renderGameDetailPage() {
@@ -1865,7 +1868,7 @@ export default function App() {
     )
   }
 
-  function renderLineupSetterPage() {
+    function renderLineupSetterPage() {
     const focusStatuses = optimizerFocusLineup
       ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
           inning,
@@ -1928,65 +1931,78 @@ export default function App() {
           </div>
         </div>
 
-        <div className="card">   <div className="table-scroll">
-          <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
-            <div className="actions-inline">
-              <button onClick={runOptimizeCurrent} disabled={!optimizerFocusGameId}>Optimize Game Viewing</button>
-              <button onClick={runOptimizeAll} disabled={!optimizerBatchGames.length}>Optimize All Games in Plan</button>
+        <div className="card">
+          <div className="table-scroll">
+            <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
+              <div className="actions-inline">
+                <button onClick={runOptimizeCurrent} disabled={!optimizerFocusGameId}>
+                  Optimize Game Viewing
+                </button>
+                <button onClick={runOptimizeAll} disabled={!optimizerBatchGames.length}>
+                  Optimize All Games in Plan
+                </button>
+              </div>
             </div>
-          </div>
 
-          <table className="table-center" style={{ tableLayout: 'fixed' }}>
-            <thead>
-              <tr>
-                <th>Focus</th>
-                <th>Date</th>
-                <th>Order</th>
-                <th>Opponent</th>
-                <th>Type</th>
-                <th>Innings</th>
-                <th>Req. Outs</th>
-                <th>Save</th>
-                <th>Remove</th>
-              </tr>
-            </thead>
-            <tbody>
-              {optimizerBatchGames.map((game) => {
-                const lineup =
-                  optimizerPreviewByGame[pk(game.id)] ||
-                  lineupsByGame[pk(game.id)] ||
-                  blankLineup(activePlayers.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
-
-                const effectiveInnings = Number(lineup?.innings || game.innings || 6)
-                const effectiveRequiredOuts = requiredOutsForGame((lineup.availablePlayerIds || []).length, effectiveInnings)
-
-                return (
-                  <tr key={game.id}>
-                    <td>
-                      <button onClick={() => setOptimizerFocusGameId(pk(game.id))}>
-                        {pk(optimizerFocusGameId) === pk(game.id) ? 'Viewing' : 'Open'}
-                      </button>
-                    </td>
-                    <td>{formatDateShort(game.date)}</td>
-                    <td>{game.game_order ?? ''}</td>
-                    <td>{game.opponent || 'Opponent'}</td>
-                    <td>{game.game_type || GAME_TYPES[0]}</td>
-                    <td>{effectiveInnings}</td>
-                    <td>{effectiveRequiredOuts}</td>
-                    <td><button onClick={() => savePreview(game.id)}>Save</button></td>
-                    <td><button onClick={() => removeBatchGame(game.id)}>Remove</button></td>
-                  </tr>
-                )
-              })}
-
-              {!optimizerBatchGames.length && (
+            <table className="table-center" style={{ tableLayout: 'fixed' }}>
+              <thead>
                 <tr>
-                  <td colSpan="9">No games in current plan.</td>
+                  <th>Focus</th>
+                  <th>Date</th>
+                  <th>Order</th>
+                  <th>Opponent</th>
+                  <th>Type</th>
+                  <th>Innings</th>
+                  <th>Req. Outs</th>
+                  <th>Save</th>
+                  <th>Remove</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {optimizerBatchGames.map((game) => {
+                  const lineup =
+                    optimizerPreviewByGame[pk(game.id)] ||
+                    lineupsByGame[pk(game.id)] ||
+                    blankLineup(activePlayers.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
+
+                  const effectiveInnings = Number(lineup?.innings || game.innings || 6)
+                  const effectiveRequiredOuts = requiredOutsForGame(
+                    (lineup.availablePlayerIds || []).length,
+                    effectiveInnings
+                  )
+
+                  return (
+                    <tr key={game.id}>
+                      <td>
+                        <button onClick={() => setOptimizerFocusGameId(pk(game.id))}>
+                          {pk(optimizerFocusGameId) === pk(game.id) ? 'Viewing' : 'Open'}
+                        </button>
+                      </td>
+                      <td>{formatDateShort(game.date)}</td>
+                      <td>{game.game_order ?? ''}</td>
+                      <td>{game.opponent || 'Opponent'}</td>
+                      <td>{game.game_type || GAME_TYPES[0]}</td>
+                      <td>{effectiveInnings}</td>
+                      <td>{effectiveRequiredOuts}</td>
+                      <td>
+                        <button onClick={() => savePreview(game.id)}>Save</button>
+                      </td>
+                      <td>
+                        <button onClick={() => removeBatchGame(game.id)}>Remove</button>
+                      </td>
+                    </tr>
+                  )
+                })}
+
+                {!optimizerBatchGames.length && (
+                  <tr>
+                    <td colSpan="9">No games in current plan.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {optimizerFocusGame && (
@@ -1994,7 +2010,8 @@ export default function App() {
             <div className="card">
               <div className="row-between wrap-row">
                 <h3 style={{ margin: 0 }}>
-                  Selected Game: {formatDateShort(optimizerFocusGame.date) || 'No Date'} vs {optimizerFocusGame.opponent || 'Opponent'}
+                  Selected Game: {formatDateShort(optimizerFocusGame.date) || 'No Date'} vs{' '}
+                  {optimizerFocusGame.opponent || 'Opponent'}
                 </h3>
 
                 {optimizerFocusLineup && (
@@ -2015,7 +2032,11 @@ export default function App() {
                   const lineup =
                     optimizerPreviewByGame[pk(optimizerFocusGame.id)] ||
                     lineupsByGame[pk(optimizerFocusGame.id)] ||
-                    blankLineup(activePlayers.map((p) => p.id), Number(optimizerFocusGame.innings || 6), activePlayerIds())
+                    blankLineup(
+                      activePlayers.map((p) => p.id),
+                      Number(optimizerFocusGame.innings || 6),
+                      activePlayerIds()
+                    )
 
                   return (
                     <label key={player.id} className="checkbox-item">
@@ -2042,26 +2063,36 @@ export default function App() {
                         {status.duplicate.length ? `Duplicate ${status.duplicate.join(', ')}. ` : ''}
                         {status.missing.length ? `Missing ${status.missing.join(', ')}. ` : ''}
                         {status.badFits.length ? `Disallowed ${status.badFits.join('; ')}. ` : ''}
-                        {!status.duplicate.length && !status.missing.length && !status.badFits.length ? 'Looks good.' : ''}
+                        {!status.duplicate.length && !status.missing.length && !status.badFits.length
+                          ? 'Looks good.'
+                          : ''}
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="card">   <div className="table-scroll">
-                  <h3>Grid</h3>
-                  <LineupGrid
-                    players={activePlayers}
-                    lineup={optimizerFocusLineup}
-                    fitMap={fitByPlayer}
-                    showLocks={true}
-                    lockedLineup={false}
-                    visiblePlayerIds={visibleIds}
-                    onCellChange={(playerId, inning, value) => updatePreviewCell(optimizerFocusGame.id, playerId, inning, value)}
-                    onBattingChange={(playerId, value) => updatePreviewBatting(optimizerFocusGame.id, playerId, value)}
-                    onCellLockToggle={(playerId, inning) => togglePreviewCellLock(optimizerFocusGame.id, playerId, inning)}
-                    onRowLockToggle={(playerId) => togglePreviewRowLock(optimizerFocusGame.id, playerId)}
-                  />
+                <div className="card">
+                  <div className="table-scroll">
+                    <h3>Grid</h3>
+                    <LineupGrid
+                      players={activePlayers}
+                      lineup={optimizerFocusLineup}
+                      fitMap={fitByPlayer}
+                      showLocks={true}
+                      lockedLineup={false}
+                      visiblePlayerIds={visibleIds}
+                      onCellChange={(playerId, inning, value) =>
+                        updatePreviewCell(optimizerFocusGame.id, playerId, inning, value)
+                      }
+                      onBattingChange={(playerId, value) =>
+                        updatePreviewBatting(optimizerFocusGame.id, playerId, value)
+                      }
+                      onCellLockToggle={(playerId, inning) =>
+                        togglePreviewCellLock(optimizerFocusGame.id, playerId, inning)
+                      }
+                      onRowLockToggle={(playerId) => togglePreviewRowLock(optimizerFocusGame.id, playerId)}
+                    />
+                  </div>
                 </div>
               </>
             )}
