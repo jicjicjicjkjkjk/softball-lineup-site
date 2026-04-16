@@ -373,7 +373,8 @@ function TrackingTable({ title, totals, players, sortConfig, setSortConfig, univ
   )
 
   return (
-    <div className="card" style={{ overflowX: 'auto' }}>
+    <div className="card">
+  <div className="table-scroll">
       {universeLabel ? (
         <>
           <div className="summary-box" style={{ marginBottom: 16 }}>
@@ -411,7 +412,7 @@ function TrackingTable({ title, totals, players, sortConfig, setSortConfig, univ
         <tbody>
           {rows.map((row) => (
             <tr key={`${title}-${row.playerId}`}>
-              <td>{row.name}</td>
+              <td className="player-col">{row.name}</td>
               <td>{row.games}</td>
               <td>{row.fieldTotal}</td>
               <td>{row.Out}</td>
@@ -465,7 +466,7 @@ function LineupGrid({
       <thead>
         <tr>
           <th>#</th>
-          <th>Player</th>
+          <th className="player-col">Player</th>
           <th>Batting Order</th>
           {showLocks && <th>Lock</th>}
           {Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
@@ -1947,7 +1948,8 @@ export default function App() {
           </div>
         </div>
 
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card">
+  <div className="table-scroll">
           <table className="games-table">
             <thead>
               <tr>
@@ -2002,7 +2004,8 @@ export default function App() {
   function renderPositioningPriorityPage() {
     return (
       <div className="stack">
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card">
+  <div className="table-scroll">
           <h2>Positioning Priority</h2>
           <p className="small-note" style={{ marginBottom: 12 }}>
             These percentages are used as a target share of that player’s field innings.
@@ -2024,7 +2027,7 @@ export default function App() {
             <tbody>
               {activePriorityRows.map((row) => (
                 <tr key={row.playerId}>
-                  <td>{row.name}</td>
+                  <td className="player-col">{row.name}</td>
                   <td>{row.jersey_number}</td>
                   {PRIORITY_POSITIONS.map((position) => (
                     <td key={position}>
@@ -2055,7 +2058,8 @@ export default function App() {
           </table>
         </div>
 
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card">
+  <div className="table-scroll">
           <h3>Allowed Positions</h3>
           <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
@@ -2072,7 +2076,7 @@ export default function App() {
             <tbody>
               {allowedRows.map((row) => (
                 <tr key={row.playerId}>
-                  <td>{row.name}</td>
+                  <td className="player-col">{row.name}</td>
                   <td>{row.jersey_number}</td>
                   {ALLOWED_POSITIONS.map((position) => {
                     const tier = fitByPlayer[row.playerId]?.[position] || 'secondary'
@@ -2163,7 +2167,8 @@ export default function App() {
         </div>
       </div>
 
-      <div className="card" style={{ overflowX: 'auto' }}>
+      <div className="card">
+  <div className="table-scroll">
         <table className="games-table">
           <thead>
             <tr>
@@ -2435,7 +2440,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card">   <div className="table-scroll">
           <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
             <div className="actions-inline">
@@ -2555,7 +2560,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="card" style={{ overflowX: 'auto' }}>
+                <div className="card">   <div className="table-scroll">
                   <h3>Grid</h3>
                   <LineupGrid
                     players={activePlayers}
@@ -2606,12 +2611,12 @@ export default function App() {
 
     return (
       <div className="stack">
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card">   <div className="table-scroll">
           <h3>Batting Order Tracking</h3>
           <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
-                <th>Player</th>
+                <th className="player-col">Player</th>
                 <th>Avg</th>
                 {gamesWithLineups.map((g, idx) => (
                   <VerticalHeader
@@ -2627,7 +2632,7 @@ export default function App() {
             <tbody>
               {battingRows.map((row) => (
                 <tr key={row.playerId}>
-                  <td>{row.name}</td>
+                  <td className="player-col">{row.name}</td>
                   <td>{row.avg}</td>
                   {row.perGame.map((v, i) => (
                     <td key={i}>{v}</td>
@@ -2638,7 +2643,7 @@ export default function App() {
           </table>
         </div>
 
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card">   <div className="table-scroll">
           <h3>Sitting Out Summary</h3>
           <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
@@ -2680,12 +2685,12 @@ export default function App() {
           </table>
         </div>
 
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card">   <div className="table-scroll">
           <h3>Sit Outs by Player</h3>
           <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
-                <th>Player</th>
+                <th className="player-col">Player</th>
                 {gamesWithLineups.map((g, idx) => (
                   <VerticalHeader
   key={g.id}
@@ -2700,7 +2705,7 @@ export default function App() {
             <tbody>
               {sitByPlayer.map((row) => (
                 <tr key={row.playerId}>
-                  <td>{row.name}</td>
+                  <td className="player-col">{row.name}</td>
                   {row.perGame.map((v, i) => (
                     <td key={i}>{v}</td>
                   ))}
@@ -2715,7 +2720,7 @@ export default function App() {
           <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
-                <th>Player</th>
+                <th className="player-col">Player</th>
                 {gamesWithLineups.map((g, idx) => (
                   <VerticalHeader
   key={g.id}
@@ -2730,7 +2735,7 @@ export default function App() {
             <tbody>
               {sitByPlayer.map((row) => (
                 <tr key={`${row.playerId}-running`}>
-                  <td>{row.name}</td>
+                  <td className="player-col">{row.name}</td>
                   {row.running.map((v, i) => (
                     <td key={i}>{v}</td>
                   ))}
@@ -2740,7 +2745,7 @@ export default function App() {
           </table>
         </div>
 
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card">   <div className="table-scroll">
           <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
             <div style={{ minWidth: 260 }}>
@@ -2812,7 +2817,7 @@ export default function App() {
           setSortConfig={setTrackingSort}
         />
 
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card">   <div className="table-scroll">
           <h3>Tracking vs Positioning Priority</h3>
           <table className="table-center grouped-table">
             <thead>
@@ -2840,7 +2845,7 @@ export default function App() {
             <tbody>
               {trackingPriorityRows.map((row) => (
                 <tr key={row.playerId}>
-                  <td>{row.name}</td>
+                  <td className="player-col">{row.name}</td>
                   <td>{row.fieldTotal}</td>
                   <td>{row.targP}</td><td className="group-col">{row.actP}</td>
                   <td>{row.targC}</td><td className="group-col">{row.actC}</td>
@@ -2910,7 +2915,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card">   <div className="table-scroll">
           <h3>Attendance by Event</h3>
           <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
@@ -2993,12 +2998,13 @@ export default function App() {
           </table>
         </div>
 
-        <div className="card" style={{ overflowX: 'auto' }}>
+        <div className="card">
+  <div className="table-scroll">
           <h3>Attendance Participation Breakdown</h3>
           <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
-                <th>Player</th>
+                <th className="player-col">Player</th>
                 <th>In Season<br /><span style={{ fontSize: 12 }}>Total: {attendanceTotals.inSeason}</span></th>
                 <th>Out of Season<br /><span style={{ fontSize: 12 }}>Total: {attendanceTotals.outSeason}</span></th>
                 <th>P/C<br /><span style={{ fontSize: 12 }}>Total: {attendanceTotals.pitchersCatchers}</span></th>
@@ -3010,7 +3016,7 @@ export default function App() {
             <tbody>
               {attendanceBreakdownByPlayer.map((row) => (
                 <tr key={row.playerId}>
-                  <td>{row.name}</td>
+                  <td className="player-col">{row.name}</td>
                   <td>{row.inSeason}</td>
                   <td>{row.outSeason}</td>
                   <td>{row.pitchersCatchers}</td>
