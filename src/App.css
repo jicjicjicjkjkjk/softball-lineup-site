@@ -685,15 +685,19 @@ thead th {
   background: #fff;
 }
 
-/* Center ALL numeric/data cells */
-.tracking-table td {
+/* center all table values by default */
+.tracking-table td,
+.tracking-table th {
   text-align: center;
 }
 
-/* Keep left alignment ONLY for text columns */
+/* left align true text columns only */
 .tracking-table .col-player,
 .tracking-table .col-metric,
-.tracking-table .col-opponent {
+.tracking-table .col-opponent,
+.tracking-table .sticky-col-1.col-player,
+.tracking-table .sticky-col-1.col-metric,
+.tracking-table .sticky-col-2.col-opponent {
   text-align: left;
 }
 
@@ -709,7 +713,6 @@ thead th {
   width: 120px;
   min-width: 120px;
   max-width: 120px;
-  text-align: left;
 }
 
 .tracking-table .col-avg {
@@ -722,7 +725,6 @@ thead th {
   width: 150px;
   min-width: 150px;
   max-width: 150px;
-  text-align: left;
 }
 
 .tracking-table .col-small {
@@ -756,7 +758,6 @@ thead th {
   max-width: 180px;
   white-space: normal;
   line-height: 1.35;
-  text-align: left;
 }
 
 /* ===== STICKY COLUMNS ===== */
@@ -788,9 +789,9 @@ thead th {
   left: 300px;
 }
 
-/* ===== VERTICAL GAME HEADERS ===== */
+/* ===== ROTATED GAME HEADERS ===== */
 
-.tracking-vertical {
+.tracking-table th.tracking-vertical {
   width: 42px;
   min-width: 42px;
   max-width: 42px;
@@ -799,8 +800,9 @@ thead th {
   max-height: 170px;
   padding: 0;
   vertical-align: bottom;
-  text-align: center;
+  position: relative;
   overflow: hidden;
+  text-align: center;
 }
 
 .tracking-vertical-wrap {
@@ -814,12 +816,12 @@ thead th {
   left: 50%;
   bottom: 10px;
   transform: translateX(-50%) rotate(-90deg);
-  transform-origin: center;
+  transform-origin: center center;
   white-space: nowrap;
-  line-height: 1.2;
+  line-height: 1.15;
   font-size: 12px;
   font-weight: 700;
-  text-align: left;
+  display: inline-block;
 }
 
 /* ===== POSITIONING TABLE ===== */
@@ -847,6 +849,19 @@ thead th {
   text-align: left;
 }
 
+/* ===== TRACKING VS PRIORITY HEADER ALIGNMENT ===== */
+
+.tracking-table thead tr:first-child th[rowspan],
+.tracking-table thead tr:first-child th[colspan],
+.tracking-table thead tr:nth-child(2) th {
+  text-align: center !important;
+  vertical-align: middle;
+}
+
+.tracking-table thead tr:first-child th[colspan='2'] {
+  border-bottom: 2px solid #c9d6dc;
+}
+
 @media (max-width: 900px) {
   .tracking-table .col-player {
     width: 110px;
@@ -868,7 +883,7 @@ thead th {
     left: 260px;
   }
 
-  .tracking-vertical {
+  .tracking-table th.tracking-vertical {
     height: 180px;
     min-height: 180px;
     max-height: 180px;
@@ -878,23 +893,4 @@ thead th {
     min-width: 220px;
     max-width: 100%;
   }
-}
-
-
-/* Center grouped header labels (P, C, 1B...) */
-.tracking-table thead tr:first-child th {
-  text-align: center;
-  vertical-align: middle;
-}
-
-/* Ensure TGT / ACT row is centered */
-.tracking-table thead tr:nth-child(2) th {
-  text-align: center;
-  font-weight: 600;
-}
-
-
-/* Slight visual separation for grouped headers */
-.tracking-table thead tr:first-child th[colspan="2"] {
-  border-bottom: 2px solid #c9d6dc;
 }
