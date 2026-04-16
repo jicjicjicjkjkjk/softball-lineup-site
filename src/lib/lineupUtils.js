@@ -512,7 +512,8 @@ function buildSitPlan({
   players,
   totalsBefore,
   fitMap,
-  batchFairnessState,
+  batchTargetOuts = {},
+  batchCurrentOuts = {},
 }) {
   const innings = Number(game?.innings || lineup?.innings || 6)
   const plannedOuts = initializePlannedOutSets(players)
@@ -541,11 +542,12 @@ function buildSitPlan({
     }
   })
 
-  function getBatchRate(playerId) {
-    const entry = batchFairnessState?.[playerId]
-    if (!entry) return 0
-    const gamesAvailable = Math.max(1, Number(entry.gamesAvailable || 0))
-    return Number(entry.outsSoFar || 0) / gamesAvailable
+  function projectedBatchOuts(id, extraOuts = 0) {
+    return Number(batchCurrentOuts?.[id] || 0) + Number(gameOutCounts[id] || 0) + extraOuts
+  }
+
+  function targetGap(id, extraOuts = 0) {
+    return Number(batchTargetOuts?.[id] || 0) - projectedBatchOuts(id, extraOuts)
   }
 
   for (let inning = 1; inning <= innings; inning += 1) {
@@ -571,34 +573,28 @@ function buildSitPlan({
       const candidatePool = unlockedEligibleIds.filter((id) => !chosenSits.has(id))
       if (!candidatePool.length) break
 
-      const minBatchRate = Math.min(...candidatePool.map((id) => getBatchRate(id)))
-      const minBatchOuts = Math.min(
-        ...candidatePool.map((id) => Number(batchFairnessState?.[id]?.outsSoFar || 0))
-      )
-
       const ranked = candidatePool
         .map((id) => ({
           id,
           player: (players || []).find((p) => pk(p.id) === id),
+          batchNow: projectedBatchOuts(id, 0),
+          batchAfterPick: projectedBatchOuts(id, 1),
+          batchTarget: Number(batchTargetOuts?.[id] || 0),
+          batchGapAfterPick: targetGap(id, 1),
           gameOutCount: gameOutCounts[id],
           seasonOutCount: seasonOuts[id],
           delta: seasonDelta[id],
           spacing: spacingPenalty(lineup, id, inning, innings, plannedOuts),
-          batchOuts: Number(batchFairnessState?.[id]?.outsSoFar || 0),
-          batchGamesAvailable: Number(batchFairnessState?.[id]?.gamesAvailable || 0),
-          batchRate: getBatchRate(id),
         }))
         .sort((a, b) => {
-          const aFarAboveRate = a.batchRate > minBatchRate + 0.51 ? 1 : 0
-          const bFarAboveRate = b.batchRate > minBatchRate + 0.51 ? 1 : 0
-          if (aFarAboveRate !== bFarAboveRate) return aFarAboveRate - bFarAboveRate
+          const aOverTarget = a.batchAfterPick > a.batchTarget ? 1 : 0
+          const bOverTarget = b.batchAfterPick > b.batchTarget ? 1 : 0
+          if (aOverTarget !== bOverTarget) return aOverTarget - bOverTarget
 
-          const aFarAboveOuts = a.batchOuts > minBatchOuts + 1 ? 1 : 0
-          const bFarAboveOuts = b.batchOuts > minBatchOuts + 1 ? 1 : 0
-          if (aFarAboveOuts !== bFarAboveOuts) return aFarAboveOuts - bFarAboveOuts
+          if (a.batchGapAfterPick !== b.batchGapAfterPick) {
+            return b.batchGapAfterPick - a.batchGapAfterPick
+          }
 
-          if (a.batchRate !== b.batchRate) return a.batchRate - b.batchRate
-          if (a.batchOuts !== b.batchOuts) return a.batchOuts - b.batchOuts
           if (a.gameOutCount !== b.gameOutCount) return a.gameOutCount - b.gameOutCount
           if (a.spacing !== b.spacing) return a.spacing - b.spacing
           if (a.delta !== b.delta) return a.delta - b.delta
@@ -621,6 +617,10 @@ function buildSitPlan({
           pickedId = candidate.id
           break
         }
+      }
+
+      if (!pickedId) {
+        pickedId = ranked[0]?.id || null
       }
 
       if (!pickedId) break
@@ -891,7 +891,8 @@ export function buildOptimizedLineup({
   totalsBefore,
   priorityMap,
   fitMap,
-  batchFairnessState = null,
+  batchTargetOuts = {},
+  batchCurrentOuts = {},
 }) {
   const safeAvailable = (availablePlayerIds || []).map(pk)
   const lineup = normalizeLineup(
@@ -938,13 +939,14 @@ export function buildOptimizedLineup({
     }
   })
 
-    const plannedOutsByPlayer = buildSitPlan({
+      const plannedOutsByPlayer = buildSitPlan({
     lineup,
     game,
     players,
     totalsBefore: rollingTotals,
     fitMap,
-    batchFairnessState,
+    batchTargetOuts,
+    batchCurrentOuts,
   })
 
   for (let inning = 1; inning <= lineup.innings; inning += 1) {
