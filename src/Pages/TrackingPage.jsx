@@ -1,37 +1,17 @@
-import { formatDateShort } from '../lib/appHelpers'
+import {
+  formatDateShort,
+  abbreviateOpponentName,
+} from '../lib/appHelpers'
 
-function abbreviateOpponent(name) {
-  if (!name) return ''
-
-  return name
-    .replace(/\b(12u|11u|10u|14u|gold|silver|teal|black|g1|g2|quid|ko|hernandez)\b/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .split(' ')
-    .filter(Boolean)
-    .map((word) => word.slice(0, 3))
-    .join(' ')
-    .slice(0, 10)
-}
-
-function VerticalGameHeader({ game, showOpponent = false }) {
-  const top = showOpponent ? abbreviateOpponent(game.opponent) : ''
-  const bottom = formatDateShort(game.date)
-
+function GameHeader({ game }) {
   return (
-    <th className="tracking-vertical col-small">
+    <th className="tracking-vertical">
       <div className="tracking-vertical-wrap">
-        <span className="tracking-vertical-text">
-          {top ? (
-            <>
-              {top}
-              <br />
-              {bottom}
-            </>
-          ) : (
-            bottom
-          )}
-        </span>
+        <div className="tracking-vertical-text">
+          {abbreviateOpponentName(game.opponent)}
+          <br />
+          {formatDateShort(game.date)}
+        </div>
       </div>
     </th>
   )
@@ -57,15 +37,15 @@ export default function TrackingPage({
   return (
     <div className="stack">
       <div className="card tracking-card">
-        <h3>Batting Order Tracking</h3>
         <div className="tracking-scroll">
+          <h3>Batting Order Tracking</h3>
           <table className="tracking-table">
             <thead>
               <tr>
                 <th className="sticky-col-1 col-player">Player</th>
                 <th className="sticky-col-2 col-avg">Avg</th>
-                {gamesWithLineups.map((g) => (
-                  <VerticalGameHeader key={g.id} game={g} showOpponent />
+                {gamesWithLineups.map((game) => (
+                  <GameHeader key={game.id} game={game} />
                 ))}
               </tr>
             </thead>
@@ -74,10 +54,8 @@ export default function TrackingPage({
                 <tr key={row.playerId}>
                   <td className="sticky-col-1 col-player">{row.name}</td>
                   <td className="sticky-col-2 col-avg">{row.avg}</td>
-                  {row.perGame.map((v, i) => (
-                    <td key={i} className="col-small">
-                      {v}
-                    </td>
+                  {row.perGame.map((value, i) => (
+                    <td key={i} className="col-small">{value}</td>
                   ))}
                 </tr>
               ))}
@@ -87,14 +65,14 @@ export default function TrackingPage({
       </div>
 
       <div className="card tracking-card">
-        <h3>Sitting Out Summary</h3>
         <div className="tracking-scroll">
+          <h3>Sitting Out Summary</h3>
           <table className="tracking-table">
             <thead>
               <tr>
                 <th className="sticky-col-1 col-metric">Metric</th>
-                {gamesWithLineups.map((g) => (
-                  <VerticalGameHeader key={g.id} game={g} showOpponent />
+                {gamesWithLineups.map((game) => (
+                  <GameHeader key={game.id} game={game} />
                 ))}
               </tr>
             </thead>
@@ -135,14 +113,14 @@ export default function TrackingPage({
       </div>
 
       <div className="card tracking-card">
-        <h3>Sit Outs by Player</h3>
         <div className="tracking-scroll">
+          <h3>Sit Outs by Player</h3>
           <table className="tracking-table">
             <thead>
               <tr>
                 <th className="sticky-col-1 col-player">Player</th>
-                {gamesWithLineups.map((g) => (
-                  <VerticalGameHeader key={g.id} game={g} showOpponent />
+                {gamesWithLineups.map((game) => (
+                  <GameHeader key={game.id} game={game} />
                 ))}
               </tr>
             </thead>
@@ -150,10 +128,8 @@ export default function TrackingPage({
               {sitByPlayer.map((row) => (
                 <tr key={row.playerId}>
                   <td className="sticky-col-1 col-player">{row.name}</td>
-                  {row.perGame.map((v, i) => (
-                    <td key={i} className="col-small">
-                      {v}
-                    </td>
+                  {row.perGame.map((value, i) => (
+                    <td key={i} className="col-small">{value}</td>
                   ))}
                 </tr>
               ))}
@@ -167,8 +143,8 @@ export default function TrackingPage({
             <thead>
               <tr>
                 <th className="sticky-col-1 col-player">Player</th>
-                {gamesWithLineups.map((g) => (
-                  <VerticalGameHeader key={g.id} game={g} showOpponent />
+                {gamesWithLineups.map((game) => (
+                  <GameHeader key={game.id} game={game} />
                 ))}
               </tr>
             </thead>
@@ -176,10 +152,8 @@ export default function TrackingPage({
               {sitByPlayer.map((row) => (
                 <tr key={`${row.playerId}-running`}>
                   <td className="sticky-col-1 col-player">{row.name}</td>
-                  {row.running.map((v, i) => (
-                    <td key={i} className="col-small">
-                      {v}
-                    </td>
+                  {row.running.map((value, i) => (
+                    <td key={i} className="col-small">{value}</td>
                   ))}
                 </tr>
               ))}
@@ -189,22 +163,22 @@ export default function TrackingPage({
       </div>
 
       <div className="card tracking-card">
-        <div className="positioning-controls">
-          <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
-          <div className="positioning-player-select">
-            <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
-              <option value="">Select Player</option>
-              {activePlayers.map((p) => (
-                <option key={p.id} value={pk(p.id)}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+        <div className="tracking-scroll">
+          <div className="positioning-controls">
+            <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
+            <div className="positioning-player-select">
+              <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
+                <option value="">Select Player</option>
+                {activePlayers.map((player) => (
+                  <option key={player.id} value={pk(player.id)}>
+                    {player.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
 
-        {trackingPlayerId ? (
-          <div className="tracking-scroll">
+          {trackingPlayerId ? (
             <table className="tracking-table positioning-table">
               <thead>
                 <tr>
@@ -247,10 +221,10 @@ export default function TrackingPage({
                 ))}
               </tbody>
             </table>
-          </div>
-        ) : (
-          <p>Select a player to view by-game positioning.</p>
-        )}
+          ) : (
+            <p>Select a player to view by-game positioning.</p>
+          )}
+        </div>
       </div>
 
       <TrackingTable
@@ -263,29 +237,36 @@ export default function TrackingPage({
       />
 
       <div className="card tracking-card">
-        <h3>Tracking vs Positioning Priority</h3>
         <div className="tracking-scroll">
-          <table className="tracking-table grouped-table">
+          <h3>Tracking vs Positioning Priority</h3>
+          <table className="tracking-table">
             <thead>
               <tr>
                 <th rowSpan="2" className="sticky-col-1 col-player">Player</th>
                 <th rowSpan="2" className="sticky-col-2 col-small">Fld</th>
-                <th colSpan="2" className="group-col">P</th>
-                <th colSpan="2" className="group-col">C</th>
-                <th colSpan="2" className="group-col">1B</th>
-                <th colSpan="2" className="group-col">2B</th>
-                <th colSpan="2" className="group-col">3B</th>
-                <th colSpan="2" className="group-col">SS</th>
-                <th colSpan="2" className="group-col">OF</th>
+                <th colSpan="2">P</th>
+                <th colSpan="2">C</th>
+                <th colSpan="2">1B</th>
+                <th colSpan="2">2B</th>
+                <th colSpan="2">3B</th>
+                <th colSpan="2">SS</th>
+                <th colSpan="2">OF</th>
               </tr>
               <tr>
-                <th className="col-small">TGT</th><th className="group-col col-small">ACT</th>
-                <th className="col-small">TGT</th><th className="group-col col-small">ACT</th>
-                <th className="col-small">TGT</th><th className="group-col col-small">ACT</th>
-                <th className="col-small">TGT</th><th className="group-col col-small">ACT</th>
-                <th className="col-small">TGT</th><th className="group-col col-small">ACT</th>
-                <th className="col-small">TGT</th><th className="group-col col-small">ACT</th>
-                <th className="col-small">TGT</th><th className="group-col col-small">ACT</th>
+                <th className="col-small">TGT</th>
+                <th className="col-small">ACT</th>
+                <th className="col-small">TGT</th>
+                <th className="col-small">ACT</th>
+                <th className="col-small">TGT</th>
+                <th className="col-small">ACT</th>
+                <th className="col-small">TGT</th>
+                <th className="col-small">ACT</th>
+                <th className="col-small">TGT</th>
+                <th className="col-small">ACT</th>
+                <th className="col-small">TGT</th>
+                <th className="col-small">ACT</th>
+                <th className="col-small">TGT</th>
+                <th className="col-small">ACT</th>
               </tr>
             </thead>
             <tbody>
@@ -293,13 +274,20 @@ export default function TrackingPage({
                 <tr key={row.playerId}>
                   <td className="sticky-col-1 col-player">{row.name}</td>
                   <td className="sticky-col-2 col-small">{row.fieldTotal}</td>
-                  <td className="col-small">{row.targP}</td><td className="group-col col-small">{row.actP}</td>
-                  <td className="col-small">{row.targC}</td><td className="group-col col-small">{row.actC}</td>
-                  <td className="col-small">{row.targ1B}</td><td className="group-col col-small">{row.act1B}</td>
-                  <td className="col-small">{row.targ2B}</td><td className="group-col col-small">{row.act2B}</td>
-                  <td className="col-small">{row.targ3B}</td><td className="group-col col-small">{row.act3B}</td>
-                  <td className="col-small">{row.targSS}</td><td className="group-col col-small">{row.actSS}</td>
-                  <td className="col-small">{row.targOF}</td><td className="group-col col-small">{row.actOF}</td>
+                  <td className="col-small">{row.targP}</td>
+                  <td className="col-small">{row.actP}</td>
+                  <td className="col-small">{row.targC}</td>
+                  <td className="col-small">{row.actC}</td>
+                  <td className="col-small">{row.targ1B}</td>
+                  <td className="col-small">{row.act1B}</td>
+                  <td className="col-small">{row.targ2B}</td>
+                  <td className="col-small">{row.act2B}</td>
+                  <td className="col-small">{row.targ3B}</td>
+                  <td className="col-small">{row.act3B}</td>
+                  <td className="col-small">{row.targSS}</td>
+                  <td className="col-small">{row.actSS}</td>
+                  <td className="col-small">{row.targOF}</td>
+                  <td className="col-small">{row.actOF}</td>
                 </tr>
               ))}
             </tbody>
