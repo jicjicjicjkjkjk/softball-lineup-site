@@ -38,6 +38,7 @@ import PlayersPage from './Pages/PlayersPage'
 import PositioningPriorityPage from './Pages/PositioningPriorityPage'
 import GameDetailPage from './Pages/GameDetailPage'
 import LineupSetterPage from './Pages/LineupSetterPage'
+import TrackingPage from './Pages/TrackingPage'
 
 const TEAM_ID = 'f76ea5a1-7c44-4789-bfbd-9771edd54f10'
 
@@ -1554,23 +1555,7 @@ export default function App() {
   }
 
 
-    function renderTrackingPage() {
-    return (
-      <div className="card">
-        <h2>Tracking</h2>
-        <p>Tracking page is still connected in state, but this section is being cleaned up.</p>
-
-        <TrackingTable
-          title="Tracking Totals"
-          universeLabel={`${trackingLockedLineups.length} locked games`}
-          totals={trackingTotals}
-          players={activePlayers}
-          sortConfig={trackingSort}
-          setSortConfig={setTrackingSort}
-        />
-      </div>
-    )
-  }
+  
 
   function renderAttendancePage() {
     return (
@@ -1743,7 +1728,26 @@ export default function App() {
     inningStatus={inningStatus}
   />
 )}
-        {page === 'tracking' && renderTrackingPage()}
+        {page === 'tracking' && (
+  <TrackingPage
+    trackingLockedLineups={trackingLockedLineups}
+    trackingTotals={trackingTotals}
+    activePlayers={activePlayers}
+    trackingSort={trackingSort}
+    setTrackingSort={setTrackingSort}
+    TrackingTable={TrackingTable}
+    battingRows={battingRows}
+    sitSummary={sitSummary}
+    sitByPlayer={sitByPlayer}
+    gamesWithLineups={orderedGamesAsc.filter((g) => lineupsByGame[pk(g.id)])}
+    VerticalHeader={VerticalHeader}
+    trackingPlayerId={trackingPlayerId}
+    setTrackingPlayerId={setTrackingPlayerId}
+    selectedPlayerPositions={selectedPlayerPositions}
+    trackingPriorityRows={trackingPriorityRows}
+    pk={pk}
+  />
+)}
         {page === 'attendance' && renderAttendancePage()}
       </main>
     </div>
