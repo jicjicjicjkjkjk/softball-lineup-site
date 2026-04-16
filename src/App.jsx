@@ -34,6 +34,7 @@ import {
   buildPlayerSitOuts,
   buildPositionByPlayer,
 } from './lib/appHelpers'
+import PlayersPage from './Pages/PlayersPage'
 
 const TEAM_ID = 'f76ea5a1-7c44-4789-bfbd-9771edd54f10'
 
