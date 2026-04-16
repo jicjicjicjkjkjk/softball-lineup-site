@@ -680,10 +680,21 @@ thead th {
 .tracking-table td {
   border: 1px solid #d7dee3;
   padding: 8px 8px;
-  text-align: center;
   vertical-align: middle;
   white-space: nowrap;
   background: #fff;
+}
+
+/* Center ALL numeric/data cells */
+.tracking-table td {
+  text-align: center;
+}
+
+/* Keep left alignment ONLY for text columns */
+.tracking-table .col-player,
+.tracking-table .col-metric,
+.tracking-table .col-opponent {
+  text-align: left;
 }
 
 .tracking-table thead th {
