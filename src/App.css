@@ -710,22 +710,23 @@ thead th {
 /* ===== COLUMN SIZING ===== */
 
 .tracking-table .col-player {
-  width: 120px;
-  min-width: 120px;
-  max-width: 120px;
+  width: 86px;
+  min-width: 86px;
+  max-width: 86px;
 }
 
 .tracking-table .col-avg {
-  width: 64px;
-  min-width: 64px;
-  max-width: 64px;
+  width: 52px;
+  min-width: 52px;
+  max-width: 52px;
 }
 
 .tracking-table .col-metric {
-  width: 150px;
-  min-width: 150px;
-  max-width: 150px;
+  width: 110px;
+  min-width: 110px;
+  max-width: 110px;
 }
+
 
 .tracking-table .col-small {
   width: 42px;
@@ -781,12 +782,13 @@ thead th {
   left: 0;
 }
 
+
 .tracking-table .sticky-col-2 {
-  left: 120px;
+  left: 86px;
 }
 
 .tracking-table .sticky-col-3 {
-  left: 300px;
+  left: 266px;
 }
 
 /* ===== ROTATED GAME HEADERS ===== */
