@@ -653,7 +653,6 @@ thead th {
   padding-left: 10px;
 }
 
-
 /* =========================
    TRACKING TABLES
 ========================= */
@@ -696,16 +695,16 @@ thead th {
 /* ===== COLUMN SIZING ===== */
 
 .tracking-table .col-player {
-  width: 140px;
-  min-width: 140px;
-  max-width: 140px;
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
   text-align: left;
 }
 
 .tracking-table .col-avg {
-  width: 72px;
-  min-width: 72px;
-  max-width: 72px;
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
 }
 
 .tracking-table .col-metric {
@@ -716,9 +715,9 @@ thead th {
 }
 
 .tracking-table .col-small {
-  width: 44px;
-  min-width: 44px;
-  max-width: 44px;
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
   padding: 6px 4px;
 }
 
@@ -771,25 +770,26 @@ thead th {
 }
 
 .tracking-table .sticky-col-2 {
-  left: 140px;
+  left: 120px;
 }
 
 .tracking-table .sticky-col-3 {
-  left: 320px; /* 140 + 180 */
+  left: 300px;
 }
 
-/* ===== TRUE 90° ROTATED HEADERS ===== */
+/* ===== VERTICAL GAME HEADERS ===== */
 
 .tracking-vertical {
-  width: 44px;
-  min-width: 44px;
-  max-width: 44px;
-  height: 150px;
-  min-height: 150px;
-  max-height: 150px;
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
+  height: 170px;
+  min-height: 170px;
+  max-height: 170px;
   padding: 0;
   vertical-align: bottom;
   text-align: center;
+  overflow: hidden;
 }
 
 .tracking-vertical-wrap {
@@ -801,11 +801,11 @@ thead th {
 .tracking-vertical-text {
   position: absolute;
   left: 50%;
-  bottom: 6px;
+  bottom: 10px;
   transform: translateX(-50%) rotate(-90deg);
   transform-origin: center;
   white-space: nowrap;
-  line-height: 1.15;
+  line-height: 1.2;
   font-size: 12px;
   font-weight: 700;
   text-align: left;
@@ -836,13 +836,11 @@ thead th {
   text-align: left;
 }
 
-/* ===== MOBILE ===== */
-
 @media (max-width: 900px) {
   .tracking-table .col-player {
-    width: 120px;
-    min-width: 120px;
-    max-width: 120px;
+    width: 110px;
+    min-width: 110px;
+    max-width: 110px;
   }
 
   .tracking-table .col-opponent {
@@ -852,17 +850,17 @@ thead th {
   }
 
   .tracking-table .sticky-col-2 {
-    left: 120px;
+    left: 110px;
   }
 
   .tracking-table .sticky-col-3 {
-    left: 270px;
+    left: 260px;
   }
 
   .tracking-vertical {
-    height: 165px;
-    min-height: 165px;
-    max-height: 165px;
+    height: 180px;
+    min-height: 180px;
+    max-height: 180px;
   }
 
   .positioning-player-select {
