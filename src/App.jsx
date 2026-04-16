@@ -46,6 +46,83 @@ function dbReady() {
   return Boolean(supabase)
 }
 
+function buildBatchOutTargets(batchGames, optimizerPreviewByGame, lineupsByGame, players, activePlayerIds, pk) {
+  const expectedByPlayer = {}
+  const availableGamesByPlayer = {}
+
+  ;(players || []).forEach((player) => {
+    const id = pk(player.id)
+    expectedByPlayer[id] = 0
+    availableGamesByPlayer[id] = 0
+  })
+
+  ;(batchGames || []).forEach((game) => {
+    const source =
+      optimizerPreviewByGame[pk(game.id)] ||
+      lineupsByGame[pk(game.id)] ||
+      blankLineup(
+        (players || []).map((p) => p.id),
+        Number(game.innings || 6),
+        activePlayerIds()
+      )
+
+    const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
+    const innings = Number(source?.innings || game.innings || 6)
+    const totalOuts = Math.max(0, availableIds.length - 9) * innings
+
+    if (!availableIds.length || totalOuts <= 0) {
+      availableIds.forEach((id) => {
+        availableGamesByPlayer[id] = Number(availableGamesByPlayer[id] || 0) + 1
+      })
+      return
+    }
+
+    const share = totalOuts / availableIds.length
+
+    availableIds.forEach((id) => {
+      expectedByPlayer[id] = Number(expectedByPlayer[id] || 0) + share
+      availableGamesByPlayer[id] = Number(availableGamesByPlayer[id] || 0) + 1
+    })
+  })
+
+  const targets = {}
+  const fractional = []
+
+  Object.keys(expectedByPlayer).forEach((id) => {
+    const expected = Number(expectedByPlayer[id] || 0)
+    const floorTarget = Math.floor(expected)
+    targets[id] = floorTarget
+
+    fractional.push({
+      id,
+      remainder: expected - floorTarget,
+      expected,
+      availableGames: availableGamesByPlayer[id] || 0,
+    })
+  })
+
+  const totalExpected = Object.values(expectedByPlayer).reduce((sum, n) => sum + Number(n || 0), 0)
+  const totalIntegerTargets = Object.values(targets).reduce((sum, n) => sum + Number(n || 0), 0)
+  let remaining = Math.round(totalExpected - totalIntegerTargets)
+
+  fractional.sort((a, b) => {
+    if (b.remainder !== a.remainder) return b.remainder - a.remainder
+    if (b.availableGames !== a.availableGames) return b.availableGames - a.availableGames
+    return String(a.id).localeCompare(String(b.id))
+  })
+
+  for (let i = 0; i < fractional.length && remaining > 0; i += 1) {
+    targets[fractional[i].id] += 1
+    remaining -= 1
+  }
+
+  return {
+    expectedByPlayer,
+    availableGamesByPlayer,
+    targets,
+  }
+}
+
 export default function App() {
   const [page, setPage] = useState('games')
 
@@ -859,28 +936,18 @@ export default function App() {
     return aKey.localeCompare(bKey)
   })
 
-  const batchFairnessState = {}
+  const batchPlan = buildBatchOutTargets(
+    orderedGames,
+    optimizerPreviewByGame,
+    lineupsByGame,
+    players,
+    activePlayerIds,
+    pk
+  )
+
+  const batchCurrentOuts = {}
   activePlayers.forEach((player) => {
-    batchFairnessState[pk(player.id)] = {
-      gamesAvailable: 0,
-      outsSoFar: 0,
-    }
-  })
-
-  orderedGames.forEach((game) => {
-    const source =
-      optimizerPreviewByGame[pk(game.id)] ||
-      lineupsByGame[pk(game.id)] ||
-      blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
-
-    const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
-
-    availableIds.forEach((id) => {
-      if (!batchFairnessState[id]) {
-        batchFairnessState[id] = { gamesAvailable: 0, outsSoFar: 0 }
-      }
-      batchFairnessState[id].gamesAvailable += 1
-    })
+    batchCurrentOuts[pk(player.id)] = 0
   })
 
   orderedGames.forEach((game) => {
@@ -900,7 +967,8 @@ export default function App() {
       totalsBefore: rollingTotals,
       priorityMap: priorityByPlayer,
       fitMap: fitByPlayer,
-      batchFairnessState,
+      batchTargetOuts: batchPlan.targets,
+      batchCurrentOuts,
     })
 
     next[pk(game.id)] = optimized
@@ -912,7 +980,7 @@ export default function App() {
           outsThisGame += 1
         }
       }
-      batchFairnessState[id].outsSoFar += outsThisGame
+      batchCurrentOuts[id] = Number(batchCurrentOuts[id] || 0) + outsThisGame
     })
 
     rollingTotals = addTotals(rollingTotals, computeTotals([optimized], players), players)
