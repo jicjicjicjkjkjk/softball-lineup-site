@@ -1,15 +1,28 @@
 import { formatDateShort } from '../lib/appHelpers'
 
-function VerticalGameHeader({ game, idx, showOpponent = false }) {
+function abbreviateOpponent(name) {
+  if (!name) return ''
+
+  return name
+    .replace(/\b(12u|11u|10u|14u|gold|silver|teal|black|g1|g2|quid|ko|hernandez)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.slice(0, 3))
+    .join(' ')
+    .slice(0, 12)
+}
+
+function VerticalGameHeader({ game, showOpponent = false }) {
+  const label = showOpponent
+    ? `${abbreviateOpponent(game.opponent)} ${formatDateShort(game.date)}`
+    : formatDateShort(game.date)
+
   return (
     <th className="tracking-vertical col-small">
       <div className="tracking-vertical-wrap">
-        <span className="tracking-vertical-top">{idx + 1}</span>
-        <span className="tracking-vertical-bottom">
-          {showOpponent
-            ? `${game.opponent || ''} ${formatDateShort(game.date)}`
-            : formatDateShort(game.date)}
-        </span>
+        <span className="tracking-vertical-bottom">{label}</span>
       </div>
     </th>
   )
@@ -42,8 +55,8 @@ export default function TrackingPage({
               <tr>
                 <th className="sticky-col-1 col-player">Player</th>
                 <th className="sticky-col-2 col-avg">Avg</th>
-                {gamesWithLineups.map((g, idx) => (
-                  <VerticalGameHeader key={g.id} game={g} idx={idx} showOpponent />
+                {gamesWithLineups.map((g) => (
+                  <VerticalGameHeader key={g.id} game={g} showOpponent />
                 ))}
               </tr>
             </thead>
@@ -71,8 +84,8 @@ export default function TrackingPage({
             <thead>
               <tr>
                 <th className="sticky-col-1 col-metric">Metric</th>
-                {gamesWithLineups.map((g, idx) => (
-                  <VerticalGameHeader key={g.id} game={g} idx={idx} />
+                {gamesWithLineups.map((g) => (
+                  <VerticalGameHeader key={g.id} game={g} />
                 ))}
               </tr>
             </thead>
@@ -129,8 +142,8 @@ export default function TrackingPage({
             <thead>
               <tr>
                 <th className="sticky-col-1 col-player">Player</th>
-                {gamesWithLineups.map((g, idx) => (
-                  <VerticalGameHeader key={g.id} game={g} idx={idx} />
+                {gamesWithLineups.map((g) => (
+                  <VerticalGameHeader key={g.id} game={g} />
                 ))}
               </tr>
             </thead>
@@ -155,8 +168,8 @@ export default function TrackingPage({
             <thead>
               <tr>
                 <th className="sticky-col-1 col-player">Player</th>
-                {gamesWithLineups.map((g, idx) => (
-                  <VerticalGameHeader key={g.id} game={g} idx={idx} />
+                {gamesWithLineups.map((g) => (
+                  <VerticalGameHeader key={g.id} game={g} />
                 ))}
               </tr>
             </thead>
@@ -210,7 +223,7 @@ export default function TrackingPage({
                   <th className="col-small">CF</th>
                   <th className="col-small">RF</th>
                   <th className="col-small">Out</th>
-                  <th className="col-act">IN</th>
+                  <th className="col-small">Inj</th>
                 </tr>
               </thead>
               <tbody>
@@ -230,7 +243,7 @@ export default function TrackingPage({
                     <td className="col-small">{row.CF || ''}</td>
                     <td className="col-small">{row.RF || ''}</td>
                     <td className="col-small">{row.Out || ''}</td>
-                    <td className="col-act">Yes</td>
+                    <td className="col-small">{row.Injury || ''}</td>
                   </tr>
                 ))}
               </tbody>
