@@ -797,9 +797,9 @@ thead th {
   width: 42px;
   min-width: 42px;
   max-width: 42px;
-  height: 170px;
-  min-height: 170px;
-  max-height: 170px;
+  height: 110px;
+  min-height: 110px;
+  max-height: 110px;
   padding: 0;
   vertical-align: bottom;
   position: relative;
@@ -821,7 +821,7 @@ thead th {
   transform-origin: center center;
   white-space: nowrap;
   line-height: 1.15;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   display: inline-block;
 }
