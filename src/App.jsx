@@ -34,12 +34,12 @@ import LineupSetterPage from './Pages/LineupSetterPage'
 import TrackingPage from './Pages/TrackingPage'
 import LineupGrid from './Components/LineupGrid'
 import Sidebar from './Components/Sidebar'
-
-const TEAM_ID = 'f76ea5a1-7c44-4789-bfbd-9771edd54f10'
-
-const ATTENDANCE_SEASON_OPTIONS = ['In Season', 'Out of Season']
-const ATTENDANCE_TYPE_OPTIONS = ['Pitchers/Catchers', 'Team Practice']
-const ATTENDANCE_SURFACE_OPTIONS = ['Indoor', 'Outdoor']
+import {
+  TEAM_ID,
+  ATTENDANCE_SEASON_OPTIONS,
+  ATTENDANCE_TYPE_OPTIONS,
+  ATTENDANCE_SURFACE_OPTIONS,
+} from './lib/constants'
 
 function dbReady() {
   return Boolean(supabase)
