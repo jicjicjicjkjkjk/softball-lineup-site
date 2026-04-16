@@ -36,6 +36,7 @@ import {
 } from './lib/appHelpers'
 import PlayersPage from './Pages/PlayersPage'
 import PositioningPriorityPage from './Pages/PositioningPriorityPage'
+import GameDetailPage from './Pages/GameDetailPage'
 
 const TEAM_ID = 'f76ea5a1-7c44-4789-bfbd-9771edd54f10'
 
@@ -2042,7 +2043,29 @@ export default function App() {
             setPage={setPage}
           />
         )}
-        {page === 'game-detail' && renderGameDetailPage()}
+        {page === 'game-detail' && (
+  <GameDetailPage
+    selectedGame={selectedGame}
+    selectedLineup={selectedLineup}
+    selectedLocked={selectedLocked}
+    activePlayers={activePlayers}
+    activePlayerIds={activePlayerIds}
+    games={games}
+    selectedGameId={selectedGameId}
+    setSelectedGameId={setSelectedGameId}
+    setPage={setPage}
+    saveSavedLineup={saveSavedLineup}
+    toggleLineupLocked={toggleLineupLocked}
+    clearSavedLineup={clearSavedLineup}
+    addSavedInning={addSavedInning}
+    removeSavedInning={removeSavedInning}
+    toggleSavedAvailable={toggleSavedAvailable}
+    fitByPlayer={fitByPlayer}
+    LineupGrid={LineupGrid}
+    updateSavedCell={updateSavedCell}
+    updateSavedBatting={updateSavedBatting}
+  />
+)}
         {page === 'lineup-setter' && renderLineupSetterPage()}
         {page === 'tracking' && renderTrackingPage()}
         {page === 'attendance' && renderAttendancePage()}
