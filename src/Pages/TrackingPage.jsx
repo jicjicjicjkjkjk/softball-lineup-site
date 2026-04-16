@@ -1,172 +1,292 @@
-import { useMemo, useState } from 'react'
-import { GAME_TYPES, computeTotals } from '../lib/lineupUtils'
-import TrackingTable from "../Components/TrackingTable";
+import { formatDateShort } from '../lib/appHelpers'
 
 export default function TrackingPage({
-  games,
-  players,
-  lineupsByGame,
-  lineupLockedByGame,
-  priorityByPlayer,
+  trackingLockedLineups,
+  trackingTotals,
+  activePlayers,
+  trackingSort,
+  setTrackingSort,
+  TrackingTable,
+  battingRows,
+  sitSummary,
+  sitByPlayer,
+  gamesWithLineups,
+  VerticalHeader,
+  trackingPlayerId,
+  setTrackingPlayerId,
+  selectedPlayerPositions,
+  trackingPriorityRows,
+  pk,
 }) {
-  const [throughDate, setThroughDate] = useState('')
-  const [gameType, setGameType] = useState('All')
-  const [statusMode, setStatusMode] = useState('Locked')
-
-  const filteredGames = useMemo(() => {
-    return games.filter((game) => {
-      const locked = lineupLockedByGame[String(game.id)] === true
-      const saved = Boolean(lineupsByGame[String(game.id)])
-
-      if (statusMode === 'Locked' && !locked) return false
-      if (statusMode === 'Saved Only' && (locked || !saved)) return false
-      if (statusMode === 'Saved + Locked' && !saved) return false
-
-      if (throughDate && game.date && game.date > throughDate) return false
-      if (gameType !== 'All' && (game.game_type || 'Friendly') !== gameType) return false
-
-      return Boolean(lineupsByGame[String(game.id)])
-    })
-  }, [games, lineupsByGame, lineupLockedByGame, throughDate, gameType, statusMode])
-
-  const totals = useMemo(() => {
-    return computeTotals(
-      filteredGames.map((g) => lineupsByGame[String(g.id)]),
-      players
-    )
-  }, [filteredGames, lineupsByGame, players])
-
-  const rows = useMemo(() => {
-    return players.map((player) => {
-      const t = totals[String(player.id)] || {}
-      const priority = priorityByPlayer[String(player.id)] || {}
-      const fieldTotal = Math.max(t.fieldTotal || 0, 1)
-
-      return {
-        playerId: String(player.id),
-        name: player.name,
-        games: t.games || 0,
-        fieldTotal: t.fieldTotal || 0,
-        Out: t.Out || 0,
-        expectedOuts: t.expectedOuts || 0,
-        actualOuts: t.actualOuts || 0,
-        delta: t.delta || 0,
-        P: t.P || 0,
-        C: t.C || 0,
-        '1B': t['1B'] || 0,
-        '2B': t['2B'] || 0,
-        '3B': t['3B'] || 0,
-        SS: t.SS || 0,
-        LF: t.LF || 0,
-        CF: t.CF || 0,
-        RF: t.RF || 0,
-        IF: t.IF || 0,
-        OF: t.OF || 0,
-        targP: priority.P?.priority_pct || '',
-        targC: priority.C?.priority_pct || '',
-        targ1B: priority['1B']?.priority_pct || '',
-        targ2B: priority['2B']?.priority_pct || '',
-        targ3B: priority['3B']?.priority_pct || '',
-        targSS: priority.SS?.priority_pct || '',
-        targOF: priority.OF?.priority_pct || '',
-        actP: Number((((t.P || 0) / fieldTotal) * 100).toFixed(1)),
-        actC: Number((((t.C || 0) / fieldTotal) * 100).toFixed(1)),
-        act1B: Number((((t['1B'] || 0) / fieldTotal) * 100).toFixed(1)),
-        act2B: Number((((t['2B'] || 0) / fieldTotal) * 100).toFixed(1)),
-        act3B: Number((((t['3B'] || 0) / fieldTotal) * 100).toFixed(1)),
-        actSS: Number((((t.SS || 0) / fieldTotal) * 100).toFixed(1)),
-        actOF: Number((((t.OF || 0) / fieldTotal) * 100).toFixed(1)),
-      }
-    })
-  }, [players, totals, priorityByPlayer])
-
   return (
     <div className="stack">
       <div className="card">
-        <h2>Tracking</h2>
-
-        <div className="grid four-col">
-          <div>
-            <label>Through Date</label>
-            <input type="date" value={throughDate} onChange={(e) => setThroughDate(e.target.value)} />
-          </div>
-
-          <div>
-            <label>Game Type</label>
-            <select value={gameType} onChange={(e) => setGameType(e.target.value)}>
-              <option value="All">All</option>
-              {GAME_TYPES.map((type) => (
-                <option key={type}>{type}</option>
+        <div className="table-scroll">
+          <h3>Batting Order Tracking</h3>
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
+            <thead>
+              <tr>
+                <th className="player-col">Player</th>
+                <th>Avg</th>
+                {gamesWithLineups.map((g, idx) => (
+                  <VerticalHeader
+                    key={g.id}
+                    top={String(idx + 1)}
+                    bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
+                    minWidth={60}
+                    height={230}
+                  />
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {battingRows.map((row) => (
+                <tr key={row.playerId}>
+                  <td className="player-col">{row.name}</td>
+                  <td>{row.avg}</td>
+                  {row.perGame.map((v, i) => (
+                    <td key={i}>{v}</td>
+                  ))}
+                </tr>
               ))}
-            </select>
-          </div>
-
-          <div>
-            <label>Status Filter</label>
-            <select value={statusMode} onChange={(e) => setStatusMode(e.target.value)}>
-              <option>Locked</option>
-              <option>Saved Only</option>
-              <option>Saved + Locked</option>
-            </select>
-          </div>
-
-          <div>
-            <label>Games in Universe</label>
-            <div className="summary-box">{filteredGames.length}</div>
-          </div>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <TrackingTable title="Tracking Totals" rows={rows} />
-
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <h3>Tracking vs Positioning Priority</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th>Games</th>
-              <th>Fld</th>
-              <th>P Tgt</th>
-              <th>P Act%</th>
-              <th>C Tgt</th>
-              <th>C Act%</th>
-              <th>1B Tgt</th>
-              <th>1B Act%</th>
-              <th>2B Tgt</th>
-              <th>2B Act%</th>
-              <th>3B Tgt</th>
-              <th>3B Act%</th>
-              <th>SS Tgt</th>
-              <th>SS Act%</th>
-              <th>OF Tgt</th>
-              <th>OF Act%</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.playerId}>
-                <td>{row.name}</td>
-                <td>{row.games}</td>
-                <td>{row.fieldTotal}</td>
-                <td>{row.targP}</td>
-                <td>{row.actP}</td>
-                <td>{row.targC}</td>
-                <td>{row.actC}</td>
-                <td>{row.targ1B}</td>
-                <td>{row.act1B}</td>
-                <td>{row.targ2B}</td>
-                <td>{row.act2B}</td>
-                <td>{row.targ3B}</td>
-                <td>{row.act3B}</td>
-                <td>{row.targSS}</td>
-                <td>{row.actSS}</td>
-                <td>{row.targOF}</td>
-                <td>{row.actOF}</td>
+      <div className="card">
+        <div className="table-scroll">
+          <h3>Sitting Out Summary</h3>
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                {gamesWithLineups.map((g, idx) => (
+                  <VerticalHeader
+                    key={g.id}
+                    top={String(idx + 1)}
+                    bottom={formatDateShort(g.date)}
+                    minWidth={34}
+                    height={145}
+                  />
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Total Players</td>
+                {sitSummary.map((g) => (
+                  <td key={g.gameId}>{g.totalPlayers}</td>
+                ))}
+              </tr>
+              <tr>
+                <td>Innings</td>
+                {sitSummary.map((g) => (
+                  <td key={g.gameId}>{g.innings}</td>
+                ))}
+              </tr>
+              <tr>
+                <td># Sit Outs</td>
+                {sitSummary.map((g) => (
+                  <td key={g.gameId}>{g.sitOuts}</td>
+                ))}
+              </tr>
+              <tr>
+                <td>Injury</td>
+                {sitSummary.map((g) => (
+                  <td key={g.gameId}>{g.injury}</td>
+                ))}
+              </tr>
+              <tr>
+                <td>Average Out</td>
+                {sitSummary.map((g) => (
+                  <td key={g.gameId}>{g.avgSit}</td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="table-scroll">
+          <h3>Sit Outs by Player</h3>
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
+            <thead>
+              <tr>
+                <th className="player-col">Player</th>
+                {gamesWithLineups.map((g, idx) => (
+                  <VerticalHeader
+                    key={g.id}
+                    top={String(idx + 1)}
+                    bottom={formatDateShort(g.date)}
+                    minWidth={34}
+                    height={145}
+                  />
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sitByPlayer.map((row) => (
+                <tr key={row.playerId}>
+                  <td className="player-col">{row.name}</td>
+                  {row.perGame.map((v, i) => (
+                    <td key={i}>{v}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div style={{ height: 16 }} />
+
+          <h3 style={{ marginTop: 0 }}>Sit Out Running Total (vs Expected)</h3>
+          <table className="table-center" style={{ tableLayout: 'fixed' }}>
+            <thead>
+              <tr>
+                <th className="player-col">Player</th>
+                {gamesWithLineups.map((g, idx) => (
+                  <VerticalHeader
+                    key={g.id}
+                    top={String(idx + 1)}
+                    bottom={formatDateShort(g.date)}
+                    minWidth={34}
+                    height={145}
+                  />
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sitByPlayer.map((row) => (
+                <tr key={`${row.playerId}-running`}>
+                  <td className="player-col">{row.name}</td>
+                  {row.running.map((v, i) => (
+                    <td key={i}>{v}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="table-scroll">
+          <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+            <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
+            <div style={{ minWidth: 260 }}>
+              <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
+                <option value="">Select Player</option>
+                {activePlayers.map((p) => (
+                  <option key={p.id} value={pk(p.id)}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {trackingPlayerId ? (
+            <table className="table-center" style={{ tableLayout: 'fixed' }}>
+              <thead>
+                <tr>
+                  <th>Game #</th>
+                  <th>Opponent</th>
+                  <th>Date</th>
+                  <th>Act</th>
+                  <th>P</th>
+                  <th>C</th>
+                  <th>1B</th>
+                  <th>2B</th>
+                  <th>3B</th>
+                  <th>SS</th>
+                  <th>LF</th>
+                  <th>CF</th>
+                  <th>RF</th>
+                  <th>Out</th>
+                  <th>IN</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedPlayerPositions.map((row, idx) => (
+                  <tr key={row.gameId}>
+                    <td>{idx + 1}</td>
+                    <td>{row.opponent}</td>
+                    <td>{formatDateShort(row.date)}</td>
+                    <td>{row.active}</td>
+                    <td>{row.P || ''}</td>
+                    <td>{row.C || ''}</td>
+                    <td>{row['1B'] || ''}</td>
+                    <td>{row['2B'] || ''}</td>
+                    <td>{row['3B'] || ''}</td>
+                    <td>{row.SS || ''}</td>
+                    <td>{row.LF || ''}</td>
+                    <td>{row.CF || ''}</td>
+                    <td>{row.RF || ''}</td>
+                    <td>{row.Out || ''}</td>
+                    <td>Yes</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>Select a player to view by-game positioning.</p>
+          )}
+        </div>
+      </div>
+
+      <TrackingTable
+        title="Tracking Totals"
+        universeLabel={`${trackingLockedLineups.length} locked games`}
+        totals={trackingTotals}
+        players={activePlayers}
+        sortConfig={trackingSort}
+        setSortConfig={setTrackingSort}
+      />
+
+      <div className="card">
+        <div className="table-scroll">
+          <h3>Tracking vs Positioning Priority</h3>
+          <table className="table-center grouped-table">
+            <thead>
+              <tr>
+                <th rowSpan="2">Player</th>
+                <th rowSpan="2">Fld</th>
+                <th colSpan="2" className="group-col">P</th>
+                <th colSpan="2" className="group-col">C</th>
+                <th colSpan="2" className="group-col">1B</th>
+                <th colSpan="2" className="group-col">2B</th>
+                <th colSpan="2" className="group-col">3B</th>
+                <th colSpan="2" className="group-col">SS</th>
+                <th colSpan="2" className="group-col">OF</th>
+              </tr>
+              <tr>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+                <th>TGT</th><th className="group-col">ACT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trackingPriorityRows.map((row) => (
+                <tr key={row.playerId}>
+                  <td className="player-col">{row.name}</td>
+                  <td>{row.fieldTotal}</td>
+                  <td>{row.targP}</td><td className="group-col">{row.actP}</td>
+                  <td>{row.targC}</td><td className="group-col">{row.actC}</td>
+                  <td>{row.targ1B}</td><td className="group-col">{row.act1B}</td>
+                  <td>{row.targ2B}</td><td className="group-col">{row.act2B}</td>
+                  <td>{row.targ3B}</td><td className="group-col">{row.act3B}</td>
+                  <td>{row.targSS}</td><td className="group-col">{row.actSS}</td>
+                  <td>{row.targOF}</td><td className="group-col">{row.actOF}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
