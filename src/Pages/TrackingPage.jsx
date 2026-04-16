@@ -19,48 +19,37 @@ function shortenOpponent(name = '') {
 function RotatedGameHeader({ game }) {
   const shortName = shortenOpponent(game?.opponent || '')
   const shortDate = formatDateShort(game?.date || '')
+  const label = [shortName, shortDate].filter(Boolean).join(' ')
 
   return (
     <th
       className="tracking-vertical"
       style={{
-        width: 42,
-        minWidth: 42,
-        maxWidth: 42,
-        height: 170,
-        minHeight: 170,
-        maxHeight: 170,
-        padding: 0,
+        width: 34,
+        minWidth: 34,
+        maxWidth: 34,
+        height: 150,
+        minHeight: 150,
+        maxHeight: 150,
+        padding: '4px 0',
         verticalAlign: 'bottom',
         textAlign: 'center',
-        position: 'relative',
         overflow: 'hidden',
+        background: '#e6f4f4',
       }}
     >
       <div
         style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%',
+          writingMode: 'vertical-rl',
+          transform: 'rotate(180deg)',
+          whiteSpace: 'nowrap',
+          fontSize: 11,
+          fontWeight: 700,
+          lineHeight: 1,
+          margin: '0 auto',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            left: '50%',
-            bottom: 10,
-            transform: 'translateX(-50%) rotate(-90deg)',
-            transformOrigin: 'center',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.15,
-            fontSize: 12,
-            fontWeight: 700,
-            textAlign: 'left',
-          }}
-        >
-          <div>{shortName}</div>
-          <div>{shortDate}</div>
-        </div>
+        {label}
       </div>
     </th>
   )
