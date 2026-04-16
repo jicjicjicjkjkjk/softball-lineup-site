@@ -794,17 +794,10 @@ thead th {
 /* ===== ROTATED GAME HEADERS ===== */
 
 .tracking-table th.tracking-vertical {
-  width: 42px;
-  min-width: 42px;
-  max-width: 42px;
-  height: 110px;
-  min-height: 110px;
-  max-height: 110px;
   padding: 0;
-  vertical-align: bottom;
-  position: relative;
-  overflow: hidden;
   text-align: center;
+  vertical-align: bottom;
+  background: #e6f4f4;
 }
 
 .tracking-vertical-wrap {
@@ -866,11 +859,11 @@ thead th {
 
 @media (max-width: 900px) {
   .tracking-table .col-player {
-    width: 110px;
-    min-width: 110px;
-    max-width: 110px;
+    width: 86px;
+    min-width: 86px;
+    max-width: 86px;
   }
-
+  
   .tracking-table .col-opponent {
     width: 150px;
     min-width: 150px;
@@ -878,7 +871,7 @@ thead th {
   }
 
   .tracking-table .sticky-col-2 {
-    left: 110px;
+    left: 86px;
   }
 
   .tracking-table .sticky-col-3 {
@@ -898,13 +891,3 @@ thead th {
 }
 
 
-.tracking-table th.tracking-vertical {
-  background: #ffef99 !important;
-  height: 220px !important;
-}
-
-.tracking-vertical-text {
-  transform: translateX(-50%) rotate(-90deg) !important;
-  color: red !important;
-  font-size: 16px !important;
-}
