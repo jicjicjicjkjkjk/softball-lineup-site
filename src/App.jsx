@@ -225,69 +225,8 @@ function buildPositionByPlayer(games, lineupsByGame, playerId) {
     .filter(Boolean)
 }
 
+import VerticalHeader from './components/VerticalHeader'
 
-function verticalHeaderStyle(minWidth = 30, height = 132) {
-  return {
-    width: minWidth,
-    minWidth,
-    maxWidth: minWidth,
-    height,
-    minHeight: height,
-    maxHeight: height,
-    padding: '2px 1px',
-    verticalAlign: 'bottom',
-    textAlign: 'center',
-    overflow: 'hidden',
-    lineHeight: 1,
-  }
-}
-
-function VerticalHeader({ top, bottom, minWidth = 30, height = 132 }) {
-  return (
-    <th style={verticalHeaderStyle(minWidth, height)}>
-      <div
-        style={{
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          gap: 2,
-          overflow: 'hidden',
-        }}
-      >
-        {top ? (
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 10,
-              lineHeight: 1,
-              marginBottom: 2,
-            }}
-          >
-            {top}
-          </div>
-        ) : null}
-
-        <div
-          style={{
-            writingMode: 'vertical-rl',
-            transform: 'rotate(180deg)',
-            whiteSpace: 'nowrap',
-            fontWeight: 600,
-            fontSize: 10,
-            lineHeight: 1,
-            letterSpacing: '-0.2px',
-            overflow: 'hidden',
-            maxHeight: top ? height - 18 : height - 6,
-          }}
-        >
-          {bottom}
-        </div>
-      </div>
-    </th>
-  )
-}
 
 function MiniDiamond({ status }) {
   const posCoords = {
