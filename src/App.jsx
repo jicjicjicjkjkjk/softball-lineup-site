@@ -226,22 +226,23 @@ function buildPositionByPlayer(games, lineupsByGame, playerId) {
 }
 
 
-function verticalHeaderStyle(minWidth = 42, height = 200) {
+function verticalHeaderStyle(minWidth = 30, height = 132) {
   return {
-    minWidth,
     width: minWidth,
+    minWidth,
     maxWidth: minWidth,
     height,
     minHeight: height,
     maxHeight: height,
-    padding: '6px 2px 10px',
+    padding: '2px 1px',
     verticalAlign: 'bottom',
     textAlign: 'center',
     overflow: 'hidden',
+    lineHeight: 1,
   }
 }
 
-function VerticalHeader({ top, bottom, minWidth = 42, height = 200 }) {
+function VerticalHeader({ top, bottom, minWidth = 30, height = 132 }) {
   return (
     <th style={verticalHeaderStyle(minWidth, height)}>
       <div
@@ -251,7 +252,7 @@ function VerticalHeader({ top, bottom, minWidth = 42, height = 200 }) {
           flexDirection: 'column',
           justifyContent: 'flex-end',
           alignItems: 'center',
-          gap: 4,
+          gap: 2,
           overflow: 'hidden',
         }}
       >
@@ -259,8 +260,9 @@ function VerticalHeader({ top, bottom, minWidth = 42, height = 200 }) {
           <div
             style={{
               fontWeight: 700,
-              fontSize: 12,
+              fontSize: 10,
               lineHeight: 1,
+              marginBottom: 2,
             }}
           >
             {top}
@@ -273,10 +275,11 @@ function VerticalHeader({ top, bottom, minWidth = 42, height = 200 }) {
             transform: 'rotate(180deg)',
             whiteSpace: 'nowrap',
             fontWeight: 600,
-            fontSize: 12,
+            fontSize: 10,
             lineHeight: 1,
+            letterSpacing: '-0.2px',
             overflow: 'hidden',
-            maxHeight: height - (top ? 28 : 8),
+            maxHeight: top ? height - 18 : height - 6,
           }}
         >
           {bottom}
@@ -2645,9 +2648,9 @@ export default function App() {
                   <VerticalHeader
   key={g.id}
   top={String(idx + 1)}
-  bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
-  minWidth={60}
-  height={230}
+  bottom={formatDateShort(g.date)}
+  minWidth={34}
+  height={145}
 />
                 ))}
               </tr>
@@ -2687,9 +2690,9 @@ export default function App() {
                   <VerticalHeader
   key={g.id}
   top={String(idx + 1)}
-  bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
-  minWidth={60}
-  height={230}
+  bottom={formatDateShort(g.date)}
+  minWidth={34}
+  height={145}
 />
                 ))}
               </tr>
@@ -2717,9 +2720,9 @@ export default function App() {
                   <VerticalHeader
   key={g.id}
   top={String(idx + 1)}
-  bottom={`${g.opponent || ''} ${formatDateShort(g.date)}`}
-  minWidth={60}
-  height={230}
+  bottom={formatDateShort(g.date)}
+  minWidth={34}
+  height={145}
 />
                 ))}
               </tr>
@@ -2919,10 +2922,11 @@ export default function App() {
                 <th style={{ minWidth: 160 }}>Title</th>
                 {activePlayers.map((player) => (
                   <VerticalHeader
-  key={player.id}
-  bottom={player.name}
-  minWidth={52}
-  height={180}
+  key={g.id}
+  top={String(idx + 1)}
+  bottom={formatDateShort(g.date)}
+  minWidth={34}
+  height={145}
 />
                 ))}
                 <th>Delete</th>
