@@ -894,3 +894,15 @@ thead th {
     max-width: 100%;
   }
 }
+
+
+.tracking-table th.tracking-vertical {
+  background: #ffef99 !important;
+  height: 220px !important;
+}
+
+.tracking-vertical-text {
+  transform: translateX(-50%) rotate(-90deg) !important;
+  color: red !important;
+  font-size: 16px !important;
+}
