@@ -18,11 +18,11 @@ import {
   inningStatus,
 } from './lib/lineupUtils'
 
-import GamesPage from './pages/GamesPage'
-import TrackingTable from './components/TrackingTable'
-import VerticalHeader from './components/VerticalHeader'
-import MiniDiamond from './components/MiniDiamond'
-
+import GamesPage from './Pages/GamesPage'
+import TrackingTable from './Components/TrackingTable'
+import VerticalHeader from './Components/VerticalHeader'
+import MiniDiamond from './Components/MiniDiamond'
+import AttendancePage from './Pages/AttendancePage'
 
 const TEAM_ID = 'f76ea5a1-7c44-4789-bfbd-9771edd54f10'
 
