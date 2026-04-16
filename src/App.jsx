@@ -227,19 +227,7 @@ function buildPositionByPlayer(games, lineupsByGame, playerId) {
 
 import VerticalHeader from './components/VerticalHeader'
 
-
-function MiniDiamond({ status }) {
-  const posCoords = {
-    P: { left: '46%', top: '60%' },
-    C: { left: '46%', top: '83%' },
-    '1B': { left: '70%', top: '63%' },
-    '2B': { left: '61%', top: '37%' },
-    '3B': { left: '22%', top: '63%' },
-    SS: { left: '31%', top: '37%' },
-    LF: { left: '10%', top: '18%' },
-    CF: { left: '46%', top: '6%' },
-    RF: { left: '82%', top: '18%' },
-  }
+import MiniDiamond from './components/MiniDiamond'
 
   function fillFor(pos) {
     if (status?.duplicate?.includes(pos)) return '#ef4444'
