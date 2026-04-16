@@ -1,17 +1,36 @@
-import {
-  formatDateShort,
-  abbreviateOpponentName,
-} from '../lib/appHelpers'
+import { formatDateShort } from '../lib/appHelpers'
 
-function GameHeader({ game }) {
+function shortenOpponent(name = '') {
+  const cleaned = String(name || '')
+    .replace(/\b(12u|11u|10u|9u|14u|16u|18u)\b/gi, '')
+    .replace(/\b(gold|silver|black|teal|blue|red|white)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!cleaned) return ''
+
+  const words = cleaned.split(' ').filter(Boolean)
+  if (words.length === 1) return words[0].slice(0, 6)
+  if (words.length === 2) return `${words[0].slice(0, 3)} ${words[1].slice(0, 3)}`
+  return `${words[0].slice(0, 3)} ${words[1].slice(0, 3)}`
+}
+
+function gameHeaderLabel(game) {
+  const shortName = shortenOpponent(game?.opponent || '')
+  const shortDate = formatDateShort(game?.date || '')
+  return { shortName, shortDate }
+}
+
+function RotatedGameHeader({ game }) {
+  const { shortName, shortDate } = gameHeaderLabel(game)
+
   return (
     <th className="tracking-vertical">
       <div className="tracking-vertical-wrap">
-        <div className="tracking-vertical-text">
-          {abbreviateOpponentName(game.opponent)}
-          <br />
-          {formatDateShort(game.date)}
-        </div>
+        <span className="tracking-vertical-text">
+          {shortName}
+          {shortDate ? ` ${shortDate}` : ''}
+        </span>
       </div>
     </th>
   )
@@ -37,15 +56,15 @@ export default function TrackingPage({
   return (
     <div className="stack">
       <div className="card tracking-card">
+        <h3>Batting Order Tracking</h3>
         <div className="tracking-scroll">
-          <h3>Batting Order Tracking</h3>
           <table className="tracking-table">
             <thead>
               <tr>
                 <th className="sticky-col-1 col-player">Player</th>
                 <th className="sticky-col-2 col-avg">Avg</th>
-                {gamesWithLineups.map((game) => (
-                  <GameHeader key={game.id} game={game} />
+                {gamesWithLineups.map((g) => (
+                  <RotatedGameHeader key={g.id} game={g} />
                 ))}
               </tr>
             </thead>
@@ -54,8 +73,10 @@ export default function TrackingPage({
                 <tr key={row.playerId}>
                   <td className="sticky-col-1 col-player">{row.name}</td>
                   <td className="sticky-col-2 col-avg">{row.avg}</td>
-                  {row.perGame.map((value, i) => (
-                    <td key={i} className="col-small">{value}</td>
+                  {row.perGame.map((v, i) => (
+                    <td key={i} className="col-small">
+                      {v}
+                    </td>
                   ))}
                 </tr>
               ))}
@@ -65,14 +86,14 @@ export default function TrackingPage({
       </div>
 
       <div className="card tracking-card">
+        <h3>Sitting Out Summary</h3>
         <div className="tracking-scroll">
-          <h3>Sitting Out Summary</h3>
           <table className="tracking-table">
             <thead>
               <tr>
                 <th className="sticky-col-1 col-metric">Metric</th>
-                {gamesWithLineups.map((game) => (
-                  <GameHeader key={game.id} game={game} />
+                {gamesWithLineups.map((g) => (
+                  <RotatedGameHeader key={g.id} game={g} />
                 ))}
               </tr>
             </thead>
@@ -80,31 +101,41 @@ export default function TrackingPage({
               <tr>
                 <td className="sticky-col-1 col-metric">Total Players</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small">{g.totalPlayers}</td>
+                  <td key={g.gameId} className="col-small">
+                    {g.totalPlayers}
+                  </td>
                 ))}
               </tr>
               <tr>
                 <td className="sticky-col-1 col-metric">Innings</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small">{g.innings}</td>
+                  <td key={g.gameId} className="col-small">
+                    {g.innings}
+                  </td>
                 ))}
               </tr>
               <tr>
                 <td className="sticky-col-1 col-metric"># Sit Outs</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small">{g.sitOuts}</td>
+                  <td key={g.gameId} className="col-small">
+                    {g.sitOuts}
+                  </td>
                 ))}
               </tr>
               <tr>
                 <td className="sticky-col-1 col-metric">Injury</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small">{g.injury}</td>
+                  <td key={g.gameId} className="col-small">
+                    {g.injury}
+                  </td>
                 ))}
               </tr>
               <tr>
                 <td className="sticky-col-1 col-metric">Average Out</td>
                 {sitSummary.map((g) => (
-                  <td key={g.gameId} className="col-small">{g.avgSit}</td>
+                  <td key={g.gameId} className="col-small">
+                    {g.avgSit}
+                  </td>
                 ))}
               </tr>
             </tbody>
@@ -113,14 +144,14 @@ export default function TrackingPage({
       </div>
 
       <div className="card tracking-card">
+        <h3>Sit Outs by Player</h3>
         <div className="tracking-scroll">
-          <h3>Sit Outs by Player</h3>
           <table className="tracking-table">
             <thead>
               <tr>
                 <th className="sticky-col-1 col-player">Player</th>
-                {gamesWithLineups.map((game) => (
-                  <GameHeader key={game.id} game={game} />
+                {gamesWithLineups.map((g) => (
+                  <RotatedGameHeader key={g.id} game={g} />
                 ))}
               </tr>
             </thead>
@@ -128,8 +159,10 @@ export default function TrackingPage({
               {sitByPlayer.map((row) => (
                 <tr key={row.playerId}>
                   <td className="sticky-col-1 col-player">{row.name}</td>
-                  {row.perGame.map((value, i) => (
-                    <td key={i} className="col-small">{value}</td>
+                  {row.perGame.map((v, i) => (
+                    <td key={i} className="col-small">
+                      {v}
+                    </td>
                   ))}
                 </tr>
               ))}
@@ -143,8 +176,8 @@ export default function TrackingPage({
             <thead>
               <tr>
                 <th className="sticky-col-1 col-player">Player</th>
-                {gamesWithLineups.map((game) => (
-                  <GameHeader key={game.id} game={game} />
+                {gamesWithLineups.map((g) => (
+                  <RotatedGameHeader key={g.id} game={g} />
                 ))}
               </tr>
             </thead>
@@ -152,8 +185,10 @@ export default function TrackingPage({
               {sitByPlayer.map((row) => (
                 <tr key={`${row.playerId}-running`}>
                   <td className="sticky-col-1 col-player">{row.name}</td>
-                  {row.running.map((value, i) => (
-                    <td key={i} className="col-small">{value}</td>
+                  {row.running.map((v, i) => (
+                    <td key={i} className="col-small">
+                      {v}
+                    </td>
                   ))}
                 </tr>
               ))}
@@ -163,21 +198,21 @@ export default function TrackingPage({
       </div>
 
       <div className="card tracking-card">
-        <div className="tracking-scroll">
-          <div className="positioning-controls">
-            <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
-            <div className="positioning-player-select">
-              <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
-                <option value="">Select Player</option>
-                {activePlayers.map((player) => (
-                  <option key={player.id} value={pk(player.id)}>
-                    {player.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div className="positioning-controls">
+          <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
+          <div className="positioning-player-select">
+            <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
+              <option value="">Select Player</option>
+              {activePlayers.map((p) => (
+                <option key={p.id} value={pk(p.id)}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
 
+        <div className="tracking-scroll">
           {trackingPlayerId ? (
             <table className="tracking-table positioning-table">
               <thead>
@@ -196,7 +231,7 @@ export default function TrackingPage({
                   <th className="col-small">CF</th>
                   <th className="col-small">RF</th>
                   <th className="col-small">Out</th>
-                  <th className="col-small">Inj</th>
+                  <th className="col-small">Injury</th>
                 </tr>
               </thead>
               <tbody>
@@ -237,13 +272,17 @@ export default function TrackingPage({
       />
 
       <div className="card tracking-card">
+        <h3>Tracking vs Positioning Priority</h3>
         <div className="tracking-scroll">
-          <h3>Tracking vs Positioning Priority</h3>
           <table className="tracking-table">
             <thead>
               <tr>
-                <th rowSpan="2" className="sticky-col-1 col-player">Player</th>
-                <th rowSpan="2" className="sticky-col-2 col-small">Fld</th>
+                <th rowSpan="2" className="sticky-col-1 col-player">
+                  Player
+                </th>
+                <th rowSpan="2" className="sticky-col-2 col-small">
+                  Fld
+                </th>
                 <th colSpan="2">P</th>
                 <th colSpan="2">C</th>
                 <th colSpan="2">1B</th>
