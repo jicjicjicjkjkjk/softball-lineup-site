@@ -2576,7 +2576,27 @@ export default function App() {
 
         {page === 'players' && renderPlayersPage()}
         {page === 'positioning-priority' && renderPositioningPriorityPage()}
-        {page === 'games' && renderGamesPage()}
+        {page === 'games' && (
+  <GamesPage
+    loadAll={loadAll}
+    appError={appError}
+    loading={loading}
+    newGameDate={newGameDate}
+    setNewGameDate={setNewGameDate}
+    newGameOpponent={newGameOpponent}
+    setNewGameOpponent={setNewGameOpponent}
+    newGameType={newGameType}
+    setNewGameType={setNewGameType}
+    addGameFromGames={addGameFromGames}
+    sortedGames={sortedGames}
+    gameSort={gameSort}
+    setGameSort={setGameSort}
+    updateGameField={updateGameField}
+    deleteGame={deleteGame}
+    setSelectedGameId={setSelectedGameId}
+    setPage={setPage}
+  />
+)}  
         {page === 'game-detail' && renderGameDetailPage()}
         {page === 'lineup-setter' && renderLineupSetterPage()}
         {page === 'tracking' && renderTrackingPage()}
