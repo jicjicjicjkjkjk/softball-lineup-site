@@ -3,6 +3,71 @@ export function nextSort(current, key) {
   return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
 }
 
+export function abbreviateOpponentName(opponent) {
+  const text = String(opponent || '').trim()
+  if (!text) return ''
+
+  const stopWords = new Set([
+    'the',
+    'a',
+    'an',
+    'vs',
+    'versus',
+    'at',
+    'u',
+    '12u',
+    '11u',
+    '10u',
+    '13u',
+    '14u',
+    '15u',
+    '16u',
+    '18u',
+    'gold',
+    'silver',
+    'black',
+    'blue',
+    'red',
+    'white',
+    'teal',
+    'green',
+    'gray',
+    'grey',
+    'orange',
+    'purple',
+    'pink',
+    'elite',
+    'premier',
+    'national',
+    'select',
+    'team',
+  ])
+
+  const words = text
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+
+  const usable = words.filter((word) => !stopWords.has(word.toLowerCase()))
+
+  const source = usable.length ? usable : words
+
+  if (!source.length) return text.slice(0, 3)
+
+  if (source.length === 1) {
+    return source[0].slice(0, 3)
+  }
+
+  if (source.length === 2) {
+    return `${source[0].slice(0, 3)} ${source[1].slice(0, 3)}`
+  }
+
+  return source
+    .slice(0, 2)
+    .map((word) => word.slice(0, 3))
+    .join(' ')
+}
+
 export function sortRows(rows, sort) {
   if (!sort?.key) return rows
   const dir = sort.direction === 'desc' ? -1 : 1
