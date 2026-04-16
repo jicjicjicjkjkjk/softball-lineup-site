@@ -506,7 +506,14 @@ function lockedHeavySitClumpPenalty(lineup, playerId, inning, innings, players, 
   return penalty
 }
 
-function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
+function buildSitPlan({
+  lineup,
+  game,
+  players,
+  totalsBefore,
+  fitMap,
+  batchFairnessState,
+}) {
   const innings = Number(game?.innings || lineup?.innings || 6)
   const plannedOuts = initializePlannedOutSets(players)
 
@@ -534,30 +541,12 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
     }
   })
 
-  function getAvailabilityProfile(playerId) {
-    let availableInnings = 0
-    let availableGames = 0
-    let seenAvailableInGame = false
-
-    for (let inning = 1; inning <= innings; inning += 1) {
-      const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
-      const isEligible = eligibleIds.includes(playerId)
-
-      if (isEligible) {
-        availableInnings += 1
-        seenAvailableInGame = true
-      }
-    }
-
-    if (seenAvailableInGame) availableGames = 1
-
-    return { availableInnings, availableGames }
+  function getBatchRate(playerId) {
+    const entry = batchFairnessState?.[playerId]
+    if (!entry) return 0
+    const gamesAvailable = Math.max(1, Number(entry.gamesAvailable || 0))
+    return Number(entry.outsSoFar || 0) / gamesAvailable
   }
-
-  const availabilityProfile = {}
-  ;(players || []).forEach((player) => {
-    availabilityProfile[pk(player.id)] = getAvailabilityProfile(pk(player.id))
-  })
 
   for (let inning = 1; inning <= innings; inning += 1) {
     const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
@@ -582,11 +571,10 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
       const candidatePool = unlockedEligibleIds.filter((id) => !chosenSits.has(id))
       if (!candidatePool.length) break
 
-      const minGameOutsAmongCandidates = Math.min(
-        ...candidatePool.map((id) => gameOutCounts[id])
+      const minBatchRate = Math.min(...candidatePool.map((id) => getBatchRate(id)))
+      const minBatchOuts = Math.min(
+        ...candidatePool.map((id) => Number(batchFairnessState?.[id]?.outsSoFar || 0))
       )
-
-      const fairnessCap = minGameOutsAmongCandidates + 1
 
       const ranked = candidatePool
         .map((id) => ({
@@ -596,18 +584,25 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
           seasonOutCount: seasonOuts[id],
           delta: seasonDelta[id],
           spacing: spacingPenalty(lineup, id, inning, innings, plannedOuts),
-          availableInnings: availabilityProfile[id]?.availableInnings || 0,
+          batchOuts: Number(batchFairnessState?.[id]?.outsSoFar || 0),
+          batchGamesAvailable: Number(batchFairnessState?.[id]?.gamesAvailable || 0),
+          batchRate: getBatchRate(id),
         }))
         .sort((a, b) => {
-          const aOverCap = a.gameOutCount > fairnessCap ? 1 : 0
-          const bOverCap = b.gameOutCount > fairnessCap ? 1 : 0
-          if (aOverCap !== bOverCap) return aOverCap - bOverCap
+          const aFarAboveRate = a.batchRate > minBatchRate + 0.51 ? 1 : 0
+          const bFarAboveRate = b.batchRate > minBatchRate + 0.51 ? 1 : 0
+          if (aFarAboveRate !== bFarAboveRate) return aFarAboveRate - bFarAboveRate
 
+          const aFarAboveOuts = a.batchOuts > minBatchOuts + 1 ? 1 : 0
+          const bFarAboveOuts = b.batchOuts > minBatchOuts + 1 ? 1 : 0
+          if (aFarAboveOuts !== bFarAboveOuts) return aFarAboveOuts - bFarAboveOuts
+
+          if (a.batchRate !== b.batchRate) return a.batchRate - b.batchRate
+          if (a.batchOuts !== b.batchOuts) return a.batchOuts - b.batchOuts
           if (a.gameOutCount !== b.gameOutCount) return a.gameOutCount - b.gameOutCount
           if (a.spacing !== b.spacing) return a.spacing - b.spacing
           if (a.delta !== b.delta) return a.delta - b.delta
           if (a.seasonOutCount !== b.seasonOutCount) return a.seasonOutCount - b.seasonOutCount
-          if (a.availableInnings !== b.availableInnings) return b.availableInnings - a.availableInnings
 
           return String(a.player?.name || '').localeCompare(String(b.player?.name || ''))
         })
@@ -615,8 +610,6 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
       let pickedId = null
 
       for (const candidate of ranked) {
-        if (candidate.gameOutCount > fairnessCap) continue
-
         const remainingFielders = unlockedEligibleIds.filter(
           (id) => !chosenSits.has(id) && id !== candidate.id
         )
@@ -627,22 +620,6 @@ function buildSitPlan({ lineup, game, players, totalsBefore, fitMap }) {
         if (canCoverStrict || canCoverLoose) {
           pickedId = candidate.id
           break
-        }
-      }
-
-      if (!pickedId) {
-        for (const candidate of ranked) {
-          const remainingFielders = unlockedEligibleIds.filter(
-            (id) => !chosenSits.has(id) && id !== candidate.id
-          )
-
-          const canCoverStrict = canCoverOpenPositions(remainingFielders, openPositions, fitMap, true)
-          const canCoverLoose = canCoverOpenPositions(remainingFielders, openPositions, fitMap, false)
-
-          if (canCoverStrict || canCoverLoose) {
-            pickedId = candidate.id
-            break
-          }
         }
       }
 
@@ -914,6 +891,7 @@ export function buildOptimizedLineup({
   totalsBefore,
   priorityMap,
   fitMap,
+  batchFairnessState = null,
 }) {
   const safeAvailable = (availablePlayerIds || []).map(pk)
   const lineup = normalizeLineup(
@@ -960,12 +938,13 @@ export function buildOptimizedLineup({
     }
   })
 
-  const plannedOutsByPlayer = buildSitPlan({
+    const plannedOutsByPlayer = buildSitPlan({
     lineup,
     game,
     players,
     totalsBefore: rollingTotals,
     fitMap,
+    batchFairnessState,
   })
 
   for (let inning = 1; inning <= lineup.innings; inning += 1) {
