@@ -226,7 +226,7 @@ function buildPositionByPlayer(games, lineupsByGame, playerId) {
 }
 
 
-function verticalHeaderStyle(minWidth = 56, height = 220) {
+function verticalHeaderStyle(minWidth = 42, height = 200) {
   return {
     minWidth,
     width: minWidth,
@@ -234,14 +234,14 @@ function verticalHeaderStyle(minWidth = 56, height = 220) {
     height,
     minHeight: height,
     maxHeight: height,
-    padding: '8px 4px 12px',
+    padding: '6px 2px 10px',
     verticalAlign: 'bottom',
     textAlign: 'center',
     overflow: 'hidden',
   }
 }
 
-function VerticalHeader({ top, bottom, minWidth = 56, height = 220 }) {
+function VerticalHeader({ top, bottom, minWidth = 42, height = 200 }) {
   return (
     <th style={verticalHeaderStyle(minWidth, height)}>
       <div
@@ -251,7 +251,7 @@ function VerticalHeader({ top, bottom, minWidth = 56, height = 220 }) {
           flexDirection: 'column',
           justifyContent: 'flex-end',
           alignItems: 'center',
-          gap: 6,
+          gap: 4,
           overflow: 'hidden',
         }}
       >
@@ -259,8 +259,8 @@ function VerticalHeader({ top, bottom, minWidth = 56, height = 220 }) {
           <div
             style={{
               fontWeight: 700,
+              fontSize: 12,
               lineHeight: 1,
-              flex: '0 0 auto',
             }}
           >
             {top}
@@ -272,10 +272,11 @@ function VerticalHeader({ top, bottom, minWidth = 56, height = 220 }) {
             writingMode: 'vertical-rl',
             transform: 'rotate(180deg)',
             whiteSpace: 'nowrap',
-            fontWeight: 700,
-            lineHeight: 1.05,
+            fontWeight: 600,
+            fontSize: 12,
+            lineHeight: 1,
             overflow: 'hidden',
-            maxHeight: height - (top ? 34 : 10),
+            maxHeight: height - (top ? 28 : 8),
           }}
         >
           {bottom}
