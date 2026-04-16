@@ -1,21 +1,25 @@
-import LineupGrid from "../Components/LineupGrid";
+import { formatDateShort } from '../lib/appHelpers'
 
 export default function GameDetailPage({
-  games,
   selectedGame,
   selectedLineup,
   selectedLocked,
-  players,
+  activePlayers,
+  activePlayerIds,
+  games,
+  selectedGameId,
+  setSelectedGameId,
+  setPage,
+  saveSavedLineup,
+  toggleLineupLocked,
+  clearSavedLineup,
+  addSavedInning,
+  removeSavedInning,
+  toggleSavedAvailable,
   fitByPlayer,
-  onSelectGame,
-  onAddInning,
-  onRemoveInning,
-  onSaveLineup,
-  onToggleLocked,
-  onClearLineup,
-  onCellChange,
-  onBattingChange,
-  onToggleAvailability,
+  LineupGrid,
+  updateSavedCell,
+  updateSavedBatting,
 }) {
   if (!selectedGame) {
     return (
@@ -29,108 +33,119 @@ export default function GameDetailPage({
   if (!selectedLineup) {
     return (
       <div className="card">
-        <div className="row-between">
+        <div className="row-between wrap-row">
           <div>
-            <h2>{selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}</h2>
+            <h2>
+              {selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
+            </h2>
             <p>No lineup saved yet.</p>
           </div>
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          <label>Open Another Game</label>
-          <select value={String(selectedGame.id)} onChange={(e) => onSelectGame(e.target.value)}>
-            {games.map((game) => (
-              <option key={game.id} value={String(game.id)}>
-                {(game.date || 'No Date')} vs {(game.opponent || 'Opponent')}
-              </option>
-            ))}
-          </select>
+          <div className="actions-inline">
+            <button onClick={() => setPage('games')}>Back to Games</button>
+          </div>
         </div>
       </div>
     )
   }
 
-  const availableSet = new Set((selectedLineup.availablePlayerIds || []).map(String))
+  const visibleIds = selectedLineup.availablePlayerIds || activePlayerIds()
 
   return (
     <div className="stack">
-      <div className="card">
-        <div className="row-between">
+      <div className="card no-print">
+        <div className="row-between wrap-row">
           <div>
-            <h2>{selectedGame.date || 'No Date'} vs {selectedGame.opponent || 'Opponent'}</h2>
-            <p>Status: <strong>{selectedLocked ? 'Locked' : 'Saved'}</strong></p>
+            <h2>
+              {formatDateShort(selectedGame.date) || 'No Date'} vs{' '}
+              {selectedGame.opponent || 'Opponent'}
+            </h2>
+            <p>
+              Status: <strong>{selectedLocked ? 'Locked' : 'Saved'}</strong> | Type:{' '}
+              <strong>{selectedGame.game_type || 'Pool Play'}</strong>
+            </p>
           </div>
 
-          <div className="button-row">
-            <button onClick={() => onAddInning(selectedGame.id)} disabled={selectedLocked}>
-              Add Inning
-            </button>
-            <button onClick={() => onSaveLineup(selectedGame.id)} disabled={selectedLocked}>
+          <div className="actions-inline">
+            <button onClick={() => setPage('games')}>Back to Games</button>
+
+            <select
+              value={selectedGameId}
+              onChange={(e) => setSelectedGameId(e.target.value)}
+              style={{ maxWidth: 280 }}
+            >
+              {games.map((game) => (
+                <option key={game.id} value={game.id}>
+                  {(formatDateShort(game.date) || 'No Date')} vs {(game.opponent || 'Opponent')}
+                </option>
+              ))}
+            </select>
+
+            <button onClick={() => saveSavedLineup(selectedGame.id)} disabled={selectedLocked}>
               Save Changes
             </button>
-            <button onClick={() => onToggleLocked(selectedGame.id, !selectedLocked)}>
+
+            <button onClick={() => toggleLineupLocked(selectedGame.id, !selectedLocked)}>
               {selectedLocked ? 'Unlock Lineup' : 'Lock Lineup'}
             </button>
-            <button onClick={() => onClearLineup(selectedGame.id)} disabled={selectedLocked}>
+
+            <button onClick={() => clearSavedLineup(selectedGame.id)} disabled={selectedLocked}>
               Clear Lineup
             </button>
-          </div>
-        </div>
 
-        <div style={{ marginTop: 12 }}>
-          <label>Open Another Game</label>
-          <select value={String(selectedGame.id)} onChange={(e) => onSelectGame(e.target.value)}>
-            {games.map((game) => (
-              <option key={game.id} value={String(game.id)}>
-                {(game.date || 'No Date')} vs {(game.opponent || 'Opponent')}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ marginTop: 16 }}>
-          <h4>Game Availability</h4>
-          <div className="checkbox-grid">
-            {players
-              .filter((p) => p.active !== false)
-              .map((player) => (
-                <label key={player.id} className="checkbox-item">
-                  <input
-                    type="checkbox"
-                    checked={availableSet.has(String(player.id))}
-                    onChange={() => onToggleAvailability(selectedGame.id, player.id)}
-                    disabled={selectedLocked}
-                  />
-                  {player.name}
-                </label>
-              ))}
+            <button onClick={() => window.print()}>Print</button>
           </div>
         </div>
 
         <div className="button-row" style={{ marginTop: 12 }}>
-          <span style={{ fontWeight: 600, alignSelf: 'center' }}>Remove Inning</span>
+          <span style={{ fontWeight: 700, alignSelf: 'center' }}>Innings</span>
+
+          <button onClick={() => addSavedInning(selectedGame.id)} disabled={selectedLocked}>
+            Add Inning
+          </button>
+
           {Array.from({ length: selectedLineup.innings }, (_, i) => i + 1).map((inning) => (
             <button
               key={inning}
-              onClick={() => onRemoveInning(selectedGame.id, inning)}
+              onClick={() => removeSavedInning(selectedGame.id, inning)}
               disabled={selectedLocked}
             >
-              {inning}
+              Remove {inning}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="card" style={{ overflowX: 'auto' }}>
+      <div className="card no-print">
+        <h3>Game Availability</h3>
+        <div className="checkbox-grid">
+          {activePlayers.map((player) => (
+            <label key={player.id} className="checkbox-item">
+              <input
+                type="checkbox"
+                checked={visibleIds.includes(player.id)}
+                disabled={selectedLocked}
+                onChange={() => toggleSavedAvailable(selectedGame.id, player.id)}
+              />
+              {player.name}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="card no-print" style={{ overflowX: 'auto' }}>
         <LineupGrid
-          players={players}
+          players={activePlayers}
           lineup={selectedLineup}
-          fitByPlayer={fitByPlayer}
+          fitMap={fitByPlayer}
           showLocks={false}
           lockedLineup={selectedLocked}
-          hideUnavailable={true}
-          onCellChange={(playerId, inning, value) => onCellChange(selectedGame.id, playerId, inning, value)}
-          onBattingChange={(playerId, value) => onBattingChange(selectedGame.id, playerId, value)}
+          visiblePlayerIds={visibleIds}
+          onCellChange={(playerId, inning, value) =>
+            updateSavedCell(selectedGame.id, playerId, inning, value)
+          }
+          onBattingChange={(playerId, value) =>
+            updateSavedBatting(selectedGame.id, playerId, value)
+          }
           onCellLockToggle={() => {}}
           onRowLockToggle={() => {}}
         />
