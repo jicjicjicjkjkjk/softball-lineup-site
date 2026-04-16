@@ -2,7 +2,7 @@ import { formatDateShort } from '../lib/appHelpers'
 
 function shortenOpponent(name = '') {
   const cleaned = String(name || '')
-    .replace(/\b(12u|11u|10u|9u|14u|16u|18u)\b/gi, '')
+    .replace(/\b(8u|9u|10u|11u|12u|13u|14u|15u|16u|18u)\b/gi, '')
     .replace(/\b(gold|silver|black|teal|blue|red|white)\b/gi, '')
     .replace(/\s+/g, ' ')
     .trim()
@@ -15,14 +15,9 @@ function shortenOpponent(name = '') {
   return `${words[0].slice(0, 3)} ${words[1].slice(0, 3)}`
 }
 
-function gameHeaderLabel(game) {
+function RotatedGameHeader({ game }) {
   const shortName = shortenOpponent(game?.opponent || '')
   const shortDate = formatDateShort(game?.date || '')
-  return { shortName, shortDate }
-}
-
-function RotatedGameHeader({ game }) {
-  const { shortName, shortDate } = gameHeaderLabel(game)
 
   return (
     <th className="tracking-vertical">
