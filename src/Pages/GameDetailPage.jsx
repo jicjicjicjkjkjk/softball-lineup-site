@@ -168,58 +168,74 @@ export default function GameDetailPage({
       </div>
 
       {!!selectedLineup && (
-        <div className="card print-only">
-          <div className="print-title">
-            {formatDateShort(selectedGame.date) || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
-          </div>
+        <div className="print-only">
+  <div className="print-title">
+    {(formatDateShort(selectedGame?.date) || 'No Date')} vs {selectedGame?.opponent || 'Opponent'}
+  </div>
 
-          <table className="print-table-compact lineup-print-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Player</th>
-                <th>Batting Order</th>
-                {Array.from({ length: Number(selectedLineup.innings || 0) }, (_, i) => (
-                  <th key={i + 1}>{i + 1}</th>
-                ))}
-                <th>IF</th>
-                <th>OF</th>
-                <th>P</th>
-                <th>C</th>
-                <th>X</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activePlayers
-                .filter((player) => (selectedLineup.availablePlayerIds || []).includes(String(player.id)))
-                .map((player) => {
-                  const playerId = String(player.id)
-                  const summary = buildRowSummary(playerId)
+  <table className="print-table-compact lineup-print-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Player</th>
+        <th>Batting Order</th>
+        {Array.from({ length: Number(selectedLineup?.innings || 0) }, (_, i) => (
+          <th key={i + 1}>{i + 1}</th>
+        ))}
+        <th>IF</th>
+        <th>OF</th>
+        <th>P</th>
+        <th>C</th>
+        <th>X</th>
+      </tr>
+    </thead>
+    <tbody>
+      {activePlayers
+        .filter((player) => (selectedLineup?.availablePlayerIds || []).includes(pk(player.id)))
+        .map((player) => {
+          const playerId = pk(player.id)
 
-                  return (
-                    <tr key={playerId}>
-                      <td>{player.jersey_number || ''}</td>
-                      <td>{player.name}</td>
-                      <td>{selectedLineup?.battingOrder?.[playerId] || ''}</td>
+          let IF = 0
+          let OF = 0
+          let P = 0
+          let C = 0
+          let X = 0
 
-                      {Array.from({ length: Number(selectedLineup.innings || 0) }, (_, i) => {
-                        const inning = i + 1
-                        const value = selectedLineup?.cells?.[playerId]?.[inning] || ''
-                        return <td key={inning}>{value}</td>
-                      })}
+          const inningValues = Array.from(
+            { length: Number(selectedLineup?.innings || 0) },
+            (_, idx) => {
+              const inning = idx + 1
+              const value = selectedLineup?.cells?.[playerId]?.[inning] || ''
 
-                      <td>{summary.IF}</td>
-                      <td>{summary.OF}</td>
-                      <td>{summary.P}</td>
-                      <td>{summary.C}</td>
-                      <td>{summary.X}</td>
-                    </tr>
-                  )
-                })}
-            </tbody>
-          </table>
-        </div>
-      )}
+              if (['1B', '2B', '3B', 'SS'].includes(value)) IF += 1
+              if (['LF', 'CF', 'RF'].includes(value)) OF += 1
+              if (value === 'P') P += 1
+              if (value === 'C') C += 1
+              if (value === 'Out') X += 1
+
+              return value
+            }
+          )
+
+          return (
+            <tr key={playerId}>
+              <td>{player.jersey_number || ''}</td>
+              <td>{player.name}</td>
+              <td>{selectedLineup?.battingOrder?.[playerId] || ''}</td>
+              {inningValues.map((value, idx) => (
+                <td key={idx}>{value}</td>
+              ))}
+              <td>{IF}</td>
+              <td>{OF}</td>
+              <td>{P}</td>
+              <td>{C}</td>
+              <td>{X}</td>
+            </tr>
+          )
+        })}
+    </tbody>
+  </table>
+</div>      )}
     </div>
   )
 }
