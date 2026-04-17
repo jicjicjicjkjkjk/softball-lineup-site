@@ -3,8 +3,10 @@ import { formatDateShort } from '../lib/appHelpers'
 export default function LineupSetterPage({
   optimizerFocusLineup,
   optimizerFocusGame,
+  optimizerFocusLocked,
+  toggleLineupLocked,
+  lineupLockedByGame,
   optimizerExistingGameId,
-  setOptimizerExistingGameId,
   games,
   addExistingGameToBatch,
   optimizerFocusLocked,
