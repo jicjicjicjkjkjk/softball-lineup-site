@@ -636,6 +636,90 @@ function buildSitPlan({
   return plannedOuts
 }
 
+function getPlayerFieldPositionsInGame(lineup, playerId, uptoInning = null) {
+  const id = pk(playerId)
+  const innings = Number(uptoInning || lineup?.innings || 0)
+  const positions = new Set()
+
+  for (let inning = 1; inning <= innings; inning += 1) {
+    const value = lineup?.cells?.[id]?.[inning] || ''
+    if (FIELD_POSITIONS.includes(value)) positions.add(value)
+  }
+
+  return positions
+}
+
+function isRowFullyLockedForGame(lineup, playerId) {
+  const id = pk(playerId)
+  const innings = Number(lineup?.innings || 0)
+
+  if (lineup?.lockedRows?.[id] === true) return true
+
+  for (let inning = 1; inning <= innings; inning += 1) {
+    if (lineup?.lockedCells?.[id]?.[inning] !== true) return false
+  }
+
+  return innings > 0
+}
+
+function countUnlockedFieldInningsRemaining(lineup, playerId, fromInning) {
+  const id = pk(playerId)
+  const innings = Number(lineup?.innings || 0)
+  let count = 0
+
+  for (let inning = fromInning; inning <= innings; inning += 1) {
+    const value = lineup?.cells?.[id]?.[inning] || ''
+    if (value === 'Injury') continue
+    if (!lockedValue(lineup, id, inning)) count += 1
+  }
+
+  return count
+}
+
+function needsSecondPositionThisGame(lineup, playerId, inning) {
+  const id = pk(playerId)
+  const existingPositions = getPlayerFieldPositionsInGame(lineup, id, inning - 1)
+
+  if (existingPositions.size >= 2) return false
+  if (isRowFullyLockedForGame(lineup, id)) return false
+
+  const remainingUnlocked = countUnlockedFieldInningsRemaining(lineup, id, inning)
+  if (remainingUnlocked <= 0) return false
+
+  return existingPositions.size === 1
+}
+
+function secondPositionBonus(lineup, playerId, position, inning) {
+  const id = pk(playerId)
+  const existingPositions = getPlayerFieldPositionsInGame(lineup, id, inning - 1)
+
+  if (!needsSecondPositionThisGame(lineup, id, inning)) return 0
+  if (existingPositions.size !== 1) return 0
+  if (existingPositions.has(position)) return 0
+
+  return 18
+}
+
+function continuityPreference(lineup, playerId, position, inning) {
+  const id = pk(playerId)
+  if (inning <= 1) return 0
+
+  const prevValue = lineup?.cells?.[id]?.[inning - 1] || ''
+  if (prevValue !== position) return 0
+
+  const currentPositions = getPlayerFieldPositionsInGame(lineup, id, inning - 1)
+
+  // Bigger reward if player still only has one position so far.
+  if (currentPositions.size <= 1) return 10
+
+  // Smaller reward once they already have variety.
+  return 4
+}
+
+function playerGameOutCount(plannedOutsByPlayer, playerId, inning) {
+  return Array.from(plannedOutsByPlayer?.[pk(playerId)] || []).filter((x) => x < inning).length
+}
+
 function scorePlayerForPosition({
   player,
   playerId,
@@ -701,7 +785,7 @@ function findBestAssignment({
       .filter((playerId) => canPlayPosition(fitMap, playerId, position, strict))
       .map((playerId) =>
         scorePlayerForPosition({
-          player: (players || []).find((p) => pk(p.id) === playerId),
+          player: (players || []).find((p) => pk(p.id) === pk(playerId)),
           playerId,
           position,
           rollingTotals,
@@ -712,12 +796,9 @@ function findBestAssignment({
           plannedOutsByPlayer,
         })
       )
-            .sort((a, b) => {
+      .sort((a, b) => {
         if (a.fitScore !== b.fitScore) return a.fitScore - b.fitScore
-        if (a.currentGameOuts !== b.currentGameOuts) return a.currentGameOuts - b.currentGameOuts
-        if (a.diversityBonus !== b.diversityBonus) return b.diversityBonus - a.diversityBonus
-        if (a.continuityBonus !== b.continuityBonus) return b.continuityBonus - a.continuityBonus
-        if (a.gap !== b.gap) return b.gap - a.gap
+        if (a.totalScore !== b.totalScore) return b.totalScore - a.totalScore
         return String(a.player?.name || '').localeCompare(String(b.player?.name || ''))
       })
   })
@@ -730,10 +811,17 @@ function findBestAssignment({
   )
 
   const usedPlayers = new Set()
-  const assignment = {}
+  let bestAssignment = null
+  let bestScore = -Infinity
 
-  function search(index) {
-    if (index >= orderedPositions.length) return true
+  function search(index, assignment, score) {
+    if (index >= orderedPositions.length) {
+      if (score > bestScore) {
+        bestScore = score
+        bestAssignment = { ...assignment }
+      }
+      return
+    }
 
     const position = orderedPositions[index]
 
@@ -743,17 +831,15 @@ function findBestAssignment({
       usedPlayers.add(candidate.id)
       assignment[position] = candidate.id
 
-      if (search(index + 1)) return true
+      search(index + 1, assignment, score + candidate.totalScore)
 
-      usedPlayers.delete(candidate.id)
       delete assignment[position]
+      usedPlayers.delete(candidate.id)
     }
-
-    return false
   }
 
-  const ok = search(0)
-  return ok ? assignment : null
+  search(0, {}, 0)
+  return bestAssignment
 }
 
 function assignPositionsForInning({
@@ -771,7 +857,6 @@ function assignPositionsForInning({
   const availableSet = new Set((availablePlayerIds || []).map(pk))
   const lockedInfo = getLockedAssignmentsForInning(lineup, inning, players)
 
-  // clear unlocked non-injury cells first
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
 
@@ -782,6 +867,7 @@ function assignPositionsForInning({
 
     const current = lineup?.cells?.[id]?.[inning] || ''
     if (current === 'Injury') return
+
     if (!lockedValue(lineup, id, inning)) {
       lineup.cells[id][inning] = ''
     }
@@ -791,7 +877,6 @@ function assignPositionsForInning({
     (position) => !lockedInfo.assignedPositions.has(position)
   )
 
-  // planned sit-outs are only candidates for Out, but only after we confirm positions can still be filled
   const sitCandidateIds = eligibleIds.filter(
     (id) =>
       !lockedInfo.lockedFieldPlayers.has(id) &&
@@ -866,7 +951,6 @@ function assignPositionsForInning({
     })
   }
 
-  // anything eligible/unlocked not assigned to a field position becomes Out
   eligibleIds.forEach((id) => {
     if (lockedInfo.lockedFieldPlayers.has(id)) return
     if (lockedInfo.lockedOutPlayers.has(id)) return
@@ -877,7 +961,6 @@ function assignPositionsForInning({
     }
   })
 
-  // last safeguard: no blank eligible cells
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
     if (!eligibleSet.has(id)) return
@@ -996,10 +1079,9 @@ export function buildOptimizedLineup({
   totalsBefore,
   priorityMap,
   fitMap,
-  batchTargetOuts = {},
-  batchCurrentOuts = {},
 }) {
   const safeAvailable = (availablePlayerIds || []).map(pk)
+
   const lineup = normalizeLineup(
     sourceLineup,
     players,
@@ -1015,6 +1097,7 @@ export function buildOptimizedLineup({
   clearUnlockedCells(lineup, players)
 
   const rollingTotals = JSON.parse(JSON.stringify(totalsBefore || {}))
+
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
     if (!rollingTotals[id]) {
@@ -1044,14 +1127,12 @@ export function buildOptimizedLineup({
     }
   })
 
-      const plannedOutsByPlayer = buildSitPlan({
+  const plannedOutsByPlayer = buildSitPlan({
     lineup,
     game,
     players,
     totalsBefore: rollingTotals,
     fitMap,
-    batchTargetOuts,
-    batchCurrentOuts,
   })
 
   for (let inning = 1; inning <= lineup.innings; inning += 1) {
@@ -1107,15 +1188,63 @@ export function buildOptimizedLineup({
       current.delta = Number((current.actualOuts - current.expectedOuts).toFixed(2))
     })
   }
-  
-  enforceMinimumTwoPositions({
-    lineup,
-    players,
-    fitMap,
+
+  // Post-pass: try to ensure 2 field positions per player for this game where feasible.
+  // Skip players whose whole row is locked or who do not have enough field innings.
+  ;(players || []).forEach((player) => {
+    const id = pk(player.id)
+    if (!(lineup.availablePlayerIds || []).includes(id)) return
+    if (isRowFullyLockedForGame(lineup, id)) return
+
+    const fieldInnings = []
+    for (let inning = 1; inning <= lineup.innings; inning += 1) {
+      const value = lineup?.cells?.[id]?.[inning] || ''
+      if (FIELD_POSITIONS.includes(value)) fieldInnings.push({ inning, value })
+    }
+
+    const existingPositions = new Set(fieldInnings.map((x) => x.value))
+    if (existingPositions.size >= 2) return
+    if (fieldInnings.length < 2) return
+
+    const originalPosition = fieldInnings[0]?.value
+    const candidateInnings = fieldInnings.filter(
+      ({ inning }) => !lockedValue(lineup, id, inning)
+    )
+
+    if (!originalPosition || !candidateInnings.length) return
+
+    for (const { inning } of candidateInnings) {
+      const currentPos = lineup.cells[id][inning]
+      const alternatives = FIELD_POSITIONS.filter(
+        (pos) => pos !== currentPos && pos !== originalPosition && canPlayPosition(fitMap, id, pos, true)
+      ).sort((a, b) => {
+        const aTarget = priorityValue(priorityMap, id, a)
+        const bTarget = priorityValue(priorityMap, id, b)
+        return bTarget - aTarget
+      })
+
+      let swapped = false
+
+      for (const altPos of alternatives) {
+        const otherId = (players || [])
+          .map((p) => pk(p.id))
+          .find((pid) => (lineup?.cells?.[pid]?.[inning] || '') === altPos)
+
+        if (!otherId) continue
+        if (lockedValue(lineup, otherId, inning)) continue
+        if (!canPlayPosition(fitMap, otherId, currentPos, true)) continue
+
+        lineup.cells[id][inning] = altPos
+        lineup.cells[otherId][inning] = currentPos
+        swapped = true
+        break
+      }
+
+      if (swapped) break
+    }
   })
 
   return lineup
-  
 }
 
 export function formatDateMMDDYY(dateStr) {
