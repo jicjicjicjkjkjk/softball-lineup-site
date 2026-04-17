@@ -143,10 +143,7 @@ export default function App() {
   const [optimizerFocusGameId, setOptimizerFocusGameId] = useState('')
   const [optimizerBatchGameIds, setOptimizerBatchGameIds] = useState([])
   const [optimizerPreviewByGame, setOptimizerPreviewByGame] = useState({})
-const optimizerFocusLocked = useMemo(
-  () => (optimizerFocusGame ? lineupLockedByGame[pk(optimizerFocusGame.id)] === true : false),
-  [optimizerFocusGame, lineupLockedByGame]
-)
+
   
   const [newGameDate, setNewGameDate] = useState('')
   const [newGameOpponent, setNewGameOpponent] = useState('')
@@ -370,6 +367,10 @@ async function persistLineup(gameId, lineup, nextLocked = null) {
 
   const activePlayers = useMemo(() => players.filter((p) => p.active !== false), [players])
 
+useEffect(() => {
+  loadAll()
+}, [])
+  
   function activePlayerIds() {
     return activePlayers.map((p) => pk(p.id))
   }
@@ -489,6 +490,11 @@ async function persistLineup(gameId, lineup, nextLocked = null) {
     [games, optimizerFocusGameId]
   )
 
+  const optimizerFocusLocked = useMemo(
+  () => (optimizerFocusGame ? lineupLockedByGame[pk(optimizerFocusGame.id)] === true : false),
+  [optimizerFocusGame, lineupLockedByGame]
+)
+  
   const optimizerFocusLineup = useMemo(
     () => optimizerPreviewByGame[pk(optimizerFocusGameId)] || null,
     [optimizerPreviewByGame, optimizerFocusGameId]
