@@ -186,8 +186,8 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk, requ
       const lineup = lineupsByGame?.[pk(game.id)]
 
       if (!lineup) {
-        perGame.push('')
-        running.push('')
+        perGame.push('x')
+        running.push('x')
         return
       }
 
@@ -201,25 +201,31 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk, requ
       }
 
       const innings = Number(lineup.innings || 0)
+      const totalPlayers = availableIds.length
 
-      let playerOuts = 0
-      let teamSitOuts = 0
+      let actualOuts = 0
+      let injuryCount = 0
 
       for (let inning = 1; inning <= innings; inning += 1) {
+        const playerValue = lineup?.cells?.[playerId]?.[inning] || ''
+
+        if (playerValue === 'Out') actualOuts += 1
+
         availableIds.forEach((id) => {
           const value = lineup?.cells?.[id]?.[inning] || ''
-          if (value === 'Out') teamSitOuts += 1
+          if (value === 'Injury') injuryCount += 1
         })
-
-        const playerValue = lineup?.cells?.[playerId]?.[inning] || ''
-        if (playerValue === 'Out') playerOuts += 1
       }
 
-      const expectedOuts = availableIds.length ? teamSitOuts / availableIds.length : 0
+      const totalSitOutsForGame =
+        requiredOutsForGame(totalPlayers, innings) - injuryCount
 
-      perGame.push(playerOuts)
+      const expectedOutsForGame =
+        totalPlayers > 0 ? totalSitOutsForGame / totalPlayers : 0
 
-      runningTotal += playerOuts - expectedOuts
+      perGame.push(actualOuts)
+
+      runningTotal += expectedOutsForGame - actualOuts
       running.push(Number(runningTotal.toFixed(1)))
     })
 
