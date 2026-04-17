@@ -182,7 +182,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
 
     let runningTotal = 0
 
-    ;(games || []).forEach((game, gameIndex) => {
+    ;(games || []).forEach((game) => {
       const lineup = lineupsByGame?.[pk(game.id)]
 
       if (!lineup) {
@@ -219,10 +219,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
 
       perGame.push(actualOuts)
 
-      // Match spreadsheet-style running total:
-      // first available game starts at player's outs minus rounded-down team expectation if desired
-      // then cumulative delta for later available games
-      const delta = Number((actualOuts - averageOut).toFixed(1))
+      const delta = Number((averageOut - actualOuts).toFixed(1))
       runningTotal = Number((runningTotal + delta).toFixed(1))
       running.push(runningTotal)
     })
@@ -235,6 +232,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
     }
   })
 }
+
 export function buildPositionByPlayer(games, lineupsByGame, playerId, pk) {
   return games
     .map((game) => {
