@@ -463,62 +463,88 @@ export default function TrackingPage({
         setSortConfig={setTrackingSort}
       />
 
-      <div className="card tracking-card">
+            <div className="card tracking-card">
         <h3>Tracking vs Positioning Priority</h3>
         <div className="tracking-scroll">
-          <table className="tracking-table">
+          <table className="tracking-table priority-groups">
             <thead>
               <tr>
-                <th rowSpan="2" className="sticky-col-1 col-player" style={{ textAlign: 'left', verticalAlign: 'middle' }}>
+                <th
+                  rowSpan="2"
+                  className="sticky-col-1 col-player"
+                  style={{ textAlign: 'left', verticalAlign: 'middle' }}
+                >
                   Player
                 </th>
-                <th rowSpan="2" className="sticky-col-2 col-small" style={centerHeader}>
+                <th
+                  rowSpan="2"
+                  className="sticky-col-2 col-small"
+                  style={centerHeader}
+                >
                   Fld
                 </th>
-                <th colSpan="2" style={centerHeader}>P</th>
-                <th colSpan="2" style={centerHeader}>C</th>
-                <th colSpan="2" style={centerHeader}>1B</th>
-                <th colSpan="2" style={centerHeader}>2B</th>
-                <th colSpan="2" style={centerHeader}>3B</th>
-                <th colSpan="2" style={centerHeader}>SS</th>
-                <th colSpan="2" style={centerHeader}>OF</th>
+
+                <th colSpan="2" className="group-box" style={centerHeader}>P</th>
+                <th colSpan="2" className="group-box" style={centerHeader}>C</th>
+                <th colSpan="2" className="group-box" style={centerHeader}>1B</th>
+                <th colSpan="2" className="group-box" style={centerHeader}>2B</th>
+                <th colSpan="2" className="group-box" style={centerHeader}>3B</th>
+                <th colSpan="2" className="group-box" style={centerHeader}>SS</th>
+                <th colSpan="2" className="group-box" style={centerHeader}>OF</th>
               </tr>
               <tr>
-                <th className="col-small" style={centerHeader}>TGT</th>
-                <th className="col-small" style={centerHeader}>ACT</th>
-                <th className="col-small" style={centerHeader}>TGT</th>
-                <th className="col-small" style={centerHeader}>ACT</th>
-                <th className="col-small" style={centerHeader}>TGT</th>
-                <th className="col-small" style={centerHeader}>ACT</th>
-                <th className="col-small" style={centerHeader}>TGT</th>
-                <th className="col-small" style={centerHeader}>ACT</th>
-                <th className="col-small" style={centerHeader}>TGT</th>
-                <th className="col-small" style={centerHeader}>ACT</th>
-                <th className="col-small" style={centerHeader}>TGT</th>
-                <th className="col-small" style={centerHeader}>ACT</th>
-                <th className="col-small" style={centerHeader}>TGT</th>
-                <th className="col-small" style={centerHeader}>ACT</th>
+                <th className="col-small group-start" style={centerHeader}>TGT</th>
+                <th className="col-small group-end" style={centerHeader}>ACT</th>
+
+                <th className="col-small group-start" style={centerHeader}>TGT</th>
+                <th className="col-small group-end" style={centerHeader}>ACT</th>
+
+                <th className="col-small group-start" style={centerHeader}>TGT</th>
+                <th className="col-small group-end" style={centerHeader}>ACT</th>
+
+                <th className="col-small group-start" style={centerHeader}>TGT</th>
+                <th className="col-small group-end" style={centerHeader}>ACT</th>
+
+                <th className="col-small group-start" style={centerHeader}>TGT</th>
+                <th className="col-small group-end" style={centerHeader}>ACT</th>
+
+                <th className="col-small group-start" style={centerHeader}>TGT</th>
+                <th className="col-small group-end" style={centerHeader}>ACT</th>
+
+                <th className="col-small group-start" style={centerHeader}>TGT</th>
+                <th className="col-small group-end" style={centerHeader}>ACT</th>
               </tr>
             </thead>
             <tbody>
               {trackingPriorityRows.map((row) => (
                 <tr key={row.playerId}>
-                  <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>{row.name}</td>
-                  <td className="sticky-col-2 col-small" style={centerCell}>{row.fieldTotal}</td>
-                  <td className="col-small" style={centerCell}>{row.targP}</td>
-                  <td className="col-small" style={centerCell}>{row.actP}</td>
-                  <td className="col-small" style={centerCell}>{row.targC}</td>
-                  <td className="col-small" style={centerCell}>{row.actC}</td>
-                  <td className="col-small" style={centerCell}>{row.targ1B}</td>
-                  <td className="col-small" style={centerCell}>{row.act1B}</td>
-                  <td className="col-small" style={centerCell}>{row.targ2B}</td>
-                  <td className="col-small" style={centerCell}>{row.act2B}</td>
-                  <td className="col-small" style={centerCell}>{row.targ3B}</td>
-                  <td className="col-small" style={centerCell}>{row.act3B}</td>
-                  <td className="col-small" style={centerCell}>{row.targSS}</td>
-                  <td className="col-small" style={centerCell}>{row.actSS}</td>
-                  <td className="col-small" style={centerCell}>{row.targOF}</td>
-                  <td className="col-small" style={centerCell}>{row.actOF}</td>
+                  <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>
+                    {row.name}
+                  </td>
+                  <td className="sticky-col-2 col-small" style={centerCell}>
+                    {row.fieldTotal}
+                  </td>
+
+                  <td className="col-small group-start" style={centerCell}>{row.targP}</td>
+                  <td className="col-small group-end" style={centerCell}>{row.actP}</td>
+
+                  <td className="col-small group-start" style={centerCell}>{row.targC}</td>
+                  <td className="col-small group-end" style={centerCell}>{row.actC}</td>
+
+                  <td className="col-small group-start" style={centerCell}>{row.targ1B}</td>
+                  <td className="col-small group-end" style={centerCell}>{row.act1B}</td>
+
+                  <td className="col-small group-start" style={centerCell}>{row.targ2B}</td>
+                  <td className="col-small group-end" style={centerCell}>{row.act2B}</td>
+
+                  <td className="col-small group-start" style={centerCell}>{row.targ3B}</td>
+                  <td className="col-small group-end" style={centerCell}>{row.act3B}</td>
+
+                  <td className="col-small group-start" style={centerCell}>{row.targSS}</td>
+                  <td className="col-small group-end" style={centerCell}>{row.actSS}</td>
+
+                  <td className="col-small group-start" style={centerCell}>{row.targOF}</td>
+                  <td className="col-small group-end" style={centerCell}>{row.actOF}</td>
                 </tr>
               ))}
             </tbody>
