@@ -326,6 +326,8 @@ th {
   min-width: 110px;
 }
 
+
+
 /* ===== VERTICAL HEADER FIX ===== */
 
 .table-center thead {
@@ -560,9 +562,17 @@ th {
   }
 }
 
+.print-only {
+  display: none;
+}
+
 @media print {
   .no-print,
-  .sidebar {
+  .sidebar,
+  button,
+  select,
+  input,
+  textarea {
     display: none !important;
   }
 
@@ -570,23 +580,32 @@ th {
     display: block !important;
   }
 
-  .app-shell {
-    display: block;
+  .print-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
   }
 
-  .main-content {
-    padding: 0;
+  .lineup-print-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
   }
 
-  .card {
-    border: none;
-    box-shadow: none;
-    padding: 0;
-    background: white;
+  .lineup-print-table th,
+  .lineup-print-table td {
+    border: 1px solid #94a3b8;
+    padding: 6px 8px;
+    font-size: 12px;
+    text-align: center;
+    vertical-align: middle;
+    background: #fff !important;
+    color: #000 !important;
   }
 
-  body {
-    background: white;
+  .lineup-print-table th:nth-child(2),
+  .lineup-print-table td:nth-child(2) {
+    text-align: left;
   }
 }
 
