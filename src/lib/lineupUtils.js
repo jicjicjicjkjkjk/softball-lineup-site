@@ -1177,61 +1177,7 @@ export function buildOptimizedLineup({
     })
   }
 
-  // Post-pass: try to ensure 2 field positions per player for this game where feasible.
-  // Skip players whose whole row is locked or who do not have enough field innings.
-  ;(players || []).forEach((player) => {
-    const id = pk(player.id)
-    if (!(lineup.availablePlayerIds || []).includes(id)) return
-    if (isRowFullyLockedForGame(lineup, id)) return
-
-    const fieldInnings = []
-    for (let inning = 1; inning <= lineup.innings; inning += 1) {
-      const value = lineup?.cells?.[id]?.[inning] || ''
-      if (FIELD_POSITIONS.includes(value)) fieldInnings.push({ inning, value })
-    }
-
-    const existingPositions = new Set(fieldInnings.map((x) => x.value))
-    if (existingPositions.size >= 2) return
-    if (fieldInnings.length < 2) return
-
-    const originalPosition = fieldInnings[0]?.value
-    const candidateInnings = fieldInnings.filter(
-      ({ inning }) => !lockedValue(lineup, id, inning)
-    )
-
-    if (!originalPosition || !candidateInnings.length) return
-
-    for (const { inning } of candidateInnings) {
-      const currentPos = lineup.cells[id][inning]
-      const alternatives = FIELD_POSITIONS.filter(
-        (pos) => pos !== currentPos && pos !== originalPosition && canPlayPosition(fitMap, id, pos, true)
-      ).sort((a, b) => {
-        const aTarget = priorityValue(priorityMap, id, a)
-        const bTarget = priorityValue(priorityMap, id, b)
-        return bTarget - aTarget
-      })
-
-      let swapped = false
-
-      for (const altPos of alternatives) {
-        const otherId = (players || [])
-          .map((p) => pk(p.id))
-          .find((pid) => (lineup?.cells?.[pid]?.[inning] || '') === altPos)
-
-        if (!otherId) continue
-        if (lockedValue(lineup, otherId, inning)) continue
-        if (!canPlayPosition(fitMap, otherId, currentPos, true)) continue
-
-        lineup.cells[id][inning] = altPos
-        lineup.cells[otherId][inning] = currentPos
-        swapped = true
-        break
-      }
-
-      if (swapped) break
-    }
-  })
-
+    enforceMinimumTwoPositions({ lineup, players, fitMap })
   return lineup
 }
 
