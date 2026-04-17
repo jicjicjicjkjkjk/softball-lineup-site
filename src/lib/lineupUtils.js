@@ -797,6 +797,19 @@ function findBestAssignment({
           plannedOutsByPlayer,
         })
       )
+      .map((candidate) => {
+        const totalScore =
+          (100 - candidate.fitScore * 20) +
+          candidate.gap +
+          candidate.continuityBonus +
+          candidate.diversityBonus -
+          candidate.currentGameOuts * 3
+
+        return {
+          ...candidate,
+          totalScore,
+        }
+      })
       .sort((a, b) => {
         if (a.fitScore !== b.fitScore) return a.fitScore - b.fitScore
         if (a.totalScore !== b.totalScore) return b.totalScore - a.totalScore
@@ -812,35 +825,20 @@ function findBestAssignment({
   )
 
   const usedPlayers = new Set()
-  let bestAssignment = null
-  let bestScore = -Infinity
+  const assignment = {}
 
-  function search(index, assignment, score) {
-    if (index >= orderedPositions.length) {
-      if (score > bestScore) {
-        bestScore = score
-        bestAssignment = { ...assignment }
-      }
-      return
-    }
+  for (const position of orderedPositions) {
+    const bestCandidate = candidatesByPosition[position].find(
+      (candidate) => !usedPlayers.has(candidate.id)
+    )
 
-    const position = orderedPositions[index]
+    if (!bestCandidate) return null
 
-    for (const candidate of candidatesByPosition[position]) {
-      if (usedPlayers.has(candidate.id)) continue
-
-      usedPlayers.add(candidate.id)
-      assignment[position] = candidate.id
-
-      search(index + 1, assignment, score + candidate.totalScore)
-
-      delete assignment[position]
-      usedPlayers.delete(candidate.id)
-    }
+    usedPlayers.add(bestCandidate.id)
+    assignment[position] = bestCandidate.id
   }
 
-  search(0, {}, 0)
-  return bestAssignment
+  return assignment
 }
 
 function assignPositionsForInning({
