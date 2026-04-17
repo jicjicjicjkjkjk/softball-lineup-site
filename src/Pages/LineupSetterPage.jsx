@@ -198,12 +198,10 @@ export default function LineupSetterPage({
                     <td>{effectiveInnings}</td>
                     <td>{effectiveRequiredOuts}</td>
                     <td>
-                        <button
-                        onClick={() => toggleLineupLocked(game.id, !(lineupLockedByGame?.[pk(game.id)] === true))}
-                        >
-                        {lineupLockedByGame?.[pk(game.id)] === true ? 'Unlock Lineup' : 'Lock Lineup'}
-                        </button>
-                    </td>
+  <button onClick={() => toggleLineupLock(game.id)}>
+    {lineupsByGame?.[pk(game.id)]?.is_locked ? 'Unlock Lineup' : 'Lock Lineup'}
+  </button>
+                  </td>
                     <td>
                       <button onClick={() => removeBatchGame(game.id)}>Remove</button>
                     </td>
