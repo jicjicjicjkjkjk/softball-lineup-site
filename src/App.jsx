@@ -143,7 +143,11 @@ export default function App() {
   const [optimizerFocusGameId, setOptimizerFocusGameId] = useState('')
   const [optimizerBatchGameIds, setOptimizerBatchGameIds] = useState([])
   const [optimizerPreviewByGame, setOptimizerPreviewByGame] = useState({})
-
+const optimizerFocusLocked = useMemo(
+  () => (optimizerFocusGame ? lineupLockedByGame[pk(optimizerFocusGame.id)] === true : false),
+  [optimizerFocusGame, lineupLockedByGame]
+)
+  
   const [newGameDate, setNewGameDate] = useState('')
   const [newGameOpponent, setNewGameOpponent] = useState('')
   const [newGameType, setNewGameType] = useState(GAME_TYPES[0])
@@ -171,6 +175,69 @@ export default function App() {
   const [attendanceSurface, setAttendanceSurface] = useState(ATTENDANCE_SURFACE_OPTIONS[0])
   const [attendanceTitle, setAttendanceTitle] = useState('')
 
+async function persistLineup(gameId, lineup, nextLocked = null) {
+  const existing = await supabase
+    .from('game_lineups')
+    .select('id, lineup_locked')
+    .eq('game_id', gameId)
+    .eq('lineup_name', 'Main')
+    .maybeSingle()
+
+  if (existing.error) {
+    setAppError(existing.error.message)
+    return false
+  }
+
+  const lockedValue =
+    nextLocked === null
+      ? existing.data?.lineup_locked === true || lineupLockedByGame[pk(gameId)] === true
+      : nextLocked
+
+  const payload = {
+    lineup_data: lineup,
+    optimizer_meta: {
+      innings: lineup.innings,
+      availablePlayerIds: lineup.availablePlayerIds,
+    },
+    lineup_locked: lockedValue,
+  }
+
+  if (existing.data?.id) {
+    const updated = await supabase
+      .from('game_lineups')
+      .update(payload)
+      .eq('id', existing.data.id)
+
+    if (updated.error) {
+      setAppError(updated.error.message)
+      return false
+    }
+  } else {
+    const inserted = await supabase.from('game_lineups').insert({
+      game_id: gameId,
+      lineup_name: 'Main',
+      ...payload,
+    })
+
+    if (inserted.error) {
+      setAppError(inserted.error.message)
+      return false
+    }
+  }
+
+  await updateGameField(gameId, 'innings', lineup.innings)
+  setLineupsByGame((current) => ({
+    ...current,
+    [pk(gameId)]: JSON.parse(JSON.stringify(lineup)),
+  }))
+  setLineupLockedByGame((current) => ({
+    ...current,
+    [pk(gameId)]: lockedValue,
+  }))
+
+  return true
+}
+  
   function autoSave(gameId, lineup) {
     supabase.from('game_lineups').upsert(
       {
@@ -936,24 +1003,21 @@ export default function App() {
     return aKey.localeCompare(bKey)
   })
 
-  const batchPlan = buildBatchOutTargets(
-    orderedGames,
-    optimizerPreviewByGame,
-    lineupsByGame,
-    players,
-    activePlayerIds,
-    pk
-  )
-
-  const batchCurrentOuts = {}
-  activePlayers.forEach((player) => {
-    batchCurrentOuts[pk(player.id)] = 0
-  })
-
   orderedGames.forEach((game) => {
+    const gameId = pk(game.id)
+
+    if (lineupLockedByGame[gameId]) {
+      const lockedLineup = lineupsByGame[gameId]
+      if (lockedLineup) {
+        next[gameId] = lockedLineup
+        rollingTotals = addTotals(rollingTotals, computeTotals([lockedLineup], players), players)
+      }
+      return
+    }
+
     const source =
-      optimizerPreviewByGame[pk(game.id)] ||
-      lineupsByGame[pk(game.id)] ||
+      optimizerPreviewByGame[gameId] ||
+      lineupsByGame[gameId] ||
       blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
 
     const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
@@ -967,22 +1031,10 @@ export default function App() {
       totalsBefore: rollingTotals,
       priorityMap: priorityByPlayer,
       fitMap: fitByPlayer,
-      batchTargetOuts: batchPlan.targets,
-      batchCurrentOuts,
     })
 
-    next[pk(game.id)] = optimized
-
-    availableIds.forEach((id) => {
-      let outsThisGame = 0
-      for (let inning = 1; inning <= Number(optimized.innings || 0); inning += 1) {
-        if ((optimized?.cells?.[id]?.[inning] || '') === 'Out') {
-          outsThisGame += 1
-        }
-      }
-      batchCurrentOuts[id] = Number(batchCurrentOuts[id] || 0) + outsThisGame
-    })
-
+    next[gameId] = optimized
+    persistLineup(gameId, optimized)
     rollingTotals = addTotals(rollingTotals, computeTotals([optimized], players), players)
   })
 
@@ -990,66 +1042,81 @@ export default function App() {
 }
 
   function runOptimizeCurrent() {
-    if (!optimizerFocusGameId) return
-    const confirmed = window.confirm('Optimize only the current selected game?')
-    if (!confirmed) return
+  if (!optimizerFocusGameId) return
 
-    const game = games.find((g) => pk(g.id) === pk(optimizerFocusGameId))
-    if (!game) return
-
-    const otherPreviewLineups = Object.entries(optimizerPreviewByGame)
-      .filter(([gameId]) => pk(gameId) !== pk(optimizerFocusGameId))
-      .map(([, lineup]) => lineup)
-
-    const totalsBeforeThisGame = addTotals(
-      ytdBeforeTotals,
-      computeTotals(otherPreviewLineups, players),
-      players
-    )
-
-    const source =
-      optimizerPreviewByGame[pk(game.id)] ||
-      lineupsByGame[pk(game.id)] ||
-      blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
-
-    const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
-    if (!availableIds.length) return
-
-    const rebuilt = buildOptimizedLineup({
-      game: { ...game, innings: Number(source?.innings || game.innings || 6) },
-      players,
-      availablePlayerIds: availableIds,
-      sourceLineup: source,
-      totalsBefore: totalsBeforeThisGame,
-      priorityMap: priorityByPlayer,
-      fitMap: fitByPlayer,
-    })
-
-    setOptimizerPreviewByGame((current) => ({
-      ...current,
-      [pk(game.id)]: rebuilt,
-    }))
+  if (lineupLockedByGame[pk(optimizerFocusGameId)]) {
+    setAppError('This lineup is locked. Unlock it before optimizing.')
+    return
   }
+
+  const game = games.find((g) => pk(g.id) === pk(optimizerFocusGameId))
+  if (!game) return
+
+  const otherPreviewLineups = Object.entries(optimizerPreviewByGame)
+    .filter(([gameId]) => pk(gameId) !== pk(optimizerFocusGameId))
+    .map(([, lineup]) => lineup)
+
+  const totalsBeforeThisGame = addTotals(
+    ytdBeforeTotals,
+    computeTotals(otherPreviewLineups, players),
+    players
+  )
+
+  const source =
+    optimizerPreviewByGame[pk(game.id)] ||
+    lineupsByGame[pk(game.id)] ||
+    blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
+
+  const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
+  if (!availableIds.length) return
+
+  const rebuilt = buildOptimizedLineup({
+    game: { ...game, innings: Number(source?.innings || game.innings || 6) },
+    players,
+    availablePlayerIds: availableIds,
+    sourceLineup: source,
+    totalsBefore: totalsBeforeThisGame,
+    priorityMap: priorityByPlayer,
+    fitMap: fitByPlayer,
+  })
+
+  setOptimizerPreviewByGame((current) => ({
+    ...current,
+    [pk(game.id)]: rebuilt,
+  }))
+
+  persistLineup(game.id, rebuilt)
+}
 
   function updatePreview(gameId, updater) {
-    setOptimizerPreviewByGame((current) => {
-      const baseGame = games.find((g) => pk(g.id) === pk(gameId))
-      const base =
-        current[pk(gameId)] ||
-        lineupsByGame[pk(gameId)] ||
-        blankLineup(players.map((p) => p.id), Number(baseGame?.innings || 6), activePlayerIds())
-
-      const existing = normalizeLineup(
-        base,
-        players,
-        base.innings || 6,
-        base.availablePlayerIds || activePlayerIds()
-      )
-
-      const next = updater(JSON.parse(JSON.stringify(existing)))
-      return { ...current, [pk(gameId)]: next }
-    })
+  if (lineupLockedByGame[pk(gameId)]) {
+    setAppError('This lineup is locked. Unlock it before editing.')
+    return
   }
+
+  setOptimizerPreviewByGame((current) => {
+    const baseGame = games.find((g) => pk(g.id) === pk(gameId))
+    const base =
+      current[pk(gameId)] ||
+      lineupsByGame[pk(gameId)] ||
+      blankLineup(players.map((p) => p.id), Number(baseGame?.innings || 6), activePlayerIds())
+
+    const existing = normalizeLineup(
+      base,
+      players,
+      base.innings || 6,
+      base.availablePlayerIds || activePlayerIds()
+    )
+
+    const next = updater(JSON.parse(JSON.stringify(existing)))
+
+    // auto-save immediately
+    persistLineup(gameId, next)
+
+    return { ...current, [pk(gameId)]: next }
+  })
+}
+  
 
   function togglePreviewAvailable(gameId, playerId) {
     updatePreview(gameId, (lineup) => {
@@ -1141,53 +1208,9 @@ export default function App() {
     })
   }
 
-  async function savePreview(gameId) {
-    const lineup = optimizerPreviewByGame[pk(gameId)]
-    if (!lineup) return
-
-    const existing = await supabase
-      .from('game_lineups')
-      .select('id')
-      .eq('game_id', gameId)
-      .eq('lineup_name', 'Main')
-      .maybeSingle()
-
-    if (existing.error) {
-      setAppError(existing.error.message)
-      return
-    }
-
-    const payload = {
-      lineup_data: lineup,
-      optimizer_meta: {
-        innings: lineup.innings,
-        availablePlayerIds: lineup.availablePlayerIds,
-      },
-      lineup_locked: false,
-    }
-
-    if (existing.data?.id) {
-      const updated = await supabase.from('game_lineups').update(payload).eq('id', existing.data.id)
-      if (updated.error) {
-        setAppError(updated.error.message)
-        return
-      }
-    } else {
-      const inserted = await supabase.from('game_lineups').insert({
-        game_id: gameId,
-        lineup_name: 'Main',
-        ...payload,
-      })
-      if (inserted.error) {
-        setAppError(inserted.error.message)
-        return
-      }
-    }
-
-    await updateGameField(gameId, 'innings', lineup.innings)
-    setLineupsByGame((current) => ({ ...current, [pk(gameId)]: JSON.parse(JSON.stringify(lineup)) }))
-    setLineupLockedByGame((current) => ({ ...current, [pk(gameId)]: false }))
-  }
+  async function savePreview() {
+  return
+}
 
   function updateSavedLineup(gameId, updater) {
     setLineupsByGame((current) => {
@@ -1254,88 +1277,20 @@ export default function App() {
     })
   }
 
-  async function saveSavedLineup(gameId) {
-    const lineup = lineupsByGame[pk(gameId)]
-    if (!lineup) return
-
-    const existing = await supabase
-      .from('game_lineups')
-      .select('id, lineup_locked')
-      .eq('game_id', gameId)
-      .eq('lineup_name', 'Main')
-      .maybeSingle()
-
-    if (existing.error) {
-      setAppError(existing.error.message)
-      return
-    }
-
-    if (existing.data?.lineup_locked) {
-      setAppError('Unlock the lineup before editing.')
-      return
-    }
-
-    const payload = {
-      lineup_data: lineup,
-      optimizer_meta: {
-        innings: lineup.innings,
-        availablePlayerIds: lineup.availablePlayerIds,
-      },
-      lineup_locked: false,
-    }
-
-    if (existing.data?.id) {
-      const updated = await supabase.from('game_lineups').update(payload).eq('id', existing.data.id)
-      if (updated.error) {
-        setAppError(updated.error.message)
-        return
-      }
-    } else {
-      const inserted = await supabase.from('game_lineups').insert({
-        game_id: gameId,
-        lineup_name: 'Main',
-        ...payload,
-      })
-      if (inserted.error) {
-        setAppError(inserted.error.message)
-        return
-      }
-    }
-
-    await updateGameField(gameId, 'innings', lineup.innings)
-  }
+  async function saveSavedLineup() {
+  return
+}
 
   async function toggleLineupLocked(gameId, nextLocked) {
-    const existing = await supabase
-      .from('game_lineups')
-      .select('id')
-      .eq('game_id', gameId)
-      .eq('lineup_name', 'Main')
-      .maybeSingle()
+  const currentLineup =
+    optimizerPreviewByGame[pk(gameId)] ||
+    lineupsByGame[pk(gameId)] ||
+    blankLineup(players.map((p) => p.id), 6, activePlayerIds())
 
-    if (existing.error) {
-      setAppError(existing.error.message)
-      return
-    }
-
-    if (!existing.data?.id) {
-      setAppError('Save the lineup before locking it.')
-      return
-    }
-
-    const updated = await supabase
-      .from('game_lineups')
-      .update({ lineup_locked: nextLocked })
-      .eq('id', existing.data.id)
-
-    if (updated.error) {
-      setAppError(updated.error.message)
-      return
-    }
-
-    setLineupLockedByGame((current) => ({ ...current, [pk(gameId)]: nextLocked }))
-  }
-
+  const ok = await persistLineup(gameId, currentLineup, nextLocked)
+  if (!ok) return
+}
+  
   function clearSavedLineup(gameId) {
     if (lineupLockedByGame[pk(gameId)]) {
       setAppError('Unlock the lineup before clearing it.')
@@ -1608,54 +1563,56 @@ export default function App() {
         )}
 
         {page === 'lineup-setter' && (
-          <LineupSetterPage
-            optimizerFocusLineup={optimizerFocusLineup}
-            optimizerFocusGame={optimizerFocusGame}
-            optimizerExistingGameId={optimizerExistingGameId}
-            setOptimizerExistingGameId={setOptimizerExistingGameId}
-            games={games}
-            addExistingGameToBatch={addExistingGameToBatch}
-            optimizerNewDate={optimizerNewDate}
-            setOptimizerNewDate={setOptimizerNewDate}
-            optimizerNewOpponent={optimizerNewOpponent}
-            setOptimizerNewOpponent={setOptimizerNewOpponent}
-            optimizerNewType={optimizerNewType}
-            setOptimizerNewType={setOptimizerNewType}
-            GAME_TYPES={GAME_TYPES}
-            addGameFromOptimizer={addGameFromOptimizer}
-            runOptimizeCurrent={runOptimizeCurrent}
-            optimizerFocusGameId={optimizerFocusGameId}
-            runOptimizeAll={runOptimizeAll}
-            optimizerBatchGames={optimizerBatchGames}
-            optimizerPreviewByGame={optimizerPreviewByGame}
-            lineupsByGame={lineupsByGame}
-            activePlayers={activePlayers}
-            activePlayerIds={activePlayerIds}
-            requiredOutsForGame={requiredOutsForGame}
-            setOptimizerFocusGameId={setOptimizerFocusGameId}
-            savePreview={savePreview}
-            removeBatchGame={removeBatchGame}
-            addPreviewInning={addPreviewInning}
-            removePreviewInning={removePreviewInning}
-            togglePreviewAvailable={togglePreviewAvailable}
-            LineupGrid={LineupGrid}
-            fitByPlayer={fitByPlayer}
-            updatePreviewCell={updatePreviewCell}
-            updatePreviewBatting={updatePreviewBatting}
-            togglePreviewCellLock={togglePreviewCellLock}
-            togglePreviewRowLock={togglePreviewRowLock}
-            lockedLineupsOnly={lockedLineupsOnly}
-            ytdBeforeTotals={ytdBeforeTotals}
-            currentBatchTotals={currentBatchTotals}
-            ytdAfterTotals={ytdAfterTotals}
-            trackingSort={trackingSort}
-            setTrackingSort={setTrackingSort}
-            TrackingTable={TrackingTable}
-            blankLineup={blankLineup}
-            pk={pk}
-            inningStatus={inningStatus}
-          />
-        )}
+  <LineupSetterPage
+    optimizerFocusLineup={optimizerFocusLineup}
+    optimizerFocusGame={optimizerFocusGame}
+    optimizerFocusLocked={optimizerFocusLocked}
+    toggleLineupLocked={toggleLineupLocked}
+    optimizerExistingGameId={optimizerExistingGameId}
+    setOptimizerExistingGameId={setOptimizerExistingGameId}
+    games={games}
+    addExistingGameToBatch={addExistingGameToBatch}
+    optimizerNewDate={optimizerNewDate}
+    setOptimizerNewDate={setOptimizerNewDate}
+    optimizerNewOpponent={optimizerNewOpponent}
+    setOptimizerNewOpponent={setOptimizerNewOpponent}
+    optimizerNewType={optimizerNewType}
+    setOptimizerNewType={setOptimizerNewType}
+    GAME_TYPES={GAME_TYPES}
+    addGameFromOptimizer={addGameFromOptimizer}
+    runOptimizeCurrent={runOptimizeCurrent}
+    optimizerFocusGameId={optimizerFocusGameId}
+    runOptimizeAll={runOptimizeAll}
+    optimizerBatchGames={optimizerBatchGames}
+    optimizerPreviewByGame={optimizerPreviewByGame}
+    lineupsByGame={lineupsByGame}
+    activePlayers={activePlayers}
+    activePlayerIds={activePlayerIds}
+    requiredOutsForGame={requiredOutsForGame}
+    setOptimizerFocusGameId={setOptimizerFocusGameId}
+    savePreview={savePreview}
+    removeBatchGame={removeBatchGame}
+    addPreviewInning={addPreviewInning}
+    removePreviewInning={removePreviewInning}
+    togglePreviewAvailable={togglePreviewAvailable}
+    LineupGrid={LineupGrid}
+    fitByPlayer={fitByPlayer}
+    updatePreviewCell={updatePreviewCell}
+    updatePreviewBatting={updatePreviewBatting}
+    togglePreviewCellLock={togglePreviewCellLock}
+    togglePreviewRowLock={togglePreviewRowLock}
+    lockedLineupsOnly={lockedLineupsOnly}
+    ytdBeforeTotals={ytdBeforeTotals}
+    currentBatchTotals={currentBatchTotals}
+    ytdAfterTotals={ytdAfterTotals}
+    trackingSort={trackingSort}
+    setTrackingSort={setTrackingSort}
+    TrackingTable={TrackingTable}
+    blankLineup={blankLineup}
+    pk={pk}
+    inningStatus={inningStatus}
+  />
+)}
 
         {page === 'tracking' && (
           <TrackingPage
