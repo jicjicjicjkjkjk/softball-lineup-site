@@ -653,7 +653,8 @@ th.player-col {
 }
 
 /* ===== KEEP HEADER ABOVE CELLS ===== */
-thead th {
+.table-scroll thead th,
+.tracking-scroll thead th {
   position: sticky;
   top: 0;
   z-index: 2;
