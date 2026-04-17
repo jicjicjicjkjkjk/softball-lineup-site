@@ -181,10 +181,12 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk, requ
     const perGame = []
     const running = []
 
-    let runningTotal = 0
+    let runningActual = 0
+    let runningExpected = 0
 
     ;(games || []).forEach((game) => {
       const lineup = lineupsByGame?.[pk(game.id)]
+
       if (!lineup) {
         perGame.push('')
         running.push('')
@@ -195,8 +197,8 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk, requ
       const isAvailable = availableIds.includes(playerId)
 
       if (!isAvailable) {
-        perGame.push('')
-        running.push('')
+        perGame.push('x')
+        running.push('x')
         return
       }
 
@@ -204,29 +206,37 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk, requ
       let expectedOuts = 0
 
       for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+        const playerValue = lineup?.cells?.[playerId]?.[inning] || ''
+
+        if (playerValue === 'Out') {
+          actualOuts += 1
+        }
+
+        // Only eligible, non-injury players should share expected outs for that inning
         const eligibleIds = availableIds.filter((id) => {
           const value = lineup?.cells?.[id]?.[inning] || ''
           return value !== 'Injury'
         })
 
-        const inningExpected = eligibleIds.length
-          ? Math.max(0, eligibleIds.length - 9) / eligibleIds.length
-          : 0
+        const playerIsEligibleThisInning =
+          eligibleIds.includes(playerId) && playerValue !== 'Injury'
 
-        const playerValue = lineup?.cells?.[playerId]?.[inning] || ''
-        if (playerValue !== 'Injury') {
+        if (playerIsEligibleThisInning) {
+          const inningExpected = eligibleIds.length
+            ? Math.max(0, eligibleIds.length - 9) / eligibleIds.length
+            : 0
+
           expectedOuts += inningExpected
-        }
-
-        if (playerValue === 'Out') {
-          actualOuts += 1
         }
       }
 
+      runningActual += actualOuts
+      runningExpected += expectedOuts
+
       perGame.push(actualOuts)
 
-      runningTotal += expectedOuts - actualOuts
-      running.push(Number(runningTotal.toFixed(1)))
+      // positive means player has sat MORE than expected
+      running.push(Number((runningActual - runningExpected).toFixed(1)))
     })
 
     return {
@@ -237,6 +247,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk, requ
     }
   })
 }
+
 export function buildPositionByPlayer(games, lineupsByGame, playerId, pk) {
   return games
     .map((game) => {
