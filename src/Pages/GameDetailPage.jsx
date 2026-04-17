@@ -25,27 +25,6 @@ export default function GameDetailPage({
     window.print()
   }
 
-  function buildRowSummary(playerId) {
-    let IF = 0
-    let OF = 0
-    let P = 0
-    let C = 0
-    let X = 0
-
-    const innings = Number(selectedLineup?.innings || 0)
-
-    for (let inning = 1; inning <= innings; inning += 1) {
-      const value = selectedLineup?.cells?.[String(playerId)]?.[inning] || ''
-      if (['1B', '2B', '3B', 'SS'].includes(value)) IF += 1
-      if (['LF', 'CF', 'RF'].includes(value)) OF += 1
-      if (value === 'P') P += 1
-      if (value === 'C') C += 1
-      if (value === 'Out') X += 1
-    }
-
-    return { IF, OF, P, C, X }
-  }
-
   if (!selectedGame) {
     return (
       <div className="stack">
@@ -60,6 +39,10 @@ export default function GameDetailPage({
 
   const visibleIds = selectedLineup?.availablePlayerIds || activePlayerIds()
 
+  const printPlayers = activePlayers.filter((player) =>
+    (selectedLineup?.availablePlayerIds || []).includes(String(player.id))
+  )
+
   return (
     <div className="stack">
       <div className="card no-print">
@@ -67,7 +50,8 @@ export default function GameDetailPage({
           <div>
             <h2 style={{ marginBottom: 8 }}>Game Detail</h2>
             <div className="small-note">
-              {formatDateShort(selectedGame.date) || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
+              {formatDateShort(selectedGame.date) || 'No Date'} vs{' '}
+              {selectedGame.opponent || 'Opponent'}
             </div>
           </div>
 
@@ -182,40 +166,26 @@ export default function GameDetailPage({
                 {Array.from({ length: Number(selectedLineup.innings || 0) }, (_, i) => (
                   <th key={i + 1}>{i + 1}</th>
                 ))}
-                <th>IF</th>
-                <th>OF</th>
-                <th>P</th>
-                <th>C</th>
-                <th>X</th>
               </tr>
             </thead>
             <tbody>
-              {activePlayers
-                .filter((player) => (selectedLineup.availablePlayerIds || []).includes(String(player.id)))
-                .map((player) => {
-                  const playerId = String(player.id)
-                  const summary = buildRowSummary(playerId)
+              {printPlayers.map((player) => {
+                const playerId = String(player.id)
 
-                  return (
-                    <tr key={playerId}>
-                      <td>{player.jersey_number || ''}</td>
-                      <td>{player.name}</td>
-                      <td>{selectedLineup?.battingOrder?.[playerId] || ''}</td>
+                return (
+                  <tr key={playerId}>
+                    <td>{player.jersey_number || ''}</td>
+                    <td>{player.name}</td>
+                    <td>{selectedLineup?.battingOrder?.[playerId] || ''}</td>
 
-                      {Array.from({ length: Number(selectedLineup.innings || 0) }, (_, i) => {
-                        const inning = i + 1
-                        const value = selectedLineup?.cells?.[playerId]?.[inning] || ''
-                        return <td key={inning}>{value}</td>
-                      })}
-
-                      <td>{summary.IF}</td>
-                      <td>{summary.OF}</td>
-                      <td>{summary.P}</td>
-                      <td>{summary.C}</td>
-                      <td>{summary.X}</td>
-                    </tr>
-                  )
-                })}
+                    {Array.from({ length: Number(selectedLineup.innings || 0) }, (_, i) => {
+                      const inning = i + 1
+                      const value = selectedLineup?.cells?.[playerId]?.[inning] || ''
+                      return <td key={inning}>{value}</td>
+                    })}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
