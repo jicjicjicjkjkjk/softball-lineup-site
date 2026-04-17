@@ -72,10 +72,8 @@ export default function GameDetailPage({
 
   const visibleIds = selectedLineup?.availablePlayerIds || activePlayerIds()
 
-  const printPlayers = activePlayers.filter((player) =>
-    (selectedLineup?.availablePlayerIds || []).includes(String(player.id))
-  )
-
+  const printPlayers = getPrintRows(activePlayers, selectedLineup, pk)
+  
   return (
     <div className="stack">
       <div className="card no-print">
