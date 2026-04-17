@@ -239,24 +239,8 @@ async function persistLineup(gameId, lineup, nextLocked = null) {
 }
   
   function autoSave(gameId, lineup) {
-    supabase.from('game_lineups').upsert(
-      {
-        game_id: gameId,
-        lineup_name: 'Main',
-        lineup_data: lineup,
-        optimizer_meta: {
-          innings: lineup.innings,
-          availablePlayerIds: lineup.availablePlayerIds,
-        },
-        lineup_locked: lineupLockedByGame[pk(gameId)] === true,
-      },
-      { onConflict: 'game_id,lineup_name' }
-    )
-  }
-
-  useEffect(() => {
-    loadAll()
-  }, [])
+  persistLineup(gameId, lineup)
+}
 
   async function loadAll() {
     setLoading(true)
