@@ -1555,12 +1555,12 @@ useEffect(() => {
 
         {page === 'lineup-setter' && (
   <LineupSetterPage
-    optimizerFocusLineup={optimizerFocusLineup}
-    optimizerFocusGame={optimizerFocusGame}
-    optimizerFocusLocked={optimizerFocusLocked}
-    toggleLineupLocked={toggleLineupLocked}
-    lineupLockedByGame={lineupLockedByGame}
-    optimizerExistingGameId={optimizerExistingGameId}
+  optimizerFocusLineup={optimizerFocusLineup}
+  optimizerFocusGame={optimizerFocusGame}
+  optimizerFocusLocked={optimizerFocusLocked}
+  toggleLineupLocked={toggleLineupLocked}
+  lineupLockedByGame={lineupLockedByGame}
+  optimizerExistingGameId={optimizerExistingGameId}
     setOptimizerExistingGameId={setOptimizerExistingGameId}
     games={games}
     addExistingGameToBatch={addExistingGameToBatch}
