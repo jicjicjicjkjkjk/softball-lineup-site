@@ -80,10 +80,6 @@ export default function GameDetailPage({
               ))}
             </select>
 
-            <button onClick={() => saveSavedLineup(selectedGame.id)} disabled={selectedLocked}>
-              Save Changes
-            </button>
-
             <button onClick={() => toggleLineupLocked(selectedGame.id, !selectedLocked)}>
               {selectedLocked ? 'Unlock Lineup' : 'Lock Lineup'}
             </button>
