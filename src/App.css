@@ -961,23 +961,25 @@ th.player-col {
   vertical-align: middle;
 }
 
-.tracking-table.priority-groups .group-box {
-  border: 3px solid #7f95a3 !important;
+.tracking-table.priority-groups .group-start {
+  border-left: 2px solid #7f95a3 !important;
+}
+
+.tracking-table.priority-groups .group-end {
+  border-right: 2px solid #7f95a3 !important;
+}
+
+.tracking-table.priority-groups thead tr:first-child th.group-box {
+  border-top: 2px solid #7f95a3 !important;
+  border-left: 2px solid #7f95a3 !important;
+  border-right: 2px solid #7f95a3 !important;
   border-bottom: 1px solid #7f95a3 !important;
   background: #dceff0 !important;
 }
 
-.tracking-table.priority-groups .group-start {
-  border-left: 3px solid #7f95a3 !important;
-}
-
-.tracking-table.priority-groups .group-end {
-  border-right: 3px solid #7f95a3 !important;
-}
-
-.tracking-table.priority-groups thead tr:nth-child(2) .group-start,
-.tracking-table.priority-groups thead tr:nth-child(2) .group-end {
-  border-bottom: 3px solid #7f95a3 !important;
+.tracking-table.priority-groups thead tr:nth-child(2) th.group-start,
+.tracking-table.priority-groups thead tr:nth-child(2) th.group-end {
+  border-bottom: 2px solid #7f95a3 !important;
 }
 
 .tracking-table.priority-groups tbody td.group-start,
