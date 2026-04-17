@@ -1216,7 +1216,7 @@ export function buildOptimizedLineup({
     })
   }
 
-    enforceMinimumTwoPositions({ lineup, players, fitMap })
+    enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap })
   return lineup
 }
 
