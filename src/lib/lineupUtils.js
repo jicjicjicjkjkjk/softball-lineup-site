@@ -660,7 +660,12 @@ function scorePlayerForPosition({
   const gap = target - actualPct
 
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
-  const continuityBonus = prevValue === position ? 6 : 0
+  const continuityBonus = prevValue === position ? 18 : 0
+
+  const playerGamePositions = getPlayerFieldPositionsInGame(lineup, playerId)
+  const alreadyHasThisPosition = playerGamePositions.has(position)
+  const diversityBonus =
+    playerGamePositions.size <= 1 && !alreadyHasThisPosition ? 12 : 0
 
   const currentGameOuts = Array.from(plannedOutsByPlayer?.[playerId] || []).filter(
     (x) => x < inning
@@ -672,6 +677,7 @@ function scorePlayerForPosition({
     fitScore,
     gap,
     continuityBonus,
+    diversityBonus,
     currentGameOuts,
   }
 }
@@ -706,11 +712,12 @@ function findBestAssignment({
           plannedOutsByPlayer,
         })
       )
-      .sort((a, b) => {
+            .sort((a, b) => {
         if (a.fitScore !== b.fitScore) return a.fitScore - b.fitScore
         if (a.currentGameOuts !== b.currentGameOuts) return a.currentGameOuts - b.currentGameOuts
-        if (a.gap !== b.gap) return b.gap - a.gap
+        if (a.diversityBonus !== b.diversityBonus) return b.diversityBonus - a.diversityBonus
         if (a.continuityBonus !== b.continuityBonus) return b.continuityBonus - a.continuityBonus
+        if (a.gap !== b.gap) return b.gap - a.gap
         return String(a.player?.name || '').localeCompare(String(b.player?.name || ''))
       })
   })
@@ -883,6 +890,104 @@ function assignPositionsForInning({
   })
 }
 
+function getPlayerFieldPositionsInGame(lineup, playerId) {
+  const id = pk(playerId)
+  const positions = new Set()
+
+  for (let inning = 1; inning <= Number(lineup?.innings || 0); inning += 1) {
+    const value = lineup?.cells?.[id]?.[inning] || ''
+    if (FIELD_POSITIONS.includes(value)) positions.add(value)
+  }
+
+  return positions
+}
+
+function getUnlockedFieldInningsForPlayer(lineup, playerId) {
+  const id = pk(playerId)
+  const innings = []
+
+  for (let inning = 1; inning <= Number(lineup?.innings || 0); inning += 1) {
+    const value = lineup?.cells?.[id]?.[inning] || ''
+    if (!FIELD_POSITIONS.includes(value)) continue
+    if (lockedValue(lineup, id, inning)) continue
+    innings.push(inning)
+  }
+
+  return innings
+}
+
+function canPlayerTakePositionAtInning({
+  lineup,
+  playerId,
+  inning,
+  nextPosition,
+  fitMap,
+}) {
+  if (!FIELD_POSITIONS.includes(nextPosition)) return false
+  if (fitTier(fitMap, playerId, nextPosition) === 'no') return false
+
+  for (const id of Object.keys(lineup?.cells || {})) {
+    if (pk(id) === pk(playerId)) continue
+    const value = lineup?.cells?.[id]?.[inning] || ''
+    if (value === nextPosition) return false
+  }
+
+  return true
+}
+
+function enforceMinimumTwoPositions({ lineup, players, fitMap }) {
+  const innings = Number(lineup?.innings || 0)
+  if (!innings) return lineup
+
+  const availableSet = new Set((lineup?.availablePlayerIds || []).map(pk))
+
+  ;(players || []).forEach((player) => {
+    const id = pk(player.id)
+    if (!availableSet.has(id)) return
+    if (lineup?.lockedRows?.[id] === true) return
+
+    const currentPositions = getPlayerFieldPositionsInGame(lineup, id)
+    if (currentPositions.size >= 2) return
+
+    const unlockedFieldInnings = getUnlockedFieldInningsForPlayer(lineup, id)
+    if (!unlockedFieldInnings.length) return
+
+    for (const inning of unlockedFieldInnings) {
+      const currentPos = lineup?.cells?.[id]?.[inning] || ''
+      if (!FIELD_POSITIONS.includes(currentPos)) continue
+
+      const alternatives = FIELD_POSITIONS.filter(
+        (pos) => pos !== currentPos && fitTier(fitMap, id, pos) !== 'no'
+      )
+
+      let changed = false
+
+      for (const alt of alternatives) {
+        if (
+          canPlayerTakePositionAtInning({
+            lineup,
+            playerId: id,
+            inning,
+            nextPosition: alt,
+            fitMap,
+          })
+        ) {
+          lineup.cells[id][inning] = alt
+          changed = true
+          break
+        }
+      }
+
+      if (changed) {
+        const updatedPositions = getPlayerFieldPositionsInGame(lineup, id)
+        if (updatedPositions.size >= 2) break
+      }
+    }
+  })
+
+  return lineup
+}
+
 export function buildOptimizedLineup({
   game,
   players,
@@ -1002,8 +1107,15 @@ export function buildOptimizedLineup({
       current.delta = Number((current.actualOuts - current.expectedOuts).toFixed(2))
     })
   }
+  
+  enforceMinimumTwoPositions({
+    lineup,
+    players,
+    fitMap,
+  })
 
   return lineup
+  
 }
 
 export function formatDateMMDDYY(dateStr) {
