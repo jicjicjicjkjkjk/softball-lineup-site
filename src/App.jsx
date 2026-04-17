@@ -692,62 +692,6 @@ useEffect(() => {
     }
   }
 
-  async function toggleLineupLocked(gameId, nextLocked) {
-  const existing = await supabase
-    .from('game_lineups')
-    .select('id')
-    .eq('game_id', gameId)
-    .eq('lineup_name', 'Main')
-    .maybeSingle()
-
-  if (existing.error) {
-    setAppError(existing.error.message)
-    return
-  }
-
-  if (!existing.data?.id) {
-    const lineup =
-      optimizerPreviewByGame[pk(gameId)] ||
-      lineupsByGame[pk(gameId)]
-
-    if (!lineup) {
-      setAppError('No lineup exists yet for this game.')
-      return
-    }
-
-    const inserted = await supabase.from('game_lineups').insert({
-      game_id: gameId,
-      lineup_name: 'Main',
-      lineup_data: lineup,
-      optimizer_meta: {
-        innings: lineup.innings,
-        availablePlayerIds: lineup.availablePlayerIds,
-      },
-      lineup_locked: nextLocked,
-    })
-
-    if (inserted.error) {
-      setAppError(inserted.error.message)
-      return
-    }
-
-    setLineupsByGame((current) => ({ ...current, [pk(gameId)]: JSON.parse(JSON.stringify(lineup)) }))
-    setLineupLockedByGame((current) => ({ ...current, [pk(gameId)]: nextLocked }))
-    return
-  }
-
-  const updated = await supabase
-    .from('game_lineups')
-    .update({ lineup_locked: nextLocked })
-    .eq('id', existing.data.id)
-
-  if (updated.error) {
-    setAppError(updated.error.message)
-    return
-  }
-
-  setLineupLockedByGame((current) => ({ ...current, [pk(gameId)]: nextLocked }))
-}
   
   async function addGameFromOptimizer() {
     const game = await addGame(optimizerNewDate, optimizerNewOpponent, optimizerNewType)
