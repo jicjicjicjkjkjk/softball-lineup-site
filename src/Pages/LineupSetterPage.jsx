@@ -7,6 +7,8 @@ export default function LineupSetterPage({
   setOptimizerExistingGameId,
   games,
   addExistingGameToBatch,
+  optimizerFocusLocked,
+  toggleLineupLocked,
   optimizerNewDate,
   setOptimizerNewDate,
   optimizerNewOpponent,
@@ -141,7 +143,7 @@ export default function LineupSetterPage({
           <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
             <div className="actions-inline">
-              <button onClick={runOptimizeCurrent} disabled={!optimizerFocusGameId}>
+              <button onClick={runOptimizeCurrent} disabled={!optimizerFocusGameId || optimizerFocusLocked}>
                 Optimize Game Viewing
               </button>
               <button onClick={runOptimizeAll} disabled={!optimizerBatchGames.length}>
@@ -224,10 +226,17 @@ export default function LineupSetterPage({
               </h3>
 
               {optimizerFocusLineup && (
-                <div className="actions-inline">
-                  <button onClick={() => addPreviewInning(optimizerFocusGame.id)}>
-                    Add Inning
-                  </button>
+  <div className="actions-inline">
+    <button onClick={() => toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)}>
+      {optimizerFocusLocked ? 'Unlock Lineup' : 'Lock Lineup'}
+    </button>
+
+    <button
+      onClick={() => addPreviewInning(optimizerFocusGame.id)}
+      disabled={optimizerFocusLocked}
+    >
+      Add Inning
+    </button>
                   {Array.from(
                     { length: Number(optimizerFocusLineup.innings || 0) },
                     (_, i) => i + 1
@@ -258,10 +267,11 @@ export default function LineupSetterPage({
                 return (
                   <label key={player.id} className="checkbox-item">
                     <input
-                      type="checkbox"
-                      checked={(lineup.availablePlayerIds || []).includes(pk(player.id))}
-                      onChange={() => togglePreviewAvailable(optimizerFocusGame.id, player.id)}
-                    />
+  type="checkbox"
+  checked={(lineup.availablePlayerIds || []).includes(pk(player.id))}
+  disabled={optimizerFocusLocked}
+  onChange={() => togglePreviewAvailable(optimizerFocusGame.id, player.id)}
+/>
                     {player.name}
                   </label>
                 )
@@ -302,7 +312,7 @@ export default function LineupSetterPage({
                     lineup={optimizerFocusLineup}
                     fitMap={fitByPlayer}
                     showLocks={true}
-                    lockedLineup={false}
+                    lockedLineup={optimizerFocusLocked}
                     visiblePlayerIds={visibleIds}
                     onCellChange={(playerId, inning, value) =>
                       updatePreviewCell(optimizerFocusGame.id, playerId, inning, value)
