@@ -11,6 +11,7 @@ export function pk(id) {
   return String(id)
 }
 
+
 export function blankLineup(playerIds, innings = 6, availablePlayerIds = playerIds) {
   const cells = {}
   const battingOrder = {}
