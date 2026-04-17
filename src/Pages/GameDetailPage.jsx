@@ -53,7 +53,9 @@ export default function GameDetailPage({
   LineupGrid,
   updateSavedCell,
   updateSavedBatting,
+  pk,
 }) {
+  
   function handlePrint() {
     window.print()
   }
