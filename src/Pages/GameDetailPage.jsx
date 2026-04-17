@@ -1,5 +1,38 @@
 import { formatDateShort } from '../lib/appHelpers'
 
+function getPrintRows(players, lineup, pk) {
+  const availableIds = new Set((lineup?.availablePlayerIds || []).map(pk))
+
+  return [...(players || [])]
+    .filter((player) => availableIds.has(pk(player.id)))
+    .sort((a, b) => {
+      const aOrderRaw = lineup?.battingOrder?.[pk(a.id)]
+      const bOrderRaw = lineup?.battingOrder?.[pk(b.id)]
+
+      const aOrder =
+        aOrderRaw === '' || aOrderRaw === null || aOrderRaw === undefined
+          ? null
+          : Number(aOrderRaw)
+
+      const bOrder =
+        bOrderRaw === '' || bOrderRaw === null || bOrderRaw === undefined
+          ? null
+          : Number(bOrderRaw)
+
+      const aHasOrder = aOrder !== null && !Number.isNaN(aOrder) && aOrder > 0
+      const bHasOrder = bOrder !== null && !Number.isNaN(bOrder) && bOrder > 0
+
+      if (aHasOrder && bHasOrder && aOrder !== bOrder) {
+        return aOrder - bOrder
+      }
+
+      if (aHasOrder && !bHasOrder) return -1
+      if (!aHasOrder && bHasOrder) return 1
+
+      return String(a.name || '').localeCompare(String(b.name || ''))
+    })
+}
+
 export default function GameDetailPage({
   selectedGame,
   selectedLineup,
