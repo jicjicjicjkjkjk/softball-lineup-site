@@ -9,6 +9,7 @@ export default function LineupSetterPage({
   addExistingGameToBatch,
   optimizerFocusLocked,
   toggleLineupLocked,
+  lineupLockedByGame,
   optimizerNewDate,
   setOptimizerNewDate,
   optimizerNewOpponent,
