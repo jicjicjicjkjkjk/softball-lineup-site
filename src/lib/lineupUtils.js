@@ -1006,52 +1006,91 @@ function canPlayerTakePositionAtInning({
   return true
 }
 
-function enforceMinimumTwoPositions({ lineup, players, fitMap }) {
+function enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap }) {
+  const availableIds = new Set((lineup?.availablePlayerIds || []).map(pk))
   const innings = Number(lineup?.innings || 0)
+
   if (!innings) return lineup
 
-  const availableSet = new Set((lineup?.availablePlayerIds || []).map(pk))
+  function getFieldInnings(playerId) {
+    const out = []
+    for (let inning = 1; inning <= innings; inning += 1) {
+      const value = lineup?.cells?.[playerId]?.[inning] || ''
+      if (FIELD_POSITIONS.includes(value)) {
+        out.push({ inning, value })
+      }
+    }
+    return out
+  }
+
+  function getUniqueFieldPositions(playerId) {
+    return new Set(getFieldInnings(playerId).map((x) => x.value))
+  }
+
+  function findPlayerAtPosition(inning, position) {
+    for (const player of players || []) {
+      const id = pk(player.id)
+      if ((lineup?.cells?.[id]?.[inning] || '') === position) return id
+    }
+    return null
+  }
+
+  function canSwap(playerA, playerB, inning) {
+    const aPos = lineup?.cells?.[playerA]?.[inning] || ''
+    const bPos = lineup?.cells?.[playerB]?.[inning] || ''
+
+    if (!FIELD_POSITIONS.includes(aPos) || !FIELD_POSITIONS.includes(bPos)) return false
+    if (lockedValue(lineup, playerA, inning)) return false
+    if (lockedValue(lineup, playerB, inning)) return false
+    if (fitTier(fitMap, playerA, bPos) === 'no') return false
+    if (fitTier(fitMap, playerB, aPos) === 'no') return false
+
+    return true
+  }
 
   ;(players || []).forEach((player) => {
-    const id = pk(player.id)
-    if (!availableSet.has(id)) return
-    if (lineup?.lockedRows?.[id] === true) return
+    const playerId = pk(player.id)
 
-    const currentPositions = getPlayerFieldPositionsInGame(lineup, id)
-    if (currentPositions.size >= 2) return
+    if (!availableIds.has(playerId)) return
+    if (isRowFullyLockedForGame(lineup, playerId)) return
 
-    const unlockedFieldInnings = getUnlockedFieldInningsForPlayer(lineup, id)
-    if (!unlockedFieldInnings.length) return
+    const fieldInnings = getFieldInnings(playerId)
+    const uniquePositions = getUniqueFieldPositions(playerId)
 
-    for (const inning of unlockedFieldInnings) {
-      const currentPos = lineup?.cells?.[id]?.[inning] || ''
+    if (fieldInnings.length < 2) return
+    if (uniquePositions.size >= 2) return
+
+    const originalPos = fieldInnings[0]?.value
+    if (!originalPos) return
+
+    const unlockedFieldInnings = fieldInnings.filter(
+      ({ inning }) => !lockedValue(lineup, playerId, inning)
+    )
+
+    for (const { inning } of unlockedFieldInnings) {
+      const currentPos = lineup?.cells?.[playerId]?.[inning] || ''
       if (!FIELD_POSITIONS.includes(currentPos)) continue
 
-      const alternatives = FIELD_POSITIONS.filter(
-        (pos) => pos !== currentPos && fitTier(fitMap, id, pos) !== 'no'
-      )
+      const alternativePositions = FIELD_POSITIONS
+        .filter((pos) => pos !== currentPos)
+        .filter((pos) => fitTier(fitMap, playerId, pos) !== 'no')
+        .sort((a, b) => {
+          const aPriority = priorityValue(priorityMap, playerId, a)
+          const bPriority = priorityValue(priorityMap, playerId, b)
+          return bPriority - aPriority
+        })
 
-      let changed = false
+      for (const altPos of alternativePositions) {
+        const otherId = findPlayerAtPosition(inning, altPos)
+        if (!otherId || otherId === playerId) continue
 
-      for (const alt of alternatives) {
-        if (
-          canPlayerTakePositionAtInning({
-            lineup,
-            playerId: id,
-            inning,
-            nextPosition: alt,
-            fitMap,
-          })
-        ) {
-          lineup.cells[id][inning] = alt
-          changed = true
-          break
-        }
-      }
+        if (!canSwap(playerId, otherId, inning)) continue
 
-      if (changed) {
-        const updatedPositions = getPlayerFieldPositionsInGame(lineup, id)
-        if (updatedPositions.size >= 2) break
+        lineup.cells[playerId][inning] = altPos
+        lineup.cells[otherId][inning] = currentPos
+
+        const updated = getUniqueFieldPositions(playerId)
+        if (updated.size >= 2) return
       }
     }
   })
