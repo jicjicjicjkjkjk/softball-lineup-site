@@ -1550,6 +1550,7 @@ useEffect(() => {
             LineupGrid={LineupGrid}
             updateSavedCell={updateSavedCell}
             updateSavedBatting={updateSavedBatting}
+            pk={pk}
           />
         )}
 
