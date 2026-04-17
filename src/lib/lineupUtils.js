@@ -973,17 +973,6 @@ function assignPositionsForInning({
   })
 }
 
-function getPlayerFieldPositionsInGame(lineup, playerId) {
-  const id = pk(playerId)
-  const positions = new Set()
-
-  for (let inning = 1; inning <= Number(lineup?.innings || 0); inning += 1) {
-    const value = lineup?.cells?.[id]?.[inning] || ''
-    if (FIELD_POSITIONS.includes(value)) positions.add(value)
-  }
-
-  return positions
-}
 
 function getUnlockedFieldInningsForPlayer(lineup, playerId) {
   const id = pk(playerId)
