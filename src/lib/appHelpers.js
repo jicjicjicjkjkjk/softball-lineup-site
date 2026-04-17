@@ -174,55 +174,69 @@ export function buildSitOutSummary(games, lineupsByGame, players, pk) {
     .filter(Boolean)
 }
 
-export function buildPlayerSitOuts(games, lineupsByGame, players, pk, requiredOutsForGame) {
-  return players.map((p) => {
-    let runningActual = 0
-    let runningExpected = 0
+export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk, requiredOutsForGame) {
+  return (activePlayers || []).map((player) => {
+    const playerId = pk(player.id)
 
     const perGame = []
     const running = []
 
-    games.forEach((game) => {
-      const lineup = lineupsByGame[pk(game.id)]
-      if (!lineup || !isPlayerAvailableForGame(lineup, p.id, pk)) {
+    let runningTotal = 0
+
+    ;(games || []).forEach((game) => {
+      const lineup = lineupsByGame?.[pk(game.id)]
+      if (!lineup) {
         perGame.push('')
         running.push('')
         return
       }
 
-      let count = 0
-      for (let i = 1; i <= Number(lineup.innings || 0); i += 1) {
-        if (lineup.cells?.[pk(p.id)]?.[i] === 'Out') count += 1
+      const availableIds = (lineup.availablePlayerIds || []).map(pk)
+      const isAvailable = availableIds.includes(playerId)
+
+      if (!isAvailable) {
+        perGame.push('')
+        running.push('')
+        return
       }
 
-      const eligiblePlayers = (lineup.availablePlayerIds || []).filter((id) => {
-        const playerRow = lineup.cells?.[pk(id)] || {}
-        const everyInjury =
-          Object.keys(playerRow).length > 0 &&
-          Object.values(playerRow).every((v) => v === 'Injury')
-        return !everyInjury && players.some((pl) => pk(pl.id) === pk(id))
-      })
+      let actualOuts = 0
+      let expectedOuts = 0
 
-      const expectedPerPlayer = eligiblePlayers.length
-        ? requiredOutsForGame(eligiblePlayers.length, Number(lineup.innings || 0)) / eligiblePlayers.length
-        : 0
+      for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+        const eligibleIds = availableIds.filter((id) => {
+          const value = lineup?.cells?.[id]?.[inning] || ''
+          return value !== 'Injury'
+        })
 
-      runningActual += count
-      runningExpected += expectedPerPlayer
+        const inningExpected = eligibleIds.length
+          ? Math.max(0, eligibleIds.length - 9) / eligibleIds.length
+          : 0
 
-      perGame.push(count === 0 ? 0 : count)
-      running.push((runningActual - runningExpected).toFixed(1))
+        const playerValue = lineup?.cells?.[playerId]?.[inning] || ''
+        if (playerValue !== 'Injury') {
+          expectedOuts += inningExpected
+        }
+
+        if (playerValue === 'Out') {
+          actualOuts += 1
+        }
+      }
+
+      perGame.push(actualOuts)
+
+      runningTotal += expectedOuts - actualOuts
+      running.push(Number(runningTotal.toFixed(1)))
     })
 
     return {
-      playerId: pk(p.id),
-      name: p.name,
+      playerId,
+      name: player.name,
       perGame,
       running,
     }
   })
 }
-
 export function buildPositionByPlayer(games, lineupsByGame, playerId, pk) {
   return games
     .map((game) => {
