@@ -1559,6 +1559,7 @@ useEffect(() => {
     optimizerFocusGame={optimizerFocusGame}
     optimizerFocusLocked={optimizerFocusLocked}
     toggleLineupLocked={toggleLineupLocked}
+    lineupLockedByGame={lineupLockedByGame}
     optimizerExistingGameId={optimizerExistingGameId}
     setOptimizerExistingGameId={setOptimizerExistingGameId}
     games={games}
