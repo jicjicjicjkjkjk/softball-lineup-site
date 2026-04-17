@@ -376,10 +376,10 @@ export default function TrackingPage({
                     {row.name}
                   </td>
                   {row.running.map((v, i) => (
-                    <td key={i} className="col-small" style={centerCell}>
-                      {v}
-                    </td>
-                  ))}
+  <td key={i} className="col-small" style={centerCell}>
+    {v === '' || v === null || v === undefined ? 'x' : v}
+  </td>
+))}
                 </tr>
               ))}
             </tbody>
