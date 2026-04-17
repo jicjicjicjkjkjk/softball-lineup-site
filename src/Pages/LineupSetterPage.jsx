@@ -162,7 +162,7 @@ export default function LineupSetterPage({
                 <th>Type</th>
                 <th>Innings</th>
                 <th>Req. Outs</th>
-                <th>Save</th>
+                <th>Lock</th>
                 <th>Remove</th>
               </tr>
             </thead>
@@ -197,7 +197,11 @@ export default function LineupSetterPage({
                     <td>{effectiveInnings}</td>
                     <td>{effectiveRequiredOuts}</td>
                     <td>
-                      <button onClick={() => savePreview(game.id)}>Save</button>
+                        <button
+                        onClick={() => toggleLineupLocked(game.id, !(lineupLockedByGame?.[pk(game.id)] === true))}
+                        >
+                        {lineupLockedByGame?.[pk(game.id)] === true ? 'Unlock Lineup' : 'Lock Lineup'}
+                        </button>
                     </td>
                     <td>
                       <button onClick={() => removeBatchGame(game.id)}>Remove</button>
