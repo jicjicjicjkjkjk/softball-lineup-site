@@ -182,7 +182,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
 
     let runningTotal = 0
 
-    ;(games || []).forEach((game) => {
+    ;(games || []).forEach((game, gameIndex) => {
       const lineup = lineupsByGame?.[pk(game.id)]
 
       if (!lineup) {
@@ -203,29 +203,28 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
       const innings = Number(lineup.innings || 0)
 
       let actualOuts = 0
-
-      for (let inning = 1; inning <= innings; inning += 1) {
-        const value = lineup?.cells?.[playerId]?.[inning] || ''
-        if (value === 'Out') actualOuts += 1
-      }
-
       let totalSitOuts = 0
 
       availableIds.forEach((id) => {
         for (let inning = 1; inning <= innings; inning += 1) {
           const value = lineup?.cells?.[id]?.[inning] || ''
-          if (value === 'Out') totalSitOuts += 1
+          if (value === 'Out') {
+            totalSitOuts += 1
+            if (id === playerId) actualOuts += 1
+          }
         }
       })
 
-      const averageOut = availableIds.length
-        ? totalSitOuts / availableIds.length
-        : 0
-
-      runningTotal += averageOut - actualOuts
+      const averageOut = availableIds.length ? totalSitOuts / availableIds.length : 0
 
       perGame.push(actualOuts)
-      running.push(Number(runningTotal.toFixed(1)))
+
+      // Match spreadsheet-style running total:
+      // first available game starts at player's outs minus rounded-down team expectation if desired
+      // then cumulative delta for later available games
+      const delta = Number((actualOuts - averageOut).toFixed(1))
+      runningTotal = Number((runningTotal + delta).toFixed(1))
+      running.push(runningTotal)
     })
 
     return {
@@ -236,7 +235,6 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
     }
   })
 }
-
 export function buildPositionByPlayer(games, lineupsByGame, playerId, pk) {
   return games
     .map((game) => {
