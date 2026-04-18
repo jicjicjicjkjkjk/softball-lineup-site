@@ -131,6 +131,47 @@ export function buildBattingOrderMatrix(games, lineupsByGame, players, pk) {
   })
 }
 
+export function buildSitOutSummary(games, lineupsByGame, players, pk) {
+  return (games || [])
+    .map((game) => {
+      const lineup = lineupsByGame?.[pk(game.id)]
+      if (!lineup) return null
+
+      const availableIds = (lineup.availablePlayerIds || []).map(pk).filter((id) =>
+        (players || []).some((p) => pk(p.id) === id)
+      )
+
+      const totalPlayers = availableIds.length
+      const innings = Number(lineup.innings || 0)
+
+      let sitOuts = 0
+      let injury = 0
+
+      availableIds.forEach((id) => {
+        for (let inning = 1; inning <= innings; inning += 1) {
+          const value = lineup?.cells?.[id]?.[inning] || ''
+          if (value === 'Out') sitOuts += 1
+          if (value === 'Injury') injury += 1
+        }
+      })
+
+      const totalBenchSlots = ((totalPlayers * innings) - injury) - (9 * innings)
+      const avgSit = totalPlayers
+        ? (Math.max(totalBenchSlots, 0) / totalPlayers).toFixed(2)
+        : ''
+
+      return {
+        gameId: pk(game.id),
+        totalPlayers,
+        innings,
+        sitOuts,
+        injury,
+        avgSit,
+      }
+    })
+    .filter(Boolean)
+}
+
 export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
   return (activePlayers || []).map((player) => {
     const playerId = pk(player.id)
