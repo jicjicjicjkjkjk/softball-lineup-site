@@ -549,9 +549,9 @@ useEffect(() => {
   )
 
   const sitByPlayer = useMemo(
-    () => buildPlayerSitOuts(gamesWithLineups, lineupsByGame, activePlayers, pk, requiredOutsForGame),
-    [gamesWithLineups, lineupsByGame, activePlayers]
-  )
+  () => buildPlayerSitOuts(gamesWithLineups, lineupsByGame, activePlayers, pk),
+  [gamesWithLineups, lineupsByGame, activePlayers]
+)
 
   const selectedPlayerPositions = useMemo(() => {
     if (!trackingPlayerId) return []
