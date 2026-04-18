@@ -86,60 +86,6 @@ export function buildSitOutSummary(games, lineupsByGame) {
     .filter(Boolean)
 }
 
-export function buildPlayerSitOuts(games, lineupsByGame, players) {
-  const orderedGames = getOrderedGames(games)
-
-  return players.map((p) => {
-    const perGame = []
-    const running = []
-
-    let runningTotal = 0
-
-    orderedGames.forEach((game) => {
-      const lineup = lineupsByGame[pk(game.id)]
-
-      if (!lineup) {
-        perGame.push('')
-        running.push('')
-        return
-      }
-
-      const availableIds = getAvailableIds(lineup)
-      const playerId = pk(p.id)
-      const isAvailable = availableIds.includes(playerId)
-
-      if (!isAvailable) {
-        perGame.push('')
-        running.push(runningTotal === 0 ? '' : runningTotal.toFixed(1).replace(/\.0$/, ''))
-        return
-      }
-
-      const innings = Number(lineup.innings || game.innings || 0)
-
-      let actualOuts = 0
-      for (let i = 1; i <= innings; i += 1) {
-        if (lineup.cells?.[playerId]?.[i] === 'Out') actualOuts += 1
-      }
-
-      const requiredOuts = Math.max(0, availableIds.length * innings - 9 * innings)
-      const expectedOuts = availableIds.length ? requiredOuts / availableIds.length : 0
-      const delta = actualOuts - expectedOuts
-
-      runningTotal = Number((runningTotal + delta).toFixed(1))
-
-      perGame.push(actualOuts === 0 ? 0 : actualOuts)
-      running.push(runningTotal.toFixed(1).replace(/\.0$/, ''))
-    })
-
-    return {
-      playerId: pk(p.id),
-      name: p.name,
-      perGame,
-      running,
-    }
-  })
-}
-
 export function buildPositionByPlayer(games, lineupsByGame, playerId) {
   const orderedGames = getOrderedGames(games)
 
