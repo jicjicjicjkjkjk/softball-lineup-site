@@ -227,7 +227,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
       // Your spreadsheet logic:
       // if avg = 1.25 and player sat 1 -> +0.25
       // if avg = 1.25 and player sat 2 -> -0.75
-      const gameDelta = Number((teamAverageSitOuts - playerOuts).toFixed(2))
+      const gameDelta = Number((teamAverageSitOuts - playerOuts + 100).toFixed(2))
 
       runningTotal = Number((runningTotal + gameDelta).toFixed(2))
 
