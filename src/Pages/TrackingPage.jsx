@@ -360,7 +360,7 @@ export default function TrackingPage({
 
           <div style={{ height: 16 }} />
 
-          <h3 style={{ marginTop: 0 }}>Sit Out vs Average Per Game</h3>
+          <h3 style={{ marginTop: 0 }}>Sit Out vs Average Per Game NEW</h3>
           <table className="tracking-table">
             <thead>
               <tr>
