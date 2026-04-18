@@ -212,11 +212,15 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
         }
       })
 
-      const rawTeamSitOuts = ((playersInLineup * innings) - injuryInnings) - (9 * innings)
-      const teamAverageSitOuts =
-        playersInLineup > 0 ? Math.max(rawTeamSitOuts, 0) / playersInLineup : 0
+      const totalOpenSlots = Math.max(
+        ((playersInLineup * innings) - injuryInnings) - (9 * innings),
+        0
+      )
 
-      const gameDelta = Number((teamAverageSitOuts - actualSitOuts).toFixed(2))
+      const teamAverageSitOuts =
+        playersInLineup > 0 ? totalOpenSlots / playersInLineup : 0
+
+      const gameDelta = Number((actualSitOuts - teamAverageSitOuts).toFixed(2))
 
       perGame.push(actualSitOuts)
 
