@@ -176,8 +176,8 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
   return (activePlayers || []).map((player) => {
     const playerId = pk(player.id)
     const perGame = []
-    const running = []
     const deltaPerGame = []
+    const running = []
 
     let runningTotal = 0
 
@@ -216,12 +216,17 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
         }
       })
 
-      const totalBenchSlots = Math.max((playersInLineup * innings) - injuryInnings - (9 * innings), 0)
-      const teamAverageSitOuts = playersInLineup > 0 ? totalBenchSlots / playersInLineup : 0
+      const totalBenchSlots = Math.max(
+        ((playersInLineup * innings) - injuryInnings) - (9 * innings),
+        0
+      )
 
-      // Match your example:
-      // 1 out vs 1.25 avg => +0.25
-      // 2 outs vs 1.25 avg => -0.75
+      const teamAverageSitOuts =
+        playersInLineup > 0 ? totalBenchSlots / playersInLineup : 0
+
+      // Your desired logic:
+      // if avg = 1.25 and player sits 1 => +0.25
+      // if avg = 1.25 and player sits 2 => -0.75
       const gameDelta = Number((teamAverageSitOuts - playerOuts).toFixed(2))
 
       runningTotal = Number((runningTotal + gameDelta).toFixed(2))
