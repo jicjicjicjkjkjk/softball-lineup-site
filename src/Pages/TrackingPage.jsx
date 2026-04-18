@@ -178,25 +178,59 @@ export default function TrackingPage({
     })
   }, [sitByPlayer, sitOutSort])
 
+  const computedSitRows = useMemo(() => {
+    const avgByGame = sitSummary.map((g) => {
+      const value = Number(g?.avgSit)
+      return Number.isNaN(value) ? null : value
+    })
+
+    return sitByPlayer.map((row) => {
+      let runningTotal = 0
+
+      const deltaPerGame = (row.perGame || []).map((value, index) => {
+        if (value === 'x' || value === '' || value === null || value === undefined) return 'x'
+
+        const playerOuts = Number(value)
+        const avgSit = avgByGame[index]
+
+        if (Number.isNaN(playerOuts) || avgSit === null || Number.isNaN(avgSit)) return 'x'
+
+        return Number((avgSit - playerOuts).toFixed(2))
+      })
+
+      const running = deltaPerGame.map((value) => {
+        if (value === 'x') return 'x'
+        runningTotal = Number((runningTotal + Number(value)).toFixed(2))
+        return runningTotal
+      })
+
+      return {
+        ...row,
+        deltaPerGame,
+        running,
+      }
+    })
+  }, [sitByPlayer, sitSummary])
+
   const sortedDeltaRows = useMemo(() => {
-    const rows = [...sitByPlayer]
+    const rows = [...computedSitRows]
     return rows.sort((a, b) => {
       if (deltaSort.key === 'name') return compareValues(a.name, b.name, deltaSort.direction)
 
       const gameIndex = Number(String(deltaSort.key).replace('game-', ''))
       return compareValues(a.deltaPerGame?.[gameIndex], b.deltaPerGame?.[gameIndex], deltaSort.direction)
     })
-  }, [sitByPlayer, deltaSort])
+  }, [computedSitRows, deltaSort])
 
   const sortedRunningRows = useMemo(() => {
-    const rows = [...sitByPlayer]
+    const rows = [...computedSitRows]
     return rows.sort((a, b) => {
       if (runningSort.key === 'name') return compareValues(a.name, b.name, runningSort.direction)
 
       const gameIndex = Number(String(runningSort.key).replace('game-', ''))
       return compareValues(a.running?.[gameIndex], b.running?.[gameIndex], runningSort.direction)
     })
-  }, [sitByPlayer, runningSort])
+  }, [computedSitRows, runningSort])
 
   return (
     <div className="stack">
