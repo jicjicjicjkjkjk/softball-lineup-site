@@ -132,13 +132,13 @@ export function buildBattingOrderMatrix(games, lineupsByGame, players, pk) {
 }
 
 export function buildSitOutSummary(games, lineupsByGame, players, pk) {
-  return (games || [])
+  return games
     .map((game) => {
-      const lineup = lineupsByGame?.[pk(game.id)]
+      const lineup = lineupsByGame[pk(game.id)]
       if (!lineup) return null
 
-      const availableIds = (lineup.availablePlayerIds || []).map(pk).filter((id) =>
-        (players || []).some((p) => pk(p.id) === id)
+      const availableIds = (lineup.availablePlayerIds || []).filter((id) =>
+        players.some((p) => pk(p.id) === pk(id))
       )
 
       const totalPlayers = availableIds.length
@@ -147,18 +147,18 @@ export function buildSitOutSummary(games, lineupsByGame, players, pk) {
       let sitOuts = 0
       let injury = 0
 
-      availableIds.forEach((id) => {
-        for (let inning = 1; inning <= innings; inning += 1) {
-          const value = lineup?.cells?.[id]?.[inning] || ''
+      availableIds.forEach((pid) => {
+        for (let i = 1; i <= innings; i += 1) {
+          const value = lineup.cells?.[pid]?.[i]
           if (value === 'Out') sitOuts += 1
           if (value === 'Injury') injury += 1
         }
       })
 
-      const totalBenchSlots = ((totalPlayers * innings) - injury) - (9 * innings)
-      const avgSit = totalPlayers
-        ? (Math.max(totalBenchSlots, 0) / totalPlayers).toFixed(2)
-        : ''
+      const totalOpenSlots = Math.max(
+        ((totalPlayers * innings) - injury) - (9 * innings),
+        0
+      )
 
       return {
         gameId: pk(game.id),
@@ -166,7 +166,7 @@ export function buildSitOutSummary(games, lineupsByGame, players, pk) {
         innings,
         sitOuts,
         injury,
-        avgSit,
+        avgSit: totalPlayers ? (totalOpenSlots / totalPlayers).toFixed(2) : '',
       }
     })
     .filter(Boolean)
@@ -176,6 +176,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
   return (activePlayers || []).map((player) => {
     const playerId = pk(player.id)
     const perGame = []
+    const deltaPerGame = []
     const running = []
 
     let runningTotal = 0
@@ -185,6 +186,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
 
       if (!lineup) {
         perGame.push('x')
+        deltaPerGame.push('x')
         running.push('x')
         return
       }
@@ -195,6 +197,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
 
       if (!isAvailable || playersInLineup === 0) {
         perGame.push('x')
+        deltaPerGame.push('x')
         running.push('x')
         return
       }
@@ -212,17 +215,18 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
         }
       })
 
-      const totalOpenSlots = Math.max(
+      const totalTeamSitOuts = Math.max(
         ((playersInLineup * innings) - injuryInnings) - (9 * innings),
         0
       )
 
       const teamAverageSitOuts =
-        playersInLineup > 0 ? totalOpenSlots / playersInLineup : 0
+        playersInLineup > 0 ? totalTeamSitOuts / playersInLineup : 0
 
       const gameDelta = Number((actualSitOuts - teamAverageSitOuts).toFixed(2))
 
       perGame.push(actualSitOuts)
+      deltaPerGame.push(gameDelta)
 
       runningTotal = Number((runningTotal + gameDelta).toFixed(2))
       running.push(runningTotal)
@@ -232,6 +236,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
       playerId,
       name: player.name,
       perGame,
+      deltaPerGame,
       running,
     }
   })
