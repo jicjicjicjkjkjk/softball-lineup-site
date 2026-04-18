@@ -193,9 +193,8 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
 
       const availableIds = (lineup.availablePlayerIds || []).map(pk)
       const playersInLineup = availableIds.length
-      const isAvailable = availableIds.includes(playerId)
 
-      if (!isAvailable || playersInLineup === 0) {
+      if (!availableIds.includes(playerId) || playersInLineup === 0) {
         perGame.push('x')
         deltaPerGame.push('x')
         running.push('x')
@@ -216,17 +215,16 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
         }
       })
 
-      const totalBenchSlots = Math.max(
+      const totalSitOuts = Math.max(
         ((playersInLineup * innings) - injuryInnings) - (9 * innings),
         0
       )
 
-      const teamAverageSitOuts =
-        playersInLineup > 0 ? totalBenchSlots / playersInLineup : 0
+      const teamAverageSitOuts = totalSitOuts / playersInLineup
 
-      // Your desired logic:
-      // if avg = 1.25 and player sits 1 => +0.25
-      // if avg = 1.25 and player sits 2 => -0.75
+      // your spreadsheet logic:
+      // 1 sit out vs 1.25 avg = +0.25
+      // 2 sit outs vs 1.25 avg = -0.75
       const gameDelta = Number((teamAverageSitOuts - playerOuts).toFixed(2))
 
       runningTotal = Number((runningTotal + gameDelta).toFixed(2))
