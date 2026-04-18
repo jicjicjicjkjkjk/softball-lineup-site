@@ -78,54 +78,7 @@ function buildBattingOrderMatrix(games, lineupsByGame, players) {
     .filter(Boolean)
 }
 
-function buildPlayerSitOuts(games, lineupsByGame, players) {
-  return players.map((p) => {
-    let runningActual = 0
-    let runningExpected = 0
 
-    const perGame = []
-    const running = []
-
-    games.forEach((game) => {
-      const lineup = lineupsByGame[pk(game.id)]
-      if (!lineup || !isPlayerAvailableForGame(lineup, p.id)) {
-        perGame.push('')
-        running.push('')
-        return
-      }
-
-      let count = 0
-      for (let i = 1; i <= Number(lineup.innings || 0); i += 1) {
-        if (lineup.cells?.[pk(p.id)]?.[i] === 'Out') count += 1
-      }
-
-      const eligiblePlayers = (lineup.availablePlayerIds || []).filter((id) => {
-        const playerRow = lineup.cells?.[pk(id)] || {}
-        const everyInjury =
-          Object.keys(playerRow).length > 0 &&
-          Object.values(playerRow).every((v) => v === 'Injury')
-        return !everyInjury && players.some((pl) => pk(pl.id) === pk(id))
-      })
-
-      const expectedPerPlayer = eligiblePlayers.length
-        ? requiredOutsForGame(eligiblePlayers.length, Number(lineup.innings || 0)) / eligiblePlayers.length
-        : 0
-
-      runningActual += count
-      runningExpected += expectedPerPlayer
-
-      perGame.push(count === 0 ? 0 : count)
-      running.push((runningActual - runningExpected).toFixed(1))
-    })
-
-    return {
-      playerId: pk(p.id),
-      name: p.name,
-      perGame,
-      running,
-    }
-  })
-}
 
 function buildPositionByPlayer(games, lineupsByGame, playerId) {
   return games
