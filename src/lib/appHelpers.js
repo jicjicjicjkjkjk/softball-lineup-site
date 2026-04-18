@@ -131,42 +131,6 @@ export function buildBattingOrderMatrix(games, lineupsByGame, players, pk) {
   })
 }
 
-export function buildSitOutSummary(games, lineupsByGame, players, pk) {
-  return games
-    .map((game) => {
-      const lineup = lineupsByGame[pk(game.id)]
-      if (!lineup) return null
-
-      const availableIds = (lineup.availablePlayerIds || []).filter((id) =>
-        players.some((p) => pk(p.id) === pk(id))
-      )
-
-      const totalPlayers = availableIds.length
-      const innings = Number(lineup.innings || 0)
-
-      let sitOuts = 0
-      let injury = 0
-
-      availableIds.forEach((pid) => {
-        for (let i = 1; i <= innings; i += 1) {
-          const value = lineup.cells?.[pid]?.[i]
-          if (value === 'Out') sitOuts += 1
-          if (value === 'Injury') injury += 1
-        }
-      })
-
-      return {
-        gameId: pk(game.id),
-        totalPlayers,
-        innings,
-        sitOuts,
-        injury,
-        avgSit: totalPlayers ? (sitOuts / totalPlayers).toFixed(1) : '',
-      }
-    })
-    .filter(Boolean)
-}
-
 export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
   return (activePlayers || []).map((player) => {
     const playerId = pk(player.id)
@@ -196,15 +160,15 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
       const innings = Number(lineup.innings || 0)
       const playersInLineup = availableIds.length
 
-      let playerOuts = 0
+      let actualSitOuts = 0
       let injuryInnings = 0
 
       availableIds.forEach((id) => {
         for (let inning = 1; inning <= innings; inning += 1) {
           const value = lineup?.cells?.[id]?.[inning] || ''
 
-          if (value === 'Out' && id === playerId) {
-            playerOuts += 1
+          if (id === playerId && value === 'Out') {
+            actualSitOuts += 1
           }
 
           if (value === 'Injury') {
@@ -213,17 +177,20 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
         }
       })
 
-      const teamAverageOuts =
+      const totalBenchSlots =
+        ((playersInLineup * innings) - injuryInnings) - (9 * innings)
+
+      const teamAverageSitOuts =
         playersInLineup > 0
-          ? Math.max(playersInLineup * innings - injuryInnings, 0) / playersInLineup
+          ? Math.max(totalBenchSlots, 0) / playersInLineup
           : 0
 
-      const gameFigure = Number((playerOuts - teamAverageOuts).toFixed(2))
+      const gameDelta = actualSitOuts - teamAverageSitOuts
 
-      perGame.push(playerOuts)
+      perGame.push(actualSitOuts)
 
-      runningTotal = Number((runningTotal + gameFigure).toFixed(2))
-      running.push(runningTotal)
+      runningTotal += gameDelta
+      running.push(Number(runningTotal.toFixed(2)))
     })
 
     return {
