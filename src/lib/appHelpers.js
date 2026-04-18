@@ -176,8 +176,8 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
   return (activePlayers || []).map((player) => {
     const playerId = pk(player.id)
     const perGame = []
-    const deltaPerGame = []
     const running = []
+    const deltaPerGame = []
 
     let runningTotal = 0
 
@@ -204,29 +204,30 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
 
       const innings = Number(lineup.innings || 0)
 
+      let playerOuts = 0
       let injuryInnings = 0
-      let actualSitOuts = 0
 
       availableIds.forEach((id) => {
         for (let inning = 1; inning <= innings; inning += 1) {
           const value = lineup?.cells?.[id]?.[inning] || ''
+
           if (value === 'Injury') injuryInnings += 1
-          if (id === playerId && value === 'Out') actualSitOuts += 1
+          if (id === playerId && value === 'Out') playerOuts += 1
         }
       })
 
-      const teamAverageSitOuts =
-        playersInLineup > 0
-          ? Math.max(((playersInLineup * innings) - injuryInnings) - (9 * innings), 0) /
-            playersInLineup
-          : 0
+      const totalBenchSlots = Math.max((playersInLineup * innings) - injuryInnings - (9 * innings), 0)
+      const teamAverageSitOuts = playersInLineup > 0 ? totalBenchSlots / playersInLineup : 0
 
-      const gameDelta = Number((actualSitOuts - teamAverageSitOuts).toFixed(2))
-
-      perGame.push(actualSitOuts)
-      deltaPerGame.push(gameDelta)
+      // Match your example:
+      // 1 out vs 1.25 avg => +0.25
+      // 2 outs vs 1.25 avg => -0.75
+      const gameDelta = Number((teamAverageSitOuts - playerOuts).toFixed(2))
 
       runningTotal = Number((runningTotal + gameDelta).toFixed(2))
+
+      perGame.push(playerOuts)
+      deltaPerGame.push(gameDelta)
       running.push(runningTotal)
     })
 
