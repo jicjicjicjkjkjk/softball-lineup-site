@@ -377,26 +377,38 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
       }
 
       const innings = Number(lineup.innings || 0)
+      const playersInLineup = availableIds.length
 
-      let actualOuts = 0
-      let totalSitOuts = 0
+      let playerOuts = 0
+      let injuryInnings = 0
 
+      // count outs + injuries
       availableIds.forEach((id) => {
         for (let inning = 1; inning <= innings; inning += 1) {
           const value = lineup?.cells?.[id]?.[inning] || ''
-          if (value === 'Out') {
-            totalSitOuts += 1
-            if (id === playerId) actualOuts += 1
+
+          if (value === 'Out' && id === playerId) {
+            playerOuts += 1
+          }
+
+          if (value === 'Injury') {
+            injuryInnings += 1
           }
         }
       })
 
-      const averageOut = availableIds.length ? totalSitOuts / availableIds.length : 0
+      // YOUR formula
+      const totalPossible = playersInLineup * innings
+      const teamAverageOuts =
+        playersInLineup > 0
+          ? Math.max(totalPossible - injuryInnings, 0) / playersInLineup
+          : 0
 
-      perGame.push(actualOuts)
+      const gameFigure = Number((playerOuts - teamAverageOuts).toFixed(2))
 
-      const delta = Number((averageOut - actualOuts).toFixed(1))
-      runningTotal = Number((runningTotal + delta).toFixed(1))
+      perGame.push(playerOuts)
+
+      runningTotal = Number((runningTotal + gameFigure).toFixed(2))
       running.push(runningTotal)
     })
 
