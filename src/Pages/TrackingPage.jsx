@@ -154,6 +154,7 @@ export default function TrackingPage({
 }) {
   const [battingSort, setBattingSort] = useState({ key: 'name', direction: 'asc' })
   const [sitOutSort, setSitOutSort] = useState({ key: 'name', direction: 'asc' })
+  const [deltaSort, setDeltaSort] = useState({ key: 'name', direction: 'asc' })
   const [runningSort, setRunningSort] = useState({ key: 'name', direction: 'asc' })
 
   const sortedBattingRows = useMemo(() => {
@@ -176,6 +177,16 @@ export default function TrackingPage({
       return compareValues(a.perGame?.[gameIndex], b.perGame?.[gameIndex], sitOutSort.direction)
     })
   }, [sitByPlayer, sitOutSort])
+
+  const sortedDeltaRows = useMemo(() => {
+    const rows = [...sitByPlayer]
+    return rows.sort((a, b) => {
+      if (deltaSort.key === 'name') return compareValues(a.name, b.name, deltaSort.direction)
+
+      const gameIndex = Number(String(deltaSort.key).replace('game-', ''))
+      return compareValues(a.deltaPerGame?.[gameIndex], b.deltaPerGame?.[gameIndex], deltaSort.direction)
+    })
+  }, [sitByPlayer, deltaSort])
 
   const sortedRunningRows = useMemo(() => {
     const rows = [...sitByPlayer]
@@ -349,7 +360,45 @@ export default function TrackingPage({
 
           <div style={{ height: 16 }} />
 
-          <h3 style={{ marginTop: 0 }}>Sit Out Running Total (vs Expected)</h3>
+          <h3 style={{ marginTop: 0 }}>Sit Out vs Average Per Game</h3>
+          <table className="tracking-table">
+            <thead>
+              <tr>
+                <th
+                  className="sticky-col-1 col-player"
+                  style={playerHeaderStyle}
+                  onClick={() => setDeltaSort((s) => nextSort(s, 'name'))}
+                >
+                  Player
+                </th>
+                {gamesWithLineups.map((g, i) => (
+                  <RotatedGameHeader
+                    key={g.id}
+                    game={g}
+                    onClick={() => setDeltaSort((s) => nextSort(s, `game-${i}`))}
+                  />
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedDeltaRows.map((row) => (
+                <tr key={`${row.playerId}-delta`}>
+                  <td className="sticky-col-1 col-player" style={playerCellStyle}>
+                    {row.name}
+                  </td>
+                  {(row.deltaPerGame || []).map((v, i) => (
+                    <td key={i} className="col-small" style={centerCell}>
+                      {v === '' || v === null || v === undefined ? 'x' : v}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div style={{ height: 16 }} />
+
+          <h3 style={{ marginTop: 0 }}>Sit Out Running Total</h3>
           <table className="tracking-table">
             <thead>
               <tr>
@@ -375,11 +424,11 @@ export default function TrackingPage({
                   <td className="sticky-col-1 col-player" style={playerCellStyle}>
                     {row.name}
                   </td>
-                  {row.running.map((v, i) => (
-  <td key={i} className="col-small" style={centerCell}>
-    {v === '' || v === null || v === undefined ? 'x' : v}
-  </td>
-))}
+                  {(row.running || []).map((v, i) => (
+                    <td key={i} className="col-small" style={centerCell}>
+                      {v === '' || v === null || v === undefined ? 'x' : v}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
@@ -407,104 +456,41 @@ export default function TrackingPage({
             <table className="tracking-table positioning-table">
               <thead>
                 <tr>
-                  <th className="sticky-col-1 col-game" style={centerHeader}>
-                    Game #
-                  </th>
-                  <th
-                    className="sticky-col-2 col-opponent"
-                    style={{ textAlign: 'left', verticalAlign: 'middle' }}
-                  >
-                    Opponent
-                  </th>
-                  <th className="sticky-col-3 col-date" style={centerHeader}>
-                    Date
-                  </th>
-                  <th className="col-act" style={centerHeader}>
-                    Act
-                  </th>
-                  <th className="col-small" style={centerHeader}>
-                    P
-                  </th>
-                  <th className="col-small" style={centerHeader}>
-                    C
-                  </th>
-                  <th className="col-small" style={centerHeader}>
-                    1B
-                  </th>
-                  <th className="col-small" style={centerHeader}>
-                    2B
-                  </th>
-                  <th className="col-small" style={centerHeader}>
-                    3B
-                  </th>
-                  <th className="col-small" style={centerHeader}>
-                    SS
-                  </th>
-                  <th className="col-small" style={centerHeader}>
-                    LF
-                  </th>
-                  <th className="col-small" style={centerHeader}>
-                    CF
-                  </th>
-                  <th className="col-small" style={centerHeader}>
-                    RF
-                  </th>
-                  <th className="col-small" style={centerHeader}>
-                    Out
-                  </th>
-                  <th className="col-small" style={centerHeader}>
-                    Injury
-                  </th>
+                  <th className="sticky-col-1 col-game" style={centerHeader}>Game #</th>
+                  <th className="sticky-col-2 col-opponent" style={{ textAlign: 'left', verticalAlign: 'middle' }}>Opponent</th>
+                  <th className="sticky-col-3 col-date" style={centerHeader}>Date</th>
+                  <th className="col-act" style={centerHeader}>Act</th>
+                  <th className="col-small" style={centerHeader}>P</th>
+                  <th className="col-small" style={centerHeader}>C</th>
+                  <th className="col-small" style={centerHeader}>1B</th>
+                  <th className="col-small" style={centerHeader}>2B</th>
+                  <th className="col-small" style={centerHeader}>3B</th>
+                  <th className="col-small" style={centerHeader}>SS</th>
+                  <th className="col-small" style={centerHeader}>LF</th>
+                  <th className="col-small" style={centerHeader}>CF</th>
+                  <th className="col-small" style={centerHeader}>RF</th>
+                  <th className="col-small" style={centerHeader}>Out</th>
+                  <th className="col-small" style={centerHeader}>Injury</th>
                 </tr>
               </thead>
               <tbody>
                 {selectedPlayerPositions.map((row, idx) => (
                   <tr key={row.gameId}>
-                    <td className="sticky-col-1 col-game" style={centerCell}>
-                      {idx + 1}
-                    </td>
-                    <td className="sticky-col-2 col-opponent" style={{ textAlign: 'left' }}>
-                      {row.opponent}
-                    </td>
-                    <td className="sticky-col-3 col-date" style={centerCell}>
-                      {formatDateShort(row.date)}
-                    </td>
-                    <td className="col-act" style={centerCell}>
-                      {row.active}
-                    </td>
-                    <td className="col-small" style={centerCell}>
-                      {row.P || ''}
-                    </td>
-                    <td className="col-small" style={centerCell}>
-                      {row.C || ''}
-                    </td>
-                    <td className="col-small" style={centerCell}>
-                      {row['1B'] || ''}
-                    </td>
-                    <td className="col-small" style={centerCell}>
-                      {row['2B'] || ''}
-                    </td>
-                    <td className="col-small" style={centerCell}>
-                      {row['3B'] || ''}
-                    </td>
-                    <td className="col-small" style={centerCell}>
-                      {row.SS || ''}
-                    </td>
-                    <td className="col-small" style={centerCell}>
-                      {row.LF || ''}
-                    </td>
-                    <td className="col-small" style={centerCell}>
-                      {row.CF || ''}
-                    </td>
-                    <td className="col-small" style={centerCell}>
-                      {row.RF || ''}
-                    </td>
-                    <td className="col-small" style={centerCell}>
-                      {row.Out || ''}
-                    </td>
-                    <td className="col-small" style={centerCell}>
-                      {row.Injury || ''}
-                    </td>
+                    <td className="sticky-col-1 col-game" style={centerCell}>{idx + 1}</td>
+                    <td className="sticky-col-2 col-opponent" style={{ textAlign: 'left' }}>{row.opponent}</td>
+                    <td className="sticky-col-3 col-date" style={centerCell}>{formatDateShort(row.date)}</td>
+                    <td className="col-act" style={centerCell}>{row.active}</td>
+                    <td className="col-small" style={centerCell}>{row.P || ''}</td>
+                    <td className="col-small" style={centerCell}>{row.C || ''}</td>
+                    <td className="col-small" style={centerCell}>{row['1B'] || ''}</td>
+                    <td className="col-small" style={centerCell}>{row['2B'] || ''}</td>
+                    <td className="col-small" style={centerCell}>{row['3B'] || ''}</td>
+                    <td className="col-small" style={centerCell}>{row.SS || ''}</td>
+                    <td className="col-small" style={centerCell}>{row.LF || ''}</td>
+                    <td className="col-small" style={centerCell}>{row.CF || ''}</td>
+                    <td className="col-small" style={centerCell}>{row.RF || ''}</td>
+                    <td className="col-small" style={centerCell}>{row.Out || ''}</td>
+                    <td className="col-small" style={centerCell}>{row.Injury || ''}</td>
                   </tr>
                 ))}
               </tbody>
@@ -524,24 +510,16 @@ export default function TrackingPage({
         setSortConfig={setTrackingSort}
       />
 
-            <div className="card tracking-card">
+      <div className="card tracking-card">
         <h3>Tracking vs Positioning Priority</h3>
         <div className="tracking-scroll">
           <table className="tracking-table priority-groups">
             <thead>
               <tr>
-                <th
-                  rowSpan="2"
-                  className="sticky-col-1 col-player"
-                  style={{ textAlign: 'left', verticalAlign: 'middle' }}
-                >
+                <th rowSpan="2" className="sticky-col-1 col-player" style={{ textAlign: 'left', verticalAlign: 'middle' }}>
                   Player
                 </th>
-                <th
-                  rowSpan="2"
-                  className="sticky-col-2 col-small"
-                  style={centerHeader}
-                >
+                <th rowSpan="2" className="sticky-col-2 col-small" style={centerHeader}>
                   Fld
                 </th>
 
@@ -579,12 +557,8 @@ export default function TrackingPage({
             <tbody>
               {trackingPriorityRows.map((row) => (
                 <tr key={row.playerId}>
-                  <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>
-                    {row.name}
-                  </td>
-                  <td className="sticky-col-2 col-small" style={centerCell}>
-                    {row.fieldTotal}
-                  </td>
+                  <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>{row.name}</td>
+                  <td className="sticky-col-2 col-small" style={centerCell}>{row.fieldTotal}</td>
 
                   <td className="col-small group-start" style={centerCell}>{row.targP}</td>
                   <td className="col-small group-end" style={centerCell}>{row.actP}</td>
