@@ -166,7 +166,7 @@ export function buildSitOutSummary(games, lineupsByGame, players, pk) {
         innings,
         sitOuts,
         injury,
-        avgSit: totalPlayers ? (totalOpenSlots / totalPlayers).toFixed(2) : '',
+        avgSit: totalPlayers ? Number((totalOpenSlots / totalPlayers).toFixed(2)) : '',
       }
     })
     .filter(Boolean)
@@ -220,11 +220,13 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
         0
       )
 
-      const teamAverageSitOuts = totalSitOuts / playersInLineup
+      const teamAverageSitOuts = playersInLineup
+        ? totalSitOuts / playersInLineup
+        : 0
 
-      // your spreadsheet logic:
-      // 1 sit out vs 1.25 avg = +0.25
-      // 2 sit outs vs 1.25 avg = -0.75
+      // Your spreadsheet logic:
+      // if avg = 1.25 and player sat 1 -> +0.25
+      // if avg = 1.25 and player sat 2 -> -0.75
       const gameDelta = Number((teamAverageSitOuts - playerOuts).toFixed(2))
 
       runningTotal = Number((runningTotal + gameDelta).toFixed(2))
@@ -243,7 +245,6 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
     }
   })
 }
-
 
 export function buildPositionByPlayer(games, lineupsByGame, playerId, pk) {
   return games
