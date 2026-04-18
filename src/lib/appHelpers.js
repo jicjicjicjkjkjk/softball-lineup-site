@@ -246,6 +246,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
   })
 }
 
+
 export function buildPositionByPlayer(games, lineupsByGame, playerId, pk) {
   return games
     .map((game) => {
