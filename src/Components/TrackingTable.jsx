@@ -51,24 +51,24 @@ export default function TrackingTable({
     (players || []).map((player) => {
       const id = pk(player.id)
       return {
-        playerId: id,
-        name: player.name,
-        games: totals?.[id]?.games || 0,
-        fieldTotal: totals?.[id]?.fieldTotal || 0,
-        Out: totals?.[id]?.Out || 0,
-        sitOutRunningTotal: sitOutMap[id] ?? 0,
-        P: totals?.[id]?.P || 0,
-        C: totals?.[id]?.C || 0,
-        '1B': totals?.[id]?.['1B'] || 0,
-        '2B': totals?.[id]?.['2B'] || 0,
-        '3B': totals?.[id]?.['3B'] || 0,
-        SS: totals?.[id]?.SS || 0,
-        LF: totals?.[id]?.LF || 0,
-        CF: totals?.[id]?.CF || 0,
-        RF: totals?.[id]?.RF || 0,
-        IF: totals?.[id]?.IF || 0,
-        OF: totals?.[id]?.OF || 0,
-      }
+  playerId: id,
+  name: player.name,
+  games: totals?.[id]?.games || 0,
+  fieldTotal: totals?.[id]?.fieldTotal || 0,
+  Out: totals?.[id]?.Out || 0,
+  sitOutRunningTotal: totals?.[id]?.sitOutRunningTotal || 0,
+  P: totals?.[id]?.P || 0,
+  C: totals?.[id]?.C || 0,
+  '1B': totals?.[id]?.['1B'] || 0,
+  '2B': totals?.[id]?.['2B'] || 0,
+  '3B': totals?.[id]?.['3B'] || 0,
+  SS: totals?.[id]?.SS || 0,
+  LF: totals?.[id]?.LF || 0,
+  CF: totals?.[id]?.CF || 0,
+  RF: totals?.[id]?.RF || 0,
+  IF: totals?.[id]?.IF || 0,
+  OF: totals?.[id]?.OF || 0,
+}
     }),
     sortConfig
   )
