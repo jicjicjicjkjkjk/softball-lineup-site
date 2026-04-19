@@ -528,10 +528,25 @@ useEffect(() => {
     [ytdBeforeTotals, currentBatchTotals, players]
   )
 
-  const trackingTotals = useMemo(
-    () => computeTotals(trackingLockedLineups, players),
-    [trackingLockedLineups, players]
-  )
+  const trackingTotals = useMemo(() => {
+  const baseTotals = computeTotals(trackingLockedLineups, players)
+  const nextTotals = { ...baseTotals }
+
+  ;(trackingSitByPlayer || []).forEach((row) => {
+    const playerId = pk(row.playerId)
+    const runningValues = (row.running || []).filter((v) => v !== 'x')
+    const sitOutRunningTotal = runningValues.length
+      ? runningValues[runningValues.length - 1]
+      : 0
+
+    nextTotals[playerId] = {
+      ...(nextTotals[playerId] || {}),
+      sitOutRunningTotal,
+    }
+  })
+
+  return nextTotals
+}, [trackingLockedLineups, players, trackingSitByPlayer])
 
   const gamesWithLineups = useMemo(
     () => orderedGamesAsc.filter((g) => lineupsByGame[pk(g.id)]),
