@@ -138,6 +138,7 @@ const metricCellStyle = {
 export default function TrackingPage({
   trackingLockedLineups,
   trackingTotals,
+  trackingSitByPlayer,
   activePlayers,
   trackingSort,
   setTrackingSort,
