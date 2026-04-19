@@ -553,6 +553,16 @@ useEffect(() => {
   [gamesWithLineups, lineupsByGame, activePlayers]
 )
 
+const trackingSitByPlayer = useMemo(
+  () => buildPlayerSitOuts(
+    orderedGamesAsc.filter((g) => lineupLockedByGame[pk(g.id)] === true),
+    lineupsByGame,
+    activePlayers,
+    pk
+  ),
+  [orderedGamesAsc, lineupLockedByGame, lineupsByGame, activePlayers]
+)
+  
   const selectedPlayerPositions = useMemo(() => {
     if (!trackingPlayerId) return []
     return buildPositionByPlayer(gamesWithLineups, lineupsByGame, pk(trackingPlayerId), pk)
