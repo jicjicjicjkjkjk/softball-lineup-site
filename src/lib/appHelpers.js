@@ -220,12 +220,14 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
         0
       )
 
-      const teamAverageSitOuts = playersInLineup ? totalSitOuts / playersInLineup : 0
+      const teamAverageSitOuts = playersInLineup
+        ? totalSitOuts / playersInLineup
+        : 0
 
-      // Correct sign:
-      // 1 out vs 1.25 avg = -0.25
-      // 2 outs vs 1.25 avg = +0.75
-      const gameDelta = Number((playerOuts - teamAverageSitOuts).toFixed(2))
+      // spreadsheet logic:
+      // 1 out vs 1.25 avg = +0.25
+      // 2 outs vs 1.25 avg = -0.75
+      const gameDelta = Number((teamAverageSitOuts - playerOuts).toFixed(2))
 
       runningTotal = Number((runningTotal + gameDelta).toFixed(2))
 
