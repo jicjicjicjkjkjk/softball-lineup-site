@@ -40,9 +40,7 @@ export default function TrackingTable({
         games: totals?.[id]?.games || 0,
         fieldTotal: totals?.[id]?.fieldTotal || 0,
         Out: totals?.[id]?.Out || 0,
-        expectedOuts: totals?.[id]?.expectedOuts || 0,
-        actualOuts: totals?.[id]?.actualOuts || 0,
-        delta: totals?.[id]?.delta || 0,
+        sitOutRunningTotal: totals?.[id]?.sitOutRunningTotal || 0,
         P: totals?.[id]?.P || 0,
         C: totals?.[id]?.C || 0,
         '1B': totals?.[id]?.['1B'] || 0,
@@ -79,9 +77,6 @@ export default function TrackingTable({
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'games'))}>Games</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'fieldTotal'))}>Fld</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'Out'))}>Out</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'expectedOuts'))}>Exp X</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'actualOuts'))}>Act X</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'delta'))}>Delta</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'P'))}>P</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'C'))}>C</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, '1B'))}>1B</th>
@@ -93,6 +88,9 @@ export default function TrackingTable({
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'RF'))}>RF</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'IF'))}>IF</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'OF'))}>OF</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'sitOutRunningTotal'))}>
+              Sit Out Running Total
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -102,9 +100,6 @@ export default function TrackingTable({
               <td>{row.games}</td>
               <td>{row.fieldTotal}</td>
               <td>{row.Out}</td>
-              <td>{row.expectedOuts}</td>
-              <td>{row.actualOuts}</td>
-              <td>{row.delta}</td>
               <td>{row.P}</td>
               <td>{row.C}</td>
               <td>{row['1B']}</td>
@@ -116,6 +111,7 @@ export default function TrackingTable({
               <td>{row.RF}</td>
               <td>{row.IF}</td>
               <td>{row.OF}</td>
+              <td>{row.sitOutRunningTotal}</td>
             </tr>
           ))}
         </tbody>
