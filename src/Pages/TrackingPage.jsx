@@ -238,7 +238,7 @@ export default function TrackingPage({
     })
   }, [sitByPlayer, sitSummary])
 
-    const sortedDeltaRows = useMemo(() => {
+      const sortedDeltaRows = useMemo(() => {
     const rows = [...derivedSitRows]
     return rows.sort((a, b) => {
       if (deltaSort.key === 'name') return compareValues(a.name, b.name, deltaSort.direction)
@@ -248,15 +248,15 @@ export default function TrackingPage({
     })
   }, [derivedSitRows, deltaSort])
 
-  const sortedRunningRows = useMemo(() => {
-    const rows = [...computedSitRows]
+    const sortedRunningRows = useMemo(() => {
+    const rows = [...derivedSitRows]
     return rows.sort((a, b) => {
       if (runningSort.key === 'name') return compareValues(a.name, b.name, runningSort.direction)
 
       const gameIndex = Number(String(runningSort.key).replace('game-', ''))
       return compareValues(a.running?.[gameIndex], b.running?.[gameIndex], runningSort.direction)
     })
-  }, [computedSitRows, runningSort])
+  }, [derivedSitRows, runningSort])
 
   return (
     <div className="stack">
