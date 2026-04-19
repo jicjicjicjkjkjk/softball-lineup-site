@@ -153,6 +153,7 @@ export default function TrackingPage({
   trackingPriorityRows,
   pk,
 }) {
+  
   const [battingSort, setBattingSort] = useState({ key: 'name', direction: 'asc' })
   const [sitOutSort, setSitOutSort] = useState({ key: 'name', direction: 'asc' })
   const [deltaSort, setDeltaSort] = useState({ key: 'name', direction: 'asc' })
