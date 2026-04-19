@@ -22,15 +22,31 @@ function sortRows(rows, sort) {
   })
 }
 
+function getLastRunningValue(row) {
+  const values = row?.running || []
+  for (let i = values.length - 1; i >= 0; i -= 1) {
+    const v = values[i]
+    if (v !== 'x' && v !== '' && v !== null && v !== undefined) {
+      return v
+    }
+  }
+  return 0
+}
+
 export default function TrackingTable({
   title,
   totals,
+  sitOutRows = [],
   players,
   sortConfig,
   setSortConfig,
   universeLabel,
   center = true,
 }) {
+  const sitOutMap = Object.fromEntries(
+    (sitOutRows || []).map((row) => [pk(row.playerId), getLastRunningValue(row)])
+  )
+
   const rows = sortRows(
     (players || []).map((player) => {
       const id = pk(player.id)
@@ -40,7 +56,7 @@ export default function TrackingTable({
         games: totals?.[id]?.games || 0,
         fieldTotal: totals?.[id]?.fieldTotal || 0,
         Out: totals?.[id]?.Out || 0,
-        sitOutRunningTotal: totals?.[id]?.sitOutRunningTotal || 0,
+        sitOutRunningTotal: sitOutMap[id] ?? 0,
         P: totals?.[id]?.P || 0,
         C: totals?.[id]?.C || 0,
         '1B': totals?.[id]?.['1B'] || 0,
