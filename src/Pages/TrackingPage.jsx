@@ -178,39 +178,14 @@ export default function TrackingPage({
     })
   }, [sitByPlayer, sitOutSort])
 
-    const derivedSitRows = useMemo(() => {
-    return (sitByPlayer || []).map((row) => {
-      let runningTotal = 0
-
-      const deltaPerGame = (row.perGame || []).map((outs, idx) => {
-        if (outs === 'x' || outs === '' || outs === null || outs === undefined) return 'x'
-
-        const avgOut = Number(sitSummary?.[idx]?.avgSit || 0)
-        const gameDelta = Number((Number(outs) - avgOut).toFixed(2))
-        return gameDelta
-      })
-
-      const running = deltaPerGame.map((delta) => {
-        if (delta === 'x') return 'x'
-        runningTotal = Number((runningTotal + Number(delta)).toFixed(2))
-        return runningTotal
-      })
-
-      return {
-        ...row,
-        deltaPerGame,
-        running,
-      }
-    })
-  }, [sitByPlayer, sitSummary])
   
-  const computedSitRows = useMemo(() => {
+    const computedSitRows = useMemo(() => {
     const avgByGame = sitSummary.map((g) => {
       const value = Number(g?.avgSit)
       return Number.isNaN(value) ? null : value
     })
 
-    return sitByPlayer.map((row) => {
+    return (sitByPlayer || []).map((row) => {
       let runningTotal = 0
 
       const deltaPerGame = (row.perGame || []).map((value, index) => {
@@ -221,6 +196,9 @@ export default function TrackingPage({
 
         if (Number.isNaN(playerOuts) || avgSit === null || Number.isNaN(avgSit)) return 'x'
 
+        // Your spreadsheet logic:
+        // 1 out with 1.25 avg = +0.25
+        // 2 outs with 1.25 avg = -0.75
         return Number((avgSit - playerOuts).toFixed(2))
       })
 
@@ -239,24 +217,24 @@ export default function TrackingPage({
   }, [sitByPlayer, sitSummary])
 
       const sortedDeltaRows = useMemo(() => {
-    const rows = [...derivedSitRows]
+    const rows = [...computedSitRows]
     return rows.sort((a, b) => {
       if (deltaSort.key === 'name') return compareValues(a.name, b.name, deltaSort.direction)
 
       const gameIndex = Number(String(deltaSort.key).replace('game-', ''))
       return compareValues(a.deltaPerGame?.[gameIndex], b.deltaPerGame?.[gameIndex], deltaSort.direction)
     })
-  }, [derivedSitRows, deltaSort])
-
-    const sortedRunningRows = useMemo(() => {
-    const rows = [...derivedSitRows]
+  }, [computedSitRows, deltaSort])
+  
+      const sortedRunningRows = useMemo(() => {
+    const rows = [...computedSitRows]
     return rows.sort((a, b) => {
       if (runningSort.key === 'name') return compareValues(a.name, b.name, runningSort.direction)
 
       const gameIndex = Number(String(runningSort.key).replace('game-', ''))
       return compareValues(a.running?.[gameIndex], b.running?.[gameIndex], runningSort.direction)
     })
-  }, [derivedSitRows, runningSort])
+  }, [computedSitRows, runningSort])
 
   return (
     <div className="stack">
