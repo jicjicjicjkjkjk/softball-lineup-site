@@ -1617,6 +1617,7 @@ const trackingSitByPlayer = useMemo(
   />
 )}
 
+        
         {page === 'tracking' && (
   <TrackingPage
     trackingLockedLineups={trackingLockedLineups}
