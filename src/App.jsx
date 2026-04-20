@@ -538,7 +538,7 @@ useEffect(() => {
     [gamesWithLineups, lineupsByGame, activePlayers]
   )
 
-  const sitSummary = useMemo(
+    const sitSummary = useMemo(
     () => buildSitOutSummary(gamesWithLineups, lineupsByGame, activePlayers, pk),
     [gamesWithLineups, lineupsByGame, activePlayers]
   )
@@ -548,15 +548,19 @@ useEffect(() => {
     [gamesWithLineups, lineupsByGame, activePlayers]
   )
 
+  const trackingGames = useMemo(
+    () => orderedGamesAsc.filter((g) => lineupLockedByGame[pk(g.id)] === true),
+    [orderedGamesAsc, lineupLockedByGame]
+  )
+
+  const trackingSitSummary = useMemo(
+    () => buildSitOutSummary(trackingGames, lineupsByGame, activePlayers, pk),
+    [trackingGames, lineupsByGame, activePlayers]
+  )
+
   const trackingSitByPlayer = useMemo(
-    () =>
-      buildPlayerSitOuts(
-        orderedGamesAsc.filter((g) => lineupLockedByGame[pk(g.id)] === true),
-        lineupsByGame,
-        activePlayers,
-        pk
-      ),
-    [orderedGamesAsc, lineupLockedByGame, lineupsByGame, activePlayers]
+    () => buildPlayerSitOuts(trackingGames, lineupsByGame, activePlayers, pk),
+    [trackingGames, lineupsByGame, activePlayers]
   )
 
   const trackingTotals = useMemo(() => {
@@ -1636,27 +1640,28 @@ useEffect(() => {
 )}
 
         
-        {page === 'tracking' && (
-  <TrackingPage
-  trackingLockedLineups={trackingLockedLineups}
-  trackingTotals={trackingTotals}
-  trackingSitByPlayer={trackingSitByPlayer}
-  activePlayers={activePlayers}
-  trackingSort={trackingSort}
-  setTrackingSort={setTrackingSort}
-  TrackingTable={TrackingTable}
-  battingRows={battingRows}
-  sitSummary={sitSummary}
-  sitByPlayer={sitByPlayer}
-  gamesWithLineups={gamesWithLineups}
-  VerticalHeader={VerticalHeader}
-  trackingPlayerId={trackingPlayerId}
-  setTrackingPlayerId={setTrackingPlayerId}
-  selectedPlayerPositions={selectedPlayerPositions}
-  trackingPriorityRows={trackingPriorityRows}
-  pk={pk}
-/>
-)}
+                {page === 'tracking' && (
+          <TrackingPage
+            trackingLockedLineups={trackingLockedLineups}
+            trackingTotals={trackingTotals}
+            trackingSitByPlayer={trackingSitByPlayer}
+            trackingSitSummary={trackingSitSummary}
+            activePlayers={activePlayers}
+            trackingSort={trackingSort}
+            setTrackingSort={setTrackingSort}
+            TrackingTable={TrackingTable}
+            battingRows={battingRows}
+            sitSummary={sitSummary}
+            sitByPlayer={sitByPlayer}
+            gamesWithLineups={gamesWithLineups}
+            VerticalHeader={VerticalHeader}
+            trackingPlayerId={trackingPlayerId}
+            setTrackingPlayerId={setTrackingPlayerId}
+            selectedPlayerPositions={selectedPlayerPositions}
+            trackingPriorityRows={trackingPriorityRows}
+            pk={pk}
+          />
+        )}
 
         {page === 'attendance' && renderAttendancePage()}
       </main>
