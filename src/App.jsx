@@ -523,30 +523,10 @@ useEffect(() => {
     [optimizerPreviewByGame, players]
   )
 
-  const ytdAfterTotals = useMemo(
+    const ytdAfterTotals = useMemo(
     () => addTotals(ytdBeforeTotals, currentBatchTotals, players),
     [ytdBeforeTotals, currentBatchTotals, players]
   )
-
-  const trackingTotals = useMemo(() => {
-  const baseTotals = computeTotals(trackingLockedLineups, players)
-  const nextTotals = { ...baseTotals }
-
-  ;(trackingSitByPlayer || []).forEach((row) => {
-    const playerId = pk(row.playerId)
-    const runningValues = (row.running || []).filter((v) => v !== 'x')
-    const sitOutRunningTotal = runningValues.length
-      ? runningValues[runningValues.length - 1]
-      : 0
-
-    nextTotals[playerId] = {
-      ...(nextTotals[playerId] || {}),
-      sitOutRunningTotal,
-    }
-  })
-
-  return nextTotals
-}, [trackingLockedLineups, players, trackingSitByPlayer])
 
   const gamesWithLineups = useMemo(
     () => orderedGamesAsc.filter((g) => lineupsByGame[pk(g.id)]),
@@ -564,19 +544,42 @@ useEffect(() => {
   )
 
   const sitByPlayer = useMemo(
-  () => buildPlayerSitOuts(gamesWithLineups, lineupsByGame, activePlayers, pk),
-  [gamesWithLineups, lineupsByGame, activePlayers]
-)
+    () => buildPlayerSitOuts(gamesWithLineups, lineupsByGame, activePlayers, pk),
+    [gamesWithLineups, lineupsByGame, activePlayers]
+  )
 
-const trackingSitByPlayer = useMemo(
-  () => buildPlayerSitOuts(
-    orderedGamesAsc.filter((g) => lineupLockedByGame[pk(g.id)] === true),
-    lineupsByGame,
-    activePlayers,
-    pk
-  ),
-  [orderedGamesAsc, lineupLockedByGame, lineupsByGame, activePlayers]
-)
+  const trackingSitByPlayer = useMemo(
+    () =>
+      buildPlayerSitOuts(
+        orderedGamesAsc.filter((g) => lineupLockedByGame[pk(g.id)] === true),
+        lineupsByGame,
+        activePlayers,
+        pk
+      ),
+    [orderedGamesAsc, lineupLockedByGame, lineupsByGame, activePlayers]
+  )
+
+  const trackingTotals = useMemo(() => {
+    const baseTotals = computeTotals(trackingLockedLineups, players)
+    const nextTotals = { ...baseTotals }
+
+    ;(trackingSitByPlayer || []).forEach((row) => {
+      const playerId = pk(row.playerId)
+      const runningValues = (row.running || []).filter(
+        (v) => v !== 'x' && v !== '' && v !== null && v !== undefined
+      )
+      const sitOutRunningTotal = runningValues.length
+        ? runningValues[runningValues.length - 1]
+        : 0
+
+      nextTotals[playerId] = {
+        ...(nextTotals[playerId] || {}),
+        sitOutRunningTotal,
+      }
+    })
+
+    return nextTotals
+  }, [trackingLockedLineups, players, trackingSitByPlayer])
   
   const selectedPlayerPositions = useMemo(() => {
     if (!trackingPlayerId) return []
