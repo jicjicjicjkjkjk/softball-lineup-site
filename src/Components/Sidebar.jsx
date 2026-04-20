@@ -1,28 +1,31 @@
 export default function Sidebar({ page, setPage }) {
-  const items = [
-    ['players', 'Players'],
-    ['positioning-priority', 'Positioning Priority'],
-    ['games', 'Games'],
-    ['game-detail', 'Game Detail'],
-    ['lineup-setter', 'Lineup Setter'],
-    ['tracking', 'Tracking'],
-    ['attendance', 'Attendance Tracker'],
+  const navItems = [
+    { key: 'games', label: 'Games' },
+    { key: 'game-detail', label: 'Game Detail' },
+    { key: 'lineup-setter', label: 'Lineup Setter' },
+    { key: 'tracking', label: 'Tracking' },
+    { key: 'players', label: 'Players' },
+    { key: 'positioning-priority', label: 'Positioning Priority' },
+    { key: 'attendance', label: 'Attendance' },
+    { key: 'admin', label: 'Admin' },
   ]
 
   return (
-    <aside className="sidebar no-print">
-      <h1>Thunder Lineup Tool</h1>
-      <div className="nav-stack">
-        {items.map(([key, label]) => (
+    <aside className="sidebar">
+      <div className="sidebar-title">Softball Lineups</div>
+
+      <nav className="sidebar-nav">
+        {navItems.map((item) => (
           <button
-            key={key}
-            className={page === key ? 'nav-button active' : 'nav-button'}
-            onClick={() => setPage(key)}
+            key={item.key}
+            type="button"
+            className={page === item.key ? 'sidebar-link active' : 'sidebar-link'}
+            onClick={() => setPage(item.key)}
           >
-            {label}
+            {item.label}
           </button>
         ))}
-      </div>
+      </nav>
     </aside>
   )
 }
