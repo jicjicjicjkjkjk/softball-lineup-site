@@ -34,6 +34,7 @@ export default function GamesPage({
   setPage,
   seasonOptions = [],
   gameTypeOptions = [],
+  gameStatusOptions = [],
 }) {
   function nextSort(key) {
     if (gameSort.key !== key) return setGameSort({ key, direction: 'asc' })
@@ -257,12 +258,18 @@ export default function GamesPage({
 
                   <td style={{ minWidth: 130 }}>
                     <select
-                      value={game.status || 'Planned'}
+                      value={game.status || ''}
                       onChange={(e) => updateGameField(game.id, 'status', e.target.value)}
                     >
-                      <option value="Planned">Planned</option>
-                      <option value="Complete">Complete</option>
-                      <option value="Cancelled">Cancelled</option>
+                      <option value="">Select status</option>
+                      {gameStatusOptions.map((option) => (
+                        <option
+                          key={renderOptionValue(option)}
+                          value={renderOptionValue(option)}
+                        >
+                          {renderOptionLabel(option)}
+                        </option>
+                      ))}
                     </select>
                   </td>
 
