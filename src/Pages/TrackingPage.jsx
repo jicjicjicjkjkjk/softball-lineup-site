@@ -550,7 +550,6 @@ export default function TrackingPage({
   sortConfig={trackingSort}
   setSortConfig={setTrackingSort}
 />
-
       
       <div className="card tracking-card">
         <h3>Tracking vs Positioning Priority</h3>
