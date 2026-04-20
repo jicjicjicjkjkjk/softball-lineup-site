@@ -22,21 +22,9 @@ function sortRows(rows, sort) {
   })
 }
 
-function getLastRunningValue(row) {
-  const values = row?.running || []
-  for (let i = values.length - 1; i >= 0; i -= 1) {
-    const v = values[i]
-    if (v !== 'x' && v !== '' && v !== null && v !== undefined) {
-      return v
-    }
-  }
-  return 0
-}
-
 export default function TrackingTable({
   title,
   totals,
-  sitOutRows = [],
   players,
   sortConfig,
   setSortConfig,
