@@ -1,15 +1,15 @@
-import { GAME_TYPES, pk } from '../lib/lineupUtils'
+import { formatDateShort } from '../lib/appHelpers'
 
-function nextSort(current, key) {
-  if (current.key !== key) return { key, direction: 'asc' }
-  return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
+function renderOptionLabel(option) {
+  if (!option) return ''
+  if (typeof option === 'string') return option
+  return option.label || option.value || ''
 }
 
-function formatDateShort(value) {
-  if (!value) return ''
-  const [y, m, d] = value.split('-')
-  if (!y || !m || !d) return value
-  return `${m}/${d}/${y.slice(2)}`
+function renderOptionValue(option) {
+  if (!option) return ''
+  if (typeof option === 'string') return option
+  return option.value || option.label || ''
 }
 
 export default function GamesPage({
@@ -22,6 +22,8 @@ export default function GamesPage({
   setNewGameOpponent,
   newGameType,
   setNewGameType,
+  newGameSeason,
+  setNewGameSeason,
   addGameFromGames,
   sortedGames,
   gameSort,
@@ -30,19 +32,55 @@ export default function GamesPage({
   deleteGame,
   setSelectedGameId,
   setPage,
+  seasonOptions = [],
+  gameTypeOptions = [],
 }) {
+  function nextSort(key) {
+    if (gameSort.key !== key) return setGameSort({ key, direction: 'asc' })
+    return setGameSort({
+      key,
+      direction: gameSort.direction === 'asc' ? 'desc' : 'asc',
+    })
+  }
+
   return (
     <div className="stack">
       <div className="card">
-        <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
-          <h2>Games</h2>
-          <button onClick={loadAll}>Refresh from Database</button>
+        <div className="row-between wrap-row">
+          <div>
+            <h2 style={{ marginBottom: 8 }}>Games</h2>
+            <div className="small-note">Create, edit, and manage scheduled games.</div>
+          </div>
+
+          <div className="button-row">
+            <button onClick={loadAll}>Refresh</button>
+          </div>
         </div>
 
-        {appError && <p style={{ color: '#b91c1c' }}>Error: {appError}</p>}
-        {loading && <p>Loading...</p>}
+        {appError ? (
+          <div className="summary-box" style={{ marginTop: 16, color: '#b91c1c' }}>
+            {appError}
+          </div>
+        ) : null}
 
-        <div className="game-add-row">
+        {loading ? (
+          <div className="summary-box" style={{ marginTop: 16 }}>
+            Loading…
+          </div>
+        ) : null}
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Add Game</h3>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1.2fr 1fr 1fr auto',
+            gap: 12,
+            alignItems: 'end',
+          }}
+        >
           <div>
             <label>Date</label>
             <input
@@ -57,117 +95,243 @@ export default function GamesPage({
             <input
               value={newGameOpponent}
               onChange={(e) => setNewGameOpponent(e.target.value)}
+              placeholder="Opponent"
             />
           </div>
 
           <div>
-            <label>Type</label>
+            <label>Game Type</label>
             <select
               value={newGameType}
               onChange={(e) => setNewGameType(e.target.value)}
             >
-              {GAME_TYPES.map((type) => (
-                <option key={type}>{type}</option>
+              <option value="">Select type</option>
+              {gameTypeOptions.map((option) => (
+                <option
+                  key={renderOptionValue(option)}
+                  value={renderOptionValue(option)}
+                >
+                  {renderOptionLabel(option)}
+                </option>
               ))}
             </select>
           </div>
 
-          <div className="align-end">
+          <div>
+            <label>Season</label>
+            <select
+              value={newGameSeason}
+              onChange={(e) => setNewGameSeason(e.target.value)}
+            >
+              <option value="">Select season</option>
+              {seasonOptions.map((option) => (
+                <option
+                  key={renderOptionValue(option)}
+                  value={renderOptionValue(option)}
+                >
+                  {renderOptionLabel(option)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <button onClick={addGameFromGames}>Add Game</button>
           </div>
         </div>
       </div>
 
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <table className="games-table">
-          <thead>
-            <tr>
-              <th onClick={() => setGameSort(nextSort(gameSort, 'date'))}>Date</th>
-              <th
-                onClick={() => setGameSort(nextSort(gameSort, 'game_order'))}
-                className="order-col"
-              >
-                Order
-              </th>
-              <th onClick={() => setGameSort(nextSort(gameSort, 'opponent'))}>Opponent</th>
-              <th onClick={() => setGameSort(nextSort(gameSort, 'game_type'))}>Type</th>
-              <th onClick={() => setGameSort(nextSort(gameSort, 'innings'))}>Innings</th>
-              <th onClick={() => setGameSort(nextSort(gameSort, 'lineupState'))}>Status</th>
-              <th style={{ minWidth: 170 }}>Actions</th>
-            </tr>
-          </thead>
+      <div className="card">
+        <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>Game List</h3>
+          <div className="small-note">{sortedGames.length} games</div>
+        </div>
 
-          <tbody>
-            {sortedGames.map((game) => (
-              <tr key={game.id}>
-                <td>{formatDateShort(game.date)}</td>
+        <div className="table-scroll">
+          <table className="table-center" style={{ minWidth: 1050 }}>
+            <thead>
+              <tr>
+                <th onClick={() => nextSort('date')} style={{ cursor: 'pointer' }}>
+                  Date
+                </th>
+                <th onClick={() => nextSort('game_order')} style={{ cursor: 'pointer' }}>
+                  Order
+                </th>
+                <th
+                  onClick={() => nextSort('opponent')}
+                  style={{ cursor: 'pointer', textAlign: 'left' }}
+                >
+                  Opponent
+                </th>
+                <th onClick={() => nextSort('game_type')} style={{ cursor: 'pointer' }}>
+                  Game Type
+                </th>
+                <th onClick={() => nextSort('season')} style={{ cursor: 'pointer' }}>
+                  Season
+                </th>
+                <th onClick={() => nextSort('innings')} style={{ cursor: 'pointer' }}>
+                  Innings
+                </th>
+                <th onClick={() => nextSort('status')} style={{ cursor: 'pointer' }}>
+                  Status
+                </th>
+                <th onClick={() => nextSort('lineupState')} style={{ cursor: 'pointer' }}>
+                  Lineup
+                </th>
+                <th>Open</th>
+                <th>Delete</th>
+              </tr>
+            </thead>
 
-                <td className="order-col">
-                  <input
-                    className="input-center small-input"
-                    type="number"
-                    value={game.game_order ?? ''}
-                    onChange={(e) =>
-                      updateGameField(game.id, 'game_order', e.target.value)
-                    }
-                  />
-                </td>
+            <tbody>
+              {sortedGames.map((game) => (
+                <tr key={game.id}>
+                  <td>
+                    <input
+                      type="date"
+                      value={game.date || ''}
+                      onChange={(e) => updateGameField(game.id, 'date', e.target.value)}
+                    />
+                  </td>
 
-                <td className="wide-text-cell">
-                  <input
-                    value={game.opponent}
-                    onChange={(e) =>
-                      updateGameField(game.id, 'opponent', e.target.value)
-                    }
-                  />
-                </td>
+                  <td style={{ width: 90 }}>
+                    <input
+                      type="number"
+                      value={game.game_order ?? ''}
+                      onChange={(e) => updateGameField(game.id, 'game_order', e.target.value)}
+                      style={{ width: 72 }}
+                    />
+                  </td>
 
-                <td>
-                  <select
-                    value={game.game_type || GAME_TYPES[0]}
-                    onChange={(e) =>
-                      updateGameField(game.id, 'game_type', e.target.value)
-                    }
-                  >
-                    {GAME_TYPES.map((type) => (
-                      <option key={type}>{type}</option>
-                    ))}
-                  </select>
-                </td>
+                  <td style={{ textAlign: 'left', minWidth: 220 }}>
+                    <input
+                      value={game.opponent || ''}
+                      onChange={(e) => updateGameField(game.id, 'opponent', e.target.value)}
+                      placeholder="Opponent"
+                    />
+                  </td>
 
-                <td className="center-cell">{game.innings}</td>
-                <td className="center-cell">{game.lineupState}</td>
+                  <td style={{ minWidth: 150 }}>
+                    <select
+                      value={game.game_type || ''}
+                      onChange={(e) => updateGameField(game.id, 'game_type', e.target.value)}
+                    >
+                      <option value="">Select type</option>
+                      {gameTypeOptions.map((option) => (
+                        <option
+                          key={renderOptionValue(option)}
+                          value={renderOptionValue(option)}
+                        >
+                          {renderOptionLabel(option)}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
 
-                <td>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 8,
-                      flexWrap: 'nowrap',
-                      alignItems: 'center',
-                    }}
-                  >
+                  <td style={{ minWidth: 130 }}>
+                    <select
+                      value={game.season || ''}
+                      onChange={(e) => updateGameField(game.id, 'season', e.target.value)}
+                    >
+                      <option value="">Select season</option>
+                      {seasonOptions.map((option) => (
+                        <option
+                          key={renderOptionValue(option)}
+                          value={renderOptionValue(option)}
+                        >
+                          {renderOptionLabel(option)}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+
+                  <td style={{ width: 90 }}>
+                    <input
+                      type="number"
+                      min="1"
+                      value={game.innings ?? 6}
+                      onChange={(e) => updateGameField(game.id, 'innings', e.target.value)}
+                      style={{ width: 72 }}
+                    />
+                  </td>
+
+                  <td style={{ minWidth: 130 }}>
+                    <select
+                      value={game.status || 'Planned'}
+                      onChange={(e) => updateGameField(game.id, 'status', e.target.value)}
+                    >
+                      <option value="Planned">Planned</option>
+                      <option value="Complete">Complete</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </td>
+
+                  <td>{game.lineupState || ''}</td>
+
+                  <td>
                     <button
                       onClick={() => {
-                        setSelectedGameId(pk(game.id))
+                        setSelectedGameId(String(game.id))
                         setPage('game-detail')
                       }}
                     >
                       Open
                     </button>
-                    <button onClick={() => deleteGame(game.id)}>Delete</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
 
-            {!sortedGames.length && !loading && (
+                  <td>
+                    <button onClick={() => deleteGame(game.id)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+
+              {!sortedGames.length && (
+                <tr>
+                  <td colSpan="10">No games yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Quick View</h3>
+        <div className="table-scroll">
+          <table className="table-center" style={{ minWidth: 900 }}>
+            <thead>
               <tr>
-                <td colSpan="7">No games yet.</td>
+                <th>Date</th>
+                <th>Order</th>
+                <th style={{ textAlign: 'left' }}>Opponent</th>
+                <th>Type</th>
+                <th>Season</th>
+                <th>Innings</th>
+                <th>Status</th>
+                <th>Lineup</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {sortedGames.map((game) => (
+                <tr key={`${game.id}-summary`}>
+                  <td>{formatDateShort(game.date)}</td>
+                  <td>{game.game_order ?? ''}</td>
+                  <td style={{ textAlign: 'left' }}>{game.opponent || ''}</td>
+                  <td>{game.game_type || ''}</td>
+                  <td>{game.season || ''}</td>
+                  <td>{game.innings || ''}</td>
+                  <td>{game.status || ''}</td>
+                  <td>{game.lineupState || ''}</td>
+                </tr>
+              ))}
+              {!sortedGames.length && (
+                <tr>
+                  <td colSpan="8">No games yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
