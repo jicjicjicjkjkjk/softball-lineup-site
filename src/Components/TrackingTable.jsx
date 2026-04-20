@@ -41,7 +41,7 @@ export default function TrackingTable({
   games: totals?.[id]?.games || 0,
   fieldTotal: totals?.[id]?.fieldTotal || 0,
   Out: totals?.[id]?.Out || 0,
-  sitOutRunningTotal: sitOutMap[id] ?? 0,
+  sitOutRunningTotal: totals?.[id]?.sitOutRunningTotal || 0,
   P: totals?.[id]?.P || 0,
   C: totals?.[id]?.C || 0,
   '1B': totals?.[id]?.['1B'] || 0,
