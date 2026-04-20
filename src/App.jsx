@@ -34,6 +34,7 @@ import LineupSetterPage from './Pages/LineupSetterPage'
 import TrackingPage from './Pages/TrackingPage'
 import LineupGrid from './Components/LineupGrid'
 import Sidebar from './Components/Sidebar'
+import AdminPage from './Pages/AdminPage'
 import VerticalHeader from './Components/VerticalHeader'
 import {
   TEAM_ID,
@@ -147,11 +148,13 @@ export default function App() {
   
   const [newGameDate, setNewGameDate] = useState('')
   const [newGameOpponent, setNewGameOpponent] = useState('')
-  const [newGameType, setNewGameType] = useState(GAME_TYPES[0])
+  const [newGameType, setNewGameType] = useState('')
+  const [newGameSeason, setNewGameSeason] = useState('')
 
   const [optimizerNewDate, setOptimizerNewDate] = useState('')
   const [optimizerNewOpponent, setOptimizerNewOpponent] = useState('')
-  const [optimizerNewType, setOptimizerNewType] = useState(GAME_TYPES[0])
+  const [optimizerNewType, setOptimizerNewType] = useState('')
+  const [optimizerNewSeason, setOptimizerNewSeason] = useState('')
 
   const [newPlayerName, setNewPlayerName] = useState('')
   const [newPlayerNumber, setNewPlayerNumber] = useState('')
@@ -164,6 +167,11 @@ export default function App() {
   const [trackingSort, setTrackingSort] = useState({ key: 'name', direction: 'asc' })
   const [attendanceSort, setAttendanceSort] = useState({ key: 'event_date', direction: 'asc' })
 
+  const [appOptions, setAppOptions] = useState({
+  season: [],
+  game_type: [],
+})
+  
   const [trackingPlayerId, setTrackingPlayerId] = useState('')
 
   const [attendanceDate, setAttendanceDate] = useState('')
@@ -258,7 +266,7 @@ async function persistLineup(gameId, lineup, nextLocked = null) {
 
       const gamesRes = await supabase
         .from('games')
-        .select('id, game_date, opponent, innings, status, game_type, game_order')
+        .select('id, game_date, opponent, innings, status, game_type, game_order, season')
         .eq('team_id', TEAM_ID)
         .order('game_date', { ascending: true, nullsFirst: false })
         .order('game_order', { ascending: true })
@@ -272,6 +280,7 @@ async function persistLineup(gameId, lineup, nextLocked = null) {
         innings: Number(row.innings || 6),
         status: row.status || 'Planned',
         game_type: row.game_type || GAME_TYPES[0],
+        season: row.season || '',
         game_order: Number(row.game_order || null),
       }))
 
@@ -354,6 +363,8 @@ async function persistLineup(gameId, lineup, nextLocked = null) {
       })
       setAttendanceByEvent(byEvent)
 
+      await loadAppOptions()
+      
       if (loadedGames[0]) {
         setSelectedGameId(pk(loadedGames[0].id))
         setOptimizerExistingGameId(pk(loadedGames[0].id))
@@ -678,7 +689,50 @@ useEffect(() => {
     })
   }, [activePlayers, filteredAttendanceEvents, attendanceByEvent, attendanceTotals])
 
-  async function addGame(date, opponent, gameType) {
+async function loadAppOptions() {
+  const res = await supabase
+    .from('app_options')
+    .select('id, category, value, label, sort_order, is_active')
+    .order('category', { ascending: true })
+    .order('sort_order', { ascending: true })
+
+  if (res.error) {
+    setAppError(res.error.message)
+    return
+  }
+
+  const next = { season: [], game_type: [] }
+
+  ;(res.data || []).forEach((row) => {
+    if (!next[row.category]) next[row.category] = []
+    next[row.category].push(row)
+  })
+
+  setAppOptions(next)
+}
+
+  async function addAppOption(option) {
+  const res = await supabase.from('app_options').insert(option)
+  if (res.error) setAppError(res.error.message)
+}
+
+async function updateAppOption(id, updates) {
+  const res = await supabase.from('app_options').update(updates).eq('id', id)
+  if (res.error) setAppError(res.error.message)
+  await loadAppOptions()
+}
+
+const seasonOptions = useMemo(
+  () => (appOptions.season || []).filter((x) => x.is_active),
+  [appOptions]
+)
+
+const gameTypeOptions = useMemo(
+  () => (appOptions.game_type || []).filter((x) => x.is_active),
+  [appOptions]
+)
+  
+async function addGame(date, opponent, gameType, season) {
     const nextOrder = getNextGameOrder(games)
 
     const res = await supabase
@@ -690,6 +744,7 @@ useEffect(() => {
         innings: 6,
         status: 'Planned',
         game_type: gameType || GAME_TYPES[0],
+        season: season || null,
         game_order: nextOrder,
       })
       .select()
@@ -700,13 +755,14 @@ useEffect(() => {
       return null
     }
 
-    const game = {
+      const game = {
       id: res.data.id,
       date: res.data.game_date || '',
       opponent: res.data.opponent || '',
       innings: Number(res.data.innings || 6),
       status: res.data.status || 'Planned',
       game_type: res.data.game_type || GAME_TYPES[0],
+      season: res.data.season || '',
       game_order: Number(res.data.game_order || nextOrder),
     }
 
@@ -715,22 +771,29 @@ useEffect(() => {
   }
 
   async function addGameFromGames() {
-    const game = await addGame(newGameDate, newGameOpponent, newGameType)
+    const game = await addGame(newGameDate, newGameOpponent, newGameType, newGameSeason)
     if (game) {
       setNewGameDate('')
       setNewGameOpponent('')
       setNewGameType(GAME_TYPES[0])
+      setNewGameSeason('')
       setSelectedGameId(pk(game.id))
     }
   }
 
   
   async function addGameFromOptimizer() {
-    const game = await addGame(optimizerNewDate, optimizerNewOpponent, optimizerNewType)
+    const game = await addGame(
+      optimizerNewDate,
+      optimizerNewOpponent,
+      optimizerNewType,
+      optimizerNewSeason
+    )
     if (game) {
       setOptimizerNewDate('')
       setOptimizerNewOpponent('')
       setOptimizerNewType(GAME_TYPES[0])
+      setOptimizerNewSeason('')
       setOptimizerBatchGameIds((current) => [...new Set([...current, pk(game.id)])])
       setOptimizerFocusGameId(pk(game.id))
       setOptimizerExistingGameId(pk(game.id))
@@ -756,6 +819,7 @@ useEffect(() => {
     if (field === 'innings') updates.innings = Number(value)
     if (field === 'status') updates.status = value
     if (field === 'game_type') updates.game_type = value
+    if (field === 'season') updates.season = value || null
     if (field === 'game_order') updates.game_order = value === '' ? null : Number(value)
 
     const res = await supabase.from('games').update(updates).eq('id', gameId)
@@ -1539,7 +1603,7 @@ useEffect(() => {
           />
         )}
 
-        {page === 'games' && (
+                {page === 'games' && (
           <GamesPage
             loadAll={loadAll}
             appError={appError}
@@ -1550,6 +1614,8 @@ useEffect(() => {
             setNewGameOpponent={setNewGameOpponent}
             newGameType={newGameType}
             setNewGameType={setNewGameType}
+            newGameSeason={newGameSeason}
+            setNewGameSeason={setNewGameSeason}
             addGameFromGames={addGameFromGames}
             sortedGames={sortedGames}
             gameSort={gameSort}
@@ -1558,6 +1624,8 @@ useEffect(() => {
             deleteGame={deleteGame}
             setSelectedGameId={setSelectedGameId}
             setPage={setPage}
+            seasonOptions={seasonOptions}
+            gameTypeOptions={gameTypeOptions}
           />
         )}
 
@@ -1603,7 +1671,11 @@ useEffect(() => {
     setOptimizerNewOpponent={setOptimizerNewOpponent}
     optimizerNewType={optimizerNewType}
     setOptimizerNewType={setOptimizerNewType}
-    GAME_TYPES={GAME_TYPES}
+    GAME_TYPES={gameTypeOptions.map((x) => x.label)}
+    gameTypeOptions={gameTypeOptions}
+    seasonOptions={seasonOptions}
+    optimizerNewSeason={optimizerNewSeason}
+    setOptimizerNewSeason={setOptimizerNewSeason}
     addGameFromOptimizer={addGameFromOptimizer}
     runOptimizeCurrent={runOptimizeCurrent}
     optimizerFocusGameId={optimizerFocusGameId}
@@ -1664,6 +1736,16 @@ useEffect(() => {
         )}
 
         {page === 'attendance' && renderAttendancePage()}
+        
+        {page === 'admin' && (
+          <AdminPage
+            appOptions={appOptions}
+            loadAppOptions={loadAppOptions}
+            addAppOption={addAppOption}
+            updateAppOption={updateAppOption}
+          />
+        )}
+      
       </main>
     </div>
   )
