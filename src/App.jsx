@@ -1635,24 +1635,24 @@ const trackingSitByPlayer = useMemo(
         
         {page === 'tracking' && (
   <TrackingPage
-    trackingLockedLineups={trackingLockedLineups}
-    trackingTotals={trackingTotals}
-    trackingSitByPlayer={trackingSitByPlayer}
-    activePlayers={activePlayers}
-    trackingSort={trackingSort}
-    setTrackingSort={setTrackingSort}
-    TrackingTable={TrackingTable}
-    battingRows={battingRows}
-    sitSummary={sitSummary}
-    sitByPlayer={sitByPlayer}
-    gamesWithLineups={gamesWithLineups}
-    VerticalHeader={VerticalHeader}
-    trackingPlayerId={trackingPlayerId}
-    setTrackingPlayerId={setTrackingPlayerId}
-    selectedPlayerPositions={selectedPlayerPositions}
-    trackingPriorityRows={trackingPriorityRows}
-    pk={pk}
-  />
+  trackingLockedLineups={trackingLockedLineups}
+  trackingTotals={trackingTotals}
+  trackingSitByPlayer={trackingSitByPlayer}
+  activePlayers={activePlayers}
+  trackingSort={trackingSort}
+  setTrackingSort={setTrackingSort}
+  TrackingTable={TrackingTable}
+  battingRows={battingRows}
+  sitSummary={sitSummary}
+  sitByPlayer={sitByPlayer}
+  gamesWithLineups={gamesWithLineups}
+  VerticalHeader={VerticalHeader}
+  trackingPlayerId={trackingPlayerId}
+  setTrackingPlayerId={setTrackingPlayerId}
+  selectedPlayerPositions={selectedPlayerPositions}
+  trackingPriorityRows={trackingPriorityRows}
+  pk={pk}
+/>
 )}
 
         {page === 'attendance' && renderAttendancePage()}
