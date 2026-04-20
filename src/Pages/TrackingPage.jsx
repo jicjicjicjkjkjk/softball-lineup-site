@@ -138,7 +138,8 @@ const metricCellStyle = {
 export default function TrackingPage({
   trackingLockedLineups,
   trackingTotals,
-  trackingSitByPlayer,
+  trackingSitByPlayer = [],
+  trackingSitSummary = [],
   activePlayers,
   trackingSort,
   setTrackingSort,
@@ -153,14 +154,22 @@ export default function TrackingPage({
   trackingPriorityRows,
   pk,
 }) {
-  
   const [battingSort, setBattingSort] = useState({ key: 'name', direction: 'asc' })
   const [sitOutSort, setSitOutSort] = useState({ key: 'name', direction: 'asc' })
   const [deltaSort, setDeltaSort] = useState({ key: 'name', direction: 'asc' })
   const [runningSort, setRunningSort] = useState({ key: 'name', direction: 'asc' })
 
+  const trackingGameIds = useMemo(
+    () => new Set((trackingSitSummary || []).map((g) => pk(g.gameId))),
+    [trackingSitSummary, pk]
+  )
+
+  const trackingGames = useMemo(() => {
+    return (gamesWithLineups || []).filter((g) => trackingGameIds.has(pk(g.id)))
+  }, [gamesWithLineups, trackingGameIds, pk])
+
   const sortedBattingRows = useMemo(() => {
-    const rows = [...battingRows]
+    const rows = [...(battingRows || [])]
     return rows.sort((a, b) => {
       if (battingSort.key === 'name') return compareValues(a.name, b.name, battingSort.direction)
       if (battingSort.key === 'avg') return compareValues(a.avg, b.avg, battingSort.direction)
@@ -171,23 +180,22 @@ export default function TrackingPage({
   }, [battingRows, battingSort])
 
   const sortedSitByPlayerRows = useMemo(() => {
-    const rows = [...sitByPlayer]
+    const rows = [...(trackingSitByPlayer || [])]
     return rows.sort((a, b) => {
       if (sitOutSort.key === 'name') return compareValues(a.name, b.name, sitOutSort.direction)
 
       const gameIndex = Number(String(sitOutSort.key).replace('game-', ''))
       return compareValues(a.perGame?.[gameIndex], b.perGame?.[gameIndex], sitOutSort.direction)
     })
-  }, [sitByPlayer, sitOutSort])
+  }, [trackingSitByPlayer, sitOutSort])
 
-  
-    const computedSitRows = useMemo(() => {
-    const avgByGame = sitSummary.map((g) => {
+  const computedSitRows = useMemo(() => {
+    const avgByGame = (trackingSitSummary || []).map((g) => {
       const value = Number(g?.avgSit)
       return Number.isNaN(value) ? null : value
     })
 
-    return (sitByPlayer || []).map((row) => {
+    return (trackingSitByPlayer || []).map((row) => {
       let runningTotal = 0
 
       const deltaPerGame = (row.perGame || []).map((value, index) => {
@@ -198,9 +206,6 @@ export default function TrackingPage({
 
         if (Number.isNaN(playerOuts) || avgSit === null || Number.isNaN(avgSit)) return 'x'
 
-        // Your spreadsheet logic:
-        // 1 out with 1.25 avg = +0.25
-        // 2 outs with 1.25 avg = -0.75
         return Number((avgSit - playerOuts).toFixed(2))
       })
 
@@ -216,9 +221,9 @@ export default function TrackingPage({
         running,
       }
     })
-  }, [sitByPlayer, sitSummary])
+  }, [trackingSitByPlayer, trackingSitSummary])
 
-      const sortedDeltaRows = useMemo(() => {
+  const sortedDeltaRows = useMemo(() => {
     const rows = [...computedSitRows]
     return rows.sort((a, b) => {
       if (deltaSort.key === 'name') return compareValues(a.name, b.name, deltaSort.direction)
@@ -227,8 +232,8 @@ export default function TrackingPage({
       return compareValues(a.deltaPerGame?.[gameIndex], b.deltaPerGame?.[gameIndex], deltaSort.direction)
     })
   }, [computedSitRows, deltaSort])
-  
-      const sortedRunningRows = useMemo(() => {
+
+  const sortedRunningRows = useMemo(() => {
     const rows = [...computedSitRows]
     return rows.sort((a, b) => {
       if (runningSort.key === 'name') return compareValues(a.name, b.name, runningSort.direction)
@@ -260,7 +265,7 @@ export default function TrackingPage({
                 >
                   Avg
                 </th>
-                {gamesWithLineups.map((g, i) => (
+                {(gamesWithLineups || []).map((g, i) => (
                   <RotatedGameHeader
                     key={g.id}
                     game={g}
@@ -278,7 +283,7 @@ export default function TrackingPage({
                   <td className="sticky-col-2 col-avg" style={avgCellStyle}>
                     {row.avg}
                   </td>
-                  {row.perGame.map((v, i) => (
+                  {(row.perGame || []).map((v, i) => (
                     <td key={i} className="col-small" style={centerCell}>
                       {v}
                     </td>
@@ -299,7 +304,7 @@ export default function TrackingPage({
                 <th className="sticky-col-1 col-metric" style={metricHeaderStyle}>
                   Metric
                 </th>
-                {gamesWithLineups.map((g) => (
+                {trackingGames.map((g) => (
                   <RotatedGameHeader key={g.id} game={g} />
                 ))}
               </tr>
@@ -309,7 +314,7 @@ export default function TrackingPage({
                 <td className="sticky-col-1 col-metric" style={metricCellStyle}>
                   Total Players
                 </td>
-                {sitSummary.map((g) => (
+                {(trackingSitSummary || []).map((g) => (
                   <td key={g.gameId} className="col-small" style={centerCell}>
                     {g.totalPlayers}
                   </td>
@@ -319,7 +324,7 @@ export default function TrackingPage({
                 <td className="sticky-col-1 col-metric" style={metricCellStyle}>
                   Innings
                 </td>
-                {sitSummary.map((g) => (
+                {(trackingSitSummary || []).map((g) => (
                   <td key={g.gameId} className="col-small" style={centerCell}>
                     {g.innings}
                   </td>
@@ -329,7 +334,7 @@ export default function TrackingPage({
                 <td className="sticky-col-1 col-metric" style={metricCellStyle}>
                   # Sit Outs
                 </td>
-                {sitSummary.map((g) => (
+                {(trackingSitSummary || []).map((g) => (
                   <td key={g.gameId} className="col-small" style={centerCell}>
                     {g.sitOuts}
                   </td>
@@ -339,7 +344,7 @@ export default function TrackingPage({
                 <td className="sticky-col-1 col-metric" style={metricCellStyle}>
                   Injury
                 </td>
-                {sitSummary.map((g) => (
+                {(trackingSitSummary || []).map((g) => (
                   <td key={g.gameId} className="col-small" style={centerCell}>
                     {g.injury}
                   </td>
@@ -349,7 +354,7 @@ export default function TrackingPage({
                 <td className="sticky-col-1 col-metric" style={metricCellStyle}>
                   Average Out
                 </td>
-                {sitSummary.map((g) => (
+                {(trackingSitSummary || []).map((g) => (
                   <td key={g.gameId} className="col-small" style={centerCell}>
                     {g.avgSit}
                   </td>
@@ -373,7 +378,7 @@ export default function TrackingPage({
                 >
                   Player
                 </th>
-                {gamesWithLineups.map((g, i) => (
+                {trackingGames.map((g, i) => (
                   <RotatedGameHeader
                     key={g.id}
                     game={g}
@@ -388,7 +393,7 @@ export default function TrackingPage({
                   <td className="sticky-col-1 col-player" style={playerCellStyle}>
                     {row.name}
                   </td>
-                  {row.perGame.map((v, i) => (
+                  {(row.perGame || []).map((v, i) => (
                     <td key={i} className="col-small" style={centerCell}>
                       {v === '' || v === null || v === undefined ? 'x' : v}
                     </td>
@@ -411,7 +416,7 @@ export default function TrackingPage({
                 >
                   Player
                 </th>
-                {gamesWithLineups.map((g, i) => (
+                {trackingGames.map((g, i) => (
                   <RotatedGameHeader
                     key={g.id}
                     game={g}
@@ -449,7 +454,7 @@ export default function TrackingPage({
                 >
                   Player
                 </th>
-                {gamesWithLineups.map((g, i) => (
+                {trackingGames.map((g, i) => (
                   <RotatedGameHeader
                     key={g.id}
                     game={g}
@@ -482,7 +487,7 @@ export default function TrackingPage({
           <div className="positioning-player-select">
             <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
               <option value="">Select Player</option>
-              {activePlayers.map((p) => (
+              {(activePlayers || []).map((p) => (
                 <option key={p.id} value={pk(p.id)}>
                   {p.name}
                 </option>
@@ -496,41 +501,104 @@ export default function TrackingPage({
             <table className="tracking-table positioning-table">
               <thead>
                 <tr>
-                  <th className="sticky-col-1 col-game" style={centerHeader}>Game #</th>
-                  <th className="sticky-col-2 col-opponent" style={{ textAlign: 'left', verticalAlign: 'middle' }}>Opponent</th>
-                  <th className="sticky-col-3 col-date" style={centerHeader}>Date</th>
-                  <th className="col-act" style={centerHeader}>Act</th>
-                  <th className="col-small" style={centerHeader}>P</th>
-                  <th className="col-small" style={centerHeader}>C</th>
-                  <th className="col-small" style={centerHeader}>1B</th>
-                  <th className="col-small" style={centerHeader}>2B</th>
-                  <th className="col-small" style={centerHeader}>3B</th>
-                  <th className="col-small" style={centerHeader}>SS</th>
-                  <th className="col-small" style={centerHeader}>LF</th>
-                  <th className="col-small" style={centerHeader}>CF</th>
-                  <th className="col-small" style={centerHeader}>RF</th>
-                  <th className="col-small" style={centerHeader}>Out</th>
-                  <th className="col-small" style={centerHeader}>Injury</th>
+                  <th className="sticky-col-1 col-game" style={centerHeader}>
+                    Game #
+                  </th>
+                  <th
+                    className="sticky-col-2 col-opponent"
+                    style={{ textAlign: 'left', verticalAlign: 'middle' }}
+                  >
+                    Opponent
+                  </th>
+                  <th className="sticky-col-3 col-date" style={centerHeader}>
+                    Date
+                  </th>
+                  <th className="col-act" style={centerHeader}>
+                    Act
+                  </th>
+                  <th className="col-small" style={centerHeader}>
+                    P
+                  </th>
+                  <th className="col-small" style={centerHeader}>
+                    C
+                  </th>
+                  <th className="col-small" style={centerHeader}>
+                    1B
+                  </th>
+                  <th className="col-small" style={centerHeader}>
+                    2B
+                  </th>
+                  <th className="col-small" style={centerHeader}>
+                    3B
+                  </th>
+                  <th className="col-small" style={centerHeader}>
+                    SS
+                  </th>
+                  <th className="col-small" style={centerHeader}>
+                    LF
+                  </th>
+                  <th className="col-small" style={centerHeader}>
+                    CF
+                  </th>
+                  <th className="col-small" style={centerHeader}>
+                    RF
+                  </th>
+                  <th className="col-small" style={centerHeader}>
+                    Out
+                  </th>
+                  <th className="col-small" style={centerHeader}>
+                    Injury
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {selectedPlayerPositions.map((row, idx) => (
+                {(selectedPlayerPositions || []).map((row, idx) => (
                   <tr key={row.gameId}>
-                    <td className="sticky-col-1 col-game" style={centerCell}>{idx + 1}</td>
-                    <td className="sticky-col-2 col-opponent" style={{ textAlign: 'left' }}>{row.opponent}</td>
-                    <td className="sticky-col-3 col-date" style={centerCell}>{formatDateShort(row.date)}</td>
-                    <td className="col-act" style={centerCell}>{row.active}</td>
-                    <td className="col-small" style={centerCell}>{row.P || ''}</td>
-                    <td className="col-small" style={centerCell}>{row.C || ''}</td>
-                    <td className="col-small" style={centerCell}>{row['1B'] || ''}</td>
-                    <td className="col-small" style={centerCell}>{row['2B'] || ''}</td>
-                    <td className="col-small" style={centerCell}>{row['3B'] || ''}</td>
-                    <td className="col-small" style={centerCell}>{row.SS || ''}</td>
-                    <td className="col-small" style={centerCell}>{row.LF || ''}</td>
-                    <td className="col-small" style={centerCell}>{row.CF || ''}</td>
-                    <td className="col-small" style={centerCell}>{row.RF || ''}</td>
-                    <td className="col-small" style={centerCell}>{row.Out || ''}</td>
-                    <td className="col-small" style={centerCell}>{row.Injury || ''}</td>
+                    <td className="sticky-col-1 col-game" style={centerCell}>
+                      {idx + 1}
+                    </td>
+                    <td className="sticky-col-2 col-opponent" style={{ textAlign: 'left' }}>
+                      {row.opponent}
+                    </td>
+                    <td className="sticky-col-3 col-date" style={centerCell}>
+                      {formatDateShort(row.date)}
+                    </td>
+                    <td className="col-act" style={centerCell}>
+                      {row.active}
+                    </td>
+                    <td className="col-small" style={centerCell}>
+                      {row.P || ''}
+                    </td>
+                    <td className="col-small" style={centerCell}>
+                      {row.C || ''}
+                    </td>
+                    <td className="col-small" style={centerCell}>
+                      {row['1B'] || ''}
+                    </td>
+                    <td className="col-small" style={centerCell}>
+                      {row['2B'] || ''}
+                    </td>
+                    <td className="col-small" style={centerCell}>
+                      {row['3B'] || ''}
+                    </td>
+                    <td className="col-small" style={centerCell}>
+                      {row.SS || ''}
+                    </td>
+                    <td className="col-small" style={centerCell}>
+                      {row.LF || ''}
+                    </td>
+                    <td className="col-small" style={centerCell}>
+                      {row.CF || ''}
+                    </td>
+                    <td className="col-small" style={centerCell}>
+                      {row.RF || ''}
+                    </td>
+                    <td className="col-small" style={centerCell}>
+                      {row.Out || ''}
+                    </td>
+                    <td className="col-small" style={centerCell}>
+                      {row.Injury || ''}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -542,85 +610,163 @@ export default function TrackingPage({
       </div>
 
       <TrackingTable
-  title="Tracking Totals"
-  universeLabel={`${trackingLockedLineups.length} locked games`}
-  totals={trackingTotals}
-  sitOutRows={trackingSitByPlayer}
-  players={activePlayers}
-  sortConfig={trackingSort}
-  setSortConfig={setTrackingSort}
-/>
-      
+        title="Tracking Totals"
+        universeLabel={`${trackingLockedLineups.length} locked games`}
+        totals={trackingTotals}
+        sitOutRows={computedSitRows}
+        players={activePlayers}
+        sortConfig={trackingSort}
+        setSortConfig={setTrackingSort}
+      />
+
       <div className="card tracking-card">
         <h3>Tracking vs Positioning Priority</h3>
         <div className="tracking-scroll">
           <table className="tracking-table priority-groups">
             <thead>
               <tr>
-                <th rowSpan="2" className="sticky-col-1 col-player" style={{ textAlign: 'left', verticalAlign: 'middle' }}>
+                <th
+                  rowSpan="2"
+                  className="sticky-col-1 col-player"
+                  style={{ textAlign: 'left', verticalAlign: 'middle' }}
+                >
                   Player
                 </th>
                 <th rowSpan="2" className="sticky-col-2 col-small" style={centerHeader}>
                   Fld
                 </th>
 
-                <th colSpan="2" className="group-box" style={centerHeader}>P</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>C</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>1B</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>2B</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>3B</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>SS</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>OF</th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  P
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  C
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  1B
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  2B
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  3B
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  SS
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  OF
+                </th>
               </tr>
               <tr>
-                <th className="col-small group-start" style={centerHeader}>TGT</th>
-                <th className="col-small group-end" style={centerHeader}>ACT</th>
+                <th className="col-small group-start" style={centerHeader}>
+                  TGT
+                </th>
+                <th className="col-small group-end" style={centerHeader}>
+                  ACT
+                </th>
 
-                <th className="col-small group-start" style={centerHeader}>TGT</th>
-                <th className="col-small group-end" style={centerHeader}>ACT</th>
+                <th className="col-small group-start" style={centerHeader}>
+                  TGT
+                </th>
+                <th className="col-small group-end" style={centerHeader}>
+                  ACT
+                </th>
 
-                <th className="col-small group-start" style={centerHeader}>TGT</th>
-                <th className="col-small group-end" style={centerHeader}>ACT</th>
+                <th className="col-small group-start" style={centerHeader}>
+                  TGT
+                </th>
+                <th className="col-small group-end" style={centerHeader}>
+                  ACT
+                </th>
 
-                <th className="col-small group-start" style={centerHeader}>TGT</th>
-                <th className="col-small group-end" style={centerHeader}>ACT</th>
+                <th className="col-small group-start" style={centerHeader}>
+                  TGT
+                </th>
+                <th className="col-small group-end" style={centerHeader}>
+                  ACT
+                </th>
 
-                <th className="col-small group-start" style={centerHeader}>TGT</th>
-                <th className="col-small group-end" style={centerHeader}>ACT</th>
+                <th className="col-small group-start" style={centerHeader}>
+                  TGT
+                </th>
+                <th className="col-small group-end" style={centerHeader}>
+                  ACT
+                </th>
 
-                <th className="col-small group-start" style={centerHeader}>TGT</th>
-                <th className="col-small group-end" style={centerHeader}>ACT</th>
+                <th className="col-small group-start" style={centerHeader}>
+                  TGT
+                </th>
+                <th className="col-small group-end" style={centerHeader}>
+                  ACT
+                </th>
 
-                <th className="col-small group-start" style={centerHeader}>TGT</th>
-                <th className="col-small group-end" style={centerHeader}>ACT</th>
+                <th className="col-small group-start" style={centerHeader}>
+                  TGT
+                </th>
+                <th className="col-small group-end" style={centerHeader}>
+                  ACT
+                </th>
               </tr>
             </thead>
             <tbody>
-              {trackingPriorityRows.map((row) => (
+              {(trackingPriorityRows || []).map((row) => (
                 <tr key={row.playerId}>
-                  <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>{row.name}</td>
-                  <td className="sticky-col-2 col-small" style={centerCell}>{row.fieldTotal}</td>
+                  <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>
+                    {row.name}
+                  </td>
+                  <td className="sticky-col-2 col-small" style={centerCell}>
+                    {row.fieldTotal}
+                  </td>
 
-                  <td className="col-small group-start" style={centerCell}>{row.targP}</td>
-                  <td className="col-small group-end" style={centerCell}>{row.actP}</td>
+                  <td className="col-small group-start" style={centerCell}>
+                    {row.targP}
+                  </td>
+                  <td className="col-small group-end" style={centerCell}>
+                    {row.actP}
+                  </td>
 
-                  <td className="col-small group-start" style={centerCell}>{row.targC}</td>
-                  <td className="col-small group-end" style={centerCell}>{row.actC}</td>
+                  <td className="col-small group-start" style={centerCell}>
+                    {row.targC}
+                  </td>
+                  <td className="col-small group-end" style={centerCell}>
+                    {row.actC}
+                  </td>
 
-                  <td className="col-small group-start" style={centerCell}>{row.targ1B}</td>
-                  <td className="col-small group-end" style={centerCell}>{row.act1B}</td>
+                  <td className="col-small group-start" style={centerCell}>
+                    {row.targ1B}
+                  </td>
+                  <td className="col-small group-end" style={centerCell}>
+                    {row.act1B}
+                  </td>
 
-                  <td className="col-small group-start" style={centerCell}>{row.targ2B}</td>
-                  <td className="col-small group-end" style={centerCell}>{row.act2B}</td>
+                  <td className="col-small group-start" style={centerCell}>
+                    {row.targ2B}
+                  </td>
+                  <td className="col-small group-end" style={centerCell}>
+                    {row.act2B}
+                  </td>
 
-                  <td className="col-small group-start" style={centerCell}>{row.targ3B}</td>
-                  <td className="col-small group-end" style={centerCell}>{row.act3B}</td>
+                  <td className="col-small group-start" style={centerCell}>
+                    {row.targ3B}
+                  </td>
+                  <td className="col-small group-end" style={centerCell}>
+                    {row.act3B}
+                  </td>
 
-                  <td className="col-small group-start" style={centerCell}>{row.targSS}</td>
-                  <td className="col-small group-end" style={centerCell}>{row.actSS}</td>
+                  <td className="col-small group-start" style={centerCell}>
+                    {row.targSS}
+                  </td>
+                  <td className="col-small group-end" style={centerCell}>
+                    {row.actSS}
+                  </td>
 
-                  <td className="col-small group-start" style={centerCell}>{row.targOF}</td>
-                  <td className="col-small group-end" style={centerCell}>{row.actOF}</td>
+                  <td className="col-small group-start" style={centerCell}>
+                    {row.targOF}
+                  </td>
+                  <td className="col-small group-end" style={centerCell}>
+                    {row.actOF}
+                  </td>
                 </tr>
               ))}
             </tbody>
