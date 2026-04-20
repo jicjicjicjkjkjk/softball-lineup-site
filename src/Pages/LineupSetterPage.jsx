@@ -1,5 +1,17 @@
 import { formatDateShort } from '../lib/appHelpers'
 
+function renderOptionLabel(option) {
+  if (!option) return ''
+  if (typeof option === 'string') return option
+  return option.label || option.value || ''
+}
+
+function renderOptionValue(option) {
+  if (!option) return ''
+  if (typeof option === 'string') return option
+  return option.value || option.label || ''
+}
+
 export default function LineupSetterPage({
   optimizerFocusLineup,
   optimizerFocusGame,
@@ -7,16 +19,19 @@ export default function LineupSetterPage({
   toggleLineupLocked,
   lineupLockedByGame,
   optimizerExistingGameId,
+  setOptimizerExistingGameId,
   games,
   addExistingGameToBatch,
   optimizerNewDate,
-  setOptimizerExistingGameId,
   setOptimizerNewDate,
   optimizerNewOpponent,
   setOptimizerNewOpponent,
   optimizerNewType,
   setOptimizerNewType,
-  GAME_TYPES,
+  optimizerNewSeason,
+  setOptimizerNewSeason,
+  gameTypeOptions = [],
+  seasonOptions = [],
   addGameFromOptimizer,
   runOptimizeCurrent,
   optimizerFocusGameId,
@@ -49,6 +64,7 @@ export default function LineupSetterPage({
   blankLineup,
   pk,
   inningStatus,
+  trackingPriorityRows = [],
 }) {
   const focusStatuses = optimizerFocusLineup
     ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
@@ -84,12 +100,14 @@ export default function LineupSetterPage({
                   <option value="">Select game</option>
                   {games.map((game) => (
                     <option key={game.id} value={pk(game.id)}>
-                      {(formatDateShort(game.date) || 'No Date')} vs{' '}
-                      {game.opponent || 'Opponent'}
+                      {(formatDateShort(game.date) || 'No Date')} vs {game.opponent || 'Opponent'}
+                      {game.game_type ? ` • ${game.game_type}` : ''}
+                      {game.season ? ` • ${game.season}` : ''}
                     </option>
                   ))}
                 </select>
               </div>
+
               <div className="align-end">
                 <button onClick={addExistingGameToBatch}>Add Existing Game</button>
               </div>
@@ -97,45 +115,76 @@ export default function LineupSetterPage({
           </div>
 
           <div>
-  <h3 style={{ marginTop: 0 }}>Create New Game and Add to Plan</h3>
+            <h3 style={{ marginTop: 0 }}>Create New Game and Add to Plan</h3>
 
-  <div className="lineup-setter-new-game">
-    <div className="lineup-setter-new-game-fields">
-      <div>
-        <label>Game Date</label>
-        <input
-          type="date"
-          value={optimizerNewDate}
-          onChange={(e) => setOptimizerNewDate(e.target.value)}
-        />
-      </div>
+            <div className="lineup-setter-new-game">
+              <div
+                className="lineup-setter-new-game-fields"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <label>Game Date</label>
+                  <input
+                    type="date"
+                    value={optimizerNewDate}
+                    onChange={(e) => setOptimizerNewDate(e.target.value)}
+                  />
+                </div>
 
-      <div>
-        <label>Opponent</label>
-        <input
-          value={optimizerNewOpponent}
-          onChange={(e) => setOptimizerNewOpponent(e.target.value)}
-        />
-      </div>
+                <div>
+                  <label>Opponent</label>
+                  <input
+                    value={optimizerNewOpponent}
+                    onChange={(e) => setOptimizerNewOpponent(e.target.value)}
+                  />
+                </div>
 
-      <div>
-        <label>Game Type</label>
-        <select
-          value={optimizerNewType}
-          onChange={(e) => setOptimizerNewType(e.target.value)}
-        >
-          {GAME_TYPES.map((type) => (
-            <option key={type}>{type}</option>
-          ))}
-        </select>
-      </div>
-    </div>
+                <div>
+                  <label>Game Type</label>
+                  <select
+                    value={optimizerNewType}
+                    onChange={(e) => setOptimizerNewType(e.target.value)}
+                  >
+                    <option value="">Select type</option>
+                    {gameTypeOptions.map((option) => (
+                      <option
+                        key={renderOptionValue(option)}
+                        value={renderOptionValue(option)}
+                      >
+                        {renderOptionLabel(option)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-    <div className="lineup-setter-new-game-action">
-      <button onClick={addGameFromOptimizer}>Add New Game</button>
-    </div>
-  </div>
-</div>
+                <div>
+                  <label>Season</label>
+                  <select
+                    value={optimizerNewSeason}
+                    onChange={(e) => setOptimizerNewSeason(e.target.value)}
+                  >
+                    <option value="">Select season</option>
+                    {seasonOptions.map((option) => (
+                      <option
+                        key={renderOptionValue(option)}
+                        value={renderOptionValue(option)}
+                      >
+                        {renderOptionLabel(option)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="lineup-setter-new-game-action" style={{ marginTop: 12 }}>
+                <button onClick={addGameFromOptimizer}>Add New Game</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -161,6 +210,7 @@ export default function LineupSetterPage({
                 <th>Order</th>
                 <th>Opponent</th>
                 <th>Type</th>
+                <th>Season</th>
                 <th>Innings</th>
                 <th>Req. Outs</th>
                 <th>Lock</th>
@@ -194,14 +244,15 @@ export default function LineupSetterPage({
                     <td>{formatDateShort(game.date)}</td>
                     <td>{game.game_order ?? ''}</td>
                     <td>{game.opponent || 'Opponent'}</td>
-                    <td>{game.game_type || GAME_TYPES[0]}</td>
+                    <td>{game.game_type || ''}</td>
+                    <td>{game.season || ''}</td>
                     <td>{effectiveInnings}</td>
                     <td>{effectiveRequiredOuts}</td>
                     <td>
-  <button onClick={() => toggleLineupLocked(game.id, !lineupLockedByGame?.[pk(game.id)])}>
-    {lineupLockedByGame?.[pk(game.id)] ? 'Unlock Lineup' : 'Lock Lineup'}
-  </button>
-</td>
+                      <button onClick={() => toggleLineupLocked(game.id, !lineupLockedByGame?.[pk(game.id)])}>
+                        {lineupLockedByGame?.[pk(game.id)] ? 'Unlock Lineup' : 'Lock Lineup'}
+                      </button>
+                    </td>
                     <td>
                       <button onClick={() => removeBatchGame(game.id)}>Remove</button>
                     </td>
@@ -211,7 +262,7 @@ export default function LineupSetterPage({
 
               {!optimizerBatchGames.length && (
                 <tr>
-                  <td colSpan="9">No games in current plan.</td>
+                  <td colSpan="10">No games in current plan.</td>
                 </tr>
               )}
             </tbody>
@@ -226,20 +277,23 @@ export default function LineupSetterPage({
               <h3 style={{ margin: 0 }}>
                 Selected Game: {formatDateShort(optimizerFocusGame.date) || 'No Date'} vs{' '}
                 {optimizerFocusGame.opponent || 'Opponent'}
+                {optimizerFocusGame.game_type ? ` • ${optimizerFocusGame.game_type}` : ''}
+                {optimizerFocusGame.season ? ` • ${optimizerFocusGame.season}` : ''}
               </h3>
 
               {optimizerFocusLineup && (
-  <div className="actions-inline">
-    <button onClick={() => toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)}>
-      {optimizerFocusLocked ? 'Unlock Lineup' : 'Lock Lineup'}
-    </button>
+                <div className="actions-inline">
+                  <button onClick={() => toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)}>
+                    {optimizerFocusLocked ? 'Unlock Lineup' : 'Lock Lineup'}
+                  </button>
 
-    <button
-      onClick={() => addPreviewInning(optimizerFocusGame.id)}
-      disabled={optimizerFocusLocked}
-    >
-      Add Inning
-    </button>
+                  <button
+                    onClick={() => addPreviewInning(optimizerFocusGame.id)}
+                    disabled={optimizerFocusLocked}
+                  >
+                    Add Inning
+                  </button>
+
                   {Array.from(
                     { length: Number(optimizerFocusLineup.innings || 0) },
                     (_, i) => i + 1
@@ -247,6 +301,7 @@ export default function LineupSetterPage({
                     <button
                       key={inning}
                       onClick={() => removePreviewInning(optimizerFocusGame.id, inning)}
+                      disabled={optimizerFocusLocked}
                     >
                       Remove {inning}
                     </button>
@@ -270,11 +325,11 @@ export default function LineupSetterPage({
                 return (
                   <label key={player.id} className="checkbox-item">
                     <input
-  type="checkbox"
-  checked={(lineup.availablePlayerIds || []).includes(pk(player.id))}
-  disabled={optimizerFocusLocked}
-  onChange={() => togglePreviewAvailable(optimizerFocusGame.id, player.id)}
-/>
+                      type="checkbox"
+                      checked={(lineup.availablePlayerIds || []).includes(pk(player.id))}
+                      disabled={optimizerFocusLocked}
+                      onChange={() => togglePreviewAvailable(optimizerFocusGame.id, player.id)}
+                    />
                     {player.name}
                   </label>
                 )
@@ -290,16 +345,10 @@ export default function LineupSetterPage({
                   {focusStatuses.map((status) => (
                     <div key={status.inning} className="summary-box">
                       <strong>Inning {status.inning}:</strong>{' '}
-                      {status.duplicate.length
-                        ? `Duplicate ${status.duplicate.join(', ')}. `
-                        : ''}
+                      {status.duplicate.length ? `Duplicate ${status.duplicate.join(', ')}. ` : ''}
                       {status.missing.length ? `Missing ${status.missing.join(', ')}. ` : ''}
-                      {status.badFits.length
-                        ? `Disallowed ${status.badFits.join('; ')}. `
-                        : ''}
-                      {!status.duplicate.length &&
-                      !status.missing.length &&
-                      !status.badFits.length
+                      {status.badFits.length ? `Disallowed ${status.badFits.join('; ')}. ` : ''}
+                      {!status.duplicate.length && !status.missing.length && !status.badFits.length
                         ? 'Looks good.'
                         : ''}
                     </div>
@@ -359,6 +408,95 @@ export default function LineupSetterPage({
             sortConfig={trackingSort}
             setSortConfig={setTrackingSort}
           />
+
+          <div className="card tracking-card">
+            <h3>Tracking vs Positioning Priority</h3>
+            <div className="tracking-scroll">
+              <table className="tracking-table priority-groups">
+                <thead>
+                  <tr>
+                    <th
+                      rowSpan="2"
+                      className="sticky-col-1 col-player"
+                      style={{ textAlign: 'left', verticalAlign: 'middle' }}
+                    >
+                      Player
+                    </th>
+                    <th
+                      rowSpan="2"
+                      className="sticky-col-2 col-small"
+                      style={{ textAlign: 'center', verticalAlign: 'middle' }}
+                    >
+                      Fld
+                    </th>
+
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>P</th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>C</th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>1B</th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>2B</th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>3B</th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>SS</th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>OF</th>
+                  </tr>
+                  <tr>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trackingPriorityRows.map((row) => (
+                    <tr key={row.playerId}>
+                      <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>
+                        {row.name}
+                      </td>
+                      <td className="sticky-col-2 col-small" style={{ textAlign: 'center' }}>
+                        {row.fieldTotal}
+                      </td>
+
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targP}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actP}</td>
+
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targC}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actC}</td>
+
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ1B}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act1B}</td>
+
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ2B}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act2B}</td>
+
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ3B}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act3B}</td>
+
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targSS}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actSS}</td>
+
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targOF}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actOF}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </>
       )}
     </div>
