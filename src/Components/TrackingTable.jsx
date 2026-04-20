@@ -43,9 +43,6 @@ export default function TrackingTable({
   universeLabel,
   center = true,
 }) {
-  const sitOutMap = Object.fromEntries(
-    (sitOutRows || []).map((row) => [pk(row.playerId), getLastRunningValue(row)])
-  )
 
   const rows = sortRows(
     (players || []).map((player) => {
