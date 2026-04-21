@@ -4,24 +4,24 @@ import { nextSort, sortRows } from '../lib/appHelpers'
 export default function TrackingTable({
   title,
   totals,
+  sitOutRows = [],
   players,
   sortConfig,
   setSortConfig,
   universeLabel,
-  sitOutRows = [],
   center = true,
 }) {
-  const runningTotalsByPlayer = Object.fromEntries(
+  const sitOutRunningByPlayer = Object.fromEntries(
     (sitOutRows || []).map((row) => {
       const runningValues = (row.running || []).filter(
         (v) => v !== 'x' && v !== '' && v !== null && v !== undefined
       )
 
-      const latestRunningTotal = runningValues.length
+      const lastRunningValue = runningValues.length
         ? runningValues[runningValues.length - 1]
         : 0
 
-      return [row.playerId, latestRunningTotal]
+      return [pk(row.playerId), lastRunningValue]
     })
   )
 
@@ -36,7 +36,7 @@ export default function TrackingTable({
         games: t.games || 0,
         fieldTotal: t.fieldTotal || 0,
         Out: t.Out || 0,
-        sitOutRunningTotal: runningTotalsByPlayer[id] || 0,
+        sitOutRunningTotal: sitOutRunningByPlayer[id] || 0,
         P: t.P || 0,
         C: t.C || 0,
         '1B': t['1B'] || 0,
