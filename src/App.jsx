@@ -555,15 +555,6 @@ export default function App() {
       .filter(Boolean)
   }, [lineupSetterFilteredLockedGames, lineupsByGame])
 
-  const lineupSetterFilteredTotals = useMemo(
-    () => computeTotals(lineupSetterFilteredLockedLineups, players),
-    [lineupSetterFilteredLockedLineups, players]
-  )
-
-  const lineupSetterFutureTotals = useMemo(
-    () => addTotals(lineupSetterFilteredTotals, currentBatchTotals, players),
-    [lineupSetterFilteredTotals, currentBatchTotals, players]
-  )
   
   const lockedLineupsOnly = useMemo(() => {
     return Object.entries(lineupsByGame)
@@ -581,6 +572,16 @@ export default function App() {
     [optimizerPreviewByGame, players]
   )
 
+  const lineupSetterFilteredTotals = useMemo(
+    () => computeTotals(lineupSetterFilteredLockedLineups, players),
+    [lineupSetterFilteredLockedLineups, players]
+  )
+
+  const lineupSetterFutureTotals = useMemo(
+    () => addTotals(lineupSetterFilteredTotals, currentBatchTotals, players),
+    [lineupSetterFilteredTotals, currentBatchTotals, players]
+  )
+  
   const ytdAfterTotals = useMemo(
     () => addTotals(ytdBeforeTotals, currentBatchTotals, players),
     [ytdBeforeTotals, currentBatchTotals, players]
@@ -606,34 +607,34 @@ export default function App() {
     [gamesWithLineups, lineupsByGame, activePlayers]
   )
 
-    const filteredTrackingGames = useMemo(() => {
-    return orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters))
-  }, [orderedGamesAsc, trackingFilters])
+ const filteredTrackingGames = useMemo(() => {
+  return orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters))
+}, [orderedGamesAsc, trackingFilters])
 
-  const filteredTrackingGamesWithLineups = useMemo(() => {
-    return filteredTrackingGames.filter((g) => lineupsByGame[pk(g.id)])
-  }, [filteredTrackingGames, lineupsByGame])
+const filteredTrackingGamesWithLineups = useMemo(() => {
+  return filteredTrackingGames.filter((g) => lineupsByGame[pk(g.id)])
+}, [filteredTrackingGames, lineupsByGame])
 
-  const filteredTrackingLockedGames = useMemo(() => {
-    return filteredTrackingGames.filter((g) => lineupLockedByGame[pk(g.id)] === true)
-  }, [filteredTrackingGames, lineupLockedByGame])
+const filteredTrackingLockedGames = useMemo(() => {
+  return filteredTrackingGames.filter((g) => lineupLockedByGame[pk(g.id)] === true)
+}, [filteredTrackingGames, lineupLockedByGame])
 
-  const trackingLockedLineups = useMemo(() => {
+const trackingLockedLineups = useMemo(() => {
   return filteredTrackingLockedGames
     .map((game) => lineupsByGame[pk(game.id)])
     .filter(Boolean)
 }, [filteredTrackingLockedGames, lineupsByGame])
 
-  const trackingSitSummary = useMemo(
-    () => buildSitOutSummary(filteredTrackingLockedGames, lineupsByGame, activePlayers, pk),
-    [filteredTrackingLockedGames, lineupsByGame, activePlayers]
-  )
+const trackingSitSummary = useMemo(
+  () => buildSitOutSummary(filteredTrackingLockedGames, lineupsByGame, activePlayers, pk),
+  [filteredTrackingLockedGames, lineupsByGame, activePlayers]
+)
 
-  const trackingSitByPlayer = useMemo(
-    () => buildPlayerSitOuts(filteredTrackingLockedGames, lineupsByGame, activePlayers, pk),
-    [filteredTrackingLockedGames, lineupsByGame, activePlayers]
-  )
-
+const trackingSitByPlayer = useMemo(
+  () => buildPlayerSitOuts(filteredTrackingLockedGames, lineupsByGame, activePlayers, pk),
+  [filteredTrackingLockedGames, lineupsByGame, activePlayers]
+)
+  
   const trackingTotals = useMemo(() => {
     const baseTotals = computeTotals(trackingLockedLineups, players)
     const nextTotals = { ...baseTotals }
