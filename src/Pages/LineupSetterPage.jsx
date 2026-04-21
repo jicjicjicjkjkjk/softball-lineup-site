@@ -401,9 +401,9 @@ const filterSummary = [
             </>
           )}
 
-          <TrackingTable
-            title="Locked Games Before Current Plan"
-            universeLabel={`${lockedLineupsOnly.length} locked games`}
+                    <TrackingTable
+            title="Filtered Games Before Current Plan"
+            universeLabel={`Filtered by: ${filterSummary}`}
             totals={ytdBeforeTotals}
             players={activePlayers}
             sortConfig={trackingSort}
@@ -527,8 +527,9 @@ const filterSummary = [
   </div>
 </div>
           
-          <TrackingTable
-            title="Locked + Current Plan"
+                    <TrackingTable
+            title="Filtered Games + Current Plan"
+            universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
             totals={ytdAfterTotals}
             players={activePlayers}
             sortConfig={trackingSort}
