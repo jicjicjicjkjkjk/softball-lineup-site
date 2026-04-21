@@ -3,6 +3,7 @@ import { formatDateShort } from '../lib/appHelpers'
 function getPrintRows(players, lineup, pk) {
   const availableIds = new Set((lineup?.availablePlayerIds || []).map(pk))
 
+  
   return [...(players || [])]
     .filter((player) => availableIds.has(pk(player.id)))
     .sort((a, b) => {
