@@ -400,13 +400,14 @@ const filterSummary = [
           )}
 
                     <TrackingTable
-            title="Filtered Games Before Current Plan"
-            universeLabel={`Filtered by: ${filterSummary}`}
-            totals={ytdBeforeTotals}
-            players={activePlayers}
-            sortConfig={trackingSort}
-            setSortConfig={setTrackingSort}
-          />
+  title="Filtered Games Before Current Plan"
+  universeLabel={`Filtered by: ${filterSummary}`}
+  totals={ytdBeforeTotals}
+  sitOutRows={trackingPriorityRows}
+  players={activePlayers}
+  sortConfig={trackingSort}
+  setSortConfig={setTrackingSort}
+/>
 
           <TrackingTable
             title="Current Plan"
