@@ -53,6 +53,9 @@ export default function GameDetailPage({
   LineupGrid,
   updateSavedCell,
   updateSavedBatting,
+  toggleSavedAvailable={toggleSavedAvailable}
+  toggleSavedCellLock={togglePreviewCellLock}
+  toggleSavedRowLock={togglePreviewRowLock}
   pk,
 }) {
   
@@ -178,6 +181,13 @@ export default function GameDetailPage({
                 onBattingChange={(playerId, value) =>
                   updateSavedBatting(selectedGame.id, playerId, value)
                 }
+                showLocks={true}
+onCellLockToggle={(playerId, inning) =>
+  toggleSavedCellLock(selectedGame.id, playerId, inning)
+}
+onRowLockToggle={(playerId) =>
+  toggleSavedRowLock(selectedGame.id, playerId)
+}
               />
             </div>
           </>
