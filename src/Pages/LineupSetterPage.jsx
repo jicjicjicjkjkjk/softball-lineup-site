@@ -56,7 +56,7 @@ export default function LineupSetterPage({
   updatePreviewBatting,
   togglePreviewCellLock,
   togglePreviewRowLock,
-  lockedLineupsOnly,
+  filteredLineups = [],
   ytdBeforeTotals,
   currentBatchTotals,
   ytdAfterTotals,
@@ -68,7 +68,6 @@ export default function LineupSetterPage({
   inningStatus,
   trackingPriorityRows = [],
 }) {
-  
   const focusStatuses = optimizerFocusLineup
     ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
         inning,
@@ -76,18 +75,23 @@ export default function LineupSetterPage({
       }))
     : []
 
-const filterSummary = [
-  trackingFilters?.seasons?.length ? `Season: ${trackingFilters.seasons.join(', ')}` : null,
-  trackingFilters?.gameTypes?.length ? `Type: ${trackingFilters.gameTypes.join(', ')}` : null,
-  trackingFilters?.lineupStates?.length
-    ? `State: ${trackingFilters.lineupStates.join(', ')}`
-    : null,
-  trackingFilters?.dateFrom ? `From: ${trackingFilters.dateFrom}` : null,
-  trackingFilters?.dateTo ? `To: ${trackingFilters.dateTo}` : null,
-]
-  .filter(Boolean)
-  .join(' | ') || 'All Games'
-  
+  const filterSummary =
+    [
+      trackingFilters?.seasons?.length
+        ? `Season: ${trackingFilters.seasons.join(', ')}`
+        : null,
+      trackingFilters?.gameTypes?.length
+        ? `Type: ${trackingFilters.gameTypes.join(', ')}`
+        : null,
+      trackingFilters?.lineupStates?.length
+        ? `State: ${trackingFilters.lineupStates.join(', ')}`
+        : null,
+      trackingFilters?.dateFrom ? `From: ${trackingFilters.dateFrom}` : null,
+      trackingFilters?.dateTo ? `To: ${trackingFilters.dateTo}` : null,
+    ]
+      .filter(Boolean)
+      .join(' | ') || 'All Games'
+
   const visibleIds = optimizerFocusLineup?.availablePlayerIds || []
 
   return (
@@ -208,7 +212,10 @@ const filterSummary = [
           <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
             <div className="actions-inline">
-              <button onClick={runOptimizeCurrent} disabled={!optimizerFocusGameId || optimizerFocusLocked}>
+              <button
+                onClick={runOptimizeCurrent}
+                disabled={!optimizerFocusGameId || optimizerFocusLocked}
+              >
                 Optimize Game Viewing
               </button>
               <button onClick={runOptimizeAll} disabled={!optimizerBatchGames.length}>
@@ -264,8 +271,14 @@ const filterSummary = [
                     <td>{effectiveInnings}</td>
                     <td>{effectiveRequiredOuts}</td>
                     <td>
-                      <button onClick={() => toggleLineupLocked(game.id, !lineupLockedByGame?.[pk(game.id)])}>
-                        {lineupLockedByGame?.[pk(game.id)] ? 'Unlock Lineup' : 'Lock Lineup'}
+                      <button
+                        onClick={() =>
+                          toggleLineupLocked(game.id, !lineupLockedByGame?.[pk(game.id)])
+                        }
+                      >
+                        {lineupLockedByGame?.[pk(game.id)]
+                          ? 'Unlock Lineup'
+                          : 'Lock Lineup'}
                       </button>
                     </td>
                     <td>
@@ -298,7 +311,14 @@ const filterSummary = [
 
               {optimizerFocusLineup && (
                 <div className="actions-inline">
-                  <button onClick={() => toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)}>
+                  <button
+                    onClick={() =>
+                      toggleLineupLocked(
+                        optimizerFocusGame.id,
+                        !optimizerFocusLocked
+                      )
+                    }
+                  >
                     {optimizerFocusLocked ? 'Unlock Lineup' : 'Lock Lineup'}
                   </button>
 
@@ -343,7 +363,9 @@ const filterSummary = [
                       type="checkbox"
                       checked={(lineup.availablePlayerIds || []).includes(pk(player.id))}
                       disabled={optimizerFocusLocked}
-                      onChange={() => togglePreviewAvailable(optimizerFocusGame.id, player.id)}
+                      onChange={() =>
+                        togglePreviewAvailable(optimizerFocusGame.id, player.id)
+                      }
                     />
                     {player.name}
                   </label>
@@ -360,10 +382,18 @@ const filterSummary = [
                   {focusStatuses.map((status) => (
                     <div key={status.inning} className="summary-box">
                       <strong>Inning {status.inning}:</strong>{' '}
-                      {status.duplicate.length ? `Duplicate ${status.duplicate.join(', ')}. ` : ''}
-                      {status.missing.length ? `Missing ${status.missing.join(', ')}. ` : ''}
-                      {status.badFits.length ? `Disallowed ${status.badFits.join('; ')}. ` : ''}
-                      {!status.duplicate.length && !status.missing.length && !status.badFits.length
+                      {status.duplicate.length
+                        ? `Duplicate ${status.duplicate.join(', ')}. `
+                        : ''}
+                      {status.missing.length
+                        ? `Missing ${status.missing.join(', ')}. `
+                        : ''}
+                      {status.badFits.length
+                        ? `Disallowed ${status.badFits.join('; ')}. `
+                        : ''}
+                      {!status.duplicate.length &&
+                      !status.missing.length &&
+                      !status.badFits.length
                         ? 'Looks good.'
                         : ''}
                     </div>
@@ -399,15 +429,123 @@ const filterSummary = [
             </>
           )}
 
-                    <TrackingTable
-  title="Filtered Games Before Current Plan"
-  universeLabel={`Filtered by: ${filterSummary}`}
-  totals={ytdBeforeTotals}
-  sitOutRows={trackingPriorityRows}
-  players={activePlayers}
-  sortConfig={trackingSort}
-  setSortConfig={setTrackingSort}
-/>
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>Filters</h3>
+
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Season</div>
+                <select
+                  multiple
+                  value={trackingFilters.seasons}
+                  onChange={(e) =>
+                    setTrackingFilters((f) => ({
+                      ...f,
+                      seasons: Array.from(e.target.selectedOptions, (o) => o.value),
+                    }))
+                  }
+                >
+                  {seasonOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Game Type</div>
+                <select
+                  multiple
+                  value={trackingFilters.gameTypes}
+                  onChange={(e) =>
+                    setTrackingFilters((f) => ({
+                      ...f,
+                      gameTypes: Array.from(e.target.selectedOptions, (o) => o.value),
+                    }))
+                  }
+                >
+                  {gameTypeOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Lineup State</div>
+                <select
+                  multiple
+                  value={trackingFilters.lineupStates}
+                  onChange={(e) =>
+                    setTrackingFilters((f) => ({
+                      ...f,
+                      lineupStates: Array.from(e.target.selectedOptions, (o) => o.value),
+                    }))
+                  }
+                >
+                  <option value="Locked">Locked</option>
+                  <option value="Saved">Saved</option>
+                  <option value="Empty">Empty</option>
+                </select>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Date From</div>
+                <input
+                  type="date"
+                  value={trackingFilters.dateFrom || ''}
+                  onChange={(e) =>
+                    setTrackingFilters((f) => ({
+                      ...f,
+                      dateFrom: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>Date To</div>
+                <input
+                  type="date"
+                  value={trackingFilters.dateTo || ''}
+                  onChange={(e) =>
+                    setTrackingFilters((f) => ({
+                      ...f,
+                      dateTo: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTrackingFilters({
+                      seasons: [],
+                      gameTypes: [],
+                      lineupStates: [],
+                      dateFrom: '',
+                      dateTo: '',
+                    })
+                  }
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <TrackingTable
+            title="Filtered Games Before Current Plan"
+            universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} games)`}
+            totals={ytdBeforeTotals}
+            players={activePlayers}
+            sortConfig={trackingSort}
+            setSortConfig={setTrackingSort}
+          />
 
           <TrackingTable
             title="Current Plan"
@@ -417,116 +555,7 @@ const filterSummary = [
             setSortConfig={setTrackingSort}
           />
 
-          <div className="card">
-  <h3 style={{ marginTop: 0 }}>Filters</h3>
-
-  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-    <div>
-      <div style={{ fontSize: 12, fontWeight: 600 }}>Season</div>
-      <select
-        multiple
-        value={trackingFilters.seasons}
-        onChange={(e) =>
-          setTrackingFilters((f) => ({
-            ...f,
-            seasons: Array.from(e.target.selectedOptions, (o) => o.value),
-          }))
-        }
-      >
-        {seasonOptions.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-
-    <div>
-      <div style={{ fontSize: 12, fontWeight: 600 }}>Game Type</div>
-      <select
-        multiple
-        value={trackingFilters.gameTypes}
-        onChange={(e) =>
-          setTrackingFilters((f) => ({
-            ...f,
-            gameTypes: Array.from(e.target.selectedOptions, (o) => o.value),
-          }))
-        }
-      >
-        {gameTypeOptions.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-
-    <div>
-      <div style={{ fontSize: 12, fontWeight: 600 }}>Lineup State</div>
-      <select
-        multiple
-        value={trackingFilters.lineupStates}
-        onChange={(e) =>
-          setTrackingFilters((f) => ({
-            ...f,
-            lineupStates: Array.from(e.target.selectedOptions, (o) => o.value),
-          }))
-        }
-      >
-        <option value="Locked">Locked</option>
-        <option value="Saved">Saved</option>
-        <option value="Empty">Empty</option>
-      </select>
-    </div>
-
-    <div>
-      <div style={{ fontSize: 12, fontWeight: 600 }}>Date From</div>
-      <input
-        type="date"
-        value={trackingFilters.dateFrom || ''}
-        onChange={(e) =>
-          setTrackingFilters((f) => ({
-            ...f,
-            dateFrom: e.target.value,
-          }))
-        }
-      />
-    </div>
-
-    <div>
-      <div style={{ fontSize: 12, fontWeight: 600 }}>Date To</div>
-      <input
-        type="date"
-        value={trackingFilters.dateTo || ''}
-        onChange={(e) =>
-          setTrackingFilters((f) => ({
-            ...f,
-            dateTo: e.target.value,
-          }))
-        }
-      />
-    </div>
-
-    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-      <button
-        type="button"
-        onClick={() =>
-          setTrackingFilters({
-            seasons: [],
-            gameTypes: [],
-            lineupStates: [],
-            dateFrom: '',
-            dateTo: '',
-          })
-        }
-      >
-        Clear Filters
-      </button>
-    </div>
-  </div>
-</div>
-          
-                    <TrackingTable
+          <TrackingTable
             title="Filtered Games + Current Plan"
             universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
             totals={ytdAfterTotals}
@@ -556,35 +585,77 @@ const filterSummary = [
                       Fld
                     </th>
 
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>P</th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>C</th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>1B</th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>2B</th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>3B</th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>SS</th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>OF</th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                      P
+                    </th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                      C
+                    </th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                      1B
+                    </th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                      2B
+                    </th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                      3B
+                    </th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                      SS
+                    </th>
+                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                      OF
+                    </th>
                   </tr>
                   <tr>
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
+                      TGT
+                    </th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
+                      ACT
+                    </th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
+                      TGT
+                    </th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
+                      ACT
+                    </th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
+                      TGT
+                    </th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
+                      ACT
+                    </th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
+                      TGT
+                    </th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
+                      ACT
+                    </th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
+                      TGT
+                    </th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
+                      ACT
+                    </th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
+                      TGT
+                    </th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
+                      ACT
+                    </th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
+                      TGT
+                    </th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
+                      ACT
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -597,26 +668,54 @@ const filterSummary = [
                         {row.fieldTotal}
                       </td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targP}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actP}</td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
+                        {row.targP}
+                      </td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
+                        {row.actP}
+                      </td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targC}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actC}</td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
+                        {row.targC}
+                      </td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
+                        {row.actC}
+                      </td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ1B}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act1B}</td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
+                        {row.targ1B}
+                      </td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
+                        {row.act1B}
+                      </td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ2B}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act2B}</td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
+                        {row.targ2B}
+                      </td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
+                        {row.act2B}
+                      </td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ3B}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act3B}</td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
+                        {row.targ3B}
+                      </td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
+                        {row.act3B}
+                      </td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targSS}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actSS}</td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
+                        {row.targSS}
+                      </td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
+                        {row.actSS}
+                      </td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targOF}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actOF}</td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
+                        {row.targOF}
+                      </td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
+                        {row.actOF}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
