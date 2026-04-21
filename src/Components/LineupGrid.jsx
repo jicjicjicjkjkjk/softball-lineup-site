@@ -69,7 +69,7 @@ export default function LineupGrid({
           const rowLocked = lineup?.lockedRows?.[id] === true
 
           return (
-            <<tr
+            <tr
   key={id}
   style={{
     background: rowLocked ? '#f8fafc' : undefined,
