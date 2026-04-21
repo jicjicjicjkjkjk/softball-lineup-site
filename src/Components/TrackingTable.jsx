@@ -8,16 +8,20 @@ export default function TrackingTable({
   sortConfig,
   setSortConfig,
   universeLabel,
-  center = true,
   sitOutRows = [],
+  center = true,
 }) {
-  const sitOutRunningByPlayer = Object.fromEntries(
+  const runningTotalsByPlayer = Object.fromEntries(
     (sitOutRows || []).map((row) => {
       const runningValues = (row.running || []).filter(
         (v) => v !== 'x' && v !== '' && v !== null && v !== undefined
       )
 
-      return [pk(row.playerId), runningValues.length ? runningValues[runningValues.length - 1] : 0]
+      const latestRunningTotal = runningValues.length
+        ? runningValues[runningValues.length - 1]
+        : 0
+
+      return [row.playerId, latestRunningTotal]
     })
   )
 
@@ -32,7 +36,7 @@ export default function TrackingTable({
         games: t.games || 0,
         fieldTotal: t.fieldTotal || 0,
         Out: t.Out || 0,
-        sitOutRunningTotal: sitOutRunningByPlayer[id] ?? t.sitOutRunningTotal ?? 0,
+        sitOutRunningTotal: runningTotalsByPlayer[id] || 0,
         P: t.P || 0,
         C: t.C || 0,
         '1B': t['1B'] || 0,
