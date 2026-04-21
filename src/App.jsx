@@ -571,13 +571,6 @@ export default function App() {
       .map(([, lineup]) => lineup)
   }, [lineupsByGame, lineupLockedByGame])
 
-  const trackingLockedLineups = useMemo(() => {
-    return orderedGamesAsc
-      .filter((game) => lineupLockedByGame[pk(game.id)] === true)
-      .map((game) => lineupsByGame[pk(game.id)])
-      .filter(Boolean)
-  }, [orderedGamesAsc, lineupLockedByGame, lineupsByGame])
-
   const ytdBeforeTotals = useMemo(
     () => computeTotals(lockedLineupsOnly, players),
     [lockedLineupsOnly, players]
@@ -626,10 +619,10 @@ export default function App() {
   }, [filteredTrackingGames, lineupLockedByGame])
 
   const trackingLockedLineups = useMemo(() => {
-    return filteredTrackingLockedGames
-      .map((game) => lineupsByGame[pk(game.id)])
-      .filter(Boolean)
-  }, [filteredTrackingLockedGames, lineupsByGame])
+  return filteredTrackingLockedGames
+    .map((game) => lineupsByGame[pk(game.id)])
+    .filter(Boolean)
+}, [filteredTrackingLockedGames, lineupsByGame])
 
   const trackingSitSummary = useMemo(
     () => buildSitOutSummary(filteredTrackingLockedGames, lineupsByGame, activePlayers, pk),
