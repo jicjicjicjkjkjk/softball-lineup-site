@@ -25,11 +25,11 @@ export default function AdminPage({
 }) {
   const [seasonForm, setSeasonForm] = useState(blankForm('season'))
   const [gameTypeForm, setGameTypeForm] = useState(blankForm('game_type'))
-  const [gameStatusForm, setGameStatusForm] = useState(blankForm('game_status'))
+  const [statusForm, setStatusForm] = useState(blankForm('status'))
 
   const seasonRows = useMemo(() => appOptions?.season || [], [appOptions])
   const gameTypeRows = useMemo(() => appOptions?.game_type || [], [appOptions])
-  const gameStatusRows = useMemo(() => appOptions?.game_status || [], [appOptions])
+  const statusRows = useMemo(() => appOptions?.status || [], [appOptions])
 
   async function submitForm(form, resetForm) {
     const label = String(form.label || '').trim()
@@ -44,7 +44,6 @@ export default function AdminPage({
     })
 
     resetForm(blankForm(form.category))
-    await loadAppOptions()
   }
 
   async function toggleActive(row) {
@@ -70,7 +69,7 @@ export default function AdminPage({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.3fr 1.3fr 120px 140px auto',
+            gridTemplateColumns: '1.3fr 1.3fr 120px 120px auto',
             gap: 12,
             alignItems: 'end',
             marginBottom: 18,
@@ -105,7 +104,7 @@ export default function AdminPage({
           </div>
 
           <div>
-            <label>Available</label>
+            <label>Active</label>
             <select
               value={form.is_active ? 'yes' : 'no'}
               onChange={(e) =>
@@ -129,7 +128,7 @@ export default function AdminPage({
                 <th style={{ textAlign: 'left' }}>Label</th>
                 <th style={{ textAlign: 'left' }}>Value</th>
                 <th>Sort</th>
-                <th>Available</th>
+                <th>Active</th>
                 <th>Toggle</th>
               </tr>
             </thead>
@@ -192,7 +191,7 @@ export default function AdminPage({
           <div>
             <h2 style={{ marginBottom: 8 }}>Admin</h2>
             <div className="small-note">
-              Manage reusable option lists for Seasons, Game Types, and Game Status.
+              Manage reusable option lists for Seasons, Game Types, and Statuses.
             </div>
           </div>
 
@@ -202,7 +201,7 @@ export default function AdminPage({
 
       {renderSection('Season Options', seasonRows, seasonForm, setSeasonForm, 'season')}
       {renderSection('Game Type Options', gameTypeRows, gameTypeForm, setGameTypeForm, 'game type')}
-      {renderSection('Game Status Options', gameStatusRows, gameStatusForm, setGameStatusForm, 'game status')}
+      {renderSection('Status Options', statusRows, statusForm, setStatusForm, 'status')}
     </div>
   )
 }
