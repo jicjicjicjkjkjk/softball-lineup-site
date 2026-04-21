@@ -759,9 +759,6 @@ const filterSummary = useMemo(() => {
         </div>
       </div>
 
-      <div style={{ fontSize: 12, color: '#555', marginBottom: 8 }}>
-  Filtered by: {filterSummary} ({trackingGames.length} games)
-</div>
       
       <TrackingTable
   title="Tracking Totals"
