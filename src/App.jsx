@@ -1919,7 +1919,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
           />
         )}
 
-        {page === 'game-detail' && (
+                {page === 'game-detail' && (
           <GameDetailPage
             selectedGame={selectedGame}
             selectedLineup={selectedLineup}
@@ -1940,6 +1940,8 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
             LineupGrid={LineupGrid}
             updateSavedCell={updateSavedCell}
             updateSavedBatting={updateSavedBatting}
+            toggleSavedCellLock={toggleSavedCellLock}
+            toggleSavedRowLock={toggleSavedRowLock}
             pk={pk}
           />
         )}
