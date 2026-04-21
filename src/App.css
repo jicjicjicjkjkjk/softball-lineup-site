@@ -986,3 +986,52 @@ th.player-col {
 .tracking-table.priority-groups tbody td.group-end {
   background: #fff;
 }
+
+
+/* ===== MINI DIAMOND ===== */
+
+.mini-diamond-wrap {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  margin: 0 auto;
+}
+
+.mini-diamond-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid #94a3b8;
+  background: white;
+}
+
+/* STATES */
+.mini-diamond-dot.valid {
+  background: #22c55e;
+  border-color: #16a34a;
+}
+
+.mini-diamond-dot.invalid {
+  background: #ef4444;
+  border-color: #dc2626;
+}
+
+.mini-diamond-dot.empty {
+  background: white;
+}
+
+/* LOCK OVERLAY */
+.mini-diamond-lock {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: white;
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 10px;
+  text-align: center;
+}
