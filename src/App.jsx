@@ -217,7 +217,14 @@ function isCompleteLineup(lineup) {
     const saved = (appOptions.status || []).filter((x) => x.is_active)
     if (saved.length) return saved
 
-      const defaultSeasonOption = useMemo(
+    return [
+      buildDefaultOption('Planned', 'status', 1),
+      buildDefaultOption('Complete', 'status', 2),
+      buildDefaultOption('Cancelled', 'status', 3),
+    ]
+  }, [appOptions])
+
+  const defaultSeasonOption = useMemo(
     () => (seasonOptions || []).find((x) => x.is_default),
     [seasonOptions]
   )
@@ -231,12 +238,6 @@ function isCompleteLineup(lineup) {
     () => (statusOptions || []).find((x) => x.is_default),
     [statusOptions]
   )
-    return [
-      buildDefaultOption('Planned', 'status', 1),
-      buildDefaultOption('Complete', 'status', 2),
-      buildDefaultOption('Cancelled', 'status', 3),
-    ]
-  }, [appOptions])
 
 
   function getGameLineupState(game) {
