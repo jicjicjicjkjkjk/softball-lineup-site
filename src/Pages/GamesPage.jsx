@@ -34,11 +34,15 @@ export default function GamesPage({
   setPage,
   seasonOptions = [],
   gameTypeOptions = [],
-  gameStatusOptions = [],
+  statusOptions = [],
 }) {
   function nextSort(key) {
-    if (gameSort.key !== key) return setGameSort({ key, direction: 'asc' })
-    return setGameSort({
+    if (gameSort.key !== key) {
+      setGameSort({ key, direction: 'asc' })
+      return
+    }
+
+    setGameSort({
       key,
       direction: gameSort.direction === 'asc' ? 'desc' : 'asc',
     })
@@ -77,7 +81,7 @@ export default function GamesPage({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1.2fr 1fr 1fr auto',
+            gridTemplateColumns: '1fr 1.3fr 1fr 1fr auto',
             gap: 12,
             alignItems: 'end',
           }}
@@ -102,16 +106,10 @@ export default function GamesPage({
 
           <div>
             <label>Game Type</label>
-            <select
-              value={newGameType}
-              onChange={(e) => setNewGameType(e.target.value)}
-            >
+            <select value={newGameType} onChange={(e) => setNewGameType(e.target.value)}>
               <option value="">Select type</option>
               {gameTypeOptions.map((option) => (
-                <option
-                  key={renderOptionValue(option)}
-                  value={renderOptionValue(option)}
-                >
+                <option key={renderOptionValue(option)} value={renderOptionValue(option)}>
                   {renderOptionLabel(option)}
                 </option>
               ))}
@@ -120,16 +118,10 @@ export default function GamesPage({
 
           <div>
             <label>Season</label>
-            <select
-              value={newGameSeason}
-              onChange={(e) => setNewGameSeason(e.target.value)}
-            >
+            <select value={newGameSeason} onChange={(e) => setNewGameSeason(e.target.value)}>
               <option value="">Select season</option>
               {seasonOptions.map((option) => (
-                <option
-                  key={renderOptionValue(option)}
-                  value={renderOptionValue(option)}
-                >
+                <option key={renderOptionValue(option)} value={renderOptionValue(option)}>
                   {renderOptionLabel(option)}
                 </option>
               ))}
@@ -149,7 +141,7 @@ export default function GamesPage({
         </div>
 
         <div className="table-scroll">
-          <table className="table-center" style={{ minWidth: 1050 }}>
+          <table className="table-center" style={{ minWidth: 1125 }}>
             <thead>
               <tr>
                 <th onClick={() => nextSort('date')} style={{ cursor: 'pointer' }}>
@@ -158,10 +150,7 @@ export default function GamesPage({
                 <th onClick={() => nextSort('game_order')} style={{ cursor: 'pointer' }}>
                   Order
                 </th>
-                <th
-                  onClick={() => nextSort('opponent')}
-                  style={{ cursor: 'pointer', textAlign: 'left' }}
-                >
+                <th onClick={() => nextSort('opponent')} style={{ cursor: 'pointer', textAlign: 'left' }}>
                   Opponent
                 </th>
                 <th onClick={() => nextSort('game_type')} style={{ cursor: 'pointer' }}>
@@ -219,10 +208,7 @@ export default function GamesPage({
                     >
                       <option value="">Select type</option>
                       {gameTypeOptions.map((option) => (
-                        <option
-                          key={renderOptionValue(option)}
-                          value={renderOptionValue(option)}
-                        >
+                        <option key={renderOptionValue(option)} value={renderOptionValue(option)}>
                           {renderOptionLabel(option)}
                         </option>
                       ))}
@@ -236,10 +222,7 @@ export default function GamesPage({
                     >
                       <option value="">Select season</option>
                       {seasonOptions.map((option) => (
-                        <option
-                          key={renderOptionValue(option)}
-                          value={renderOptionValue(option)}
-                        >
+                        <option key={renderOptionValue(option)} value={renderOptionValue(option)}>
                           {renderOptionLabel(option)}
                         </option>
                       ))}
@@ -256,17 +239,14 @@ export default function GamesPage({
                     />
                   </td>
 
-                  <td style={{ minWidth: 130 }}>
+                  <td style={{ minWidth: 140 }}>
                     <select
                       value={game.status || ''}
                       onChange={(e) => updateGameField(game.id, 'status', e.target.value)}
                     >
                       <option value="">Select status</option>
-                      {gameStatusOptions.map((option) => (
-                        <option
-                          key={renderOptionValue(option)}
-                          value={renderOptionValue(option)}
-                        >
+                      {statusOptions.map((option) => (
+                        <option key={renderOptionValue(option)} value={renderOptionValue(option)}>
                           {renderOptionLabel(option)}
                         </option>
                       ))}
@@ -305,7 +285,7 @@ export default function GamesPage({
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Quick View</h3>
         <div className="table-scroll">
-          <table className="table-center" style={{ minWidth: 900 }}>
+          <table className="table-center" style={{ minWidth: 950 }}>
             <thead>
               <tr>
                 <th>Date</th>
@@ -331,6 +311,7 @@ export default function GamesPage({
                   <td>{game.lineupState || ''}</td>
                 </tr>
               ))}
+
               {!sortedGames.length && (
                 <tr>
                   <td colSpan="8">No games yet.</td>
