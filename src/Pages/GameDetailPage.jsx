@@ -168,26 +168,25 @@ export default function GameDetailPage({
 
             <div className="table-scroll no-print" style={{ marginTop: 12 }}>
               <LineupGrid
-                players={activePlayers}
-                lineup={selectedLineup}
-                fitMap={fitByPlayer}
-                showLocks={false}
-                lockedLineup={selectedLocked}
-                visiblePlayerIds={visibleIds}
-                onCellChange={(playerId, inning, value) =>
-                  updateSavedCell(selectedGame.id, playerId, inning, value)
-                }
-                onBattingChange={(playerId, value) =>
-                  updateSavedBatting(selectedGame.id, playerId, value)
-                }
-                showLocks={true}
-onCellLockToggle={(playerId, inning) =>
-  toggleSavedCellLock(selectedGame.id, playerId, inning)
-}
-onRowLockToggle={(playerId) =>
-  toggleSavedRowLock(selectedGame.id, playerId)
-}
-              />
+  players={activePlayers}
+  lineup={selectedLineup}
+  fitMap={fitByPlayer}
+  showLocks={true}
+  lockedLineup={selectedLocked}
+  visiblePlayerIds={visibleIds}
+  onCellChange={(playerId, inning, value) =>
+    updateSavedCell(selectedGame.id, playerId, inning, value)
+  }
+  onBattingChange={(playerId, value) =>
+    updateSavedBatting(selectedGame.id, playerId, value)
+  }
+  onCellLockToggle={(playerId, inning) =>
+    toggleSavedCellLock(selectedGame.id, playerId, inning)
+  }
+  onRowLockToggle={(playerId) =>
+    toggleSavedRowLock(selectedGame.id, playerId)
+  }
+/>
             </div>
           </>
         )}
