@@ -1,4 +1,4 @@
-export default function MiniDiamond({ status, locked = false }) {
+export default function MiniDiamond({ status, lockedPositions = [] }) {
   const posCoords = {
     P: { left: '46%', top: '60%' },
     C: { left: '46%', top: '83%' },
@@ -17,10 +17,10 @@ export default function MiniDiamond({ status, locked = false }) {
     return '#22c55e'
   }
 
+  const lockedSet = new Set(lockedPositions)
+
   return (
     <div style={{ position: 'relative', width: 82, height: 82, margin: '0 auto' }}>
-      
-      {/* DIAMOND */}
       <div
         style={{
           position: 'absolute',
@@ -34,7 +34,6 @@ export default function MiniDiamond({ status, locked = false }) {
         }}
       />
 
-      {/* POSITIONS */}
       {Object.entries(posCoords).map(([pos, coords]) => (
         <div
           key={pos}
@@ -50,31 +49,29 @@ export default function MiniDiamond({ status, locked = false }) {
             border: '1px solid #64748b',
             transform: 'translate(-50%, -50%)',
           }}
-        />
-      ))}
-
-      {/* 🔒 LOCK INDICATOR (NEW) */}
-      {locked && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 2,
-            right: 2,
-            width: 16,
-            height: 16,
-            borderRadius: 999,
-            background: '#0f172a',
-            color: '#fff',
-            fontSize: 10,
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
         >
-          ✓
+          {lockedSet.has(pos) && (
+            <div
+              style={{
+                position: 'absolute',
+                top: -6,
+                right: -6,
+                width: 12,
+                height: 12,
+                borderRadius: 999,
+                background: '#0f172a',
+                color: '#fff',
+                fontSize: 8,
+                fontWeight: 700,
+                lineHeight: '12px',
+                textAlign: 'center',
+              }}
+            >
+              🔒
+            </div>
+          )}
         </div>
-      )}
+      ))}
     </div>
   )
 }
