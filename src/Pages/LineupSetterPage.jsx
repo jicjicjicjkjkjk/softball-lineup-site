@@ -17,6 +17,10 @@ export default function LineupSetterPage({
   optimizerFocusGame,
   optimizerFocusLocked,
   toggleLineupLocked,
+  trackingFilters,
+  setTrackingFilters,
+  seasonOptions,
+  gameTypeOptions,
   lineupLockedByGame,
   optimizerExistingGameId,
   setOptimizerExistingGameId,
@@ -66,6 +70,7 @@ export default function LineupSetterPage({
   inningStatus,
   trackingPriorityRows = [],
 }) {
+  
   const focusStatuses = optimizerFocusLineup
     ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
         inning,
@@ -73,6 +78,18 @@ export default function LineupSetterPage({
       }))
     : []
 
+const filterSummary = [
+  trackingFilters?.seasons?.length ? `Season: ${trackingFilters.seasons.join(', ')}` : null,
+  trackingFilters?.gameTypes?.length ? `Type: ${trackingFilters.gameTypes.join(', ')}` : null,
+  trackingFilters?.lineupStates?.length
+    ? `State: ${trackingFilters.lineupStates.join(', ')}`
+    : null,
+  trackingFilters?.dateFrom ? `From: ${trackingFilters.dateFrom}` : null,
+  trackingFilters?.dateTo ? `To: ${trackingFilters.dateTo}` : null,
+]
+  .filter(Boolean)
+  .join(' | ') || 'All Games'
+  
   const visibleIds = optimizerFocusLineup?.availablePlayerIds || []
 
   return (
@@ -401,6 +418,115 @@ export default function LineupSetterPage({
             setSortConfig={setTrackingSort}
           />
 
+          <div className="card">
+  <h3 style={{ marginTop: 0 }}>Filters</h3>
+
+  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 600 }}>Season</div>
+      <select
+        multiple
+        value={trackingFilters.seasons}
+        onChange={(e) =>
+          setTrackingFilters((f) => ({
+            ...f,
+            seasons: Array.from(e.target.selectedOptions, (o) => o.value),
+          }))
+        }
+      >
+        {seasonOptions.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 600 }}>Game Type</div>
+      <select
+        multiple
+        value={trackingFilters.gameTypes}
+        onChange={(e) =>
+          setTrackingFilters((f) => ({
+            ...f,
+            gameTypes: Array.from(e.target.selectedOptions, (o) => o.value),
+          }))
+        }
+      >
+        {gameTypeOptions.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 600 }}>Lineup State</div>
+      <select
+        multiple
+        value={trackingFilters.lineupStates}
+        onChange={(e) =>
+          setTrackingFilters((f) => ({
+            ...f,
+            lineupStates: Array.from(e.target.selectedOptions, (o) => o.value),
+          }))
+        }
+      >
+        <option value="Locked">Locked</option>
+        <option value="Saved">Saved</option>
+        <option value="Empty">Empty</option>
+      </select>
+    </div>
+
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 600 }}>Date From</div>
+      <input
+        type="date"
+        value={trackingFilters.dateFrom || ''}
+        onChange={(e) =>
+          setTrackingFilters((f) => ({
+            ...f,
+            dateFrom: e.target.value,
+          }))
+        }
+      />
+    </div>
+
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 600 }}>Date To</div>
+      <input
+        type="date"
+        value={trackingFilters.dateTo || ''}
+        onChange={(e) =>
+          setTrackingFilters((f) => ({
+            ...f,
+            dateTo: e.target.value,
+          }))
+        }
+      />
+    </div>
+
+    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+      <button
+        type="button"
+        onClick={() =>
+          setTrackingFilters({
+            seasons: [],
+            gameTypes: [],
+            lineupStates: [],
+            dateFrom: '',
+            dateTo: '',
+          })
+        }
+      >
+        Clear Filters
+      </button>
+    </div>
+  </div>
+</div>
+          
           <TrackingTable
             title="Locked + Current Plan"
             totals={ytdAfterTotals}
