@@ -3,8 +3,7 @@ import { useMemo, useState } from 'react'
 function blankForm(category = 'season') {
   return {
     category,
-    label: '',
-    value: '',
+    name: '',
     sort_order: '',
     is_active: true,
   }
@@ -32,18 +31,19 @@ export default function AdminPage({
   const statusRows = useMemo(() => appOptions?.status || [], [appOptions])
 
   async function submitForm(form, resetForm) {
-    const label = String(form.label || '').trim()
-    if (!label) return
+    const name = String(form.name || '').trim()
+    if (!name) return
 
     await addAppOption({
       category: form.category,
-      label,
-      value: form.value?.trim() ? form.value.trim() : normalizeValue(label),
+      label: name,
+      value: normalizeValue(name),
       sort_order: form.sort_order === '' ? 999 : Number(form.sort_order),
       is_active: form.is_active !== false,
     })
 
     resetForm(blankForm(form.category))
+    await loadAppOptions()
   }
 
   async function toggleActive(row) {
@@ -51,6 +51,14 @@ export default function AdminPage({
   }
 
   async function updateField(row, field, value) {
+    if (field === 'name') {
+      await updateAppOption(row.id, {
+        label: value,
+        value: normalizeValue(value),
+      })
+      return
+    }
+
     await updateAppOption(row.id, {
       [field]:
         field === 'sort_order'
@@ -61,7 +69,7 @@ export default function AdminPage({
     })
   }
 
-  function renderSection(title, rows, form, setForm, categoryLabel) {
+  function renderSection(title, rows, form, setForm, itemLabel) {
     return (
       <div className="card">
         <h3 style={{ marginTop: 0 }}>{title}</h3>
@@ -69,27 +77,18 @@ export default function AdminPage({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.3fr 1.3fr 120px 120px auto',
+            gridTemplateColumns: '1.6fr 120px 120px auto',
             gap: 12,
             alignItems: 'end',
             marginBottom: 18,
           }}
         >
           <div>
-            <label>Label</label>
+            <label>Name</label>
             <input
-              value={form.label}
-              onChange={(e) => setForm((s) => ({ ...s, label: e.target.value }))}
-              placeholder={`Add ${categoryLabel}`}
-            />
-          </div>
-
-          <div>
-            <label>Value</label>
-            <input
-              value={form.value}
-              onChange={(e) => setForm((s) => ({ ...s, value: e.target.value }))}
-              placeholder="optional_slug_value"
+              value={form.name}
+              onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+              placeholder={`Add ${itemLabel}`}
             />
           </div>
 
@@ -122,11 +121,10 @@ export default function AdminPage({
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <table className="table-center" style={{ minWidth: 760 }}>
+          <table className="table-center" style={{ minWidth: 620 }}>
             <thead>
               <tr>
-                <th style={{ textAlign: 'left' }}>Label</th>
-                <th style={{ textAlign: 'left' }}>Value</th>
+                <th style={{ textAlign: 'left' }}>Name</th>
                 <th>Sort</th>
                 <th>Active</th>
                 <th>Toggle</th>
@@ -138,13 +136,7 @@ export default function AdminPage({
                   <td style={{ textAlign: 'left' }}>
                     <input
                       value={row.label || ''}
-                      onChange={(e) => updateField(row, 'label', e.target.value)}
-                    />
-                  </td>
-                  <td style={{ textAlign: 'left' }}>
-                    <input
-                      value={row.value || ''}
-                      onChange={(e) => updateField(row, 'value', e.target.value)}
+                      onChange={(e) => updateField(row, 'name', e.target.value)}
                     />
                   </td>
                   <td>
@@ -166,7 +158,7 @@ export default function AdminPage({
 
               {!rows.length && (
                 <tr>
-                  <td colSpan="5">No options yet.</td>
+                  <td colSpan="4">No options yet.</td>
                 </tr>
               )}
             </tbody>
@@ -191,7 +183,7 @@ export default function AdminPage({
           <div>
             <h2 style={{ marginBottom: 8 }}>Admin</h2>
             <div className="small-note">
-              Manage reusable option lists for Seasons, Game Types, and Statuses.
+              Manage reusable lists for Seasons, Game Types, and Game Status.
             </div>
           </div>
 
@@ -201,7 +193,7 @@ export default function AdminPage({
 
       {renderSection('Season Options', seasonRows, seasonForm, setSeasonForm, 'season')}
       {renderSection('Game Type Options', gameTypeRows, gameTypeForm, setGameTypeForm, 'game type')}
-      {renderSection('Status Options', statusRows, statusForm, setStatusForm, 'status')}
+      {renderSection('Game Status Options', statusRows, statusForm, setStatusForm, 'status')}
     </div>
   )
 }
