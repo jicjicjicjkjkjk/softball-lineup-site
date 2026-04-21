@@ -555,7 +555,12 @@ export default function TrackingPage({
 
       <div className="card tracking-card">
         <div className="positioning-controls">
-          <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
+          <div>
+  <h3 style={{ margin: 0 }}>Positioning by Player Per Game</h3>
+  <div style={{ fontSize: 12, color: '#555', marginTop: 4 }}>
+    Filtered by: {filterSummary} ({trackingGames.length} games)
+  </div>
+</div>
           <div className="positioning-player-select">
             <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
               <option value="">Select Player</option>
@@ -681,6 +686,10 @@ export default function TrackingPage({
         </div>
       </div>
 
+      <div style={{ fontSize: 12, color: '#555', marginBottom: 8 }}>
+  Filtered by: {filterSummary} ({trackingGames.length} games)
+</div>
+      
       <TrackingTable
   title="Tracking Totals"
   universeLabel={`${trackingGames.length} games (filtered)`}
