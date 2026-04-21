@@ -141,7 +141,6 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
 function isCompleteLineup(lineup) {
   if (!lineup) return false
 
-  const players = lineup.availablePlayerIds || []
   const innings = lineup.innings || 0
 
   for (let inning = 1; inning <= innings; inning++) {
@@ -589,21 +588,21 @@ function isCompleteLineup(lineup) {
     [optimizerPreviewByGame, optimizerFocusGameId]
   )
 
-      const lineupSetterFilteredGames = useMemo(() => {
-    return orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters))
-  }, [orderedGamesAsc, trackingFilters])
+  const lineupSetterFilteredGames = useMemo(() => {
+  return orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters))
+}, [orderedGamesAsc, trackingFilters])
 
-  const lineupSetterFilteredGamesWithLineups = useMemo(() => {
-  return lineupSetterFilteredGamesExcludingBatch.filter(
-    (game) => lineupsByGame[pk(game.id)]
-  )
-}, [lineupSetterFilteredGamesExcludingBatch, lineupsByGame])
-
-  const lineupSetterFilteredGamesExcludingBatch = useMemo(() => {
+const lineupSetterFilteredGamesExcludingBatch = useMemo(() => {
   return lineupSetterFilteredGames.filter(
     (game) => !optimizerBatchGameIds.includes(pk(game.id))
   )
 }, [lineupSetterFilteredGames, optimizerBatchGameIds])
+
+const lineupSetterFilteredGamesWithLineups = useMemo(() => {
+  return lineupSetterFilteredGamesExcludingBatch.filter(
+    (game) => lineupsByGame[pk(game.id)]
+  )
+}, [lineupSetterFilteredGamesExcludingBatch, lineupsByGame])
   
   const lineupSetterFilteredLineups = useMemo(() => {
     return lineupSetterFilteredGamesWithLineups
