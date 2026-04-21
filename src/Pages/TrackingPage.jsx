@@ -765,7 +765,7 @@ const filterSummary = useMemo(() => {
       
       <TrackingTable
   title="Tracking Totals"
-  universeLabel={`${trackingGames.length} games (filtered)`}
+  universeLabel={`Filtered by: ${filterSummary} (${trackingGames.length} games)`}
   totals={trackingTotals}
   sitOutRows={computedSitRows}
   players={activePlayers}
