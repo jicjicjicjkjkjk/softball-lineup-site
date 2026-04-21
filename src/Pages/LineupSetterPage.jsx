@@ -633,10 +633,11 @@ export default function LineupSetterPage({
             </div>
           </div>
 
-          <TrackingTable
+                    <TrackingTable
             title="Filtered Games Before Current Plan"
             universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} games)`}
-            totals={filteredGamesBeforeTotalsWithRunning}
+            totals={ytdBeforeTotals}
+            sitOutRows={ytdBeforeSitOutRows}
             players={activePlayers}
             sortConfig={trackingSort}
             setSortConfig={setTrackingSort}
@@ -650,10 +651,11 @@ export default function LineupSetterPage({
             setSortConfig={setTrackingSort}
           />
 
-          <TrackingTable
+                    <TrackingTable
             title="Filtered Games + Current Plan"
-            universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} filtered games + ${optimizerBatchGames.length} plan games)`}
-            totals={filteredPlusPlanTotalsWithRunning}
+            universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
+            totals={ytdAfterTotals}
+            sitOutRows={ytdAfterSitOutRows}
             players={activePlayers}
             sortConfig={trackingSort}
             setSortConfig={setTrackingSort}
