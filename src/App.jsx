@@ -615,6 +615,66 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     [lineupSetterFilteredLineups, players]
   )
 
+  const lineupSetterSitSummary = useMemo(
+    () =>
+      buildSitOutSummary(
+        lineupSetterFilteredGamesWithLineups,
+        lineupsByGame,
+        activePlayers,
+        pk
+      ),
+    [lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers]
+  )
+
+  const lineupSetterSitByPlayer = useMemo(
+    () =>
+      buildPlayerSitOuts(
+        lineupSetterFilteredGamesWithLineups,
+        lineupsByGame,
+        activePlayers,
+        pk
+      ),
+    [lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers]
+  )
+
+  const lineupSetterComputedSitRows = useMemo(() => {
+    const avgByGame = (lineupSetterSitSummary || []).map((g) => {
+      const value = Number(g?.avgSit)
+      return Number.isNaN(value) ? null : value
+    })
+
+    return (lineupSetterSitByPlayer || []).map((row) => {
+      let runningTotal = 0
+
+      const deltaPerGame = (row.perGame || []).map((value, index) => {
+        if (value === 'x' || value === '' || value === null || value === undefined) return 'x'
+
+        const playerOuts = Number(value)
+        const avgSit = avgByGame[index]
+
+        if (Number.isNaN(playerOuts) || avgSit === null || Number.isNaN(avgSit)) return 'x'
+
+        return Number((avgSit - playerOuts).toFixed(2))
+      })
+
+      const running = deltaPerGame.map((value) => {
+        if (value === 'x') return 'x'
+        runningTotal = Number((runningTotal + Number(value)).toFixed(2))
+        return runningTotal
+      })
+
+      return {
+        ...row,
+        deltaPerGame,
+        running,
+        sitOutRunningTotal:
+          running.length && running[running.length - 1] !== 'x'
+            ? running[running.length - 1]
+            : 0,
+      }
+    })
+  }, [lineupSetterSitByPlayer, lineupSetterSitSummary])
+  
   const currentBatchTotals = useMemo(
   () =>
     computeTotals(
@@ -629,6 +689,96 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     [lineupSetterFilteredTotals, currentBatchTotals, players]
   )
 
+    const lineupSetterFutureGamesWithLineups = useMemo(() => {
+    const previewGames = optimizerBatchGames.filter(
+      (game) => optimizerPreviewByGame[pk(game.id)]
+    )
+
+    return [...lineupSetterFilteredGamesWithLineups, ...previewGames]
+  }, [
+    lineupSetterFilteredGamesWithLineups,
+    optimizerBatchGames,
+    optimizerPreviewByGame,
+  ])
+
+  const lineupSetterFutureLineupsByGame = useMemo(() => {
+    const merged = { ...lineupsByGame }
+
+    Object.entries(optimizerPreviewByGame || {}).forEach(([gameId, lineup]) => {
+      if (lineup) merged[pk(gameId)] = lineup
+    })
+
+    return merged
+  }, [lineupsByGame, optimizerPreviewByGame])
+
+  const lineupSetterFutureSitSummary = useMemo(
+    () =>
+      buildSitOutSummary(
+        lineupSetterFutureGamesWithLineups,
+        lineupSetterFutureLineupsByGame,
+        activePlayers,
+        pk
+      ),
+    [
+      lineupSetterFutureGamesWithLineups,
+      lineupSetterFutureLineupsByGame,
+      activePlayers,
+    ]
+  )
+
+  const lineupSetterFutureSitByPlayer = useMemo(
+    () =>
+      buildPlayerSitOuts(
+        lineupSetterFutureGamesWithLineups,
+        lineupSetterFutureLineupsByGame,
+        activePlayers,
+        pk
+      ),
+    [
+      lineupSetterFutureGamesWithLineups,
+      lineupSetterFutureLineupsByGame,
+      activePlayers,
+    ]
+  )
+
+  const lineupSetterFutureComputedSitRows = useMemo(() => {
+    const avgByGame = (lineupSetterFutureSitSummary || []).map((g) => {
+      const value = Number(g?.avgSit)
+      return Number.isNaN(value) ? null : value
+    })
+
+    return (lineupSetterFutureSitByPlayer || []).map((row) => {
+      let runningTotal = 0
+
+      const deltaPerGame = (row.perGame || []).map((value, index) => {
+        if (value === 'x' || value === '' || value === null || value === undefined) return 'x'
+
+        const playerOuts = Number(value)
+        const avgSit = avgByGame[index]
+
+        if (Number.isNaN(playerOuts) || avgSit === null || Number.isNaN(avgSit)) return 'x'
+
+        return Number((avgSit - playerOuts).toFixed(2))
+      })
+
+      const running = deltaPerGame.map((value) => {
+        if (value === 'x') return 'x'
+        runningTotal = Number((runningTotal + Number(value)).toFixed(2))
+        return runningTotal
+      })
+
+      return {
+        ...row,
+        deltaPerGame,
+        running,
+        sitOutRunningTotal:
+          running.length && running[running.length - 1] !== 'x'
+            ? running[running.length - 1]
+            : 0,
+      }
+    })
+  }, [lineupSetterFutureSitByPlayer, lineupSetterFutureSitSummary])
+  
   const lockedLineupsOnly = useMemo(() => {
     return Object.entries(lineupsByGame)
       .filter(([gameId]) => lineupLockedByGame[pk(gameId)] === true)
@@ -1780,6 +1930,8 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     ytdBeforeTotals={lineupSetterFilteredTotals}
     currentBatchTotals={currentBatchTotals}
     ytdAfterTotals={lineupSetterFutureTotals}
+    ytdBeforeSitOutRows={lineupSetterComputedSitRows}
+    ytdAfterSitOutRows={lineupSetterFutureComputedSitRows}
     trackingSort={trackingSort}
     setTrackingSort={setTrackingSort}
     TrackingTable={TrackingTable}
