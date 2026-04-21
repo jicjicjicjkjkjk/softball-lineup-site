@@ -995,9 +995,9 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         opponent: opponent || null,
         innings: 6,
         status:
-          defaultStatusOption?.value ||
-          defaultStatusOption?.label ||
-          null,
+  defaultStatusOption?.value ||
+  defaultStatusOption?.label ||
+  'Planned',
         game_type: gameType || GAME_TYPES[0],
         season: season || null,
         game_order: nextOrder,
