@@ -173,6 +173,32 @@ export default function TrackingPage({
     return (gamesWithLineups || []).filter((g) => trackingGameIds.has(pk(g.id)))
   }, [gamesWithLineups, trackingGameIds, pk])
 
+const filterSummary = useMemo(() => {
+  const parts = []
+
+  if (trackingFilters?.seasons?.length) {
+    parts.push(`Season: ${trackingFilters.seasons.join(', ')}`)
+  }
+
+  if (trackingFilters?.gameTypes?.length) {
+    parts.push(`Type: ${trackingFilters.gameTypes.join(', ')}`)
+  }
+
+  if (trackingFilters?.lineupStates?.length) {
+    parts.push(`State: ${trackingFilters.lineupStates.join(', ')}`)
+  }
+
+  if (trackingFilters?.dateFrom) {
+    parts.push(`From: ${trackingFilters.dateFrom}`)
+  }
+
+  if (trackingFilters?.dateTo) {
+    parts.push(`To: ${trackingFilters.dateTo}`)
+  }
+
+  return parts.length ? parts.join(' | ') : 'All Games'
+}, [trackingFilters])
+  
   const sortedBattingRows = useMemo(() => {
     const rows = [...(battingRows || [])]
     return rows.sort((a, b) => {
@@ -314,6 +340,53 @@ export default function TrackingPage({
         <option value="Saved">Saved</option>
         <option value="Empty">Empty</option>
       </select>
+    </div>
+      {/* Date From */}
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 600 }}>Date From</div>
+      <input
+        type="date"
+        value={trackingFilters.dateFrom || ''}
+        onChange={(e) =>
+          setTrackingFilters((f) => ({
+            ...f,
+            dateFrom: e.target.value,
+          }))
+        }
+      />
+    </div>
+
+    {/* Date To */}
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 600 }}>Date To</div>
+      <input
+        type="date"
+        value={trackingFilters.dateTo || ''}
+        onChange={(e) =>
+          setTrackingFilters((f) => ({
+            ...f,
+            dateTo: e.target.value,
+          }))
+        }
+      />
+    </div>
+
+    {/* Clear Filters */}
+    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+      <button
+        type="button"
+        onClick={() =>
+          setTrackingFilters({
+            seasons: [],
+            gameTypes: [],
+            lineupStates: [],
+            dateFrom: '',
+            dateTo: '',
+          })
+        }
+      >
+        Clear Filters
+      </button>
     </div>
   </div>
 </div>
