@@ -12,6 +12,73 @@ function renderOptionValue(option) {
   return option.value || option.label || ''
 }
 
+function compareGamesAscLocal(a, b, pk) {
+  const aDate = a?.date || ''
+  const bDate = b?.date || ''
+  if (aDate !== bDate) return aDate.localeCompare(bDate)
+
+  const aOrder = Number(a?.game_order ?? 0)
+  const bOrder = Number(b?.game_order ?? 0)
+  if (aOrder !== bOrder) return aOrder - bOrder
+
+  return String(pk(a?.id)).localeCompare(String(pk(b?.id)))
+}
+
+function countPlayerOuts(lineup, playerId) {
+  const innings = Number(lineup?.innings || 0)
+  let total = 0
+
+  for (let inning = 1; inning <= innings; inning += 1) {
+    if (lineup?.cells?.[playerId]?.[inning] === 'Out') {
+      total += 1
+    }
+  }
+
+  return total
+}
+
+function buildSitOutRunningLookup(lineups, players, pk) {
+  const running = {}
+
+  ;(players || []).forEach((player) => {
+    running[pk(player.id)] = 0
+  })
+
+  ;(lineups || []).forEach((lineup) => {
+    const availableIds = (lineup?.availablePlayerIds || []).map(pk)
+    if (!availableIds.length) return
+
+    const totalSitOuts = availableIds.reduce((sum, playerId) => {
+      return sum + countPlayerOuts(lineup, playerId)
+    }, 0)
+
+    const avgSit = totalSitOuts / availableIds.length
+
+    availableIds.forEach((playerId) => {
+      const playerOuts = countPlayerOuts(lineup, playerId)
+      const delta = avgSit - playerOuts
+      running[playerId] = Number(((running[playerId] || 0) + delta).toFixed(2))
+    })
+  })
+
+  return running
+}
+
+function applySitOutRunningTotals(totals, lineups, players, pk) {
+  const runningLookup = buildSitOutRunningLookup(lineups, players, pk)
+  const next = { ...(totals || {}) }
+
+  ;(players || []).forEach((player) => {
+    const playerId = pk(player.id)
+    next[playerId] = {
+      ...(next[playerId] || {}),
+      sitOutRunningTotal: runningLookup[playerId] || 0,
+    }
+  })
+
+  return next
+}
+
 export default function LineupSetterPage({
   optimizerFocusLineup,
   optimizerFocusGame,
@@ -93,6 +160,45 @@ export default function LineupSetterPage({
       .join(' | ') || 'All Games'
 
   const visibleIds = optimizerFocusLineup?.availablePlayerIds || []
+
+  const orderedPlanGames = [...(optimizerBatchGames || [])].sort((a, b) =>
+    compareGamesAscLocal(a, b, pk)
+  )
+
+  const currentPlanLineupsOrdered = orderedPlanGames
+    .map((game) => {
+      return (
+        optimizerPreviewByGame[pk(game.id)] ||
+        lineupsByGame[pk(game.id)] ||
+        blankLineup(
+          activePlayers.map((p) => p.id),
+          Number(game.innings || 6),
+          activePlayerIds()
+        )
+      )
+    })
+    .filter(Boolean)
+
+  const filteredGamesBeforeTotalsWithRunning = applySitOutRunningTotals(
+    ytdBeforeTotals,
+    filteredLineups,
+    activePlayers,
+    pk
+  )
+
+  const currentPlanTotalsWithRunning = applySitOutRunningTotals(
+    currentBatchTotals,
+    currentPlanLineupsOrdered,
+    activePlayers,
+    pk
+  )
+
+  const filteredPlusPlanTotalsWithRunning = applySitOutRunningTotals(
+    ytdAfterTotals,
+    [...filteredLineups, ...currentPlanLineupsOrdered],
+    activePlayers,
+    pk
+  )
 
   return (
     <div className="stack">
@@ -276,9 +382,7 @@ export default function LineupSetterPage({
                           toggleLineupLocked(game.id, !lineupLockedByGame?.[pk(game.id)])
                         }
                       >
-                        {lineupLockedByGame?.[pk(game.id)]
-                          ? 'Unlock Lineup'
-                          : 'Lock Lineup'}
+                        {lineupLockedByGame?.[pk(game.id)] ? 'Unlock Lineup' : 'Lock Lineup'}
                       </button>
                     </td>
                     <td>
@@ -313,10 +417,7 @@ export default function LineupSetterPage({
                 <div className="actions-inline">
                   <button
                     onClick={() =>
-                      toggleLineupLocked(
-                        optimizerFocusGame.id,
-                        !optimizerFocusLocked
-                      )
+                      toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)
                     }
                   >
                     {optimizerFocusLocked ? 'Unlock Lineup' : 'Lock Lineup'}
@@ -363,9 +464,7 @@ export default function LineupSetterPage({
                       type="checkbox"
                       checked={(lineup.availablePlayerIds || []).includes(pk(player.id))}
                       disabled={optimizerFocusLocked}
-                      onChange={() =>
-                        togglePreviewAvailable(optimizerFocusGame.id, player.id)
-                      }
+                      onChange={() => togglePreviewAvailable(optimizerFocusGame.id, player.id)}
                     />
                     {player.name}
                   </label>
@@ -382,15 +481,9 @@ export default function LineupSetterPage({
                   {focusStatuses.map((status) => (
                     <div key={status.inning} className="summary-box">
                       <strong>Inning {status.inning}:</strong>{' '}
-                      {status.duplicate.length
-                        ? `Duplicate ${status.duplicate.join(', ')}. `
-                        : ''}
-                      {status.missing.length
-                        ? `Missing ${status.missing.join(', ')}. `
-                        : ''}
-                      {status.badFits.length
-                        ? `Disallowed ${status.badFits.join('; ')}. `
-                        : ''}
+                      {status.duplicate.length ? `Duplicate ${status.duplicate.join(', ')}. ` : ''}
+                      {status.missing.length ? `Missing ${status.missing.join(', ')}. ` : ''}
+                      {status.badFits.length ? `Disallowed ${status.badFits.join('; ')}. ` : ''}
                       {!status.duplicate.length &&
                       !status.missing.length &&
                       !status.badFits.length
@@ -541,7 +634,7 @@ export default function LineupSetterPage({
           <TrackingTable
             title="Filtered Games Before Current Plan"
             universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} games)`}
-            totals={ytdBeforeTotals}
+            totals={filteredGamesBeforeTotalsWithRunning}
             players={activePlayers}
             sortConfig={trackingSort}
             setSortConfig={setTrackingSort}
@@ -549,7 +642,7 @@ export default function LineupSetterPage({
 
           <TrackingTable
             title="Current Plan"
-            totals={currentBatchTotals}
+            totals={currentPlanTotalsWithRunning}
             players={activePlayers}
             sortConfig={trackingSort}
             setSortConfig={setTrackingSort}
@@ -557,8 +650,8 @@ export default function LineupSetterPage({
 
           <TrackingTable
             title="Filtered Games + Current Plan"
-            universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
-            totals={ytdAfterTotals}
+            universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} filtered games + ${optimizerBatchGames.length} plan games)`}
+            totals={filteredPlusPlanTotalsWithRunning}
             players={activePlayers}
             sortConfig={trackingSort}
             setSortConfig={setTrackingSort}
