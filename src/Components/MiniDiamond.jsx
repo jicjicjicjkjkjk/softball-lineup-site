@@ -51,25 +51,30 @@ export default function MiniDiamond({ status, lockedPositions = [] }) {
           }}
         >
           {lockedSet.has(pos) && (
-            <div
-              style={{
-                position: 'absolute',
-                top: -6,
-                right: -6,
-                width: 12,
-                height: 12,
-                borderRadius: 999,
-                background: '#0f172a',
-                color: '#fff',
-                fontSize: 8,
-                fontWeight: 700,
-                lineHeight: '12px',
-                textAlign: 'center',
-              }}
-            >
-              🔒
-            </div>
-          )}
+  <div
+    style={{
+      position: 'absolute',
+      top: -5,
+      right: -5,
+      width: 10,
+      height: 10,
+      borderRadius: 999,
+      background: '#1e293b',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
+    <div
+      style={{
+        width: 5,
+        height: 5,
+        borderRadius: 999,
+        background: '#22c55e',
+      }}
+    />
+  </div>
+)}
         </div>
       ))}
     </div>
