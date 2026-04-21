@@ -156,7 +156,7 @@ function isCompleteLineup(lineup) {
   async function loadAppOptions() {
     const res = await supabase
       .from('app_options')
-      .select('id, category, value, label, sort_order, is_active')
+      .select('id, category, value, label, sort_order, is_active, is_default')
       .order('category', { ascending: true })
       .order('sort_order', { ascending: true })
 
@@ -217,12 +217,27 @@ function isCompleteLineup(lineup) {
     const saved = (appOptions.status || []).filter((x) => x.is_active)
     if (saved.length) return saved
 
+      const defaultSeasonOption = useMemo(
+    () => (seasonOptions || []).find((x) => x.is_default),
+    [seasonOptions]
+  )
+
+  const defaultGameTypeOption = useMemo(
+    () => (gameTypeOptions || []).find((x) => x.is_default),
+    [gameTypeOptions]
+  )
+
+  const defaultStatusOption = useMemo(
+    () => (statusOptions || []).find((x) => x.is_default),
+    [statusOptions]
+  )
     return [
       buildDefaultOption('Planned', 'status', 1),
       buildDefaultOption('Complete', 'status', 2),
       buildDefaultOption('Cancelled', 'status', 3),
     ]
   }, [appOptions])
+
 
   function getGameLineupState(game) {
     if (lineupLockedByGame[pk(game.id)]) return 'Locked'
@@ -462,6 +477,30 @@ function isCompleteLineup(lineup) {
   useEffect(() => {
     loadAll()
   }, [])
+
+  useEffect(() => {
+    if (!newGameSeason && defaultSeasonOption) {
+      setNewGameSeason(defaultSeasonOption.value || defaultSeasonOption.label || '')
+    }
+  }, [defaultSeasonOption, newGameSeason])
+
+  useEffect(() => {
+    if (!newGameType && defaultGameTypeOption) {
+      setNewGameType(defaultGameTypeOption.value || defaultGameTypeOption.label || '')
+    }
+  }, [defaultGameTypeOption, newGameType])
+
+  useEffect(() => {
+    if (!optimizerNewSeason && defaultSeasonOption) {
+      setOptimizerNewSeason(defaultSeasonOption.value || defaultSeasonOption.label || '')
+    }
+  }, [defaultSeasonOption, optimizerNewSeason])
+
+  useEffect(() => {
+    if (!optimizerNewType && defaultGameTypeOption) {
+      setOptimizerNewType(defaultGameTypeOption.value || defaultGameTypeOption.label || '')
+    }
+  }, [defaultGameTypeOption, optimizerNewType])
   
   const selectedGame = useMemo(
     () => games.find((game) => pk(game.id) === pk(selectedGameId)) || null,
@@ -954,7 +993,10 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         game_date: date || null,
         opponent: opponent || null,
         innings: 6,
-        status: 'Planned',
+        status:
+          defaultStatusOption?.value ||
+          defaultStatusOption?.label ||
+          null,
         game_type: gameType || GAME_TYPES[0],
         season: season || null,
         game_order: nextOrder,
