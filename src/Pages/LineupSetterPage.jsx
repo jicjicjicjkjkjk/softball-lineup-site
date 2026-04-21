@@ -127,6 +127,8 @@ export default function LineupSetterPage({
   ytdBeforeTotals,
   currentBatchTotals,
   ytdAfterTotals,
+  ytdBeforeSitOutRows = [],
+  ytdAfterSitOutRows = [],
   trackingSort,
   setTrackingSort,
   TrackingTable,
