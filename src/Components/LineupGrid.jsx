@@ -33,21 +33,28 @@ export default function LineupGrid({
           <th>Batting Order</th>
           {showLocks && <th>Lock</th>}
           {Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
-            const status = inningStatus(lineup, inning, players, fitMap)
+  const status = inningStatus(lineup, inning, players, fitMap)
 
-// detect if ANY player has a locked cell in this inning
-const inningLocked = players.some((p) => {
-  const id = pk(p.id)
-  return lineup?.lockedCells?.[id]?.[inning] === true
-})
+  const lockedPositions = (players || []).reduce((acc, player) => {
+    const id = pk(player.id)
+    const value = lineup?.cells?.[id]?.[inning] || ''
+    const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
+    const rowLocked = lineup?.lockedRows?.[id] === true
 
-return (
-  <th key={inning}>
-    <MiniDiamond status={status} locked={inningLocked} />
-                <div style={{ marginTop: 4 }}>{inning}</div>
-              </th>
-            )
-          })}
+    if ((cellLocked || rowLocked) && FIELD_POSITIONS.includes(value) && !acc.includes(value)) {
+      acc.push(value)
+    }
+
+    return acc
+  }, [])
+
+  return (
+    <th key={inning}>
+      <MiniDiamond status={status} lockedPositions={lockedPositions} />
+      <div style={{ marginTop: 4 }}>{inning}</div>
+    </th>
+  )
+})}
           <th>IF</th>
           <th>OF</th>
           <th>P</th>
