@@ -202,13 +202,13 @@ export default function GameDetailPage({
           <table className="print-table-compact lineup-print-table">
             <thead>
               <tr>
-                <th>#</th>
-                <th>Player</th>
-                <th>Batting Order</th>
-                {Array.from({ length: Number(selectedLineup.innings || 0) }, (_, i) => (
-                  <th key={i + 1}>{i + 1}</th>
-                ))}
-              </tr>
+  <th>Batting Order</th>
+  <th>Player</th>
+  <th>#</th>
+  {Array.from({ length: Number(selectedLineup.innings || 0) }, (_, i) => (
+    <th key={i + 1}>{i + 1}</th>
+  ))}
+</tr>
             </thead>
             <tbody>
               {printPlayers.map((player) => {
@@ -216,9 +216,9 @@ export default function GameDetailPage({
 
                 return (
                   <tr key={playerId}>
-                    <td>{player.jersey_number || ''}</td>
-                    <td>{player.name}</td>
-                    <td>{selectedLineup?.battingOrder?.[playerId] || ''}</td>
+  <td>{selectedLineup?.battingOrder?.[playerId] || ''}</td>
+  <td>{player.name}</td>
+  <td>{player.jersey_number || ''}</td>
 
                     {Array.from({ length: Number(selectedLineup.innings || 0) }, (_, i) => {
                       const inning = i + 1
