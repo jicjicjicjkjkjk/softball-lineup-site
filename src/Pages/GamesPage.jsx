@@ -1,5 +1,3 @@
-import { formatDateShort } from '../lib/appHelpers'
-
 function renderOptionLabel(option) {
   if (!option) return ''
   if (typeof option === 'string') return option
@@ -150,7 +148,10 @@ export default function GamesPage({
                 <th onClick={() => nextSort('game_order')} style={{ cursor: 'pointer' }}>
                   Order
                 </th>
-                <th onClick={() => nextSort('opponent')} style={{ cursor: 'pointer', textAlign: 'left' }}>
+                <th
+                  onClick={() => nextSort('opponent')}
+                  style={{ cursor: 'pointer', textAlign: 'left' }}
+                >
                   Opponent
                 </th>
                 <th onClick={() => nextSort('game_type')} style={{ cursor: 'pointer' }}>
@@ -275,46 +276,6 @@ export default function GamesPage({
               {!sortedGames.length && (
                 <tr>
                   <td colSpan="10">No games yet.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Quick View</h3>
-        <div className="table-scroll">
-          <table className="table-center" style={{ minWidth: 950 }}>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Order</th>
-                <th style={{ textAlign: 'left' }}>Opponent</th>
-                <th>Type</th>
-                <th>Season</th>
-                <th>Innings</th>
-                <th>Status</th>
-                <th>Lineup</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedGames.map((game) => (
-                <tr key={`${game.id}-summary`}>
-                  <td>{formatDateShort(game.date)}</td>
-                  <td>{game.game_order ?? ''}</td>
-                  <td style={{ textAlign: 'left' }}>{game.opponent || ''}</td>
-                  <td>{game.game_type || ''}</td>
-                  <td>{game.season || ''}</td>
-                  <td>{game.innings || ''}</td>
-                  <td>{game.status || ''}</td>
-                  <td>{game.lineupState || ''}</td>
-                </tr>
-              ))}
-
-              {!sortedGames.length && (
-                <tr>
-                  <td colSpan="8">No games yet.</td>
                 </tr>
               )}
             </tbody>
