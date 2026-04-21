@@ -682,14 +682,14 @@ export default function TrackingPage({
       </div>
 
       <TrackingTable
-        title="Tracking Totals"
-        universeLabel={`${trackingLockedLineups.length} locked games`}
-        totals={trackingTotals}
-        sitOutRows={computedSitRows}
-        players={activePlayers}
-        sortConfig={trackingSort}
-        setSortConfig={setTrackingSort}
-      />
+  title="Tracking Totals"
+  universeLabel={`${trackingGames.length} games (filtered)`}
+  totals={trackingTotals}
+  sitOutRows={computedSitRows}
+  players={activePlayers}
+  sortConfig={trackingSort}
+  setSortConfig={setTrackingSort}
+/>
 
       <div className="card tracking-card">
         <h3>Tracking vs Positioning Priority</h3>
