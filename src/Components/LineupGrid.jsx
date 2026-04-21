@@ -34,9 +34,16 @@ export default function LineupGrid({
           {showLocks && <th>Lock</th>}
           {Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
             const status = inningStatus(lineup, inning, players, fitMap)
-            return (
-              <th key={inning}>
-                <MiniDiamond status={status} />
+
+// detect if ANY player has a locked cell in this inning
+const inningLocked = players.some((p) => {
+  const id = pk(p.id)
+  return lineup?.lockedCells?.[id]?.[inning] === true
+})
+
+return (
+  <th key={inning}>
+    <MiniDiamond status={status} locked={inningLocked} />
                 <div style={{ marginTop: 4 }}>{inning}</div>
               </th>
             )
