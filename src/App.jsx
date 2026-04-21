@@ -106,11 +106,25 @@ export default function App() {
   })
 
   const [trackingPlayerId, setTrackingPlayerId] = useState('')
-  const [trackingFilters, setTrackingFilters] = useState({
+
+const [trackingFilters, setTrackingFilters] = useState(() => {
+  try {
+    const saved = sessionStorage.getItem('softball-lineup-tracking-filters')
+    if (saved) {
+      return JSON.parse(saved)
+    }
+  } catch (error) {
+    console.error('Failed to load tracking filters from sessionStorage', error)
+  }
+
+  return {
     seasons: [],
     gameTypes: [],
     lineupStates: [],
-  })
+    dateFrom: '',
+    dateTo: '',
+  }
+})
   
   const [attendanceDate, setAttendanceDate] = useState('')
   const [attendanceSeason, setAttendanceSeason] = useState(ATTENDANCE_SEASON_OPTIONS[0])
@@ -202,17 +216,24 @@ export default function App() {
   }
 
   function gameMatchesFilters(game, filters) {
-    const seasons = filters?.seasons || []
-    const gameTypes = filters?.gameTypes || []
-    const lineupStates = filters?.lineupStates || []
+  const seasons = filters?.seasons || []
+  const gameTypes = filters?.gameTypes || []
+  const lineupStates = filters?.lineupStates || []
+  const dateFrom = filters?.dateFrom || ''
+  const dateTo = filters?.dateTo || ''
 
-    const seasonMatch = !seasons.length || seasons.includes(game.season || '')
-    const typeMatch = !gameTypes.length || gameTypes.includes(game.game_type || '')
-    const lineupStateMatch =
-      !lineupStates.length || lineupStates.includes(getGameLineupState(game))
+  const gameDate = game?.date || ''
 
-    return seasonMatch && typeMatch && lineupStateMatch
-  }
+  const seasonMatch = !seasons.length || seasons.includes(game.season || '')
+  const typeMatch = !gameTypes.length || gameTypes.includes(game.game_type || '')
+  const lineupStateMatch =
+    !lineupStates.length || lineupStates.includes(getGameLineupState(game))
+
+  const fromMatch = !dateFrom || (gameDate && gameDate >= dateFrom)
+  const toMatch = !dateTo || (gameDate && gameDate <= dateTo)
+
+  return seasonMatch && typeMatch && lineupStateMatch && fromMatch && toMatch
+}
   
   async function persistLineup(gameId, lineup, nextLocked = null) {
     const existing = await supabase
@@ -413,8 +434,15 @@ export default function App() {
   }
 
   useEffect(() => {
-    loadAll()
-  }, [])
+  try {
+    sessionStorage.setItem(
+      'softball-lineup-tracking-filters',
+      JSON.stringify(trackingFilters)
+    )
+  } catch (error) {
+    console.error('Failed to save tracking filters to sessionStorage', error)
+  }
+}, [trackingFilters])
 
   const selectedGame = useMemo(
     () => games.find((game) => pk(game.id) === pk(selectedGameId)) || null,
