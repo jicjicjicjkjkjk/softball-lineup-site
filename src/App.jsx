@@ -1113,7 +1113,7 @@ const trackingSitByPlayer = useMemo(
       return
     }
 
-    let rollingTotals = JSON.parse(JSON.stringify(ytdBeforeTotals))
+    let rollingTotals = JSON.parse(JSON.stringify(lineupSetterFilteredTotals))
     const next = {}
 
     const orderedGames = [...optimizerBatchGames].sort((a, b) => {
@@ -1176,10 +1176,10 @@ const trackingSitByPlayer = useMemo(
       .map(([, lineup]) => lineup)
 
     const totalsBeforeThisGame = addTotals(
-      ytdBeforeTotals,
-      computeTotals(otherPreviewLineups, players),
-      players
-    )
+  lineupSetterFilteredTotals,
+  computeTotals(otherPreviewLineups, players),
+  players
+)
 
     const source =
       optimizerPreviewByGame[pk(game.id)] ||
@@ -1693,84 +1693,90 @@ const trackingSitByPlayer = useMemo(
         )}
 
         {page === 'lineup-setter' && (
-          <LineupSetterPage
-            optimizerFocusLineup={optimizerFocusLineup}
-            optimizerFocusGame={optimizerFocusGame}
-            optimizerFocusLocked={optimizerFocusLocked}
-            toggleLineupLocked={toggleLineupLocked}
-            lineupLockedByGame={lineupLockedByGame}
-            optimizerExistingGameId={optimizerExistingGameId}
-            setOptimizerExistingGameId={setOptimizerExistingGameId}
-            games={games}
-            addExistingGameToBatch={addExistingGameToBatch}
-            optimizerNewDate={optimizerNewDate}
-            setOptimizerNewDate={setOptimizerNewDate}
-            optimizerNewOpponent={optimizerNewOpponent}
-            setOptimizerNewOpponent={setOptimizerNewOpponent}
-            optimizerNewType={optimizerNewType}
-            setOptimizerNewType={setOptimizerNewType}
-            optimizerNewSeason={optimizerNewSeason}
-            setOptimizerNewSeason={setOptimizerNewSeason}
-            gameTypeOptions={gameTypeOptions}
-            seasonOptions={seasonOptions}
-            addGameFromOptimizer={addGameFromOptimizer}
-            runOptimizeCurrent={runOptimizeCurrent}
-            optimizerFocusGameId={optimizerFocusGameId}
-            runOptimizeAll={runOptimizeAll}
-            optimizerBatchGames={optimizerBatchGames}
-            optimizerPreviewByGame={optimizerPreviewByGame}
-            lineupsByGame={lineupsByGame}
-            activePlayers={activePlayers}
-            activePlayerIds={activePlayerIds}
-            requiredOutsForGame={requiredOutsForGame}
-            setOptimizerFocusGameId={setOptimizerFocusGameId}
-            savePreview={savePreview}
-            removeBatchGame={removeBatchGame}
-            addPreviewInning={addPreviewInning}
-            removePreviewInning={removePreviewInning}
-            togglePreviewAvailable={togglePreviewAvailable}
-            LineupGrid={LineupGrid}
-            fitByPlayer={fitByPlayer}
-            updatePreviewCell={updatePreviewCell}
-            updatePreviewBatting={updatePreviewBatting}
-            togglePreviewCellLock={togglePreviewCellLock}
-            togglePreviewRowLock={togglePreviewRowLock}
-            lockedLineupsOnly={lockedLineupsOnly}
-            ytdBeforeTotals={ytdBeforeTotals}
-            currentBatchTotals={currentBatchTotals}
-            ytdAfterTotals={ytdAfterTotals}
-            trackingSort={trackingSort}
-            setTrackingSort={setTrackingSort}
-            TrackingTable={TrackingTable}
-            blankLineup={blankLineup}
-            pk={pk}
-            inningStatus={inningStatus}
-            trackingPriorityRows={trackingPriorityRows}
-          />
-        )}
+  <LineupSetterPage
+    optimizerFocusLineup={optimizerFocusLineup}
+    optimizerFocusGame={optimizerFocusGame}
+    optimizerFocusLocked={optimizerFocusLocked}
+    toggleLineupLocked={toggleLineupLocked}
+    lineupLockedByGame={lineupLockedByGame}
+    optimizerExistingGameId={optimizerExistingGameId}
+    setOptimizerExistingGameId={setOptimizerExistingGameId}
+    games={games}
+    addExistingGameToBatch={addExistingGameToBatch}
+    optimizerNewDate={optimizerNewDate}
+    setOptimizerNewDate={setOptimizerNewDate}
+    optimizerNewOpponent={optimizerNewOpponent}
+    setOptimizerNewOpponent={setOptimizerNewOpponent}
+    optimizerNewType={optimizerNewType}
+    setOptimizerNewType={setOptimizerNewType}
+    optimizerNewSeason={optimizerNewSeason}
+    setOptimizerNewSeason={setOptimizerNewSeason}
+    gameTypeOptions={gameTypeOptions}
+    seasonOptions={seasonOptions}
+    trackingFilters={trackingFilters}
+    setTrackingFilters={setTrackingFilters}
+    addGameFromOptimizer={addGameFromOptimizer}
+    runOptimizeCurrent={runOptimizeCurrent}
+    optimizerFocusGameId={optimizerFocusGameId}
+    runOptimizeAll={runOptimizeAll}
+    optimizerBatchGames={optimizerBatchGames}
+    optimizerPreviewByGame={optimizerPreviewByGame}
+    lineupsByGame={lineupsByGame}
+    activePlayers={activePlayers}
+    activePlayerIds={activePlayerIds}
+    requiredOutsForGame={requiredOutsForGame}
+    setOptimizerFocusGameId={setOptimizerFocusGameId}
+    savePreview={savePreview}
+    removeBatchGame={removeBatchGame}
+    addPreviewInning={addPreviewInning}
+    removePreviewInning={removePreviewInning}
+    togglePreviewAvailable={togglePreviewAvailable}
+    LineupGrid={LineupGrid}
+    fitByPlayer={fitByPlayer}
+    updatePreviewCell={updatePreviewCell}
+    updatePreviewBatting={updatePreviewBatting}
+    togglePreviewCellLock={togglePreviewCellLock}
+    togglePreviewRowLock={togglePreviewRowLock}
+    lockedLineupsOnly={lineupSetterFilteredLockedLineups}
+    ytdBeforeTotals={lineupSetterFilteredTotals}
+    currentBatchTotals={currentBatchTotals}
+    ytdAfterTotals={lineupSetterFutureTotals}
+    trackingSort={trackingSort}
+    setTrackingSort={setTrackingSort}
+    TrackingTable={TrackingTable}
+    blankLineup={blankLineup}
+    pk={pk}
+    inningStatus={inningStatus}
+    trackingPriorityRows={trackingPriorityRows}
+  />
+)}
 
         {page === 'tracking' && (
-          <TrackingPage
-            trackingLockedLineups={trackingLockedLineups}
-            trackingTotals={trackingTotals}
-            trackingSitByPlayer={trackingSitByPlayer}
-            trackingSitSummary={trackingSitSummary}
-            activePlayers={activePlayers}
-            trackingSort={trackingSort}
-            setTrackingSort={setTrackingSort}
-            TrackingTable={TrackingTable}
-            battingRows={battingRows}
-            sitSummary={sitSummary}
-            sitByPlayer={sitByPlayer}
-            gamesWithLineups={gamesWithLineups}
-            trackingPlayerId={trackingPlayerId}
-            setTrackingPlayerId={setTrackingPlayerId}
-            selectedPlayerPositions={selectedPlayerPositions}
-            trackingPriorityRows={trackingPriorityRows}
-            pk={pk}
-          />
-        )}
-
+  <TrackingPage
+    trackingLockedLineups={trackingLockedLineups}
+    trackingTotals={trackingTotals}
+    trackingSitByPlayer={trackingSitByPlayer}
+    trackingSitSummary={trackingSitSummary}
+    activePlayers={activePlayers}
+    trackingSort={trackingSort}
+    setTrackingSort={setTrackingSort}
+    trackingFilters={trackingFilters}
+    setTrackingFilters={setTrackingFilters}
+    seasonOptions={seasonOptions}
+    gameTypeOptions={gameTypeOptions}
+    TrackingTable={TrackingTable}
+    battingRows={battingRows}
+    sitSummary={sitSummary}
+    sitByPlayer={sitByPlayer}
+    gamesWithLineups={filteredTrackingGamesWithLineups}
+    trackingPlayerId={trackingPlayerId}
+    setTrackingPlayerId={setTrackingPlayerId}
+    selectedPlayerPositions={selectedPlayerPositions}
+    trackingPriorityRows={trackingPriorityRows}
+    pk={pk}
+  />
+)}
+        
         {page === 'attendance' && renderAttendancePage()}
 
         {page === 'admin' && (
