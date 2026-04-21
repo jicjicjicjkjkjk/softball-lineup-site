@@ -578,9 +578,17 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
   }, [orderedGamesAsc, trackingFilters])
 
   const lineupSetterFilteredGamesWithLineups = useMemo(() => {
-    return lineupSetterFilteredGames.filter((game) => lineupsByGame[pk(game.id)])
-  }, [lineupSetterFilteredGames, lineupsByGame])
+  return lineupSetterFilteredGamesExcludingBatch.filter(
+    (game) => lineupsByGame[pk(game.id)]
+  )
+}, [lineupSetterFilteredGamesExcludingBatch, lineupsByGame])
 
+  const lineupSetterFilteredGamesExcludingBatch = useMemo(() => {
+  return lineupSetterFilteredGames.filter(
+    (game) => !optimizerBatchGameIds.includes(pk(game.id))
+  )
+}, [lineupSetterFilteredGames, optimizerBatchGameIds])
+  
   const lineupSetterFilteredLineups = useMemo(() => {
     return lineupSetterFilteredGamesWithLineups
       .map((game) => lineupsByGame[pk(game.id)])
