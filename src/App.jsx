@@ -1677,6 +1677,26 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     })
   }
 
+  function toggleSavedCellLock(gameId, playerId, inning) {
+    updateSavedLineup(gameId, (lineup) => {
+      if (!lineup.lockedCells[pk(playerId)]) {
+        lineup.lockedCells[pk(playerId)] = {}
+      }
+      lineup.lockedCells[pk(playerId)][inning] =
+        !lineup.lockedCells[pk(playerId)][inning]
+      autoSave(gameId, lineup)
+      return lineup
+    })
+  }
+
+  function toggleSavedRowLock(gameId, playerId) {
+    updateSavedLineup(gameId, (lineup) => {
+      lineup.lockedRows[pk(playerId)] = !lineup.lockedRows[pk(playerId)]
+      autoSave(gameId, lineup)
+      return lineup
+    })
+  }
+  
   async function addAttendanceEvent() {
     const res = await supabase
       .from('attendance_events')
