@@ -444,6 +444,10 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
   }
 }, [trackingFilters])
 
+  useEffect(() => {
+    loadAll()
+  }, [])
+  
   const selectedGame = useMemo(
     () => games.find((game) => pk(game.id) === pk(selectedGameId)) || null,
     [games, selectedGameId]
@@ -569,21 +573,35 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
     [optimizerPreviewByGame, optimizerFocusGameId]
   )
 
-    const lineupSetterFilteredGames = useMemo(() => {
+      const lineupSetterFilteredGames = useMemo(() => {
     return orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters))
   }, [orderedGamesAsc, trackingFilters])
 
-  const lineupSetterFilteredLockedGames = useMemo(() => {
-    return lineupSetterFilteredGames.filter((game) => lineupLockedByGame[pk(game.id)] === true)
-  }, [lineupSetterFilteredGames, lineupLockedByGame])
+  const lineupSetterFilteredGamesWithLineups = useMemo(() => {
+    return lineupSetterFilteredGames.filter((game) => lineupsByGame[pk(game.id)])
+  }, [lineupSetterFilteredGames, lineupsByGame])
 
-  const lineupSetterFilteredLockedLineups = useMemo(() => {
-    return lineupSetterFilteredLockedGames
+  const lineupSetterFilteredLineups = useMemo(() => {
+    return lineupSetterFilteredGamesWithLineups
       .map((game) => lineupsByGame[pk(game.id)])
       .filter(Boolean)
-  }, [lineupSetterFilteredLockedGames, lineupsByGame])
+  }, [lineupSetterFilteredGamesWithLineups, lineupsByGame])
 
-  
+  const lineupSetterFilteredTotals = useMemo(
+    () => computeTotals(lineupSetterFilteredLineups, players),
+    [lineupSetterFilteredLineups, players]
+  )
+
+  const currentBatchTotals = useMemo(
+    () => computeTotals(Object.values(optimizerPreviewByGame), players),
+    [optimizerPreviewByGame, players]
+  )
+
+  const lineupSetterFutureTotals = useMemo(
+    () => addTotals(lineupSetterFilteredTotals, currentBatchTotals, players),
+    [lineupSetterFilteredTotals, currentBatchTotals, players]
+  )
+
   const lockedLineupsOnly = useMemo(() => {
     return Object.entries(lineupsByGame)
       .filter(([gameId]) => lineupLockedByGame[pk(gameId)] === true)
@@ -595,95 +613,61 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
     [lockedLineupsOnly, players]
   )
 
-  const currentBatchTotals = useMemo(
-    () => computeTotals(Object.values(optimizerPreviewByGame), players),
-    [optimizerPreviewByGame, players]
-  )
-
-  const lineupSetterFilteredTotals = useMemo(
-    () => computeTotals(lineupSetterFilteredLockedLineups, players),
-    [lineupSetterFilteredLockedLineups, players]
-  )
-
-  const lineupSetterFutureTotals = useMemo(
-    () => addTotals(lineupSetterFilteredTotals, currentBatchTotals, players),
-    [lineupSetterFilteredTotals, currentBatchTotals, players]
-  )
-  
   const ytdAfterTotals = useMemo(
     () => addTotals(ytdBeforeTotals, currentBatchTotals, players),
     [ytdBeforeTotals, currentBatchTotals, players]
   )
 
-  const gamesWithLineups = useMemo(
-    () => orderedGamesAsc.filter((g) => lineupsByGame[pk(g.id)]),
-    [orderedGamesAsc, lineupsByGame]
-  )
+  const filteredTrackingGames = useMemo(() => {
+    return orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters))
+  }, [orderedGamesAsc, trackingFilters])
+
+  const filteredTrackingGamesWithLineups = useMemo(() => {
+    return filteredTrackingGames.filter((game) => lineupsByGame[pk(game.id)])
+  }, [filteredTrackingGames, lineupsByGame])
+
+  const filteredTrackingLineups = useMemo(() => {
+    return filteredTrackingGamesWithLineups
+      .map((game) => lineupsByGame[pk(game.id)])
+      .filter(Boolean)
+  }, [filteredTrackingGamesWithLineups, lineupsByGame])
 
   const battingRows = useMemo(
-    () => buildBattingOrderMatrix(gamesWithLineups, lineupsByGame, activePlayers, pk),
-    [gamesWithLineups, lineupsByGame, activePlayers]
+    () =>
+      buildBattingOrderMatrix(
+        filteredTrackingGamesWithLineups,
+        lineupsByGame,
+        activePlayers,
+        pk
+      ),
+    [filteredTrackingGamesWithLineups, lineupsByGame, activePlayers]
   )
 
   const sitSummary = useMemo(
-    () => buildSitOutSummary(gamesWithLineups, lineupsByGame, activePlayers, pk),
-    [gamesWithLineups, lineupsByGame, activePlayers]
+    () =>
+      buildSitOutSummary(
+        filteredTrackingGamesWithLineups,
+        lineupsByGame,
+        activePlayers,
+        pk
+      ),
+    [filteredTrackingGamesWithLineups, lineupsByGame, activePlayers]
   )
 
   const sitByPlayer = useMemo(
-    () => buildPlayerSitOuts(gamesWithLineups, lineupsByGame, activePlayers, pk),
-    [gamesWithLineups, lineupsByGame, activePlayers]
+    () =>
+      buildPlayerSitOuts(
+        filteredTrackingGamesWithLineups,
+        lineupsByGame,
+        activePlayers,
+        pk
+      ),
+    [filteredTrackingGamesWithLineups, lineupsByGame, activePlayers]
   )
 
- const filteredTrackingGames = useMemo(() => {
-  return orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters))
-}, [orderedGamesAsc, trackingFilters])
-
-const filteredTrackingGamesWithLineups = useMemo(() => {
-  return filteredTrackingGames.filter((g) => lineupsByGame[pk(g.id)])
-}, [filteredTrackingGames, lineupsByGame])
-
-const filteredTrackingLockedGames = useMemo(() => {
-  return filteredTrackingGames.filter((g) => lineupLockedByGame[pk(g.id)] === true)
-}, [filteredTrackingGames, lineupLockedByGame])
-
-const trackingLockedLineups = useMemo(() => {
-  return filteredTrackingLockedGames
-    .map((game) => lineupsByGame[pk(game.id)])
-    .filter(Boolean)
-}, [filteredTrackingLockedGames, lineupsByGame])
-
-const trackingSitSummary = useMemo(
-  () => buildSitOutSummary(filteredTrackingLockedGames, lineupsByGame, activePlayers, pk),
-  [filteredTrackingLockedGames, lineupsByGame, activePlayers]
-)
-
-const trackingSitByPlayer = useMemo(
-  () => buildPlayerSitOuts(filteredTrackingLockedGames, lineupsByGame, activePlayers, pk),
-  [filteredTrackingLockedGames, lineupsByGame, activePlayers]
-)
-  
   const trackingTotals = useMemo(() => {
-    const baseTotals = computeTotals(trackingLockedLineups, players)
-    const nextTotals = { ...baseTotals }
-
-    ;(trackingSitByPlayer || []).forEach((row) => {
-      const playerId = pk(row.playerId)
-      const runningValues = (row.running || []).filter(
-        (v) => v !== 'x' && v !== '' && v !== null && v !== undefined
-      )
-      const sitOutRunningTotal = runningValues.length
-        ? runningValues[runningValues.length - 1]
-        : 0
-
-      nextTotals[playerId] = {
-        ...(nextTotals[playerId] || {}),
-        sitOutRunningTotal,
-      }
-    })
-
-    return nextTotals
-  }, [trackingLockedLineups, players, trackingSitByPlayer, pk])
+    return computeTotals(filteredTrackingLineups, players)
+  }, [filteredTrackingLineups, players])
 
   const selectedPlayerPositions = useMemo(() => {
     if (!trackingPlayerId) return []
@@ -1765,7 +1749,7 @@ const trackingSitByPlayer = useMemo(
     updatePreviewBatting={updatePreviewBatting}
     togglePreviewCellLock={togglePreviewCellLock}
     togglePreviewRowLock={togglePreviewRowLock}
-    lockedLineupsOnly={lineupSetterFilteredLockedLineups}
+    lockedLineupsOnly={lineupSetterFilteredLineups}
     ytdBeforeTotals={lineupSetterFilteredTotals}
     currentBatchTotals={currentBatchTotals}
     ytdAfterTotals={lineupSetterFutureTotals}
@@ -1779,31 +1763,31 @@ const trackingSitByPlayer = useMemo(
   />
 )}
 
-        {page === 'tracking' && (
-  <TrackingPage
-    trackingLockedLineups={trackingLockedLineups}
-    trackingTotals={trackingTotals}
-    trackingSitByPlayer={trackingSitByPlayer}
-    trackingSitSummary={trackingSitSummary}
-    activePlayers={activePlayers}
-    trackingSort={trackingSort}
-    setTrackingSort={setTrackingSort}
-    trackingFilters={trackingFilters}
-    setTrackingFilters={setTrackingFilters}
-    seasonOptions={seasonOptions}
-    gameTypeOptions={gameTypeOptions}
-    TrackingTable={TrackingTable}
-    battingRows={battingRows}
-    sitSummary={sitSummary}
-    sitByPlayer={sitByPlayer}
-    gamesWithLineups={filteredTrackingGamesWithLineups}
-    trackingPlayerId={trackingPlayerId}
-    setTrackingPlayerId={setTrackingPlayerId}
-    selectedPlayerPositions={selectedPlayerPositions}
-    trackingPriorityRows={trackingPriorityRows}
-    pk={pk}
-  />
-)}
+                {page === 'tracking' && (
+          <TrackingPage
+            trackingLockedLineups={filteredTrackingLineups}
+            trackingTotals={trackingTotals}
+            trackingSitByPlayer={sitByPlayer}
+            trackingSitSummary={sitSummary}
+            activePlayers={activePlayers}
+            trackingSort={trackingSort}
+            setTrackingSort={setTrackingSort}
+            trackingFilters={trackingFilters}
+            setTrackingFilters={setTrackingFilters}
+            seasonOptions={seasonOptions}
+            gameTypeOptions={gameTypeOptions}
+            TrackingTable={TrackingTable}
+            battingRows={battingRows}
+            sitSummary={sitSummary}
+            sitByPlayer={sitByPlayer}
+            gamesWithLineups={filteredTrackingGamesWithLineups}
+            trackingPlayerId={trackingPlayerId}
+            setTrackingPlayerId={setTrackingPlayerId}
+            selectedPlayerPositions={selectedPlayerPositions}
+            trackingPriorityRows={trackingPriorityRows}
+            pk={pk}
+          />
+        )}
         
         {page === 'attendance' && renderAttendancePage()}
 
