@@ -69,7 +69,13 @@ export default function LineupGrid({
           const rowLocked = lineup?.lockedRows?.[id] === true
 
           return (
-            <tr key={id}>
+            <<tr
+  key={id}
+  style={{
+    background: rowLocked ? '#f8fafc' : undefined,
+    opacity: rowLocked ? 0.88 : 1,
+  }}
+>
               <td>{player.jersey_number || ''}</td>
               <td>{player.name}</td>
               <td>
