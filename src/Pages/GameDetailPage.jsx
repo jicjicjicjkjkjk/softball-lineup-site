@@ -53,9 +53,8 @@ export default function GameDetailPage({
   LineupGrid,
   updateSavedCell,
   updateSavedBatting,
-  toggleSavedAvailable={toggleSavedAvailable}
-  toggleSavedCellLock={togglePreviewCellLock}
-  toggleSavedRowLock={togglePreviewRowLock}
+  toggleSavedCellLock,
+  toggleSavedRowLock,
   pk,
 }) {
   
