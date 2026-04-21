@@ -1789,7 +1789,7 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
           />
         )}
         
-        {page === 'attendance' && renderAttendancePage()}
+                {page === 'attendance' && renderAttendancePage()}
 
         {page === 'admin' && (
           <AdminPage
