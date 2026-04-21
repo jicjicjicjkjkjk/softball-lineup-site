@@ -6,6 +6,7 @@ function blankForm(category = 'season') {
     name: '',
     sort_order: '',
     is_active: true,
+    is_default: false,
   }
 }
 
@@ -34,12 +35,20 @@ export default function AdminPage({
     const name = String(form.name || '').trim()
     if (!name) return
 
+    if (form.is_default) {
+      const rows = (appOptions?.[form.category] || []).filter((row) => row.is_default)
+      for (const row of rows) {
+        await updateAppOption(row.id, { is_default: false })
+      }
+    }
+
     await addAppOption({
       category: form.category,
       label: name,
       value: normalizeValue(name),
       sort_order: form.sort_order === '' ? 999 : Number(form.sort_order),
       is_active: form.is_active !== false,
+      is_default: form.is_default === true,
     })
 
     resetForm(blankForm(form.category))
@@ -48,6 +57,20 @@ export default function AdminPage({
 
   async function toggleActive(row) {
     await updateAppOption(row.id, { is_active: !row.is_active })
+    await loadAppOptions()
+  }
+
+  async function toggleDefault(row) {
+    const rows = appOptions?.[row.category] || []
+
+    for (const other of rows) {
+      if (other.id !== row.id && other.is_default) {
+        await updateAppOption(other.id, { is_default: false })
+      }
+    }
+
+    await updateAppOption(row.id, { is_default: !row.is_default })
+    await loadAppOptions()
   }
 
   async function updateField(row, field, value) {
@@ -56,6 +79,7 @@ export default function AdminPage({
         label: value,
         value: normalizeValue(value),
       })
+      await loadAppOptions()
       return
     }
 
@@ -67,6 +91,7 @@ export default function AdminPage({
             : Number(value)
           : value,
     })
+    await loadAppOptions()
   }
 
   function renderSection(title, rows, form, setForm, itemLabel) {
@@ -77,7 +102,7 @@ export default function AdminPage({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.6fr 120px 120px auto',
+            gridTemplateColumns: '1.6fr 120px 120px 120px auto',
             gap: 12,
             alignItems: 'end',
             marginBottom: 18,
@@ -116,18 +141,33 @@ export default function AdminPage({
           </div>
 
           <div>
+            <label>Default</label>
+            <select
+              value={form.is_default ? 'yes' : 'no'}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, is_default: e.target.value === 'yes' }))
+              }
+            >
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+
+          <div>
             <button onClick={() => submitForm(form, setForm)}>Add</button>
           </div>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <table className="table-center" style={{ minWidth: 620 }}>
+          <table className="table-center" style={{ minWidth: 760 }}>
             <thead>
               <tr>
                 <th style={{ textAlign: 'left' }}>Name</th>
                 <th>Sort</th>
                 <th>Active</th>
-                <th>Toggle</th>
+                <th>Default</th>
+                <th>Toggle Active</th>
+                <th>Toggle Default</th>
               </tr>
             </thead>
             <tbody>
@@ -148,9 +188,15 @@ export default function AdminPage({
                     />
                   </td>
                   <td>{row.is_active ? 'Yes' : 'No'}</td>
+                  <td>{row.is_default ? 'Yes' : 'No'}</td>
                   <td>
                     <button onClick={() => toggleActive(row)}>
                       {row.is_active ? 'Disable' : 'Enable'}
+                    </button>
+                  </td>
+                  <td>
+                    <button onClick={() => toggleDefault(row)}>
+                      {row.is_default ? 'Clear Default' : 'Make Default'}
                     </button>
                   </td>
                 </tr>
@@ -158,7 +204,7 @@ export default function AdminPage({
 
               {!rows.length && (
                 <tr>
-                  <td colSpan="4">No options yet.</td>
+                  <td colSpan="6">No options yet.</td>
                 </tr>
               )}
             </tbody>
