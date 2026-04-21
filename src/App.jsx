@@ -35,7 +35,6 @@ import TrackingPage from './Pages/TrackingPage'
 import LineupGrid from './Components/LineupGrid'
 import Sidebar from './Components/Sidebar'
 import AdminPage from './Pages/AdminPage'
-import VerticalHeader from './Components/VerticalHeader'
 import {
   TEAM_ID,
   ATTENDANCE_SEASON_OPTIONS,
@@ -566,10 +565,12 @@ export default function App() {
     [gamesWithLineups, lineupsByGame, activePlayers]
   )
 
-  const trackingGames = useMemo(
-    () => orderedGamesAsc.filter((g) => lineupLockedByGame[pk(g.id)] === true),
-    [orderedGamesAsc, lineupLockedByGame]
+  const trackingGames = useMemo(() => {
+  const lockedIds = new Set(
+    Object.keys(lineupLockedByGame).filter((id) => lineupLockedByGame[id])
   )
+  return orderedGamesAsc.filter((g) => lockedIds.has(pk(g.id)))
+}, [orderedGamesAsc, lineupLockedByGame])
 
   const trackingSitSummary = useMemo(
     () => buildSitOutSummary(trackingGames, lineupsByGame, activePlayers, pk),
@@ -582,26 +583,48 @@ export default function App() {
   )
 
   const trackingTotals = useMemo(() => {
-    const baseTotals = computeTotals(trackingLockedLineups, players)
-    const nextTotals = { ...baseTotals }
+  const baseTotals = computeTotals(trackingLockedLineups, players)
+  const nextTotals = { ...baseTotals }
 
-    ;(trackingSitByPlayer || []).forEach((row) => {
-      const playerId = pk(row.playerId)
-      const runningValues = (row.running || []).filter(
-        (v) => v !== 'x' && v !== '' && v !== null && v !== undefined
-      )
-      const sitOutRunningTotal = runningValues.length
-        ? runningValues[runningValues.length - 1]
-        : 0
+  // Rebuild running totals here (must mirror TrackingPage logic)
+  const avgByGame = (trackingSitSummary || []).map((g) => {
+    const value = Number(g?.avgSit)
+    return Number.isNaN(value) ? null : value
+  })
 
-      nextTotals[playerId] = {
-        ...(nextTotals[playerId] || {}),
-        sitOutRunningTotal,
-      }
+  ;(trackingSitByPlayer || []).forEach((row) => {
+    let runningTotal = 0
+
+    const deltaPerGame = (row.perGame || []).map((value, index) => {
+      if (value === 'x' || value === '' || value === null || value === undefined) return 'x'
+
+      const playerOuts = Number(value)
+      const avgSit = avgByGame[index]
+
+      if (Number.isNaN(playerOuts) || avgSit === null || Number.isNaN(avgSit)) return 'x'
+
+      return Number((avgSit - playerOuts).toFixed(2))
     })
 
-    return nextTotals
-  }, [trackingLockedLineups, players, trackingSitByPlayer])
+    const running = deltaPerGame.map((value) => {
+      if (value === 'x') return 'x'
+      runningTotal = Number((runningTotal + Number(value)).toFixed(2))
+      return runningTotal
+    })
+
+    const validRunning = running.filter((v) => v !== 'x')
+    const sitOutRunningTotal = validRunning.length
+      ? validRunning[validRunning.length - 1]
+      : 0
+
+    nextTotals[pk(row.playerId)] = {
+      ...(nextTotals[pk(row.playerId)] || {}),
+      sitOutRunningTotal,
+    }
+  })
+
+  return nextTotals
+}, [trackingLockedLineups, players, trackingSitByPlayer, trackingSitSummary])
 
   const selectedPlayerPositions = useMemo(() => {
     if (!trackingPlayerId) return []
@@ -1704,7 +1727,6 @@ export default function App() {
             sitSummary={sitSummary}
             sitByPlayer={sitByPlayer}
             gamesWithLineups={gamesWithLineups}
-            VerticalHeader={VerticalHeader}
             trackingPlayerId={trackingPlayerId}
             setTrackingPlayerId={setTrackingPlayerId}
             selectedPlayerPositions={selectedPlayerPositions}
