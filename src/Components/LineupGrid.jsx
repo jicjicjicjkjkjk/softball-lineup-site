@@ -67,15 +67,33 @@ export default function LineupGrid({
 
   return (
     <th key={inning}>
-      <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
+      <div
+
+  style={{
+
+    display: 'grid',
+
+    gap: 4,
+
+    justifyItems: 'center',
+
+    paddingBottom: 4,
+
+  }}
+
+>
         
         {/* REMOVE BUTTON (above inning) */}
         <button
-          style={{
-            fontSize: 10,
-            padding: '2px 6px',
-            lineHeight: 1,
-          }}
+  style={{
+    fontSize: 10,
+    padding: '2px 6px',
+    lineHeight: 1,
+    background: '#fee2e2',
+    border: '1px solid #fca5a5',
+    borderRadius: 4,
+    cursor: 'pointer',
+  }}
           disabled={lockedLineup}
           onClick={(e) => {
             e.stopPropagation()
@@ -121,7 +139,13 @@ export default function LineupGrid({
           const rowLocked = lineup?.lockedRows?.[id] === true
 
           return (
-            <tr key={id}>
+            <tr
+  key={id}
+  style={{
+    opacity: rowLocked ? 0.6 : 1,
+    background: rowLocked ? '#f8fafc' : 'white',
+  }}
+>
               <td>{player.jersey_number || ''}</td>
               <td>{player.name}</td>
 
@@ -131,13 +155,18 @@ export default function LineupGrid({
                   value={lineup?.battingOrder?.[id] || ''}
                   disabled={lockedLineup}
                   onChange={(e) => onBattingChange(id, e.target.value)}
-                  style={{ width: 72, textAlign: 'center' }}
+                  style={{
+  width: 48,
+  height: 28,
+  textAlign: 'center',
+  fontSize: 12,
+}}
                 />
               </td>
 
               {showLocks && (
                 <td>
-                  <label className="checkbox-item" style={{ margin: 0 }}>
+                  <label className="checkbox-item" style={{ margin: 0, fontSize: 10 }}>
                     <input
                       type="checkbox"
                       checked={rowLocked}
@@ -163,22 +192,27 @@ export default function LineupGrid({
                   } else {
                     const tier = fitTier(fitMap, id, value)
                     background =
-                      tier === 'primary'
-                        ? '#dcfce7'
-                        : tier === 'secondary'
-                        ? '#fef3c7'
-                        : '#fee2e2'
+  tier === 'primary'
+    ? '#d1fae5'   // softer green
+    : tier === 'secondary'
+    ? '#fef9c3'   // softer yellow
+    : '#fee2e2'   // keep red
                   }
                 }
 
                 return (
                   <td key={inning}>
-                    <div style={{ display: 'grid', gap: 6 }}>
+                    <div style={{ display: 'grid', gap: 2 }}>
                       <select
                         value={value}
                         disabled={effectiveLocked}
                         onChange={(e) => onCellChange(id, inning, e.target.value)}
-                        style={{ background }}
+                        style={{
+  background,
+  height: 28,
+  fontSize: 12,
+  padding: '2px 4px',
+}}
                       >
                         {GRID_OPTIONS.map((option) => (
                           <option key={option || 'blank'} value={option}>
@@ -188,7 +222,7 @@ export default function LineupGrid({
                       </select>
 
                       {showLocks && (
-                        <label className="checkbox-item" style={{ margin: 0 }}>
+                        <label className="checkbox-item" style={{ margin: 0, fontSize: 10 }}>
                           <input
                             type="checkbox"
                             checked={cellLocked}
