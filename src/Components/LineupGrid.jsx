@@ -42,37 +42,69 @@ export default function LineupGrid({
           {showLocks && <th>Lock</th>}
 
           {Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
-            const status = inningStatus(lineup, inning, players, fitMap)
+  const status = inningStatus(lineup, inning, players, fitMap)
 
-            const inningLocked =
-              sortedRows.length > 0 &&
-              sortedRows.every((player) => {
-                const id = pk(player.id)
-                return lineup?.lockedCells?.[id]?.[inning] === true
-              })
+  const inningLocked =
+    sortedRows.length > 0 &&
+    sortedRows.every((player) => {
+      const id = pk(player.id)
+      return lineup?.lockedCells?.[id]?.[inning] === true
+    })
 
-            return (
-              <th key={inning}>
-                <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
-                  <MiniDiamond status={status} inning={inning} lineup={lineup} players={players} />
+  function handleInningLockToggle() {
+    if (lockedLineup) return
 
-                  {showLocks && (
-                    <label className="checkbox-item" style={{ margin: 0, fontSize: 12 }}>
-                      <input
-                        type="checkbox"
-                        checked={inningLocked}
-                        disabled={lockedLineup}
-                        onChange={() => onInningLockToggle?.(inning)}
-                      />
-                      Inning
-                    </label>
-                  )}
+    const shouldLock = !inningLocked
 
-                  <div style={{ marginTop: 2 }}>{inning}</div>
-                </div>
-              </th>
-            )
-          })}
+    sortedRows.forEach((player) => {
+      const id = pk(player.id)
+      if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
+      lineup.lockedCells[id][inning] = shouldLock
+    })
+
+    onInningLockToggle?.(inning)
+  }
+
+  return (
+    <th key={inning}>
+      <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
+        
+        {/* REMOVE BUTTON (above inning) */}
+        <button
+          style={{
+            fontSize: 10,
+            padding: '2px 6px',
+            lineHeight: 1,
+          }}
+          disabled={lockedLineup}
+          onClick={(e) => {
+            e.stopPropagation()
+            // handled in parent (already wired)
+            document.querySelector(`[data-remove-inning="${inning}"]`)?.click()
+          }}
+        >
+          ✕
+        </button>
+
+        <MiniDiamond status={status} inning={inning} lineup={lineup} players={players} />
+
+        {showLocks && (
+          <label className="checkbox-item" style={{ margin: 0, fontSize: 11 }}>
+            <input
+              type="checkbox"
+              checked={inningLocked}
+              disabled={lockedLineup}
+              onChange={handleInningLockToggle}
+            />
+            Inning
+          </label>
+        )}
+
+        <div style={{ fontSize: 12 }}>{inning}</div>
+      </div>
+    </th>
+  )
+})}
 
           <th>IF</th>
           <th>OF</th>
