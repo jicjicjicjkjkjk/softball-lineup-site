@@ -195,6 +195,55 @@ function importLineupToSaved(targetGameId, sourceGameId) {
 
   autoSave(targetGameId, copied)
 }
+
+function clearLineupContents(lineup) {
+  const next = JSON.parse(JSON.stringify(lineup))
+
+  Object.keys(next.cells || {}).forEach((playerId) => {
+    for (let inning = 1; inning <= Number(next.innings || 0); inning += 1) {
+      next.cells[playerId][inning] = ''
+      if (!next.lockedCells[playerId]) next.lockedCells[playerId] = {}
+      next.lockedCells[playerId][inning] = false
+    }
+  })
+
+  Object.keys(next.battingOrder || {}).forEach((playerId) => {
+    next.battingOrder[playerId] = ''
+  })
+
+  Object.keys(next.lockedRows || {}).forEach((playerId) => {
+    next.lockedRows[playerId] = false
+  })
+
+  return next
+}
+
+async function clearPreviewLineup(gameId) {
+  if (!gameId) return
+
+  if (lineupLockedByGame[pk(gameId)]) {
+    setAppError('Unlock the lineup before clearing it.')
+    return
+  }
+
+  const confirmed = window.confirm('Clear the lineup for this game?')
+  if (!confirmed) return
+
+  const source =
+    optimizerPreviewByGame[pk(gameId)] ||
+    lineupsByGame[pk(gameId)]
+
+  if (!source) return
+
+  const cleared = clearLineupContents(source)
+
+  setOptimizerPreviewByGame((current) => ({
+    ...current,
+    [pk(gameId)]: cleared,
+  }))
+
+  await persistLineup(gameId, cleared)
+}
   
 function isCompleteLineup(lineup) {
   if (!lineup) return false
@@ -2108,104 +2157,109 @@ function toggleSavedInningLock(gameId, inning) {
           />
         )}
 
-                {page === 'game-detail' && (
+                        {page === 'game-detail' && (
           <GameDetailPage
-  selectedGame={selectedGame}
-  selectedLineup={selectedLineup}
-  selectedLocked={selectedLocked}
-  activePlayers={activePlayers}
-  activePlayerIds={activePlayerIds}
-  games={games}
-  selectedGameId={selectedGameId}
-  setSelectedGameId={setSelectedGameId}
-  setPage={setPage}
-  saveSavedLineup={saveSavedLineup}
-  toggleLineupLocked={toggleLineupLocked}
-  clearSavedLineup={clearSavedLineup}
-  addSavedInning={addSavedInning}
-  removeSavedInning={removeSavedInning}
-  toggleSavedAvailable={toggleSavedAvailable}
-  fitByPlayer={fitByPlayer}
-  LineupGrid={LineupGrid}
-  updateSavedCell={updateSavedCell}
-  updateSavedBatting={updateSavedBatting}
-  toggleSavedCellLock={toggleSavedCellLock}
-  toggleSavedRowLock={toggleSavedRowLock}
-  toggleSavedInningLock={toggleSavedInningLock}
-  pk={pk}
-  gameDetailImportSourceGameId={gameDetailImportSourceGameId}
-  setGameDetailImportSourceGameId={setGameDetailImportSourceGameId}
-  gameDetailImportableGames={gameDetailImportableGames}
-  importLineupToSaved={importLineupToSaved}
-/>
+            selectedGame={selectedGame}
+            selectedLineup={selectedLineup}
+            selectedLocked={selectedLocked}
+            activePlayers={activePlayers}
+            activePlayerIds={activePlayerIds}
+            games={games}
+            selectedGameId={selectedGameId}
+            setSelectedGameId={setSelectedGameId}
+            setPage={setPage}
+            saveSavedLineup={saveSavedLineup}
+            toggleLineupLocked={toggleLineupLocked}
+            clearSavedLineup={clearSavedLineup}
+            addSavedInning={addSavedInning}
+            removeSavedInning={removeSavedInning}
+            toggleSavedAvailable={toggleSavedAvailable}
+            fitByPlayer={fitByPlayer}
+            LineupGrid={LineupGrid}
+            updateSavedCell={updateSavedCell}
+            updateSavedBatting={updateSavedBatting}
+            toggleSavedCellLock={toggleSavedCellLock}
+            toggleSavedRowLock={toggleSavedRowLock}
+            toggleSavedInningLock={toggleSavedInningLock}
+            updateGameField={updateGameField}
+            seasonOptions={seasonOptions}
+            gameTypeOptions={gameTypeOptions}
+            pk={pk}
+            gameDetailImportSourceGameId={gameDetailImportSourceGameId}
+            setGameDetailImportSourceGameId={setGameDetailImportSourceGameId}
+            gameDetailImportableGames={gameDetailImportableGames}
+            importLineupToSaved={importLineupToSaved}
+          />
         )}
 
         {page === 'lineup-setter' && (
-  <LineupSetterPage
-  optimizerFocusLineup={optimizerFocusLineup}
-  optimizerFocusGame={optimizerFocusGame}
-  optimizerFocusLocked={optimizerFocusLocked}
-  toggleLineupLocked={toggleLineupLocked}
-  lineupLockedByGame={lineupLockedByGame}
-  optimizerExistingGameId={optimizerExistingGameId}
-  setOptimizerExistingGameId={setOptimizerExistingGameId}
-  games={games}
-  togglePreviewInningLock={togglePreviewInningLock}
-  trackingPriorityByPositionRows={trackingPriorityByPositionRows}
-  addExistingGameToBatch={addExistingGameToBatch}
-  optimizerNewDate={optimizerNewDate}
-  setOptimizerNewDate={setOptimizerNewDate}
-  optimizerNewOpponent={optimizerNewOpponent}
-  setOptimizerNewOpponent={setOptimizerNewOpponent}
-  optimizerNewType={optimizerNewType}
-  setOptimizerNewType={setOptimizerNewType}
-  optimizerNewSeason={optimizerNewSeason}
-  setOptimizerNewSeason={setOptimizerNewSeason}
-  gameTypeOptions={gameTypeOptions}
-  seasonOptions={seasonOptions}
-  trackingFilters={trackingFilters}
-  setTrackingFilters={setTrackingFilters}
-  addGameFromOptimizer={addGameFromOptimizer}
-  runOptimizeCurrent={runOptimizeCurrent}
-  optimizerFocusGameId={optimizerFocusGameId}
-  runOptimizeAll={runOptimizeAll}
-  optimizerBatchGames={optimizerBatchGames}
-  optimizerPreviewByGame={optimizerPreviewByGame}
-  lineupsByGame={lineupsByGame}
-  activePlayers={activePlayers}
-  activePlayerIds={activePlayerIds}
-  requiredOutsForGame={requiredOutsForGame}
-  setOptimizerFocusGameId={setOptimizerFocusGameId}
-  savePreview={savePreview}
-  removeBatchGame={removeBatchGame}
-  addPreviewInning={addPreviewInning}
-  removePreviewInning={removePreviewInning}
-  togglePreviewAvailable={togglePreviewAvailable}
-  LineupGrid={LineupGrid}
-  fitByPlayer={fitByPlayer}
-  updatePreviewCell={updatePreviewCell}
-  updatePreviewBatting={updatePreviewBatting}
-  togglePreviewCellLock={togglePreviewCellLock}
-  togglePreviewRowLock={togglePreviewRowLock}
-  filteredLineups={lineupSetterFilteredLineups}
-  ytdBeforeTotals={lineupSetterFilteredTotals}
-  currentBatchTotals={currentBatchTotals}
-  ytdAfterTotals={lineupSetterFutureTotals}
-  ytdBeforeSitOutRows={lineupSetterComputedSitRows}
-  ytdAfterSitOutRows={lineupSetterFutureComputedSitRows}
-  trackingSort={trackingSort}
-  setTrackingSort={setTrackingSort}
-  TrackingTable={TrackingTable}
-  blankLineup={blankLineup}
-  pk={pk}
-  inningStatus={inningStatus}
-  trackingPriorityRows={trackingPriorityRows}
-  optimizerImportSourceGameId={optimizerImportSourceGameId}
-  setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
-  optimizerImportableGames={optimizerImportableGames}
-  importLineupToPreview={importLineupToPreview}
-/>
-)}
+          {page === 'lineup-setter' && (
+          <LineupSetterPage
+            optimizerFocusLineup={optimizerFocusLineup}
+            optimizerFocusGame={optimizerFocusGame}
+            optimizerFocusLocked={optimizerFocusLocked}
+            toggleLineupLocked={toggleLineupLocked}
+            lineupLockedByGame={lineupLockedByGame}
+            optimizerExistingGameId={optimizerExistingGameId}
+            setOptimizerExistingGameId={setOptimizerExistingGameId}
+            games={games}
+            togglePreviewInningLock={togglePreviewInningLock}
+            trackingPriorityByPositionRows={trackingPriorityByPositionRows}
+            addExistingGameToBatch={addExistingGameToBatch}
+            optimizerNewDate={optimizerNewDate}
+            setOptimizerNewDate={setOptimizerNewDate}
+            optimizerNewOpponent={optimizerNewOpponent}
+            setOptimizerNewOpponent={setOptimizerNewOpponent}
+            optimizerNewType={optimizerNewType}
+            setOptimizerNewType={setOptimizerNewType}
+            optimizerNewSeason={optimizerNewSeason}
+            setOptimizerNewSeason={setOptimizerNewSeason}
+            gameTypeOptions={gameTypeOptions}
+            seasonOptions={seasonOptions}
+            trackingFilters={trackingFilters}
+            setTrackingFilters={setTrackingFilters}
+            addGameFromOptimizer={addGameFromOptimizer}
+            runOptimizeCurrent={runOptimizeCurrent}
+            optimizerFocusGameId={optimizerFocusGameId}
+            runOptimizeAll={runOptimizeAll}
+            optimizerBatchGames={optimizerBatchGames}
+            optimizerPreviewByGame={optimizerPreviewByGame}
+            lineupsByGame={lineupsByGame}
+            activePlayers={activePlayers}
+            activePlayerIds={activePlayerIds}
+            requiredOutsForGame={requiredOutsForGame}
+            setOptimizerFocusGameId={setOptimizerFocusGameId}
+            savePreview={savePreview}
+            removeBatchGame={removeBatchGame}
+            addPreviewInning={addPreviewInning}
+            removePreviewInning={removePreviewInning}
+            togglePreviewAvailable={togglePreviewAvailable}
+            LineupGrid={LineupGrid}
+            fitByPlayer={fitByPlayer}
+            updatePreviewCell={updatePreviewCell}
+            updatePreviewBatting={updatePreviewBatting}
+            togglePreviewCellLock={togglePreviewCellLock}
+            togglePreviewRowLock={togglePreviewRowLock}
+            filteredLineups={lineupSetterFilteredLineups}
+            ytdBeforeTotals={lineupSetterFilteredTotals}
+            currentBatchTotals={currentBatchTotals}
+            ytdAfterTotals={lineupSetterFutureTotals}
+            ytdBeforeSitOutRows={lineupSetterComputedSitRows}
+            ytdAfterSitOutRows={lineupSetterFutureComputedSitRows}
+            trackingSort={trackingSort}
+            setTrackingSort={setTrackingSort}
+            TrackingTable={TrackingTable}
+            blankLineup={blankLineup}
+            pk={pk}
+            inningStatus={inningStatus}
+            trackingPriorityRows={trackingPriorityRows}
+            optimizerImportSourceGameId={optimizerImportSourceGameId}
+            setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
+            optimizerImportableGames={optimizerImportableGames}
+            importLineupToPreview={importLineupToPreview}
+            clearPreviewLineup={clearPreviewLineup}
+          />
+        )}
 
                 {page === 'tracking' && (
                   {page === 'tracking' && (
