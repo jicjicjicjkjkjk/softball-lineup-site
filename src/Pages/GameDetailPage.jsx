@@ -280,7 +280,6 @@ export default function GameDetailPage({
     </button>
   </div>
 </div>
-
             <div className="table-scroll no-print" style={{ marginTop: 12 }}>
               <LineupGrid
                 players={activePlayers}
