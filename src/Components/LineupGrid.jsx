@@ -15,6 +15,7 @@ export default function LineupGrid({
   showLocks,
   lockedLineup,
   visiblePlayerIds,
+  onRemoveInning,
   onCellChange,
   onBattingChange,
   onCellLockToggle,
@@ -178,6 +179,64 @@ export default function LineupGrid({
                 </td>
               )}
 
+{Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
+  const status = inningStatus(lineup, inning, players, fitMap)
+
+  const inningLocked =
+    sortedRows.length > 0 &&
+    sortedRows.every((player) => {
+      const id = pk(player.id)
+      return lineup?.lockedInnings?.[inning]?.includes?.(id) || false
+    })
+
+  return (
+    <th key={inning}>
+      <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
+        {onRemoveInning ? (
+          <button
+            type="button"
+            onClick={() => onRemoveInning(inning)}
+            disabled={lockedLineup}
+            style={{
+              border: '1px solid #e5b4b4',
+              background: '#fbe4e4',
+              color: '#b42318',
+              borderRadius: 6,
+              width: 26,
+              height: 22,
+              lineHeight: '18px',
+              padding: 0,
+              fontWeight: 700,
+              cursor: lockedLineup ? 'not-allowed' : 'pointer',
+            }}
+            title={`Remove inning ${inning}`}
+          >
+            ✕
+          </button>
+        ) : (
+          <div style={{ height: 22 }} />
+        )}
+
+        <MiniDiamond status={status} inning={inning} lineup={lineup} players={players} />
+
+        {showLocks && (
+          <label className="checkbox-item" style={{ margin: 0, fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={inningLocked}
+              disabled={lockedLineup}
+              onChange={() => onInningLockToggle?.(inning)}
+            />
+            Inning
+          </label>
+        )}
+
+        <div style={{ marginTop: 2 }}>{inning}</div>
+      </div>
+    </th>
+  )
+})}
+              
               {Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
                 const value = lineup?.cells?.[id]?.[inning] || ''
                 const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
