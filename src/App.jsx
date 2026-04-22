@@ -2090,9 +2090,6 @@ function toggleSavedInningLock(gameId, inning) {
   activePlayerIds={activePlayerIds}
   games={games}
   selectedGameId={selectedGameId}
-  toggleSavedCellLock={toggleSavedCellLock}
-  toggleSavedRowLock={toggleSavedRowLock}
-  toggleSavedInningLock={toggleSavedInningLock}
   setSelectedGameId={setSelectedGameId}
   setPage={setPage}
   saveSavedLineup={saveSavedLineup}
@@ -2123,8 +2120,6 @@ function toggleSavedInningLock(gameId, inning) {
   optimizerFocusLocked={optimizerFocusLocked}
   toggleLineupLocked={toggleLineupLocked}
   lineupLockedByGame={lineupLockedByGame}
-  togglePreviewInningLock={togglePreviewInningLock}
-  trackingPriorityByPositionRows={trackingPriorityByPositionRows}
   optimizerExistingGameId={optimizerExistingGameId}
   setOptimizerExistingGameId={setOptimizerExistingGameId}
   games={games}
