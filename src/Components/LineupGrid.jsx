@@ -109,11 +109,11 @@ export default function LineupGrid({
         {showLocks && (
           <label className="checkbox-item" style={{ margin: 0, fontSize: 11 }}>
             <input
-              type="checkbox"
-              checked={inningLocked}
-              disabled={lockedLineup}
-              onChange={handleInningLockToggle}
-            />
+  type="checkbox"
+  checked={inningLocked}
+  disabled={lockedLineup}
+  onChange={() => onInningLockToggle?.(inning)}
+/>
             Inning
           </label>
         )}
