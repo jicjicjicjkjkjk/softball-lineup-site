@@ -1718,14 +1718,22 @@ const trackingPriorityByPositionRows = useMemo(() => {
   }
 
   function togglePreviewInningLock(gameId, inning) {
+  const confirmed = window.confirm(
+    `Lock or unlock every player for inning ${inning}?`
+  )
+  if (!confirmed) return
+
   updatePreview(gameId, (lineup) => {
-    const availableIds = (lineup.availablePlayerIds || []).map(pk)
+    const visibleIds =
+      (lineup.availablePlayerIds || []).length
+        ? lineup.availablePlayerIds.map(pk)
+        : Object.keys(lineup.cells || {}).map(pk)
 
     const allLocked =
-      availableIds.length > 0 &&
-      availableIds.every((id) => lineup.lockedCells?.[id]?.[inning] === true)
+      visibleIds.length > 0 &&
+      visibleIds.every((id) => lineup.lockedCells?.[id]?.[inning] === true)
 
-    availableIds.forEach((id) => {
+    visibleIds.forEach((id) => {
       if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
       lineup.lockedCells[id][inning] = !allLocked
     })
@@ -1862,14 +1870,22 @@ const trackingPriorityByPositionRows = useMemo(() => {
   }
   
 function toggleSavedInningLock(gameId, inning) {
+  const confirmed = window.confirm(
+    `Lock or unlock every player for inning ${inning}?`
+  )
+  if (!confirmed) return
+
   updateSavedLineup(gameId, (lineup) => {
-    const availableIds = (lineup.availablePlayerIds || []).map(pk)
+    const visibleIds =
+      (lineup.availablePlayerIds || []).length
+        ? lineup.availablePlayerIds.map(pk)
+        : Object.keys(lineup.cells || {}).map(pk)
 
     const allLocked =
-      availableIds.length > 0 &&
-      availableIds.every((id) => lineup.lockedCells?.[id]?.[inning] === true)
+      visibleIds.length > 0 &&
+      visibleIds.every((id) => lineup.lockedCells?.[id]?.[inning] === true)
 
-    availableIds.forEach((id) => {
+    visibleIds.forEach((id) => {
       if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
       lineup.lockedCells[id][inning] = !allLocked
     })
