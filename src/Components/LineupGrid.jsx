@@ -31,7 +31,7 @@ export default function LineupGrid({
       const aOrder = Number(lineup?.battingOrder?.[pk(a.id)] || 999)
       const bOrder = Number(lineup?.battingOrder?.[pk(b.id)] || 999)
       if (aOrder !== bOrder) return aOrder - bOrder
-      return String(a.name || '').localeCompare(String(b.name || ''))
+      return a.name.localeCompare(b.name)
     })
 
   return (
@@ -47,40 +47,28 @@ export default function LineupGrid({
             const status = inningStatus(lineup, inning, players, fitMap)
 
             const inningLocked =
-              sortedRows.length > 0 &&
+              sortedRows.length &&
               sortedRows.every((p) => {
                 const id = pk(p.id)
-                return lineup?.lockedCells?.[id]?.[inning] === true
+                return lineup?.lockedCells?.[id]?.[inning]
               })
 
             return (
               <th key={inning}>
-                <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
-                  
-                  {/* ✅ REMOVE INNING (ONLY ONE PLACE) */}
-                  {onRemoveInning ? (
-                    <button
-                      onClick={() => {
-                        if (lockedLineup) return
-                        if (!window.confirm(`Remove inning ${inning}?`)) return
-                        onRemoveInning(inning)
-                      }}
-                      disabled={lockedLineup}
-                      style={{
-                        background: '#fbe4e4',
-                        border: '1px solid #e5b4b4',
-                        borderRadius: 6,
-                        width: 24,
-                        height: 22,
-                        fontWeight: 700,
-                        cursor: lockedLineup ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      ✕
-                    </button>
-                  ) : (
-                    <div style={{ height: 22 }} />
-                  )}
+                <div className="inning-header">
+
+                  {/* REMOVE */}
+                  <button
+                    className="inning-remove"
+                    onClick={() => {
+                      if (lockedLineup) return
+                      if (!window.confirm(`Remove inning ${inning}?`)) return
+                      onRemoveInning?.(inning)
+                    }}
+                    disabled={lockedLineup}
+                  >
+                    ✕
+                  </button>
 
                   {/* DIAMOND */}
                   <MiniDiamond
@@ -90,17 +78,18 @@ export default function LineupGrid({
                     players={players}
                   />
 
-                  {/* ✅ INNING LOCK */}
+                  {/* LOCK */}
                   {showLocks && (
                     <input
                       type="checkbox"
+                      className="inning-lock"
                       checked={inningLocked}
                       disabled={lockedLineup}
                       onChange={() => onInningLockToggle?.(inning)}
                     />
                   )}
 
-                  <div style={{ fontSize: 12, fontWeight: 600 }}>{inning}</div>
+                  <div className="inning-number">{inning}</div>
                 </div>
               </th>
             )
@@ -118,31 +107,22 @@ export default function LineupGrid({
         {sortedRows.map((player) => {
           const id = pk(player.id)
           const summary = rowSummary(lineup, id)
-          const rowLocked = lineup?.lockedRows?.[id] === true
+          const rowLocked = lineup?.lockedRows?.[id]
 
           return (
-            <tr
-              key={id}
-              style={{
-                opacity: rowLocked ? 0.6 : 1,
-                background: rowLocked ? '#f8fafc' : 'white',
-              }}
-            >
+            <tr key={id} className={rowLocked ? 'row-locked' : ''}>
               <td>{player.jersey_number || ''}</td>
               <td>{player.name}</td>
 
-              {/* BATTING */}
               <td>
                 <input
                   type="number"
                   value={lineup?.battingOrder?.[id] || ''}
-                  disabled={lockedLineup}
+                  disabled={lockedLineup || rowLocked}
                   onChange={(e) => onBattingChange(id, e.target.value)}
-                  style={{ width: 50, textAlign: 'center' }}
                 />
               </td>
 
-              {/* ROW LOCK */}
               {showLocks && (
                 <td>
                   <input
@@ -154,13 +134,11 @@ export default function LineupGrid({
                 </td>
               )}
 
-              {/* CELLS */}
               {Array.from({ length: innings }, (_, i) => i + 1).map((inning) => {
                 const value = lineup?.cells?.[id]?.[inning] || ''
-                const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
-                const effectiveLocked = lockedLineup || rowLocked || cellLocked
+                const cellLocked = lineup?.lockedCells?.[id]?.[inning]
 
-                let bg = value ? '#eef6ff' : 'white'
+                let bg = 'white'
 
                 if (FIELD_POSITIONS.includes(value)) {
                   const status = inningStatus(lineup, inning, players, fitMap)
@@ -182,15 +160,11 @@ export default function LineupGrid({
                   <td key={inning}>
                     <select
                       value={value}
-                      disabled={effectiveLocked}
+                      disabled={lockedLineup || rowLocked}
                       onChange={(e) =>
                         onCellChange(id, inning, e.target.value)
                       }
-                      style={{
-                        background: bg,
-                        height: 28,
-                        fontSize: 12,
-                      }}
+                      style={{ background: bg }}
                     >
                       {GRID_OPTIONS.map((opt) => (
                         <option key={opt || 'blank'} value={opt}>
