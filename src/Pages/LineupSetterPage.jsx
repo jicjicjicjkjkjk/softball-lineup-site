@@ -554,34 +554,9 @@ export default function LineupSetterPage({
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
+                      )}
+      </>
 
-            <h4>Game Availability</h4>
-            <div className="checkbox-grid">
-              {activePlayers.map((player) => {
-                const lineup =
-                  optimizerPreviewByGame[pk(optimizerFocusGame.id)] ||
-                  lineupsByGame[pk(optimizerFocusGame.id)] ||
-                  blankLineup(
-                    activePlayers.map((p) => p.id),
-                    Number(optimizerFocusGame.innings || 6),
-                    activePlayerIds()
-                  )
-
-                return (
-                  <label key={player.id} className="checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={(lineup.availablePlayerIds || []).includes(pk(player.id))}
-                      disabled={optimizerFocusLocked}
-                      onChange={() => togglePreviewAvailable(optimizerFocusGame.id, player.id)}
-                    />
-                    {player.name}
-                  </label>
-                )
-              })}
-            </div>
 
             <div className="card" style={{ marginTop: 16 }}>
               <h4 style={{ marginTop: 0 }}>Import Lineup</h4>
