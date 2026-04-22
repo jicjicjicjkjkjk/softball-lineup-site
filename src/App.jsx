@@ -271,13 +271,6 @@ function isCompleteLineup(lineup) {
     )
   }, [appOptions])
 
-const optimizerImportableGames = useMemo(() => {
-  return optimizerFocusGame ? getImportableGamesForGame(optimizerFocusGame.id) : []
-}, [optimizerFocusGame, games, lineupsByGame])
-
-const gameDetailImportableGames = useMemo(() => {
-  return selectedGame ? getImportableGamesForGame(selectedGame.id) : []
-}, [selectedGame, games, lineupsByGame])
   
   const statusOptions = useMemo(() => {
     const saved = (appOptions.status || []).filter((x) => x.is_active)
@@ -608,6 +601,15 @@ useEffect(() => {
     [selectedGame, lineupLockedByGame]
   )
 
+const optimizerImportableGames = useMemo(() => {
+  return optimizerFocusGame ? getImportableGamesForGame(optimizerFocusGame.id) : []
+}, [optimizerFocusGame, games, lineupsByGame])
+
+const gameDetailImportableGames = useMemo(() => {
+  return selectedGame ? getImportableGamesForGame(selectedGame.id) : []
+}, [selectedGame, games, lineupsByGame])
+
+  
   const sortedPlayers = useMemo(() => {
     return sortRows(
       players.map((player) => ({
@@ -1782,24 +1784,6 @@ const trackingPriorityByPositionRows = useMemo(() => {
     const ok = await persistLineup(gameId, currentLineup, nextLocked)
     if (!ok) return
   }
-
-function toggleSavedInningLock(gameId, inning) {
-  updateSavedLineup(gameId, (lineup) => {
-    const availableIds = (lineup.availablePlayerIds || []).map(pk)
-
-    const allLocked =
-      availableIds.length > 0 &&
-      availableIds.every((id) => lineup.lockedCells?.[id]?.[inning] === true)
-
-    availableIds.forEach((id) => {
-      if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
-      lineup.lockedCells[id][inning] = !allLocked
-    })
-
-    autoSave(gameId, lineup)
-    return lineup
-  })
-}
   
 function toggleSavedInningLock(gameId, inning) {
   updateSavedLineup(gameId, (lineup) => {
@@ -2118,6 +2102,9 @@ function toggleSavedInningLock(gameId, inning) {
   LineupGrid={LineupGrid}
   updateSavedCell={updateSavedCell}
   updateSavedBatting={updateSavedBatting}
+  toggleSavedCellLock={toggleSavedCellLock}
+  toggleSavedRowLock={toggleSavedRowLock}
+  toggleSavedInningLock={toggleSavedInningLock}
   pk={pk}
   gameDetailImportSourceGameId={gameDetailImportSourceGameId}
   setGameDetailImportSourceGameId={setGameDetailImportSourceGameId}
@@ -2136,6 +2123,8 @@ function toggleSavedInningLock(gameId, inning) {
   optimizerExistingGameId={optimizerExistingGameId}
   setOptimizerExistingGameId={setOptimizerExistingGameId}
   games={games}
+  togglePreviewInningLock={togglePreviewInningLock}
+  trackingPriorityByPositionRows={trackingPriorityByPositionRows}
   addExistingGameToBatch={addExistingGameToBatch}
   optimizerNewDate={optimizerNewDate}
   setOptimizerNewDate={setOptimizerNewDate}
