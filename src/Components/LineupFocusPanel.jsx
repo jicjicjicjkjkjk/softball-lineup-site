@@ -57,21 +57,33 @@ export default function LineupFocusPanel(props) {
         </h3>
 
         <div className="button-row">
-          <button onClick={runOptimizeCurrent}>Optimize</button>
-          <button onClick={runOptimizeAll}>Optimize All</button>
+  <button onClick={runOptimizeCurrent}>Optimize</button>
+  <button onClick={runOptimizeAll}>Optimize All</button>
 
-          <button
-            onClick={() =>
-              toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)
-            }
-          >
-            {optimizerFocusLocked ? 'Unlock' : 'Lock'}
-          </button>
+  {optimizerFocusLineup && (
+    <button
+      onClick={() => addPreviewInning(optimizerFocusGame.id)}
+      disabled={optimizerFocusLocked}
+    >
+      Add Inning
+    </button>
+  )}
 
-          <button onClick={() => clearPreviewLineup(optimizerFocusGame.id)}>
-            Clear
-          </button>
-        </div>
+  <button
+    onClick={() =>
+      toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)
+    }
+  >
+    {optimizerFocusLocked ? 'Unlock Lineup' : 'Lock Lineup'}
+  </button>
+
+  <button
+    onClick={() => clearPreviewLineup(optimizerFocusGame.id)}
+    disabled={optimizerFocusLocked}
+  >
+    Clear Lineup
+  </button>
+</div>
 
         <LineupAvailability
           activePlayers={activePlayers}
@@ -123,29 +135,19 @@ export default function LineupFocusPanel(props) {
             <h3 style={{ margin: 0 }}>Grid</h3>
 
             <div className="button-row">
-              <button
-                onClick={() => addPreviewInning(optimizerFocusGame.id)}
-                disabled={optimizerFocusLocked}
-              >
-                Add Inning
-              </button>
-
-              {Array.from(
-                { length: Number(optimizerFocusLineup.innings || 0) },
-                (_, i) => i + 1
-              ).map((inning) => (
-                <button
-                  key={inning}
-                  onClick={() =>
-                    removePreviewInning(optimizerFocusGame.id, inning)
-                  }
-                  disabled={optimizerFocusLocked}
-                >
-                  Remove {inning}
-                </button>
-              ))}
-            </div>
-          </div>
+  {Array.from(
+    { length: Number(optimizerFocusLineup.innings || 0) },
+    (_, i) => i + 1
+  ).map((inning) => (
+    <button
+      key={inning}
+      onClick={() => removePreviewInning(optimizerFocusGame.id, inning)}
+      disabled={optimizerFocusLocked}
+    >
+      Remove {inning}
+    </button>
+  ))}
+</div>          </div>
 
           <div className="table-scroll">
             <LineupGrid
