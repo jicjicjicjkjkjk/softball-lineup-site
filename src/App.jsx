@@ -2193,8 +2193,6 @@ function toggleSavedInningLock(gameId, inning) {
         )}
 
         {page === 'lineup-setter' && (
-          {page === 'lineup-setter' && (
-          {page === 'lineup-setter' && (
   <LineupSetterPage
     optimizerFocusLineup={optimizerFocusLineup}
     optimizerFocusGame={optimizerFocusGame}
@@ -2262,8 +2260,6 @@ function toggleSavedInningLock(gameId, inning) {
   />
 )}
                 {page === 'tracking' && (
-                  {page === 'tracking' && (
-          {page === 'tracking' && (
   <TrackingPage
     trackingLockedLineups={filteredTrackingLineups}
     trackingTotals={trackingTotals}
