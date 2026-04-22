@@ -1074,3 +1074,18 @@ th.player-col {
 .lineup-print-table tbody tr:hover {
   background: #f1f5f9;
 }
+
+
+@media (max-width: 900px) {
+  .lineup-print-table select {
+    font-size: 11px;
+  }
+
+  .lineup-print-table input {
+    font-size: 11px;
+  }
+
+  .lineup-print-table th {
+    font-size: 11px;
+  }
+}
