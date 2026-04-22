@@ -246,6 +246,14 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
   })
 }
 
+function getOptionLabel(options, value) {
+  if (!value) return ''
+  const match = (options || []).find(
+    (opt) => opt.value === value || opt.label === value
+  )
+  return match?.label || value
+}
+
 export function buildPositionByPlayer(games, lineupsByGame, playerId, pk) {
   return games
     .map((game) => {
