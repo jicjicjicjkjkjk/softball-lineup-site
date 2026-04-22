@@ -1,4 +1,5 @@
 import { formatDateShort } from '../lib/appHelpers'
+import LineupFocusPanel from './LineupFocusPanel'
 
 function renderOptionLabel(option) {
   if (!option) return ''
@@ -408,201 +409,26 @@ export default function LineupSetterPage({
         </div>
       </div>
 
-      {optimizerFocusGame && (
-        <>
-                    <div className="card">
-            <div className="row-between wrap-row">
-              <h3 style={{ margin: 0 }}>
-                Selected Game: {formatDateShort(optimizerFocusGame.date) || 'No Date'} vs{' '}
-                {optimizerFocusGame.opponent || 'Opponent'}
-                {optimizerFocusGame.game_type
-                  ? ` • ${getOptionLabel(gameTypeOptions, optimizerFocusGame.game_type)}`
-                  : ''}
-                {optimizerFocusGame.season
-                  ? ` • ${getOptionLabel(seasonOptions, optimizerFocusGame.season)}`
-                  : ''}
-              </h3>
-            </div>
-
-            <div style={{ height: 12 }} />
-
-            <div className="button-row" style={{ marginBottom: 16 }}>
-              <button
-                onClick={runOptimizeCurrent}
-                disabled={!optimizerFocusGameId || optimizerFocusLocked}
-              >
-                Optimize Game Viewing
-              </button>
-              <button onClick={runOptimizeAll} disabled={!optimizerBatchGames.length}>
-                Optimize All Games in Plan
-              </button>
-              <button
-                onClick={() =>
-                  toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)
-                }
-              >
-                {optimizerFocusLocked ? 'Unlock Lineup' : 'Lock Lineup'}
-              </button>
-              <button
-                onClick={() => clearPreviewLineup(optimizerFocusGame.id)}
-                disabled={optimizerFocusLocked}
-              >
-                Clear Lineup
-              </button>
-            </div>
-
-            <h4>Game Availability</h4>
-            <div className="checkbox-grid">
-              {activePlayers.map((player) => {
-                const lineup =
-                  optimizerPreviewByGame[pk(optimizerFocusGame.id)] ||
-                  lineupsByGame[pk(optimizerFocusGame.id)] ||
-                  blankLineup(
-                    activePlayers.map((p) => p.id),
-                    Number(optimizerFocusGame.innings || 6),
-                    activePlayerIds()
-                  )
-
-                return (
-                  <label key={player.id} className="checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={(lineup.availablePlayerIds || []).includes(pk(player.id))}
-                      disabled={optimizerFocusLocked}
-                      onChange={() =>
-                        togglePreviewAvailable(optimizerFocusGame.id, player.id)
-                      }
-                    />
-                    {player.name}
-                  </label>
-                )
-              })}
-            </div>
-
-            <div className="card" style={{ marginTop: 16 }}>
-              <h4 style={{ marginTop: 0 }}>Import Lineup</h4>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto',
-                  gap: 12,
-                  alignItems: 'end',
-                }}
-              >
-                <div>
-                  <label>Source Game</label>
-                  <select
-                    value={optimizerImportSourceGameId}
-                    onChange={(e) => setOptimizerImportSourceGameId(e.target.value)}
-                    disabled={optimizerFocusLocked}
-                  >
-                    <option value="">Select game to import</option>
-                    {optimizerImportableGames.map((game) => (
-                      <option key={game.id} value={pk(game.id)}>
-                        {(formatDateShort(game.date) || 'No Date')} vs {game.opponent || 'Opponent'}
-                        {game.game_type
-                          ? ` • ${getOptionLabel(gameTypeOptions, game.game_type)}`
-                          : ''}
-                        {game.season
-                          ? ` • ${getOptionLabel(seasonOptions, game.season)}`
-                          : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <button
-                    onClick={() =>
-                      importLineupToPreview(optimizerFocusGame.id, optimizerImportSourceGameId)
-                    }
-                    disabled={!optimizerImportSourceGameId || optimizerFocusLocked}
-                  >
-                    Import Lineup
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-              {optimizerFocusLineup && (
-                <div className="actions-inline">
-                  <button
-                    onClick={() =>
-                      toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)
-                    }
-                  >
-                    {optimizerFocusLocked ? 'Unlock Lineup' : 'Lock Lineup'}
-                  </button>
-
-                  <button
-                    onClick={() => addPreviewInning(optimizerFocusGame.id)}
-                    disabled={optimizerFocusLocked}
-                  >
-                    Add Inning
-                  </button>
-
-                  {Array.from(
-                    { length: Number(optimizerFocusLineup.innings || 0) },
-                    (_, i) => i + 1
-                  ).map((inning) => (
-                    <button
-                      key={inning}
-                      onClick={() => removePreviewInning(optimizerFocusGame.id, inning)}
-                      disabled={optimizerFocusLocked}
-                    >
-                      Remove {inning}
-                    </button>
-                  ))}
-                </div>
-                      )}
-      </>
-
-
-            <div className="card" style={{ marginTop: 16 }}>
-              <h4 style={{ marginTop: 0 }}>Import Lineup</h4>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto',
-                  gap: 12,
-                  alignItems: 'end',
-                }}
-              >
-                <div>
-                  <label>Source Game</label>
-                  <select
-                    value={optimizerImportSourceGameId}
-                    onChange={(e) => setOptimizerImportSourceGameId(e.target.value)}
-                    disabled={optimizerFocusLocked}
-                  >
-                    <option value="">Select game to import</option>
-                    {optimizerImportableGames.map((game) => (
-                      <option key={game.id} value={pk(game.id)}>
-                        {(formatDateShort(game.date) || 'No Date')} vs {game.opponent || 'Opponent'}
-                        {game.game_type
-                          ? ` • ${getOptionLabel(gameTypeOptions, game.game_type)}`
-                          : ''}
-                        {game.season
-                          ? ` • ${getOptionLabel(seasonOptions, game.season)}`
-                          : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <button
-                    onClick={() =>
-                      importLineupToPreview(optimizerFocusGame.id, optimizerImportSourceGameId)
-                    }
-                    disabled={!optimizerImportSourceGameId || optimizerFocusLocked}
-                  >
-                    Import Lineup
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+      <LineupFocusPanel
+  optimizerFocusGame={optimizerFocusGame}
+  optimizerFocusLineup={optimizerFocusLineup}
+  optimizerFocusLocked={optimizerFocusLocked}
+  optimizerImportSourceGameId={optimizerImportSourceGameId}
+  setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
+  optimizerImportableGames={optimizerImportableGames}
+  importLineupToPreview={importLineupToPreview}
+  toggleLineupLocked={toggleLineupLocked}
+  runOptimizeCurrent={runOptimizeCurrent}
+  runOptimizeAll={runOptimizeAll}
+  clearPreviewLineup={clearPreviewLineup}
+  optimizerBatchGames={optimizerBatchGames}
+  activePlayers={activePlayers}
+  togglePreviewAvailable={togglePreviewAvailable}
+  pk={pk}
+  blankLineup={blankLineup}
+  optimizerPreviewByGame={optimizerPreviewByGame}
+  lineupsByGame={lineupsByGame}
+/>
 
           {optimizerFocusLineup && (
             <>
