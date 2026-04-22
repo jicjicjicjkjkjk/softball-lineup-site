@@ -1,4 +1,11 @@
-import { FIELD_POSITIONS, GRID_OPTIONS, pk, rowSummary, fitTier, inningStatus } from '../lib/lineupUtils'
+import {
+  FIELD_POSITIONS,
+  GRID_OPTIONS,
+  pk,
+  rowSummary,
+  fitTier,
+  inningStatus,
+} from '../lib/lineupUtils'
 import MiniDiamond from './MiniDiamond'
 
 export default function LineupGrid({
@@ -12,6 +19,7 @@ export default function LineupGrid({
   onBattingChange,
   onCellLockToggle,
   onRowLockToggle,
+  onInningLockToggle,
 }) {
   const visibleSet = new Set((visiblePlayerIds || []).map(pk))
 
@@ -32,29 +40,40 @@ export default function LineupGrid({
           <th className="player-col">Player</th>
           <th>Batting Order</th>
           {showLocks && <th>Lock</th>}
+
           {Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
-  const status = inningStatus(lineup, inning, players, fitMap)
+            const status = inningStatus(lineup, inning, players, fitMap)
 
-  const lockedPositions = (players || []).reduce((acc, player) => {
-    const id = pk(player.id)
-    const value = lineup?.cells?.[id]?.[inning] || ''
-    const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
-    const rowLocked = lineup?.lockedRows?.[id] === true
+            const inningLocked =
+              sortedRows.length > 0 &&
+              sortedRows.every((player) => {
+                const id = pk(player.id)
+                return lineup?.lockedCells?.[id]?.[inning] === true
+              })
 
-    if ((cellLocked || rowLocked) && FIELD_POSITIONS.includes(value) && !acc.includes(value)) {
-      acc.push(value)
-    }
+            return (
+              <th key={inning}>
+                <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
+                  <MiniDiamond status={status} inning={inning} lineup={lineup} players={players} />
 
-    return acc
-  }, [])
+                  {showLocks && (
+                    <label className="checkbox-item" style={{ margin: 0, fontSize: 12 }}>
+                      <input
+                        type="checkbox"
+                        checked={inningLocked}
+                        disabled={lockedLineup}
+                        onChange={() => onInningLockToggle?.(inning)}
+                      />
+                      Inning
+                    </label>
+                  )}
 
-  return (
-    <th key={inning}>
-      <MiniDiamond status={status} lockedPositions={lockedPositions} />
-      <div style={{ marginTop: 4 }}>{inning}</div>
-    </th>
-  )
-})}
+                  <div style={{ marginTop: 2 }}>{inning}</div>
+                </div>
+              </th>
+            )
+          })}
+
           <th>IF</th>
           <th>OF</th>
           <th>P</th>
@@ -62,6 +81,7 @@ export default function LineupGrid({
           <th>X</th>
         </tr>
       </thead>
+
       <tbody>
         {sortedRows.map((player) => {
           const id = pk(player.id)
@@ -69,15 +89,10 @@ export default function LineupGrid({
           const rowLocked = lineup?.lockedRows?.[id] === true
 
           return (
-            <tr
-  key={id}
-  style={{
-    background: rowLocked ? '#f8fafc' : undefined,
-    opacity: rowLocked ? 0.88 : 1,
-  }}
->
+            <tr key={id}>
               <td>{player.jersey_number || ''}</td>
               <td>{player.name}</td>
+
               <td>
                 <input
                   type="number"
