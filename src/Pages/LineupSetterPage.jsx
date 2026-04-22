@@ -125,6 +125,7 @@ export default function LineupSetterPage({
   addPreviewInning,
   removePreviewInning,
   togglePreviewAvailable,
+  togglePreviewInningLock,
   LineupGrid,
   fitByPlayer,
   updatePreviewCell,
@@ -144,7 +145,9 @@ export default function LineupSetterPage({
   pk,
   inningStatus,
   trackingPriorityRows = [],
+  trackingPriorityByPositionRows = [],
 }) {
+  
   const focusStatuses = optimizerFocusLineup
     ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
         inning,
@@ -382,8 +385,8 @@ export default function LineupSetterPage({
                     <td>{formatDateShort(game.date)}</td>
                     <td>{game.game_order ?? ''}</td>
                     <td>{game.opponent || 'Opponent'}</td>
-                    <td>{game.game_type || ''}</td>
-                    <td>{game.season || ''}</td>
+                    <td>{getOptionLabel(gameTypeOptions, game.game_type)}</td>
+                    <td>{getOptionLabel(seasonOptions, game.season)}</td>
                     <td>{effectiveInnings}</td>
                     <td>{effectiveRequiredOuts}</td>
                     <td>
@@ -419,8 +422,12 @@ export default function LineupSetterPage({
               <h3 style={{ margin: 0 }}>
                 Selected Game: {formatDateShort(optimizerFocusGame.date) || 'No Date'} vs{' '}
                 {optimizerFocusGame.opponent || 'Opponent'}
-                {optimizerFocusGame.game_type ? ` • ${optimizerFocusGame.game_type}` : ''}
-                {optimizerFocusGame.season ? ` • ${optimizerFocusGame.season}` : ''}
+                {optimizerFocusGame.game_type
+                  ? ` • ${getOptionLabel(gameTypeOptions, optimizerFocusGame.game_type)}`
+                  : ''}
+                {optimizerFocusGame.season
+                  ? ` • ${getOptionLabel(seasonOptions, optimizerFocusGame.season)}`
+                  : ''}
               </h3>
 
               {optimizerFocusLineup && (
@@ -641,15 +648,15 @@ export default function LineupSetterPage({
             </div>
           </div>
 
-                    <TrackingTable
-            title="Filtered Games Before Current Plan"
-            universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} games)`}
-            totals={ytdBeforeTotals}
-            sitOutRows={ytdBeforeSitOutRows}
-            players={activePlayers}
-            sortConfig={trackingSort}
-            setSortConfig={setTrackingSort}
-          />
+                   <TrackingTable
+  title="Filtered Games Before Current Plan"
+  universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} games)`}
+  totals={ytdBeforeTotals}
+  sitOutRows={ytdBeforeSitOutRows}
+  players={activePlayers}
+  sortConfig={trackingSort}
+  setSortConfig={setTrackingSort}
+/>
 
           <TrackingTable
             title="Current Plan"
@@ -660,17 +667,17 @@ export default function LineupSetterPage({
           />
 
                     <TrackingTable
-            title="Filtered Games + Current Plan"
-            universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
-            totals={ytdAfterTotals}
-            sitOutRows={ytdAfterSitOutRows}
-            players={activePlayers}
-            sortConfig={trackingSort}
-            setSortConfig={setTrackingSort}
-          />
+  title="Filtered Games + Current Plan"
+  universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
+  totals={ytdAfterTotals}
+  sitOutRows={ytdAfterSitOutRows}
+  players={activePlayers}
+  sortConfig={trackingSort}
+  setSortConfig={setTrackingSort}
+/>
 
           <div className="card tracking-card">
-            <h3>Tracking vs Positioning Priority</h3>
+            <h3>Tracking by Positioning by Priority - Player</h3>
             <div className="tracking-scroll">
               <table className="tracking-table priority-groups">
                 <thead>
@@ -827,6 +834,34 @@ export default function LineupSetterPage({
               </table>
             </div>
           </div>
+        <div className="card tracking-card">
+  <h3>Tracking by Positioning by Priority - Position</h3>
+  <div className="tracking-scroll">
+    <table className="tracking-table">
+      <thead>
+        <tr>
+          <th>Position</th>
+          <th>Target %</th>
+          <th>Actual %</th>
+          <th>Diff %</th>
+          <th>Actual Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        {trackingPriorityByPositionRows.map((row) => (
+          <tr key={row.position}>
+            <td>{row.position}</td>
+            <td>{row.targetPct}</td>
+            <td>{row.actualPct}</td>
+            <td>{row.diffPct}</td>
+            <td>{row.actualCount}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
+        
         </>
       )}
     </div>
