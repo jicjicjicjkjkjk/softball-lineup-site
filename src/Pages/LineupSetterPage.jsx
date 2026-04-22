@@ -442,6 +442,7 @@ export default function LineupSetterPage({
         togglePreviewInningLock={togglePreviewInningLock}
         gameTypeOptions={gameTypeOptions}
         seasonOptions={seasonOptions}
+        trackingPriorityByPositionRows={trackingPriorityByPositionRows}
       />
 
       <div className="card">
