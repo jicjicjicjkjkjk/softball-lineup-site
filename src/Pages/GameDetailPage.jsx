@@ -49,6 +49,10 @@ export default function GameDetailPage({
   clearSavedLineup,
   addSavedInning,
   removeSavedInning,
+  gameDetailImportSourceGameId,
+  setGameDetailImportSourceGameId,
+  gameDetailImportableGames = [],
+  importLineupToSaved,
   toggleSavedAvailable,
   fitByPlayer,
   LineupGrid,
@@ -129,6 +133,42 @@ export default function GameDetailPage({
 
         <div style={{ height: 20 }} />
 
+<div style={{ height: 20 }} />
+
+<div className="card" style={{ padding: 16 }}>
+  <h3 style={{ marginTop: 0 }}>Import Lineup</h3>
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'end' }}>
+    <div>
+      <label>Source Game</label>
+      <select
+        value={gameDetailImportSourceGameId}
+        onChange={(e) => setGameDetailImportSourceGameId(e.target.value)}
+        disabled={selectedLocked}
+      >
+        <option value="">Select game to import</option>
+        {gameDetailImportableGames.map((game) => (
+          <option key={game.id} value={pk(game.id)}>
+            {(formatDateShort(game.date) || 'No Date')} vs {game.opponent || 'Opponent'}
+            {game.game_type ? ` • ${game.game_type}` : ''}
+            {game.season ? ` • ${game.season}` : ''}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div>
+      <button
+        onClick={() =>
+          importLineupToSaved(selectedGame.id, gameDetailImportSourceGameId)
+        }
+        disabled={!gameDetailImportSourceGameId || selectedLocked}
+      >
+        Import Lineup
+      </button>
+    </div>
+  </div>
+</div>
+        
         <h3>Game Availability</h3>
         <div className="checkbox-grid">
           {activePlayers.map((player) => (
