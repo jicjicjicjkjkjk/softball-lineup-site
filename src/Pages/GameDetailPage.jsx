@@ -258,27 +258,28 @@ export default function GameDetailPage({
 
         <div style={{ height: 16 }} />
 
-        <div className="button-row">
-          <button onClick={() => toggleLineupLocked(selectedGame.id, !selectedLocked)}>
-            {selectedLocked ? 'Unlock Lineup' : 'Lock Lineup'}
-          </button>
-          <button onClick={() => clearSavedLineup(selectedGame.id)} disabled={selectedLocked}>
-            Clear Lineup
-          </button>
-        </div>
 
         {!!selectedLineup && (
           <>
             <div style={{ height: 20 }} />
 
             <div className="row-between wrap-row inning-toolbar">
-              <h3 style={{ margin: 0 }}>Grid</h3>
-              <div className="button-row">
-                <button onClick={() => addSavedInning(selectedGame.id)} disabled={selectedLocked}>
-                  Add Inning
-                </button>
-              </div>
-            </div>
+  <h3 style={{ margin: 0 }}>Grid</h3>
+
+  <div className="button-row">
+    <button onClick={() => addSavedInning(selectedGame.id)} disabled={selectedLocked}>
+      Add Inning
+    </button>
+
+    <button onClick={() => toggleLineupLocked(selectedGame.id, !selectedLocked)}>
+      {selectedLocked ? 'Unlock Lineup' : 'Lock Lineup'}
+    </button>
+
+    <button onClick={() => clearSavedLineup(selectedGame.id)} disabled={selectedLocked}>
+      Clear Lineup
+    </button>
+  </div>
+</div>
 
             <div className="table-scroll no-print" style={{ marginTop: 12 }}>
               <LineupGrid
