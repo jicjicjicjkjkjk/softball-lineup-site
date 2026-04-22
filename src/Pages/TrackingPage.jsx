@@ -155,7 +155,8 @@ export default function TrackingPage({
   trackingPlayerId,
   setTrackingPlayerId,
   selectedPlayerPositions,
-  trackingPriorityRows,
+  trackingPriorityRows = [],
+  trackingPriorityByPositionRows = [],
   pk,
 }) {
   
@@ -163,7 +164,7 @@ export default function TrackingPage({
   const [sitOutSort, setSitOutSort] = useState({ key: 'name', direction: 'asc' })
   const [deltaSort, setDeltaSort] = useState({ key: 'name', direction: 'asc' })
   const [runningSort, setRunningSort] = useState({ key: 'name', direction: 'asc' })
-
+  
   const trackingGameIds = useMemo(
     () => new Set((trackingSitSummary || []).map((g) => pk(g.gameId))),
     [trackingSitSummary, pk]
