@@ -247,7 +247,7 @@ export default function GameDetailPage({
             <label key={player.id} className="checkbox-item">
               <input
                 type="checkbox"
-                checked={(selectedLineup?.availablePlayerIds || []).includes(String(player.id))}
+                checked={(selectedLineup?.availablePlayerIds || []).includes(pk(player.id))}
                 onChange={() => toggleSavedAvailable(selectedGame.id, player.id)}
                 disabled={selectedLocked}
               />
@@ -277,17 +277,6 @@ export default function GameDetailPage({
                 <button onClick={() => addSavedInning(selectedGame.id)} disabled={selectedLocked}>
                   Add Inning
                 </button>
-                {Array.from({ length: Number(selectedLineup.innings || 0) }, (_, i) => i + 1).map(
-                  (inning) => (
-                    <button
-                      key={inning}
-                      onClick={() => removeSavedInning(selectedGame.id, inning)}
-                      disabled={selectedLocked}
-                    >
-                      Remove {inning}
-                    </button>
-                  )
-                )}
               </div>
             </div>
 
@@ -296,9 +285,7 @@ export default function GameDetailPage({
                 players={activePlayers}
                 lineup={selectedLineup}
                 fitMap={fitByPlayer}
-                onRemoveInning={(inning) =>
-                removeSavedInning(selectedGame.id, inning)
-                }
+                onRemoveInning={(inning) => removeSavedInning(selectedGame.id, inning)}
                 showLocks={true}
                 lockedLineup={selectedLocked}
                 visiblePlayerIds={visibleIds}
@@ -342,7 +329,7 @@ export default function GameDetailPage({
             </thead>
             <tbody>
               {printPlayers.map((player) => {
-                const playerId = String(player.id)
+                const playerId = pk(player.id)
 
                 return (
                   <tr key={playerId}>
