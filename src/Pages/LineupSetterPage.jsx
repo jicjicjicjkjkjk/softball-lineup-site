@@ -1,5 +1,5 @@
 import { formatDateShort } from '../lib/appHelpers'
-import LineupFocusPanel from './LineupFocusPanel'
+import LineupFocusPanel from '../Components/LineupFocusPanel'
 
 function renderOptionLabel(option) {
   if (!option) return ''
