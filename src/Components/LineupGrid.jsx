@@ -240,7 +240,8 @@ export default function LineupGrid({
               {Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
                 const value = lineup?.cells?.[id]?.[inning] || ''
                 const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
-                const effectiveLocked = lockedLineup || rowLocked || cellLocked
+                const inningLocked = (lineup?.lockedInnings?.[inning] || []).includes(id)
+                const effectiveLocked = lockedLineup || rowLocked || inningLocked || cellLocked
 
                 let background = value ? '#eef6ff' : 'white'
 
