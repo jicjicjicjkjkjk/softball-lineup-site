@@ -1089,3 +1089,8 @@ th.player-col {
     font-size: 11px;
   }
 }
+
+
+.lineup-print-table thead th {
+  box-shadow: 0 2px 0 rgba(0,0,0,0.05);
+}
