@@ -23,11 +23,9 @@ export default function LineupFocusPanel(props) {
     blankLineup,
     optimizerPreviewByGame,
     lineupsByGame,
-
-    // 🔥 THESE WERE MISSING BEFORE
     LineupGrid,
     fitByPlayer,
-    focusStatuses,
+    focusStatuses = [],
     addPreviewInning,
     removePreviewInning,
     updatePreviewCell,
@@ -35,14 +33,16 @@ export default function LineupFocusPanel(props) {
     togglePreviewCellLock,
     togglePreviewRowLock,
     togglePreviewInningLock,
-    visibleIds,
+    visibleIds = [],
+    gameTypeOptions = [],
+    seasonOptions = [],
   } = props
 
   if (!optimizerFocusGame) return null
 
   const lineup =
-    optimizerPreviewByGame[pk(optimizerFocusGame.id)] ||
-    lineupsByGame[pk(optimizerFocusGame.id)] ||
+    optimizerPreviewByGame?.[pk(optimizerFocusGame.id)] ||
+    lineupsByGame?.[pk(optimizerFocusGame.id)] ||
     blankLineup(
       activePlayers.map((p) => p.id),
       Number(optimizerFocusGame.innings || 6),
@@ -52,38 +52,12 @@ export default function LineupFocusPanel(props) {
   return (
     <>
       <div className="card">
-        <h3>
-          {formatDateShort(optimizerFocusGame.date)} vs {optimizerFocusGame.opponent}
+        <h3 style={{ marginTop: 0 }}>
+          Selected Game: {formatDateShort(optimizerFocusGame.date) || 'No Date'} vs{' '}
+          {optimizerFocusGame.opponent || 'Opponent'}
+          {optimizerFocusGame.game_type ? ` • ${optimizerFocusGame.game_type}` : ''}
+          {optimizerFocusGame.season ? ` • ${optimizerFocusGame.season}` : ''}
         </h3>
-
-        <div className="button-row">
-  <button onClick={runOptimizeCurrent}>Optimize</button>
-  <button onClick={runOptimizeAll}>Optimize All</button>
-
-  {optimizerFocusLineup && (
-    <button
-      onClick={() => addPreviewInning(optimizerFocusGame.id)}
-      disabled={optimizerFocusLocked}
-    >
-      Add Inning
-    </button>
-  )}
-
-  <button
-    onClick={() =>
-      toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)
-    }
-  >
-    {optimizerFocusLocked ? 'Unlock Lineup' : 'Lock Lineup'}
-  </button>
-
-  <button
-    onClick={() => clearPreviewLineup(optimizerFocusGame.id)}
-    disabled={optimizerFocusLocked}
-  >
-    Clear Lineup
-  </button>
-</div>
 
         <LineupAvailability
           activePlayers={activePlayers}
@@ -94,32 +68,43 @@ export default function LineupFocusPanel(props) {
           pk={pk}
         />
 
-        <LineupImportPanel {...props} />
+        <div style={{ marginTop: 16 }}>
+          <LineupImportPanel
+            optimizerFocusGame={optimizerFocusGame}
+            optimizerFocusLocked={optimizerFocusLocked}
+            optimizerImportSourceGameId={optimizerImportSourceGameId}
+            setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
+            optimizerImportableGames={optimizerImportableGames}
+            importLineupToPreview={importLineupToPreview}
+            pk={pk}
+            gameTypeOptions={gameTypeOptions}
+            seasonOptions={seasonOptions}
+          />
+        </div>
       </div>
 
-      {/* ✅ CHECKS SECTION (RESTORED) */}
       {optimizerFocusLineup && (
         <div className="card" style={{ paddingTop: 12, paddingBottom: 12 }}>
-          <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 18 }}>
-            Checks
-          </h3>
+          <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 18 }}>Checks</h3>
 
           <div className="stack" style={{ gap: 8 }}>
-            {focusStatuses?.map((status) => (
-              <div key={status.inning} className="summary-box">
+            {focusStatuses.map((status) => (
+              <div
+                key={status.inning}
+                className="summary-box"
+                style={{ fontSize: 13, padding: '8px 10px' }}
+              >
                 <strong>Inning {status.inning}:</strong>{' '}
-                {status.duplicate.length
+                {status.duplicate?.length
                   ? `Duplicate ${status.duplicate.join(', ')}. `
                   : ''}
-                {status.missing.length
-                  ? `Missing ${status.missing.join(', ')}. `
-                  : ''}
-                {status.badFits.length
+                {status.missing?.length ? `Missing ${status.missing.join(', ')}. ` : ''}
+                {status.badFits?.length
                   ? `Disallowed ${status.badFits.join('; ')}. `
                   : ''}
-                {!status.duplicate.length &&
-                !status.missing.length &&
-                !status.badFits.length
+                {!status.duplicate?.length &&
+                !status.missing?.length &&
+                !status.badFits?.length
                   ? 'Looks good.'
                   : ''}
               </div>
@@ -128,26 +113,49 @@ export default function LineupFocusPanel(props) {
         </div>
       )}
 
-      {/* ✅ GRID SECTION (THIS WAS THE BIG MISSING PIECE) */}
       {optimizerFocusLineup && (
         <div className="card">
           <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Grid</h3>
 
             <div className="button-row">
-  {Array.from(
-    { length: Number(optimizerFocusLineup.innings || 0) },
-    (_, i) => i + 1
-  ).map((inning) => (
-    <button
-      key={inning}
-      onClick={() => removePreviewInning(optimizerFocusGame.id, inning)}
-      disabled={optimizerFocusLocked}
-    >
-      Remove {inning}
-    </button>
-  ))}
-</div>          </div>
+              <button
+                onClick={runOptimizeCurrent}
+                disabled={!optimizerFocusGame || optimizerFocusLocked}
+              >
+                Optimize Current
+              </button>
+
+              <button
+                onClick={runOptimizeAll}
+                disabled={!optimizerBatchGames?.length}
+              >
+                Optimize All in Plan
+              </button>
+
+              <button
+                onClick={() => addPreviewInning(optimizerFocusGame.id)}
+                disabled={optimizerFocusLocked}
+              >
+                Add Inning
+              </button>
+
+              <button
+                onClick={() =>
+                  toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)
+                }
+              >
+                {optimizerFocusLocked ? 'Unlock Lineup' : 'Lock Lineup'}
+              </button>
+
+              <button
+                onClick={() => clearPreviewLineup(optimizerFocusGame.id)}
+                disabled={optimizerFocusLocked}
+              >
+                Clear Lineup
+              </button>
+            </div>
+          </div>
 
           <div className="table-scroll">
             <LineupGrid
@@ -158,31 +166,22 @@ export default function LineupFocusPanel(props) {
               lockedLineup={optimizerFocusLocked}
               visiblePlayerIds={visibleIds}
               onCellChange={(playerId, inning, value) =>
-                updatePreviewCell(
-                  optimizerFocusGame.id,
-                  playerId,
-                  inning,
-                  value
-                )
+                updatePreviewCell(optimizerFocusGame.id, playerId, inning, value)
               }
               onBattingChange={(playerId, value) =>
                 updatePreviewBatting(optimizerFocusGame.id, playerId, value)
               }
               onCellLockToggle={(playerId, inning) =>
-                togglePreviewCellLock(
-                  optimizerFocusGame.id,
-                  playerId,
-                  inning
-                )
+                togglePreviewCellLock(optimizerFocusGame.id, playerId, inning)
               }
               onRowLockToggle={(playerId) =>
                 togglePreviewRowLock(optimizerFocusGame.id, playerId)
               }
               onInningLockToggle={(inning) =>
-                togglePreviewInningLock(
-                  optimizerFocusGame.id,
-                  inning
-                )
+                togglePreviewInningLock(optimizerFocusGame.id, inning)
+              }
+              onRemoveInning={(inning) =>
+                removePreviewInning(optimizerFocusGame.id, inning)
               }
             />
           </div>
