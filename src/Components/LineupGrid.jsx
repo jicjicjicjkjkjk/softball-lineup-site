@@ -43,87 +43,75 @@ export default function LineupGrid({
           {showLocks && <th>Lock</th>}
 
           {Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
-  const status = inningStatus(lineup, inning, players, fitMap)
+            const status = inningStatus(lineup, inning, players, fitMap)
 
-  const inningLocked =
-    sortedRows.length > 0 &&
-    sortedRows.every((player) => {
-      const id = pk(player.id)
-      return lineup?.lockedCells?.[id]?.[inning] === true
-    })
+            const inningLocked =
+              sortedRows.length > 0 &&
+              sortedRows.every((player) => {
+                const id = pk(player.id)
+                return lineup?.lockedCells?.[id]?.[inning] === true
+              })
 
-  function handleInningLockToggle() {
-    if (lockedLineup) return
+            return (
+              <th key={inning}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: 6,
+                    justifyItems: 'center',
+                    alignItems: 'center',
+                    minWidth: 92,
+                  }}
+                >
+                  {onRemoveInning ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (lockedLineup) return
+                        const confirmed = window.confirm(`Remove inning ${inning}?`)
+                        if (!confirmed) return
+                        onRemoveInning(inning)
+                      }}
+                      disabled={lockedLineup}
+                      style={{
+                        border: '1px solid #e5b4b4',
+                        background: '#fbe4e4',
+                        color: '#b42318',
+                        borderRadius: 6,
+                        width: 26,
+                        height: 22,
+                        lineHeight: '18px',
+                        padding: 0,
+                        fontWeight: 700,
+                        cursor: lockedLineup ? 'not-allowed' : 'pointer',
+                      }}
+                      title={`Remove inning ${inning}`}
+                    >
+                      ✕
+                    </button>
+                  ) : (
+                    <div style={{ height: 22 }} />
+                  )}
 
-    const shouldLock = !inningLocked
+                  <MiniDiamond status={status} inning={inning} lineup={lineup} players={players} />
 
-    sortedRows.forEach((player) => {
-      const id = pk(player.id)
-      if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
-      lineup.lockedCells[id][inning] = shouldLock
-    })
+                  {showLocks && (
+                    <label className="checkbox-item" style={{ margin: 0, fontSize: 12 }}>
+                      <input
+                        type="checkbox"
+                        checked={inningLocked}
+                        disabled={lockedLineup}
+                        onChange={() => onInningLockToggle?.(inning)}
+                      />
+                      Inning
+                    </label>
+                  )}
 
-    onInningLockToggle?.(inning)
-  }
-
-  return (
-    <th key={inning}>
-      <div
-
-  style={{
-
-    display: 'grid',
-
-    gap: 4,
-
-    justifyItems: 'center',
-
-    paddingBottom: 4,
-
-  }}
-
->
-        
-        {/* REMOVE BUTTON (above inning) */}
-        <button
-  style={{
-    fontSize: 10,
-    padding: '2px 6px',
-    lineHeight: 1,
-    background: '#fee2e2',
-    border: '1px solid #fca5a5',
-    borderRadius: 4,
-    cursor: 'pointer',
-  }}
-          disabled={lockedLineup}
-          onClick={(e) => {
-            e.stopPropagation()
-            // handled in parent (already wired)
-            document.querySelector(`[data-remove-inning="${inning}"]`)?.click()
-          }}
-        >
-          ✕
-        </button>
-
-        <MiniDiamond status={status} inning={inning} lineup={lineup} players={players} />
-
-        {showLocks && (
-          <label className="checkbox-item" style={{ margin: 0, fontSize: 11 }}>
-            <input
-  type="checkbox"
-  checked={inningLocked}
-  disabled={lockedLineup}
-  onChange={() => onInningLockToggle?.(inning)}
-/>
-            Inning
-          </label>
-        )}
-
-        <div style={{ fontSize: 12 }}>{inning}</div>
-      </div>
-    </th>
-  )
-})}
+                  <div style={{ marginTop: 2, fontSize: 12, fontWeight: 600 }}>{inning}</div>
+                </div>
+              </th>
+            )
+          })}
 
           <th>IF</th>
           <th>OF</th>
@@ -141,12 +129,12 @@ export default function LineupGrid({
 
           return (
             <tr
-  key={id}
-  style={{
-    opacity: rowLocked ? 0.6 : 1,
-    background: rowLocked ? '#f8fafc' : 'white',
-  }}
->
+              key={id}
+              style={{
+                opacity: rowLocked ? 0.7 : 1,
+                background: rowLocked ? '#f8fafc' : 'white',
+              }}
+            >
               <td>{player.jersey_number || ''}</td>
               <td>{player.name}</td>
 
@@ -157,17 +145,17 @@ export default function LineupGrid({
                   disabled={lockedLineup}
                   onChange={(e) => onBattingChange(id, e.target.value)}
                   style={{
-  width: 48,
-  height: 28,
-  textAlign: 'center',
-  fontSize: 12,
-}}
+                    width: 56,
+                    height: 30,
+                    textAlign: 'center',
+                    fontSize: 12,
+                  }}
                 />
               </td>
 
               {showLocks && (
                 <td>
-                  <label className="checkbox-item" style={{ margin: 0, fontSize: 10 }}>
+                  <label className="checkbox-item" style={{ margin: 0, fontSize: 11 }}>
                     <input
                       type="checkbox"
                       checked={rowLocked}
@@ -179,100 +167,42 @@ export default function LineupGrid({
                 </td>
               )}
 
-{Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
-  const status = inningStatus(lineup, inning, players, fitMap)
-
-  const inningLocked =
-    sortedRows.length > 0 &&
-    sortedRows.every((player) => {
-      const id = pk(player.id)
-      return lineup?.lockedInnings?.[inning]?.includes?.(id) || false
-    })
-
-  return (
-    <th key={inning}>
-      <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
-        {onRemoveInning ? (
-          <button
-            type="button"
-            onClick={() => onRemoveInning(inning)}
-            disabled={lockedLineup}
-            style={{
-              border: '1px solid #e5b4b4',
-              background: '#fbe4e4',
-              color: '#b42318',
-              borderRadius: 6,
-              width: 26,
-              height: 22,
-              lineHeight: '18px',
-              padding: 0,
-              fontWeight: 700,
-              cursor: lockedLineup ? 'not-allowed' : 'pointer',
-            }}
-            title={`Remove inning ${inning}`}
-          >
-            ✕
-          </button>
-        ) : (
-          <div style={{ height: 22 }} />
-        )}
-
-        <MiniDiamond status={status} inning={inning} lineup={lineup} players={players} />
-
-        {showLocks && (
-          <label className="checkbox-item" style={{ margin: 0, fontSize: 12 }}>
-            <input
-              type="checkbox"
-              checked={inningLocked}
-              disabled={lockedLineup}
-              onChange={() => onInningLockToggle?.(inning)}
-            />
-            Inning
-          </label>
-        )}
-
-        <div style={{ marginTop: 2 }}>{inning}</div>
-      </div>
-    </th>
-  )
-})}
-              
               {Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
                 const value = lineup?.cells?.[id]?.[inning] || ''
                 const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
-                const inningLocked = (lineup?.lockedInnings?.[inning] || []).includes(id)
-                const effectiveLocked = lockedLineup || rowLocked || inningLocked || cellLocked
+                const effectiveLocked = lockedLineup || rowLocked || cellLocked
 
                 let background = value ? '#eef6ff' : 'white'
 
                 if (FIELD_POSITIONS.includes(value)) {
                   const status = inningStatus(lineup, inning, players, fitMap)
+
                   if (status.duplicate.includes(value)) {
                     background = '#fee2e2'
                   } else {
                     const tier = fitTier(fitMap, id, value)
                     background =
-  tier === 'primary'
-    ? '#d1fae5'   // softer green
-    : tier === 'secondary'
-    ? '#fef9c3'   // softer yellow
-    : '#fee2e2'   // keep red
+                      tier === 'primary'
+                        ? '#d1fae5'
+                        : tier === 'secondary'
+                        ? '#fef9c3'
+                        : '#fee2e2'
                   }
                 }
 
                 return (
                   <td key={inning}>
-                    <div style={{ display: 'grid', gap: 2 }}>
+                    <div style={{ display: 'grid', gap: 4 }}>
                       <select
                         value={value}
                         disabled={effectiveLocked}
                         onChange={(e) => onCellChange(id, inning, e.target.value)}
                         style={{
-  background,
-  height: 28,
-  fontSize: 12,
-  padding: '2px 4px',
-}}
+                          background,
+                          height: 30,
+                          fontSize: 12,
+                          padding: '2px 4px',
+                        }}
                       >
                         {GRID_OPTIONS.map((option) => (
                           <option key={option || 'blank'} value={option}>
@@ -282,7 +212,7 @@ export default function LineupGrid({
                       </select>
 
                       {showLocks && (
-                        <label className="checkbox-item" style={{ margin: 0, fontSize: 10 }}>
+                        <label className="checkbox-item" style={{ margin: 0, fontSize: 11 }}>
                           <input
                             type="checkbox"
                             checked={cellLocked}
