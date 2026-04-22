@@ -1030,35 +1030,61 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   }, [activePlayers, trackingTotals, priorityByPlayer, trackingSort])
 
 const trackingPriorityByPositionRows = useMemo(() => {
-  const positions = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
-  const playerCount = Math.max(activePlayers.length, 1)
+  const totalsByPosition = {
+    P: activePlayers.reduce((sum, player) => sum + Number(trackingTotals[pk(player.id)]?.P || 0), 0),
+    C: activePlayers.reduce((sum, player) => sum + Number(trackingTotals[pk(player.id)]?.C || 0), 0),
+    '1B': activePlayers.reduce((sum, player) => sum + Number(trackingTotals[pk(player.id)]?.['1B'] || 0), 0),
+    '2B': activePlayers.reduce((sum, player) => sum + Number(trackingTotals[pk(player.id)]?.['2B'] || 0), 0),
+    '3B': activePlayers.reduce((sum, player) => sum + Number(trackingTotals[pk(player.id)]?.['3B'] || 0), 0),
+    SS: activePlayers.reduce((sum, player) => sum + Number(trackingTotals[pk(player.id)]?.SS || 0), 0),
+    OF: activePlayers.reduce((sum, player) => sum + Number(trackingTotals[pk(player.id)]?.OF || 0), 0),
+  }
 
-  const totalField = activePlayers.reduce((sum, player) => {
-    return sum + Number(trackingTotals[pk(player.id)]?.fieldTotal || 0)
-  }, 0)
+  const fmt = (value) => {
+    const num = Number(value || 0)
+    return num === 0 ? '' : Number(num.toFixed(0))
+  }
 
-  return positions.map((position) => {
-    const targetTotal = activePlayers.reduce((sum, player) => {
-      return sum + Number(priorityByPlayer[pk(player.id)]?.[position]?.priority_pct || 0)
-    }, 0)
+  return activePlayers.map((player) => {
+    const playerId = pk(player.id)
+    const totals = trackingTotals[playerId] || {}
+    const priority = priorityByPlayer[playerId] || {}
 
-    const actualCount = activePlayers.reduce((sum, player) => {
-      return sum + Number(trackingTotals[pk(player.id)]?.[position] || 0)
-    }, 0)
-
-    const targetPct = Number((targetTotal / playerCount).toFixed(1))
-    const actualPct =
-      totalField > 0 ? Number(((actualCount / totalField) * 100).toFixed(1)) : 0
+    const actPct = (posKey) => {
+      const denom = Number(totalsByPosition[posKey] || 0)
+      const numer = Number(totals[posKey] || 0)
+      if (!denom || !numer) return ''
+      return Number(((numer / denom) * 100).toFixed(0))
+    }
 
     return {
-      position,
-      targetPct,
-      actualPct,
-      diffPct: Number((actualPct - targetPct).toFixed(1)),
-      actualCount,
+      playerId,
+      name: player.name,
+      fieldTotal: totals.fieldTotal || 0,
+
+      targP: fmt(priority.P?.priority_pct),
+      actP: actPct('P'),
+
+      targC: fmt(priority.C?.priority_pct),
+      actC: actPct('C'),
+
+      targ1B: fmt(priority['1B']?.priority_pct),
+      act1B: actPct('1B'),
+
+      targ2B: fmt(priority['2B']?.priority_pct),
+      act2B: actPct('2B'),
+
+      targ3B: fmt(priority['3B']?.priority_pct),
+      act3B: actPct('3B'),
+
+      targSS: fmt(priority.SS?.priority_pct),
+      actSS: actPct('SS'),
+
+      targOF: fmt(priority.OF?.priority_pct),
+      actOF: actPct('OF'),
     }
   })
-}, [activePlayers, priorityByPlayer, trackingTotals])
+}, [activePlayers, trackingTotals, priorityByPlayer, pk])
   
   const filteredAttendanceEvents = useMemo(() => {
     return sortRows(attendanceEvents, attendanceSort)
@@ -2182,6 +2208,7 @@ function toggleSavedInningLock(gameId, inning) {
 )}
 
                 {page === 'tracking' && (
+                  {page === 'tracking' && (
           <TrackingPage
             trackingLockedLineups={filteredTrackingLineups}
             trackingTotals={trackingTotals}
@@ -2203,6 +2230,7 @@ function toggleSavedInningLock(gameId, inning) {
             setTrackingPlayerId={setTrackingPlayerId}
             selectedPlayerPositions={selectedPlayerPositions}
             trackingPriorityRows={trackingPriorityRows}
+            trackingPriorityByPositionRows={trackingPriorityByPositionRows}
             pk={pk}
           />
         )}
