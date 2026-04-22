@@ -1077,63 +1077,6 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       trackingSort
     )
   }, [activePlayers, trackingTotals, priorityByPlayer, trackingSort])
-
-const trackingPriorityByPositionRows = useMemo(() => {
-  const positions = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
-
-  const totalActualByPosition = Object.fromEntries(
-    positions.map((pos) => [
-      pos,
-      activePlayers.reduce(
-        (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.[pos] || 0),
-        0
-      ),
-    ])
-  )
-
-  const totalTargetByPosition = Object.fromEntries(
-    positions.map((pos) => [
-      pos,
-      activePlayers.reduce((sum, player) => {
-        const priority = priorityByPlayer[pk(player.id)] || {}
-        const val =
-          pos === '1B'
-            ? priority['1B']?.priority_pct
-            : pos === '2B'
-            ? priority['2B']?.priority_pct
-            : pos === '3B'
-            ? priority['3B']?.priority_pct
-            : priority[pos]?.priority_pct
-
-        return sum + Number(val || 0)
-      }, 0),
-    ])
-  )
-
-  return positions.map((pos) => {
-    const actualCount = totalActualByPosition[pos] || 0
-    const totalAllActual = positions.reduce(
-      (sum, p) => sum + Number(totalActualByPosition[p] || 0),
-      0
-    )
-
-    const targetPct = Number(totalTargetByPosition[pos] || 0)
-    const actualPct =
-      totalAllActual > 0
-        ? Number(((actualCount / totalAllActual) * 100).toFixed(1))
-        : 0
-
-    const diffPct = Number((actualPct - targetPct).toFixed(1))
-
-    return {
-      position: pos,
-      targetPct,
-      actualPct,
-      diffPct,
-      actualCount,
-    }
-  })
-}, [activePlayers, trackingTotals, priorityByPlayer, pk])
   
   const fmt = (value) => {
     const num = Number(value || 0)
