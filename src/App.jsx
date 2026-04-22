@@ -1719,19 +1719,35 @@ const trackingPriorityByPositionRows = useMemo(() => {
 
   function togglePreviewInningLock(gameId, inning) {
   updatePreview(gameId, (lineup) => {
-    if (!lineup.lockedInnings) lineup.lockedInnings = {}
+    const visibleIds = (lineup.availablePlayerIds || []).map(pk)
 
-    const visibleIds =
-      (lineup.availablePlayerIds || []).length
-        ? lineup.availablePlayerIds.map(pk)
-        : Object.keys(lineup.cells || {}).map(pk)
-
-    const current = new Set(lineup.lockedInnings[inning] || [])
     const allLocked =
-      visibleIds.length > 0 && visibleIds.every((id) => current.has(id))
+      visibleIds.length > 0 &&
+      visibleIds.every((playerId) => lineup?.lockedCells?.[playerId]?.[inning] === true)
 
-    lineup.lockedInnings[inning] = allLocked ? [] : [...visibleIds]
+    visibleIds.forEach((playerId) => {
+      if (!lineup.lockedCells[playerId]) lineup.lockedCells[playerId] = {}
+      lineup.lockedCells[playerId][inning] = !allLocked
+    })
 
+    return lineup
+  })
+}
+
+function toggleSavedInningLock(gameId, inning) {
+  updateSavedLineup(gameId, (lineup) => {
+    const visibleIds = (lineup.availablePlayerIds || []).map(pk)
+
+    const allLocked =
+      visibleIds.length > 0 &&
+      visibleIds.every((playerId) => lineup?.lockedCells?.[playerId]?.[inning] === true)
+
+    visibleIds.forEach((playerId) => {
+      if (!lineup.lockedCells[playerId]) lineup.lockedCells[playerId] = {}
+      lineup.lockedCells[playerId][inning] = !allLocked
+    })
+
+    autoSave(gameId, lineup)
     return lineup
   })
 }
@@ -1863,25 +1879,6 @@ const trackingPriorityByPositionRows = useMemo(() => {
     if (!ok) return
   }
   
-function toggleSavedInningLock(gameId, inning) {
-  updateSavedLineup(gameId, (lineup) => {
-    if (!lineup.lockedInnings) lineup.lockedInnings = {}
-
-    const visibleIds =
-      (lineup.availablePlayerIds || []).length
-        ? lineup.availablePlayerIds.map(pk)
-        : Object.keys(lineup.cells || {}).map(pk)
-
-    const current = new Set(lineup.lockedInnings[inning] || [])
-    const allLocked =
-      visibleIds.length > 0 && visibleIds.every((id) => current.has(id))
-
-    lineup.lockedInnings[inning] = allLocked ? [] : [...visibleIds]
-
-    autoSave(gameId, lineup)
-    return lineup
-  })
-}
   
   function clearSavedLineup(gameId) {
     if (lineupLockedByGame[pk(gameId)]) {
