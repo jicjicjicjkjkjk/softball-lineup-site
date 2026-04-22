@@ -333,7 +333,7 @@ export default function LineupSetterPage({
 
       <div className="card">
         <div className="table-scroll">
-                    <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+          <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
           </div>
 
@@ -410,375 +410,307 @@ export default function LineupSetterPage({
       </div>
 
       <LineupFocusPanel
-  optimizerFocusGame={optimizerFocusGame}
-  optimizerFocusLineup={optimizerFocusLineup}
-  optimizerFocusLocked={optimizerFocusLocked}
-  optimizerImportSourceGameId={optimizerImportSourceGameId}
-  setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
-  optimizerImportableGames={optimizerImportableGames}
-  importLineupToPreview={importLineupToPreview}
-  toggleLineupLocked={toggleLineupLocked}
-  runOptimizeCurrent={runOptimizeCurrent}
-  runOptimizeAll={runOptimizeAll}
-  clearPreviewLineup={clearPreviewLineup}
-  optimizerBatchGames={optimizerBatchGames}
-  activePlayers={activePlayers}
-  togglePreviewAvailable={togglePreviewAvailable}
-  pk={pk}
-  blankLineup={blankLineup}
-  optimizerPreviewByGame={optimizerPreviewByGame}
-  lineupsByGame={lineupsByGame}
-/>
+        optimizerFocusGame={optimizerFocusGame}
+        optimizerFocusLineup={optimizerFocusLineup}
+        optimizerFocusLocked={optimizerFocusLocked}
+        optimizerImportSourceGameId={optimizerImportSourceGameId}
+        setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
+        optimizerImportableGames={optimizerImportableGames}
+        importLineupToPreview={importLineupToPreview}
+        toggleLineupLocked={toggleLineupLocked}
+        runOptimizeCurrent={runOptimizeCurrent}
+        runOptimizeAll={runOptimizeAll}
+        clearPreviewLineup={clearPreviewLineup}
+        optimizerBatchGames={optimizerBatchGames}
+        activePlayers={activePlayers}
+        activePlayerIds={activePlayerIds}
+        togglePreviewAvailable={togglePreviewAvailable}
+        pk={pk}
+        blankLineup={blankLineup}
+        optimizerPreviewByGame={optimizerPreviewByGame}
+        lineupsByGame={lineupsByGame}
+        fitByPlayer={fitByPlayer}
+        focusStatuses={focusStatuses}
+        addPreviewInning={addPreviewInning}
+        removePreviewInning={removePreviewInning}
+        LineupGrid={LineupGrid}
+        visibleIds={visibleIds}
+        updatePreviewCell={updatePreviewCell}
+        updatePreviewBatting={updatePreviewBatting}
+        togglePreviewCellLock={togglePreviewCellLock}
+        togglePreviewRowLock={togglePreviewRowLock}
+        togglePreviewInningLock={togglePreviewInningLock}
+        gameTypeOptions={gameTypeOptions}
+        seasonOptions={seasonOptions}
+      />
 
-          {optimizerFocusLineup && (
-            <>
-                            <div className="card" style={{ paddingTop: 12, paddingBottom: 12 }}>
-                <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 18 }}>Checks</h3>
-                <div className="stack" style={{ gap: 8 }}>
-                  {focusStatuses.map((status) => (
-                    <div
-                      key={status.inning}
-                      className="summary-box"
-                      style={{ fontSize: 13, padding: '8px 10px' }}
-                    >
-                      <strong>Inning {status.inning}:</strong>{' '}
-                      {status.duplicate.length ? `Duplicate ${status.duplicate.join(', ')}. ` : ''}
-                      {status.missing.length ? `Missing ${status.missing.join(', ')}. ` : ''}
-                      {status.badFits.length ? `Disallowed ${status.badFits.join('; ')}. ` : ''}
-                      {!status.duplicate.length &&
-                      !status.missing.length &&
-                      !status.badFits.length
-                        ? 'Looks good.'
-                        : ''}
-                    </div>
-                  ))}
-                </div>
-              </div>
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Filters</h3>
 
-                            <div className="card">
-                <div className="row-between wrap-row inning-toolbar" style={{ marginBottom: 12 }}>
-                  <h3 style={{ margin: 0 }}>Grid</h3>
-                  <div className="button-row">
-                    <button
-                      onClick={() => addPreviewInning(optimizerFocusGame.id)}
-                      disabled={optimizerFocusLocked}
-                    >
-                      Add Inning
-                    </button>
-
-                    {Array.from(
-                      { length: Number(optimizerFocusLineup.innings || 0) },
-                      (_, i) => i + 1
-                    ).map((inning) => (
-                      <button
-                        key={inning}
-                        onClick={() => removePreviewInning(optimizerFocusGame.id, inning)}
-                        disabled={optimizerFocusLocked}
-                      >
-                        Remove {inning}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="table-scroll">
-                  <LineupGrid
-                    players={activePlayers}
-                    lineup={optimizerFocusLineup}
-                    fitMap={fitByPlayer}
-                    showLocks={true}
-                    lockedLineup={optimizerFocusLocked}
-                    visiblePlayerIds={visibleIds}
-                    onCellChange={(playerId, inning, value) =>
-                      updatePreviewCell(optimizerFocusGame.id, playerId, inning, value)
-                    }
-                    onBattingChange={(playerId, value) =>
-                      updatePreviewBatting(optimizerFocusGame.id, playerId, value)
-                    }
-                    onCellLockToggle={(playerId, inning) =>
-                      togglePreviewCellLock(optimizerFocusGame.id, playerId, inning)
-                    }
-                    onRowLockToggle={(playerId) =>
-                      togglePreviewRowLock(optimizerFocusGame.id, playerId)
-                    }
-                    onInningLockToggle={(inning) =>
-                      togglePreviewInningLock(optimizerFocusGame.id, inning)
-                    }
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="card">
-            <h3 style={{ marginTop: 0 }}>Filters</h3>
-
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600 }}>Season</div>
-                <select
-                  multiple
-                  value={trackingFilters.seasons}
-                  onChange={(e) =>
-                    setTrackingFilters((f) => ({
-                      ...f,
-                      seasons: Array.from(e.target.selectedOptions, (o) => o.value),
-                    }))
-                  }
-                >
-                  {seasonOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600 }}>Game Type</div>
-                <select
-                  multiple
-                  value={trackingFilters.gameTypes}
-                  onChange={(e) =>
-                    setTrackingFilters((f) => ({
-                      ...f,
-                      gameTypes: Array.from(e.target.selectedOptions, (o) => o.value),
-                    }))
-                  }
-                >
-                  {gameTypeOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600 }}>Lineup State</div>
-                <select
-                  multiple
-                  value={trackingFilters.lineupStates}
-                  onChange={(e) =>
-                    setTrackingFilters((f) => ({
-                      ...f,
-                      lineupStates: Array.from(e.target.selectedOptions, (o) => o.value),
-                    }))
-                  }
-                >
-                  <option value="Locked">Locked</option>
-                  <option value="Saved">Saved</option>
-                  <option value="Empty">Empty</option>
-                </select>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600 }}>Date From</div>
-                <input
-                  type="date"
-                  value={trackingFilters.dateFrom || ''}
-                  onChange={(e) =>
-                    setTrackingFilters((f) => ({
-                      ...f,
-                      dateFrom: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600 }}>Date To</div>
-                <input
-                  type="date"
-                  value={trackingFilters.dateTo || ''}
-                  onChange={(e) =>
-                    setTrackingFilters((f) => ({
-                      ...f,
-                      dateTo: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setTrackingFilters({
-                      seasons: [],
-                      gameTypes: [],
-                      lineupStates: [],
-                      dateFrom: '',
-                      dateTo: '',
-                    })
-                  }
-                >
-                  Clear Filters
-                </button>
-              </div>
-            </div>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>Season</div>
+            <select
+              multiple
+              value={trackingFilters.seasons}
+              onChange={(e) =>
+                setTrackingFilters((f) => ({
+                  ...f,
+                  seasons: Array.from(e.target.selectedOptions, (o) => o.value),
+                }))
+              }
+            >
+              {seasonOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <TrackingTable
-            title="Filtered Games Before Current Plan"
-            universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} games)`}
-            totals={filteredGamesBeforeTotalsWithRunning}
-            sitOutRows={ytdBeforeSitOutRows}
-            players={activePlayers}
-            sortConfig={trackingSort}
-            setSortConfig={setTrackingSort}
-          />
-
-          <TrackingTable
-            title="Current Plan"
-            totals={currentPlanTotalsWithRunning}
-            players={activePlayers}
-            sortConfig={trackingSort}
-            setSortConfig={setTrackingSort}
-          />
-
-          <TrackingTable
-            title="Filtered Games + Current Plan"
-            universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
-            totals={filteredPlusPlanTotalsWithRunning}
-            sitOutRows={ytdAfterSitOutRows}
-            players={activePlayers}
-            sortConfig={trackingSort}
-            setSortConfig={setTrackingSort}
-          />
-
-          <div className="card tracking-card">
-            <h3>Tracking by Positioning by Priority - Player</h3>
-            <div className="tracking-scroll">
-              <table className="tracking-table priority-groups">
-                <thead>
-                  <tr>
-                    <th
-                      rowSpan="2"
-                      className="sticky-col-1 col-player"
-                      style={{ textAlign: 'left', verticalAlign: 'middle' }}
-                    >
-                      Player
-                    </th>
-                    <th
-                      rowSpan="2"
-                      className="sticky-col-2 col-small"
-                      style={{ textAlign: 'center', verticalAlign: 'middle' }}
-                    >
-                      Fld
-                    </th>
-
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
-                      P
-                    </th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
-                      C
-                    </th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
-                      1B
-                    </th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
-                      2B
-                    </th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
-                      3B
-                    </th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
-                      SS
-                    </th>
-                    <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
-                      OF
-                    </th>
-                  </tr>
-                  <tr>
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
-
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
-
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
-
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
-
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
-
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
-
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {trackingPriorityRows.map((row) => (
-                    <tr key={row.playerId}>
-                      <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>
-                        {row.name}
-                      </td>
-                      <td className="sticky-col-2 col-small" style={{ textAlign: 'center' }}>
-                        {row.fieldTotal}
-                      </td>
-
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targP}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actP}</td>
-
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targC}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actC}</td>
-
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ1B}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act1B}</td>
-
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ2B}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act2B}</td>
-
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ3B}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act3B}</td>
-
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targSS}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actSS}</td>
-
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targOF}</td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actOF}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>Game Type</div>
+            <select
+              multiple
+              value={trackingFilters.gameTypes}
+              onChange={(e) =>
+                setTrackingFilters((f) => ({
+                  ...f,
+                  gameTypes: Array.from(e.target.selectedOptions, (o) => o.value),
+                }))
+              }
+            >
+              {gameTypeOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="card tracking-card">
-            <h3>Tracking by Positioning by Priority - Position</h3>
-            <div className="tracking-scroll">
-              <table className="tracking-table">
-                <thead>
-                  <tr>
-                    <th>Position</th>
-                    <th>Target %</th>
-                    <th>Actual %</th>
-                    <th>Diff %</th>
-                    <th>Actual Count</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {trackingPriorityByPositionRows.map((row) => (
-                    <tr key={row.position}>
-                      <td>{row.position}</td>
-                      <td>{row.targetPct}</td>
-                      <td>{row.actualPct}</td>
-                      <td>{row.diffPct}</td>
-                      <td>{row.actualCount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>Lineup State</div>
+            <select
+              multiple
+              value={trackingFilters.lineupStates}
+              onChange={(e) =>
+                setTrackingFilters((f) => ({
+                  ...f,
+                  lineupStates: Array.from(e.target.selectedOptions, (o) => o.value),
+                }))
+              }
+            >
+              <option value="Locked">Locked</option>
+              <option value="Saved">Saved</option>
+              <option value="Empty">Empty</option>
+            </select>
           </div>
-        </>
-      )}
+
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>Date From</div>
+            <input
+              type="date"
+              value={trackingFilters.dateFrom || ''}
+              onChange={(e) =>
+                setTrackingFilters((f) => ({
+                  ...f,
+                  dateFrom: e.target.value,
+                }))
+              }
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>Date To</div>
+            <input
+              type="date"
+              value={trackingFilters.dateTo || ''}
+              onChange={(e) =>
+                setTrackingFilters((f) => ({
+                  ...f,
+                  dateTo: e.target.value,
+                }))
+              }
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={() =>
+                setTrackingFilters({
+                  seasons: [],
+                  gameTypes: [],
+                  lineupStates: [],
+                  dateFrom: '',
+                  dateTo: '',
+                })
+              }
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <TrackingTable
+        title="Filtered Games Before Current Plan"
+        universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} games)`}
+        totals={filteredGamesBeforeTotalsWithRunning}
+        sitOutRows={ytdBeforeSitOutRows}
+        players={activePlayers}
+        sortConfig={trackingSort}
+        setSortConfig={setTrackingSort}
+      />
+
+      <TrackingTable
+        title="Current Plan"
+        totals={currentPlanTotalsWithRunning}
+        players={activePlayers}
+        sortConfig={trackingSort}
+        setSortConfig={setTrackingSort}
+      />
+
+      <TrackingTable
+        title="Filtered Games + Current Plan"
+        universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
+        totals={filteredPlusPlanTotalsWithRunning}
+        sitOutRows={ytdAfterSitOutRows}
+        players={activePlayers}
+        sortConfig={trackingSort}
+        setSortConfig={setTrackingSort}
+      />
+
+      <div className="card tracking-card">
+        <h3>Tracking by Positioning by Priority - Player</h3>
+        <div className="tracking-scroll">
+          <table className="tracking-table priority-groups">
+            <thead>
+              <tr>
+                <th
+                  rowSpan="2"
+                  className="sticky-col-1 col-player"
+                  style={{ textAlign: 'left', verticalAlign: 'middle' }}
+                >
+                  Player
+                </th>
+                <th
+                  rowSpan="2"
+                  className="sticky-col-2 col-small"
+                  style={{ textAlign: 'center', verticalAlign: 'middle' }}
+                >
+                  Fld
+                </th>
+
+                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                  P
+                </th>
+                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                  C
+                </th>
+                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                  1B
+                </th>
+                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                  2B
+                </th>
+                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                  3B
+                </th>
+                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                  SS
+                </th>
+                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>
+                  OF
+                </th>
+              </tr>
+              <tr>
+                <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+
+                <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trackingPriorityRows.map((row) => (
+                <tr key={row.playerId}>
+                  <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>
+                    {row.name}
+                  </td>
+                  <td className="sticky-col-2 col-small" style={{ textAlign: 'center' }}>
+                    {row.fieldTotal}
+                  </td>
+
+                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targP}</td>
+                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actP}</td>
+
+                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targC}</td>
+                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actC}</td>
+
+                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ1B}</td>
+                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act1B}</td>
+
+                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ2B}</td>
+                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act2B}</td>
+
+                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ3B}</td>
+                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act3B}</td>
+
+                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targSS}</td>
+                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actSS}</td>
+
+                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targOF}</td>
+                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actOF}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card tracking-card">
+        <h3>Tracking by Positioning by Priority - Position</h3>
+        <div className="tracking-scroll">
+          <table className="tracking-table">
+            <thead>
+              <tr>
+                <th>Position</th>
+                <th>Target %</th>
+                <th>Actual %</th>
+                <th>Diff %</th>
+                <th>Actual Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trackingPriorityByPositionRows.map((row) => (
+                <tr key={row.position}>
+                  <td>{row.position}</td>
+                  <td>{row.targetPct}</td>
+                  <td>{row.actualPct}</td>
+                  <td>{row.diffPct}</td>
+                  <td>{row.actualCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }
