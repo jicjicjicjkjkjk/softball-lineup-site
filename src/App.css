@@ -1040,3 +1040,32 @@ th.player-col {
   line-height: 10px;
   text-align: center;
 }
+
+
+.lineup-print-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.lineup-print-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #e6f4f4;
+}
+
+.lineup-print-table td:first-child,
+.lineup-print-table th:first-child {
+  position: sticky;
+  left: 0;
+  background: white;
+  z-index: 4;
+}
+
+.lineup-print-table td:nth-child(2),
+.lineup-print-table th:nth-child(2) {
+  position: sticky;
+  left: 50px;
+  background: white;
+  z-index: 4;
+}
