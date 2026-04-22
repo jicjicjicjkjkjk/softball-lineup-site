@@ -151,7 +151,6 @@ export default function LineupSetterPage({
   trackingPriorityRows = [],
   trackingPriorityByPositionRows = [],
 }) {
-  
   const focusStatuses = optimizerFocusLineup
     ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
         inning,
@@ -467,7 +466,7 @@ export default function LineupSetterPage({
               )}
             </div>
 
-                        <h4>Game Availability</h4>
+            <h4>Game Availability</h4>
             <div className="checkbox-grid">
               {activePlayers.map((player) => {
                 const lineup =
@@ -537,6 +536,8 @@ export default function LineupSetterPage({
                 </div>
               </div>
             </div>
+          </div>
+
           {optimizerFocusLineup && (
             <>
               <div className="card">
@@ -579,6 +580,9 @@ export default function LineupSetterPage({
                     }
                     onRowLockToggle={(playerId) =>
                       togglePreviewRowLock(optimizerFocusGame.id, playerId)
+                    }
+                    onInningLockToggle={(inning) =>
+                      togglePreviewInningLock(optimizerFocusGame.id, inning)
                     }
                   />
                 </div>
@@ -695,15 +699,15 @@ export default function LineupSetterPage({
             </div>
           </div>
 
-                   <TrackingTable
-  title="Filtered Games Before Current Plan"
-  universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} games)`}
-  totals={ytdBeforeTotals}
-  sitOutRows={ytdBeforeSitOutRows}
-  players={activePlayers}
-  sortConfig={trackingSort}
-  setSortConfig={setTrackingSort}
-/>
+          <TrackingTable
+            title="Filtered Games Before Current Plan"
+            universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} games)`}
+            totals={filteredGamesBeforeTotalsWithRunning}
+            sitOutRows={ytdBeforeSitOutRows}
+            players={activePlayers}
+            sortConfig={trackingSort}
+            setSortConfig={setTrackingSort}
+          />
 
           <TrackingTable
             title="Current Plan"
@@ -713,15 +717,15 @@ export default function LineupSetterPage({
             setSortConfig={setTrackingSort}
           />
 
-                    <TrackingTable
-  title="Filtered Games + Current Plan"
-  universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
-  totals={ytdAfterTotals}
-  sitOutRows={ytdAfterSitOutRows}
-  players={activePlayers}
-  sortConfig={trackingSort}
-  setSortConfig={setTrackingSort}
-/>
+          <TrackingTable
+            title="Filtered Games + Current Plan"
+            universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
+            totals={filteredPlusPlanTotalsWithRunning}
+            sitOutRows={ytdAfterSitOutRows}
+            players={activePlayers}
+            sortConfig={trackingSort}
+            setSortConfig={setTrackingSort}
+          />
 
           <div className="card tracking-card">
             <h3>Tracking by Positioning by Priority - Player</h3>
@@ -767,54 +771,26 @@ export default function LineupSetterPage({
                     </th>
                   </tr>
                   <tr>
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
-                      TGT
-                    </th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
-                      ACT
-                    </th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
-                      TGT
-                    </th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
-                      ACT
-                    </th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
-                      TGT
-                    </th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
-                      ACT
-                    </th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
-                      TGT
-                    </th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
-                      ACT
-                    </th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
-                      TGT
-                    </th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
-                      ACT
-                    </th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
-                      TGT
-                    </th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
-                      ACT
-                    </th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
 
-                    <th className="col-small group-start" style={{ textAlign: 'center' }}>
-                      TGT
-                    </th>
-                    <th className="col-small group-end" style={{ textAlign: 'center' }}>
-                      ACT
-                    </th>
+                    <th className="col-small group-start" style={{ textAlign: 'center' }}>TGT</th>
+                    <th className="col-small group-end" style={{ textAlign: 'center' }}>ACT</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -827,88 +803,60 @@ export default function LineupSetterPage({
                         {row.fieldTotal}
                       </td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
-                        {row.targP}
-                      </td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
-                        {row.actP}
-                      </td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targP}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actP}</td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
-                        {row.targC}
-                      </td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
-                        {row.actC}
-                      </td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targC}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actC}</td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
-                        {row.targ1B}
-                      </td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
-                        {row.act1B}
-                      </td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ1B}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act1B}</td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
-                        {row.targ2B}
-                      </td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
-                        {row.act2B}
-                      </td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ2B}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act2B}</td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
-                        {row.targ3B}
-                      </td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
-                        {row.act3B}
-                      </td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ3B}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act3B}</td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
-                        {row.targSS}
-                      </td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
-                        {row.actSS}
-                      </td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targSS}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actSS}</td>
 
-                      <td className="col-small group-start" style={{ textAlign: 'center' }}>
-                        {row.targOF}
-                      </td>
-                      <td className="col-small group-end" style={{ textAlign: 'center' }}>
-                        {row.actOF}
-                      </td>
+                      <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targOF}</td>
+                      <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actOF}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
-        <div className="card tracking-card">
-  <h3>Tracking by Positioning by Priority - Position</h3>
-  <div className="tracking-scroll">
-    <table className="tracking-table">
-      <thead>
-        <tr>
-          <th>Position</th>
-          <th>Target %</th>
-          <th>Actual %</th>
-          <th>Diff %</th>
-          <th>Actual Count</th>
-        </tr>
-      </thead>
-      <tbody>
-        {trackingPriorityByPositionRows.map((row) => (
-          <tr key={row.position}>
-            <td>{row.position}</td>
-            <td>{row.targetPct}</td>
-            <td>{row.actualPct}</td>
-            <td>{row.diffPct}</td>
-            <td>{row.actualCount}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
-        
+
+          <div className="card tracking-card">
+            <h3>Tracking by Positioning by Priority - Position</h3>
+            <div className="tracking-scroll">
+              <table className="tracking-table">
+                <thead>
+                  <tr>
+                    <th>Position</th>
+                    <th>Target %</th>
+                    <th>Actual %</th>
+                    <th>Diff %</th>
+                    <th>Actual Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trackingPriorityByPositionRows.map((row) => (
+                    <tr key={row.position}>
+                      <td>{row.position}</td>
+                      <td>{row.targetPct}</td>
+                      <td>{row.actualPct}</td>
+                      <td>{row.diffPct}</td>
+                      <td>{row.actualCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </>
       )}
     </div>
