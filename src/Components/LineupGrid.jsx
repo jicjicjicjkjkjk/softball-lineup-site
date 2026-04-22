@@ -23,14 +23,15 @@ export default function LineupGrid({
   onInningLockToggle,
 }) {
   const visibleSet = new Set((visiblePlayerIds || []).map(pk))
+  const innings = Number(lineup?.innings || 0)
 
   const sortedRows = [...(players || [])]
-    .filter((player) => visibleSet.has(pk(player.id)))
+    .filter((p) => visibleSet.has(pk(p.id)))
     .sort((a, b) => {
       const aOrder = Number(lineup?.battingOrder?.[pk(a.id)] || 999)
       const bOrder = Number(lineup?.battingOrder?.[pk(b.id)] || 999)
       if (aOrder !== bOrder) return aOrder - bOrder
-      return a.name.localeCompare(b.name)
+      return String(a.name || '').localeCompare(String(b.name || ''))
     })
 
   return (
@@ -39,53 +40,41 @@ export default function LineupGrid({
         <tr>
           <th>#</th>
           <th className="player-col">Player</th>
-          <th>Batting Order</th>
+          <th>Batting</th>
           {showLocks && <th>Lock</th>}
 
-          {Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
+          {Array.from({ length: innings }, (_, i) => i + 1).map((inning) => {
             const status = inningStatus(lineup, inning, players, fitMap)
 
             const inningLocked =
               sortedRows.length > 0 &&
-              sortedRows.every((player) => {
-                const id = pk(player.id)
+              sortedRows.every((p) => {
+                const id = pk(p.id)
                 return lineup?.lockedCells?.[id]?.[inning] === true
               })
 
             return (
               <th key={inning}>
-                <div
-                  style={{
-                    display: 'grid',
-                    gap: 6,
-                    justifyItems: 'center',
-                    alignItems: 'center',
-                    minWidth: 92,
-                  }}
-                >
+                <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
+                  
+                  {/* ✅ REMOVE INNING (ONLY ONE PLACE) */}
                   {onRemoveInning ? (
                     <button
-                      type="button"
                       onClick={() => {
                         if (lockedLineup) return
-                        const confirmed = window.confirm(`Remove inning ${inning}?`)
-                        if (!confirmed) return
+                        if (!window.confirm(`Remove inning ${inning}?`)) return
                         onRemoveInning(inning)
                       }}
                       disabled={lockedLineup}
                       style={{
-                        border: '1px solid #e5b4b4',
                         background: '#fbe4e4',
-                        color: '#b42318',
+                        border: '1px solid #e5b4b4',
                         borderRadius: 6,
-                        width: 26,
+                        width: 24,
                         height: 22,
-                        lineHeight: '18px',
-                        padding: 0,
                         fontWeight: 700,
                         cursor: lockedLineup ? 'not-allowed' : 'pointer',
                       }}
-                      title={`Remove inning ${inning}`}
                     >
                       ✕
                     </button>
@@ -93,21 +82,25 @@ export default function LineupGrid({
                     <div style={{ height: 22 }} />
                   )}
 
-                  <MiniDiamond status={status} inning={inning} lineup={lineup} players={players} />
+                  {/* DIAMOND */}
+                  <MiniDiamond
+                    status={status}
+                    inning={inning}
+                    lineup={lineup}
+                    players={players}
+                  />
 
+                  {/* ✅ INNING LOCK */}
                   {showLocks && (
-                    <label className="checkbox-item" style={{ margin: 0, fontSize: 12 }}>
-                      <input
-                        type="checkbox"
-                        checked={inningLocked}
-                        disabled={lockedLineup}
-                        onChange={() => onInningLockToggle?.(inning)}
-                      />
-                      Inning
-                    </label>
+                    <input
+                      type="checkbox"
+                      checked={inningLocked}
+                      disabled={lockedLineup}
+                      onChange={() => onInningLockToggle?.(inning)}
+                    />
                   )}
 
-                  <div style={{ marginTop: 2, fontSize: 12, fontWeight: 600 }}>{inning}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>{inning}</div>
                 </div>
               </th>
             )
@@ -131,57 +124,52 @@ export default function LineupGrid({
             <tr
               key={id}
               style={{
-                opacity: rowLocked ? 0.7 : 1,
+                opacity: rowLocked ? 0.6 : 1,
                 background: rowLocked ? '#f8fafc' : 'white',
               }}
             >
               <td>{player.jersey_number || ''}</td>
               <td>{player.name}</td>
 
+              {/* BATTING */}
               <td>
                 <input
                   type="number"
                   value={lineup?.battingOrder?.[id] || ''}
                   disabled={lockedLineup}
                   onChange={(e) => onBattingChange(id, e.target.value)}
-                  style={{
-                    width: 56,
-                    height: 30,
-                    textAlign: 'center',
-                    fontSize: 12,
-                  }}
+                  style={{ width: 50, textAlign: 'center' }}
                 />
               </td>
 
+              {/* ROW LOCK */}
               {showLocks && (
                 <td>
-                  <label className="checkbox-item" style={{ margin: 0, fontSize: 11 }}>
-                    <input
-                      type="checkbox"
-                      checked={rowLocked}
-                      disabled={lockedLineup}
-                      onChange={() => onRowLockToggle(id)}
-                    />
-                    All
-                  </label>
+                  <input
+                    type="checkbox"
+                    checked={rowLocked}
+                    disabled={lockedLineup}
+                    onChange={() => onRowLockToggle(id)}
+                  />
                 </td>
               )}
 
-              {Array.from({ length: Number(lineup?.innings || 0) }, (_, i) => i + 1).map((inning) => {
+              {/* CELLS */}
+              {Array.from({ length: innings }, (_, i) => i + 1).map((inning) => {
                 const value = lineup?.cells?.[id]?.[inning] || ''
                 const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
                 const effectiveLocked = lockedLineup || rowLocked || cellLocked
 
-                let background = value ? '#eef6ff' : 'white'
+                let bg = value ? '#eef6ff' : 'white'
 
                 if (FIELD_POSITIONS.includes(value)) {
                   const status = inningStatus(lineup, inning, players, fitMap)
 
                   if (status.duplicate.includes(value)) {
-                    background = '#fee2e2'
+                    bg = '#fee2e2'
                   } else {
                     const tier = fitTier(fitMap, id, value)
-                    background =
+                    bg =
                       tier === 'primary'
                         ? '#d1fae5'
                         : tier === 'secondary'
@@ -192,37 +180,33 @@ export default function LineupGrid({
 
                 return (
                   <td key={inning}>
-                    <div style={{ display: 'grid', gap: 4 }}>
-                      <select
-                        value={value}
-                        disabled={effectiveLocked}
-                        onChange={(e) => onCellChange(id, inning, e.target.value)}
-                        style={{
-                          background,
-                          height: 30,
-                          fontSize: 12,
-                          padding: '2px 4px',
-                        }}
-                      >
-                        {GRID_OPTIONS.map((option) => (
-                          <option key={option || 'blank'} value={option}>
-                            {option || '--'}
-                          </option>
-                        ))}
-                      </select>
+                    <select
+                      value={value}
+                      disabled={effectiveLocked}
+                      onChange={(e) =>
+                        onCellChange(id, inning, e.target.value)
+                      }
+                      style={{
+                        background: bg,
+                        height: 28,
+                        fontSize: 12,
+                      }}
+                    >
+                      {GRID_OPTIONS.map((opt) => (
+                        <option key={opt || 'blank'} value={opt}>
+                          {opt || '--'}
+                        </option>
+                      ))}
+                    </select>
 
-                      {showLocks && (
-                        <label className="checkbox-item" style={{ margin: 0, fontSize: 11 }}>
-                          <input
-                            type="checkbox"
-                            checked={cellLocked}
-                            disabled={lockedLineup || rowLocked}
-                            onChange={() => onCellLockToggle(id, inning)}
-                          />
-                          Lock
-                        </label>
-                      )}
-                    </div>
+                    {showLocks && (
+                      <input
+                        type="checkbox"
+                        checked={cellLocked}
+                        disabled={lockedLineup || rowLocked}
+                        onChange={() => onCellLockToggle(id, inning)}
+                      />
+                    )}
                   </td>
                 )
               })}
