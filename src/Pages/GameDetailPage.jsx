@@ -296,6 +296,9 @@ export default function GameDetailPage({
                 players={activePlayers}
                 lineup={selectedLineup}
                 fitMap={fitByPlayer}
+                onRemoveInning={(inning) =>
+                removeSavedInning(selectedGame.id, inning)
+                }
                 showLocks={true}
                 lockedLineup={selectedLocked}
                 visiblePlayerIds={visibleIds}
