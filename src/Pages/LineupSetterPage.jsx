@@ -12,6 +12,14 @@ function renderOptionValue(option) {
   return option.value || option.label || ''
 }
 
+function getOptionLabel(options, value) {
+  if (!value) return ''
+  const match = (options || []).find(
+    (opt) => opt.value === value || opt.label === value
+  )
+  return match?.label || value
+}
+
 function compareGamesAscLocal(a, b, pk) {
   const aDate = a?.date || ''
   const bDate = b?.date || ''
