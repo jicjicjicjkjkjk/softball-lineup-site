@@ -1069,3 +1069,8 @@ th.player-col {
   background: white;
   z-index: 4;
 }
+
+
+.lineup-print-table tbody tr:hover {
+  background: #f1f5f9;
+}
