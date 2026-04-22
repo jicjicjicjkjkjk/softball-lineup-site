@@ -1965,6 +1965,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     setOptimizerNewType={setOptimizerNewType}
     optimizerNewSeason={optimizerNewSeason}
     setOptimizerNewSeason={setOptimizerNewSeason}
+    getOptionLabel={getOptionLabel}
     gameTypeOptions={gameTypeOptions}
     seasonOptions={seasonOptions}
     trackingFilters={trackingFilters}
