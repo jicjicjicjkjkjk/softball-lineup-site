@@ -56,6 +56,7 @@ export default function GameDetailPage({
   updateSavedBatting,
   toggleSavedCellLock,
   toggleSavedRowLock,
+  toggleSavedInningLock,
   pk,
 }) {
   
@@ -186,6 +187,9 @@ export default function GameDetailPage({
   }
   onRowLockToggle={(playerId) =>
     toggleSavedRowLock(selectedGame.id, playerId)
+  }
+  onInningLockToggle={(inning) =>
+    toggleSavedInningLock(selectedGame.id, inning)
   }
 />
             </div>
