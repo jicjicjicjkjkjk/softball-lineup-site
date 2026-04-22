@@ -453,10 +453,15 @@ function isCompleteLineup(lineup) {
 
       await loadAppOptions()
 
-      if (loadedGames[0]) {
-        setSelectedGameId(pk(loadedGames[0].id))
-        setOptimizerExistingGameId(pk(loadedGames[0].id))
-      }
+      if (loadedGames.length) {
+  const latestGame = [...loadedGames].sort((a, b) => compareGamesAsc(a, b, pk)).at(-1)
+
+  if (latestGame) {
+    setSelectedGameId(pk(latestGame.id))
+    setOptimizerExistingGameId(pk(latestGame.id))
+    setOptimizerFocusGameId(pk(latestGame.id))
+  }
+}
     } catch (error) {
       setAppError(error.message || 'Failed to load data.')
     } finally {
@@ -502,6 +507,25 @@ function isCompleteLineup(lineup) {
       setOptimizerNewType(defaultGameTypeOption.value || defaultGameTypeOption.label || '')
     }
   }, [defaultGameTypeOption, optimizerNewType])
+
+useEffect(() => {
+  if (!games.length) return
+
+  const latestGame = [...games].sort((a, b) => compareGamesAsc(a, b, pk)).at(-1)
+  if (!latestGame) return
+
+  if (!selectedGameId) {
+    setSelectedGameId(pk(latestGame.id))
+  }
+
+  if (!optimizerExistingGameId) {
+    setOptimizerExistingGameId(pk(latestGame.id))
+  }
+
+  if (!optimizerFocusGameId) {
+    setOptimizerFocusGameId(pk(latestGame.id))
+  }
+}, [games, selectedGameId, optimizerExistingGameId, optimizerFocusGameId])
   
   const selectedGame = useMemo(
     () => games.find((game) => pk(game.id) === pk(selectedGameId)) || null,
@@ -546,6 +570,10 @@ function isCompleteLineup(lineup) {
     return [...games].sort((a, b) => compareGamesAsc(a, b, pk))
   }, [games])
 
+  const orderedGamesDesc = useMemo(() => {
+  return [...orderedGamesAsc].reverse()
+  }, [orderedGamesAsc])
+  
   const activePriorityRows = useMemo(() => {
     return sortRows(
       activePlayers.map((player) => {
@@ -931,6 +959,37 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       trackingSort
     )
   }, [activePlayers, trackingTotals, priorityByPlayer, trackingSort])
+
+const trackingPriorityByPositionRows = useMemo(() => {
+  const positions = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
+  const playerCount = Math.max(activePlayers.length, 1)
+
+  const totalField = activePlayers.reduce((sum, player) => {
+    return sum + Number(trackingTotals[pk(player.id)]?.fieldTotal || 0)
+  }, 0)
+
+  return positions.map((position) => {
+    const targetTotal = activePlayers.reduce((sum, player) => {
+      return sum + Number(priorityByPlayer[pk(player.id)]?.[position]?.priority_pct || 0)
+    }, 0)
+
+    const actualCount = activePlayers.reduce((sum, player) => {
+      return sum + Number(trackingTotals[pk(player.id)]?.[position] || 0)
+    }, 0)
+
+    const targetPct = Number((targetTotal / playerCount).toFixed(1))
+    const actualPct =
+      totalField > 0 ? Number(((actualCount / totalField) * 100).toFixed(1)) : 0
+
+    return {
+      position,
+      targetPct,
+      actualPct,
+      diffPct: Number((actualPct - targetPct).toFixed(1)),
+      actualCount,
+    }
+  })
+}, [activePlayers, priorityByPlayer, trackingTotals])
   
   const filteredAttendanceEvents = useMemo(() => {
     return sortRows(attendanceEvents, attendanceSort)
@@ -1514,6 +1573,23 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     })
   }
 
+  function togglePreviewInningLock(gameId, inning) {
+  updatePreview(gameId, (lineup) => {
+    const availableIds = (lineup.availablePlayerIds || []).map(pk)
+
+    const allLocked =
+      availableIds.length > 0 &&
+      availableIds.every((id) => lineup.lockedCells?.[id]?.[inning] === true)
+
+    availableIds.forEach((id) => {
+      if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
+      lineup.lockedCells[id][inning] = !allLocked
+    })
+
+    return lineup
+  })
+}
+  
   function addPreviewInning(gameId) {
     updatePreview(gameId, (lineup) => {
       const newInning = Number(lineup.innings || 0) + 1
@@ -1641,6 +1717,42 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     if (!ok) return
   }
 
+function toggleSavedInningLock(gameId, inning) {
+  updateSavedLineup(gameId, (lineup) => {
+    const availableIds = (lineup.availablePlayerIds || []).map(pk)
+
+    const allLocked =
+      availableIds.length > 0 &&
+      availableIds.every((id) => lineup.lockedCells?.[id]?.[inning] === true)
+
+    availableIds.forEach((id) => {
+      if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
+      lineup.lockedCells[id][inning] = !allLocked
+    })
+
+    autoSave(gameId, lineup)
+    return lineup
+  })
+}
+  
+function toggleSavedInningLock(gameId, inning) {
+  updateSavedLineup(gameId, (lineup) => {
+    const availableIds = (lineup.availablePlayerIds || []).map(pk)
+
+    const allLocked =
+      availableIds.length > 0 &&
+      availableIds.every((id) => lineup.lockedCells?.[id]?.[inning] === true)
+
+    availableIds.forEach((id) => {
+      if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
+      lineup.lockedCells[id][inning] = !allLocked
+    })
+
+    autoSave(gameId, lineup)
+    return lineup
+  })
+}
+  
   function clearSavedLineup(gameId) {
     if (lineupLockedByGame[pk(gameId)]) {
       setAppError('Unlock the lineup before clearing it.')
@@ -1921,29 +2033,30 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
 
                 {page === 'game-detail' && (
           <GameDetailPage
-            selectedGame={selectedGame}
-            selectedLineup={selectedLineup}
-            selectedLocked={selectedLocked}
-            activePlayers={activePlayers}
-            activePlayerIds={activePlayerIds}
-            games={games}
-            selectedGameId={selectedGameId}
-            setSelectedGameId={setSelectedGameId}
-            setPage={setPage}
-            saveSavedLineup={saveSavedLineup}
-            toggleLineupLocked={toggleLineupLocked}
-            clearSavedLineup={clearSavedLineup}
-            addSavedInning={addSavedInning}
-            removeSavedInning={removeSavedInning}
-            toggleSavedAvailable={toggleSavedAvailable}
-            fitByPlayer={fitByPlayer}
-            LineupGrid={LineupGrid}
-            updateSavedCell={updateSavedCell}
-            updateSavedBatting={updateSavedBatting}
-            toggleSavedCellLock={toggleSavedCellLock}
-            toggleSavedRowLock={toggleSavedRowLock}
-            pk={pk}
-          />
+  selectedGame={selectedGame}
+  selectedLineup={selectedLineup}
+  selectedLocked={selectedLocked}
+  activePlayers={activePlayers}
+  activePlayerIds={activePlayerIds}
+  games={orderedGamesDesc}
+  selectedGameId={selectedGameId}
+  setSelectedGameId={setSelectedGameId}
+  setPage={setPage}
+  saveSavedLineup={saveSavedLineup}
+  toggleLineupLocked={toggleLineupLocked}
+  clearSavedLineup={clearSavedLineup}
+  addSavedInning={addSavedInning}
+  removeSavedInning={removeSavedInning}
+  toggleSavedAvailable={toggleSavedAvailable}
+  fitByPlayer={fitByPlayer}
+  LineupGrid={LineupGrid}
+  updateSavedCell={updateSavedCell}
+  updateSavedBatting={updateSavedBatting}
+  toggleSavedCellLock={togglePreviewCellLock}
+  toggleSavedRowLock={togglePreviewRowLock}
+  toggleSavedInningLock={toggleSavedInningLock}
+  pk={pk}
+ />
         )}
 
         {page === 'lineup-setter' && (
@@ -1973,6 +2086,9 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     addGameFromOptimizer={addGameFromOptimizer}
     runOptimizeCurrent={runOptimizeCurrent}
     optimizerFocusGameId={optimizerFocusGameId}
+    games={orderedGamesDesc}
+    togglePreviewInningLock={togglePreviewInningLock}
+    trackingPriorityByPositionRows={trackingPriorityByPositionRows}
     runOptimizeAll={runOptimizeAll}
     optimizerBatchGames={optimizerBatchGames}
     optimizerPreviewByGame={optimizerPreviewByGame}
