@@ -601,14 +601,6 @@ useEffect(() => {
     [selectedGame, lineupLockedByGame]
   )
 
-const optimizerImportableGames = useMemo(() => {
-  return optimizerFocusGame ? getImportableGamesForGame(optimizerFocusGame.id) : []
-}, [optimizerFocusGame, games, lineupsByGame])
-
-const gameDetailImportableGames = useMemo(() => {
-  return selectedGame ? getImportableGamesForGame(selectedGame.id) : []
-}, [selectedGame, games, lineupsByGame])
-
   
   const sortedPlayers = useMemo(() => {
     return sortRows(
@@ -724,6 +716,15 @@ const gameDetailImportableGames = useMemo(() => {
     [optimizerPreviewByGame, optimizerFocusGameId]
   )
 
+const optimizerImportableGames = useMemo(() => {
+  return optimizerFocusGame ? getImportableGamesForGame(optimizerFocusGame.id) : []
+}, [optimizerFocusGame, games, lineupsByGame])
+
+const gameDetailImportableGames = useMemo(() => {
+  return selectedGame ? getImportableGamesForGame(selectedGame.id) : []
+}, [selectedGame, games, lineupsByGame])
+
+  
   const lineupSetterFilteredGames = useMemo(() => {
   return orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters))
 }, [orderedGamesAsc, trackingFilters])
