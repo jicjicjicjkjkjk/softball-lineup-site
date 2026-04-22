@@ -1718,25 +1718,19 @@ const trackingPriorityByPositionRows = useMemo(() => {
   }
 
   function togglePreviewInningLock(gameId, inning) {
-  const confirmed = window.confirm(
-    `Lock or unlock every player for inning ${inning}?`
-  )
-  if (!confirmed) return
-
   updatePreview(gameId, (lineup) => {
+    if (!lineup.lockedInnings) lineup.lockedInnings = {}
+
     const visibleIds =
       (lineup.availablePlayerIds || []).length
         ? lineup.availablePlayerIds.map(pk)
         : Object.keys(lineup.cells || {}).map(pk)
 
+    const current = new Set(lineup.lockedInnings[inning] || [])
     const allLocked =
-      visibleIds.length > 0 &&
-      visibleIds.every((id) => lineup.lockedCells?.[id]?.[inning] === true)
+      visibleIds.length > 0 && visibleIds.every((id) => current.has(id))
 
-    visibleIds.forEach((id) => {
-      if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
-      lineup.lockedCells[id][inning] = !allLocked
-    })
+    lineup.lockedInnings[inning] = allLocked ? [] : [...visibleIds]
 
     return lineup
   })
@@ -1870,25 +1864,19 @@ const trackingPriorityByPositionRows = useMemo(() => {
   }
   
 function toggleSavedInningLock(gameId, inning) {
-  const confirmed = window.confirm(
-    `Lock or unlock every player for inning ${inning}?`
-  )
-  if (!confirmed) return
-
   updateSavedLineup(gameId, (lineup) => {
+    if (!lineup.lockedInnings) lineup.lockedInnings = {}
+
     const visibleIds =
       (lineup.availablePlayerIds || []).length
         ? lineup.availablePlayerIds.map(pk)
         : Object.keys(lineup.cells || {}).map(pk)
 
+    const current = new Set(lineup.lockedInnings[inning] || [])
     const allLocked =
-      visibleIds.length > 0 &&
-      visibleIds.every((id) => lineup.lockedCells?.[id]?.[inning] === true)
+      visibleIds.length > 0 && visibleIds.every((id) => current.has(id))
 
-    visibleIds.forEach((id) => {
-      if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
-      lineup.lockedCells[id][inning] = !allLocked
-    })
+    lineup.lockedInnings[inning] = allLocked ? [] : [...visibleIds]
 
     autoSave(gameId, lineup)
     return lineup
