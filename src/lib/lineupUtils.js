@@ -603,20 +603,20 @@ function scorePlayerForPosition({
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
   const continuityBonus = prevValue === position ? 10 : 0
   const fitWeight =
-    fit === 'A' || fit === 'primary' ? 3 :
-    fit === 'B' || fit === 'secondary' ? 2 :
-    fit === 'C' ? 1 :
-    0
+  fit === 'A' || fit === 'primary' ? 5 :
+  fit === 'B' || fit === 'secondary' ? 3 :
+  fit === 'C' ? 1 :
+  -10
 
-  return {
-    playerId,
-    position,
-    totalScore:
-      fitWeight * 100 +
-      pctGap * 20 -
-      actualCount * 10 +
-      continuityBonus,
-  }
+return {
+  playerId,
+  position,
+  totalScore:
+    fitWeight * 200 +     // 🔥 THIS IS THE KEY FIX
+    pctGap * 8 +          // reduce influence
+    continuityBonus -
+    actualCount * 3,
+}
 }
 
 function assignPositionsForInning({
