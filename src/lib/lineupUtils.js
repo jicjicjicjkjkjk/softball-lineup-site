@@ -607,15 +607,20 @@ function scorePlayerForPosition({
 
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
   const continuityBonus = prevValue === position ? 10 : 0
+  const fitWeight =
+    fit === 'A' || fit === 'primary' ? 3 :
+    fit === 'B' || fit === 'secondary' ? 2 :
+    fit === 'C' ? 1 :
+    0
 
   return {
     playerId,
     position,
     totalScore:
-      fitScore +                  // 🔥 dominates everything
-      pctGap * 5 +               // reduced influence
-      continuityBonus -
-      actualCount * 2,
+      fitWeight * 100 +
+      pctGap * 20 -
+      actualCount * 10 +
+      continuityBonus,
   }
 }
 
@@ -813,6 +818,44 @@ function enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap }) {
   return lineup
 }
 
+function forceTargetSitCompliance(lineup, players, planSitOutTargets, cumulativePlanOutCounts) {
+  const innings = Number(lineup.innings || 0)
+
+  ;(players || []).forEach((player) => {
+    const id = pk(player.id)
+
+    const rawTarget = planSitOutTargets?.[id]
+    if (rawTarget === '' || rawTarget == null) return
+
+    const target = Number(rawTarget)
+    const current = countPlayerOuts(lineup, id)
+
+    let deficit = target - current
+    if (deficit <= 0) return
+
+    for (let inning = innings; inning >= 1 && deficit > 0; inning -= 1) {
+      if (lockedValue(lineup, id, inning)) continue
+
+      const currentVal = lineup.cells?.[id]?.[inning] || ''
+      if (!FIELD_POSITIONS.includes(currentVal)) continue
+
+      const swapId = (players || [])
+        .map((p) => pk(p.id))
+        .find((pid) => {
+          if (pid === id) return false
+          if (lockedValue(lineup, pid, inning)) return false
+          return lineup.cells?.[pid]?.[inning] === 'Out'
+        })
+
+      if (!swapId) continue
+
+      lineup.cells[swapId][inning] = currentVal
+      lineup.cells[id][inning] = 'Out'
+      deficit -= 1
+    }
+  })
+}
+
 export function buildOptimizedLineup({
   game,
   players,
@@ -956,6 +999,43 @@ export function buildOptimizedLineup({
     })
   }
 
+function forceTargetSitCompliance(lineup, players, planSitOutTargets, cumulativePlanOutCounts) {
+  const innings = Number(lineup.innings || 0)
+
+  ;(players || []).forEach((player) => {
+    const id = pk(player.id)
+
+    const target = Number(planSitOutTargets?.[id] || 0)
+    const current = Number(cumulativePlanOutCounts?.[id] || 0)
+
+    let deficit = target - current
+    if (deficit <= 0) return
+
+    for (let inning = innings; inning >= 1 && deficit > 0; inning--) {
+      if (lockedValue(lineup, id, inning)) continue
+
+      const currentVal = lineup.cells[id][inning]
+
+      // Only swap if currently playing
+      if (FIELD_POSITIONS.includes(currentVal)) {
+        // Find someone sitting we can swap with
+        const swapId = (players || [])
+          .map(p => pk(p.id))
+          .find(pid =>
+            lineup.cells[pid][inning] === 'Out' &&
+            !lockedValue(lineup, pid, inning)
+          )
+
+        if (swapId) {
+          lineup.cells[swapId][inning] = currentVal
+          lineup.cells[id][inning] = 'Out'
+          deficit--
+        }
+      }
+    }
+  })
+}
+  
   enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap })
   return lineup
 }
