@@ -13,7 +13,7 @@ export default function TrackingTable({
   sitOutTargets = {},
   hideSitOutRunningTotal = false,
 }) {
-  const hasTargets = Object.keys(sitOutTargets || {}).length > 0
+  const hasTargets = true
 
   const sitOutRunningByPlayer = Object.fromEntries(
     (sitOutRows || []).map((row) => {
