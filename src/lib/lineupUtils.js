@@ -1119,7 +1119,9 @@ export function buildOptimizedLineup({
   totalsBefore,
   priorityMap,
   fitMap,
+  planSitOutTargets = {},
 }) {
+  
   const safeAvailable = (availablePlayerIds || []).map(pk)
 
   const lineup = normalizeLineup(
@@ -1167,13 +1169,21 @@ export function buildOptimizedLineup({
     }
   })
 
+  const batchCurrentOuts = {}
+;(players || []).forEach((player) => {
+  const id = pk(player.id)
+  batchCurrentOuts[id] = Number(rollingTotals?.[id]?.Out || 0)
+})
+  
   const plannedOutsByPlayer = buildSitPlan({
-    lineup,
-    game,
-    players,
-    totalsBefore: rollingTotals,
-    fitMap,
-  })
+  lineup,
+  game,
+  players,
+  totalsBefore: rollingTotals,
+  fitMap,
+  batchTargetOuts: planSitOutTargets,
+  batchCurrentOuts,
+})
 
   for (let inning = 1; inning <= lineup.innings; inning += 1) {
     assignPositionsForInning({
