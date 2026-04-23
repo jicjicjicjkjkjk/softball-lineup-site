@@ -593,7 +593,10 @@ function buildSitPlan({
           player: (players || []).find((p) => pk(p.id) === id),
           batchNow: projectedBatchOuts(id, 0),
           batchAfterPick: projectedBatchOuts(id, 1),
-          batchTarget: Number(batchTargetOuts?.[id] || 0),
+                    batchTarget:
+            batchTargetOuts?.[id] === '' || batchTargetOuts?.[id] == null
+              ? null
+              : Number(batchTargetOuts[id]),
           batchGapAfterPick: targetGap(id, 1),
           gameOutCount: gameOutCounts[id],
           seasonOutCount: seasonOuts[id],
@@ -605,9 +608,12 @@ function buildSitPlan({
           const bOverTarget = b.batchAfterPick > b.batchTarget ? 1 : 0
           if (aOverTarget !== bOverTarget) return aOverTarget - bOverTarget
 
-          if (a.batchGapAfterPick !== b.batchGapAfterPick) {
-            return b.batchGapAfterPick - a.batchGapAfterPick
-          }
+                    const aSlack =
+            a.batchTarget == null ? 999999 : a.batchTarget - a.batchAfterPick
+          const bSlack =
+            b.batchTarget == null ? 999999 : b.batchTarget - b.batchAfterPick
+
+          if (aSlack !== bSlack) return bSlack - aSlack
 
           if (a.gameOutCount !== b.gameOutCount) return a.gameOutCount - b.gameOutCount
           if (a.spacing !== b.spacing) return a.spacing - b.spacing
@@ -617,9 +623,9 @@ function buildSitPlan({
           return String(a.player?.name || '').localeCompare(String(b.player?.name || ''))
         })
 
-      let pickedId = null
+            let pickedId = null
 
-      for (const candidate of ranked) {
+      const legalCandidates = ranked.filter((candidate) => {
         const remainingFielders = unlockedEligibleIds.filter(
           (id) => !chosenSits.has(id) && id !== candidate.id
         )
@@ -627,13 +633,19 @@ function buildSitPlan({
         const canCoverStrict = canCoverOpenPositions(remainingFielders, openPositions, fitMap, true)
         const canCoverLoose = canCoverOpenPositions(remainingFielders, openPositions, fitMap, false)
 
-        if (canCoverStrict || canCoverLoose) {
-          pickedId = candidate.id
-          break
-        }
-      }
+        return canCoverStrict || canCoverLoose
+      })
 
-      if (!pickedId) {
+            const underOrAtTargetCandidates = legalCandidates.filter(
+        (candidate) =>
+          candidate.batchTarget == null || candidate.batchAfterPick <= candidate.batchTarget
+      )
+
+      if (underOrAtTargetCandidates.length) {
+        pickedId = underOrAtTargetCandidates[0].id
+      } else if (legalCandidates.length) {
+        pickedId = legalCandidates[0].id
+      } else {
         pickedId = ranked[0]?.id || null
       }
 
