@@ -116,6 +116,11 @@ function compareMatrixValue(a, b, direction = 'asc') {
 
 const centerCell = { textAlign: 'center', verticalAlign: 'middle' }
 const centerHeader = { textAlign: 'center', verticalAlign: 'middle', cursor: 'pointer' }
+const sortableHeaderStyle = {
+  textAlign: 'center',
+  verticalAlign: 'middle',
+  cursor: 'pointer',
+}
 
 const playerHeaderStyle = {
   width: 86,
@@ -1019,7 +1024,6 @@ const filterSummary = useMemo(() => {
         </div>
       </div>
             <div className="card tracking-card">
-              <div className="card tracking-card">
         <h3>Tracking by Positioning by Priority - Position</h3>
         <div className="tracking-scroll">
           <table className="tracking-table priority-groups">
