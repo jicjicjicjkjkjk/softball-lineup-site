@@ -550,15 +550,13 @@ function chooseSitOutsForInning({
   }
 
   // First pass: force target sits wherever possible
-  for (const candidate of ranked) {
-    if (chosen.length >= additionalOutsNeeded) break
-    if (!candidate.mustSit) continue
-    if (chosen.includes(candidate.id)) continue
+for (const candidate of ranked) {
+  if (chosen.length >= additionalOutsNeeded) break
+  if (!candidate.mustSit) continue
+  if (chosen.includes(candidate.id)) continue
 
-    if (canAddCandidate(candidate.id)) {
-      chosen.push(candidate.id)
-    }
-  }
+  chosen.push(candidate.id)
+}
 
   // Second pass: fill remaining with fairness rules
   for (const candidate of ranked) {
