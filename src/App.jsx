@@ -1575,6 +1575,11 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       return aKey.localeCompare(bKey)
     })
 
+    const planAssignedOuts = {}
+    players.forEach((player) => {
+      planAssignedOuts[pk(player.id)] = 0
+    })
+    
     orderedGames.forEach((game) => {
       const gameId = pk(game.id)
 
@@ -1604,13 +1609,22 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         priorityMap: priorityByPlayer,
         fitMap: fitByPlayer,
         planSitOutTargets: optimizerPlanSitOutTargets,
+        batchCurrentOuts: planAssignedOuts,
       })
 
       next[gameId] = optimized
+
+      players.forEach((player) => {
+        const id = pk(player.id)
+        const outCount = Object.values(optimized?.cells?.[id] || {}).filter(
+          (value) => value === 'Out'
+        ).length
+        planAssignedOuts[id] = Number(planAssignedOuts[id] || 0) + outCount
+      })
+
       persistLineup(gameId, optimized)
       rollingTotals = addTotals(rollingTotals, computeTotals([optimized], players), players)
-    })
-
+    
     setOptimizerPreviewByGame((current) => ({ ...current, ...next }))
   }
 
@@ -1643,6 +1657,22 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
     if (!availableIds.length) return
 
+    const batchCurrentOuts = {}
+    players.forEach((player) => {
+      const id = pk(player.id)
+      batchCurrentOuts[id] = 0
+    })
+
+    otherPreviewLineups.forEach((lineup) => {
+      players.forEach((player) => {
+        const id = pk(player.id)
+        const outCount = Object.values(lineup?.cells?.[id] || {}).filter(
+          (value) => value === 'Out'
+        ).length
+        batchCurrentOuts[id] = Number(batchCurrentOuts[id] || 0) + outCount
+      })
+    })
+      
     const rebuilt = buildOptimizedLineup({
       game: { ...game, innings: Number(source?.innings || game.innings || 6) },
       players,
@@ -1652,6 +1682,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       priorityMap: priorityByPlayer,
       fitMap: fitByPlayer,
       planSitOutTargets: optimizerPlanSitOutTargets,
+      batchCurrentOuts,
     })
 
     setOptimizerPreviewByGame((current) => ({
