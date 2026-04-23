@@ -136,6 +136,8 @@ export default function LineupSetterPage({
   lineupLockedByGame,
   optimizerExistingGameId,
   setOptimizerExistingGameId,
+  optimizerPlanSitOutTargets = {},
+  setOptimizerPlanSitOutTargets,
   games,
   addExistingGameToBatch,
   optimizerNewDate,
@@ -638,6 +640,46 @@ export default function LineupSetterPage({
         sortConfig={trackingSort}
         setSortConfig={setTrackingSort}
       />
+
+
+    <div className="card" style={{ marginTop: 12 }}>
+  <h4 style={{ marginTop: 0 }}>Target Sit Outs (Plan Override)</h4>
+
+  <table className="table-center" style={{ maxWidth: 500 }}>
+    <thead>
+      <tr>
+        <th style={{ textAlign: 'left' }}>Player</th>
+        <th style={{ textAlign: 'center' }}>Target Outs</th>
+      </tr>
+    </thead>
+    <tbody>
+      {activePlayers.map((p) => {
+        const playerId = pk(p.id)
+        return (
+          <tr key={playerId}>
+            <td style={{ textAlign: 'left' }}>{p.name}</td>
+            <td style={{ textAlign: 'center' }}>
+              <input
+                type="number"
+                min="0"
+                value={optimizerPlanSitOutTargets[playerId] ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setOptimizerPlanSitOutTargets((prev) => ({
+                    ...prev,
+                    [playerId]: val === '' ? '' : Number(val),
+                  }))
+                }}
+                style={{ width: 60, textAlign: 'center' }}
+              />
+            </td>
+          </tr>
+        )
+      })}
+    </tbody>
+  </table>
+</div>      
+
 
       <TrackingTable
         title="Filtered Games + Current Plan"
