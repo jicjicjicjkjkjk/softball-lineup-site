@@ -644,14 +644,15 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
       />
 
       <TrackingTable
-        title="Current Plan"
-        totals={currentPlanTotalsWithRunning}
-        players={activePlayers}
-        sortConfig={trackingSort}
-        setSortConfig={setTrackingSort}
-      />
-      
-    <div className="card" style={{ marginTop: 12 }}>
+  title="Current Plan"
+  totals={currentPlanTotalsWithRunning}
+  players={activePlayers}
+  sortConfig={trackingSort}
+  setSortConfig={setTrackingSort}
+/>
+
+{/* === PLAN SIT-OUT TARGET OVERRIDE === */}
+<div className="card" style={{ marginTop: 12 }}>
   <h4 style={{ marginTop: 0 }}>Target Sit Outs (Plan Override)</h4>
 
   <div style={{ marginBottom: 8 }}>
