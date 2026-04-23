@@ -1120,6 +1120,7 @@ export function buildOptimizedLineup({
   priorityMap,
   fitMap,
   planSitOutTargets = {},
+  batchCurrentOuts = {},
 }) {
   
   const safeAvailable = (availablePlayerIds || []).map(pk)
@@ -1169,11 +1170,6 @@ export function buildOptimizedLineup({
     }
   })
 
-  const batchCurrentOuts = {}
-;(players || []).forEach((player) => {
-  const id = pk(player.id)
-  batchCurrentOuts[id] = Number(rollingTotals?.[id]?.Out || 0)
-})
   
   const plannedOutsByPlayer = buildSitPlan({
   lineup,
