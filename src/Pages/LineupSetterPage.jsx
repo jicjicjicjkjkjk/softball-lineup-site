@@ -634,23 +634,24 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
       </div>
 
       <TrackingTable
-        title="Filtered Games Before Current Plan"
-        universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} games)`}
-        totals={filteredGamesBeforeTotalsWithRunning}
-        sitOutRows={ytdBeforeSitOutRows}
-        players={activePlayers}
-        sortConfig={trackingSort}
-        setSortConfig={setTrackingSort}
-      />
+  title="Filtered Games Before Current Plan"
+  universeLabel={`Filtered by: ${filterSummary} (${filteredLineups.length} games)`}
+  totals={filteredGamesBeforeTotalsWithRunning}
+  sitOutRows={ytdBeforeSitOutRows}
+  players={activePlayers}
+  sortConfig={trackingSort}
+  setSortConfig={setTrackingSort}
+/>
 
-      <TrackingTable
+     <TrackingTable
   title="Current Plan"
   totals={currentPlanTotalsWithRunning}
   players={activePlayers}
   sortConfig={trackingSort}
   setSortConfig={setTrackingSort}
   sitOutTargets={optimizerPlanSitOutTargets}
-  hideSitOutRunningTotal
+  showSitOutTargets={true}
+  hideSitOutRunningTotal={true}
 />
 
 {/* === PLAN SIT-OUT TARGET OVERRIDE === */}
@@ -700,14 +701,14 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
 
 
       <TrackingTable
-        title="Filtered Games + Current Plan"
-        universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
-        totals={filteredPlusPlanTotalsWithRunning}
-        sitOutRows={ytdAfterSitOutRows}
-        players={activePlayers}
-        sortConfig={trackingSort}
-        setSortConfig={setTrackingSort}
-      />
+  title="Filtered Games + Current Plan"
+  universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
+  totals={filteredPlusPlanTotalsWithRunning}
+  sitOutRows={ytdAfterSitOutRows}
+  players={activePlayers}
+  sortConfig={trackingSort}
+  setSortConfig={setTrackingSort}
+/>
 
             <div className="card tracking-card">
         <h3>Tracking by Positioning by Priority - Player</h3>
