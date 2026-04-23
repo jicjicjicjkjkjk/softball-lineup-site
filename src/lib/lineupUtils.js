@@ -449,6 +449,57 @@ function getFieldTotal(totals, playerId) {
   return Math.max(Number(totals?.[playerId]?.fieldTotal || 0), 1)
 }
 
+function positionBucket(position) {
+  return ['LF', 'CF', 'RF'].includes(position) ? 'OF' : position
+}
+
+function initializePlanPositionCounts(players) {
+  const counts = {}
+
+  ;(players || []).forEach((player) => {
+    const id = pk(player.id)
+    counts[id] = {
+      P: 0,
+      C: 0,
+      '1B': 0,
+      '2B': 0,
+      '3B': 0,
+      SS: 0,
+      OF: 0,
+    }
+  })
+
+  return counts
+}
+
+function incrementPlanPositionCount(planPositionCounts, playerId, position) {
+  const id = pk(playerId)
+  const bucket = positionBucket(position)
+
+  if (!planPositionCounts[id]) {
+    planPositionCounts[id] = {
+      P: 0,
+      C: 0,
+      '1B': 0,
+      '2B': 0,
+      '3B': 0,
+      SS: 0,
+      OF: 0,
+    }
+  }
+
+  planPositionCounts[id][bucket] = Number(planPositionCounts[id][bucket] || 0) + 1
+}
+
+function totalPlanPositionCount(planPositionCounts, position) {
+  const bucket = positionBucket(position)
+
+  return Object.values(planPositionCounts || {}).reduce(
+    (sum, row) => sum + Number(row?.[bucket] || 0),
+    0
+  )
+}
+
 function chooseSitOutsForInning({
   lineup,
   inning,
@@ -578,52 +629,65 @@ function chooseSitOutsForInning({
 function scorePlayerForPosition({
   playerId,
   position,
-  rollingTotals,
   priorityMap,
   fitMap,
   lineup,
   inning,
+  planPositionCounts,
+  candidateIds,
 }) {
   const fit = fitTier(fitMap, playerId, position)
-if (fit === 'E' || fit === 'no') {
+  const target = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
+  const bucket = positionBucket(position)
+
+  const disallowed = fit === 'E' || fit === 'no'
+
+  const fitScore =
+    fit === 'A' || fit === 'primary' ? 10000 :
+    fit === 'B' || fit === 'secondary' ? 3000 :
+    fit === 'C' ? 500 :
+    fit === 'D' ? -500 :
+    -1000000
+
+  const targetPool = (candidateIds || [])
+    .filter((id) => !isDisallowedFit(fitTier(fitMap, id, position)))
+    .map((id) => ({
+      id,
+      target: Number(getPriorityTarget(priorityMap, id, position) || 0),
+    }))
+    .filter((row) => row.target > 0)
+
+  const targetTotal = targetPool.reduce((sum, row) => sum + row.target, 0)
+
+  const currentPlayerCount = Number(planPositionCounts?.[playerId]?.[bucket] || 0)
+  const currentPositionTotal = totalPlanPositionCount(planPositionCounts, position)
+
+  let allocationScore = 0
+
+  if (targetTotal > 0 && target > 0) {
+    const expectedAfterThisAssignment =
+      (currentPositionTotal + 1) * (target / targetTotal)
+
+    const projectedPlayerCount = currentPlayerCount + 1
+    const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
+
+    allocationScore = 5000 - distanceFromTarget * 2500
+  } else if (targetTotal > 0 && target <= 0) {
+    allocationScore = -5000
+  }
+
+  const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
+  const continuityBonus = prevValue === position ? 100 : 0
+
   return {
     playerId,
     position,
-    totalScore: -999999,
+    totalScore:
+      fitScore +
+      allocationScore +
+      continuityBonus -
+      (disallowed ? 1000000 : 0),
   }
-}
-  
-  // 🔥 HARD FIT TIERS (this is the big fix)
-  let fitScore = 0
-  if (fit === 'A' || fit === 'primary') fitScore = 1000
-  else if (fit === 'B' || fit === 'secondary') fitScore = 300
-  else if (fit === 'C') fitScore = 50
-  else if (fit === 'D') fitScore = -200
-  else fitScore = -1000000 // E / no
-
-  const targetPct = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
-  const actualCount = getPositionActualCount(rollingTotals, playerId, position)
-  const fieldTotal = getFieldTotal(rollingTotals, playerId)
-  const actualPct = (actualCount / fieldTotal) * 100
-  const pctGap = targetPct - actualPct
-
-  const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
-  const continuityBonus = prevValue === position ? 10 : 0
-  const fitWeight =
-  fit === 'A' || fit === 'primary' ? 5 :
-  fit === 'B' || fit === 'secondary' ? 3 :
-  fit === 'C' ? 1 :
-  -10
-
-return {
-  playerId,
-  position,
-  totalScore:
-    fitWeight * 200 +     // 🔥 THIS IS THE KEY FIX
-    pctGap * 8 +          // reduce influence
-    continuityBonus -
-    actualCount * 3,
-}
 }
 
 function assignPositionsForInning({
@@ -633,6 +697,7 @@ function assignPositionsForInning({
   rollingTotals,
   priorityMap,
   fitMap,
+  planPositionCounts,
 }) {
   const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
   const lockedInfo = getLockedAssignmentsForInning(lineup, inning, players)
@@ -653,14 +718,15 @@ function assignPositionsForInning({
     candidatesByPosition[position] = candidateIds
       .map((id) =>
         scorePlayerForPosition({
-          playerId: id,
-          position,
-          rollingTotals,
-          priorityMap,
-          fitMap,
-          lineup,
-          inning,
-        })
+  playerId: id,
+  position,
+  priorityMap,
+  fitMap,
+  lineup,
+  inning,
+  planPositionCounts,
+  candidateIds,
+})
       )
       .sort((a, b) => b.totalScore - a.totalScore)
   })
@@ -848,7 +914,8 @@ export function buildOptimizedLineup({
   clearUnlockedCells(lineup, players)
 
   const rollingTotals = clone(totalsBefore || {})
-  const cumulativePlanOutCounts = {}
+const cumulativePlanOutCounts = {}
+const planPositionCounts = initializePlanPositionCounts(players)
 
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
@@ -901,20 +968,26 @@ export function buildOptimizedLineup({
     })
 
     const assigned = assignPositionsForInning({
-      lineup,
-      inning,
-      players,
-      rollingTotals,
-      priorityMap,
-      fitMap,
-    })
+  lineup,
+  inning,
+  players,
+  rollingTotals,
+  priorityMap,
+  fitMap,
+  planPositionCounts,
+})
 
     Object.entries(assigned).forEach(([playerId, position]) => {
       if (!lockedValue(lineup, playerId, inning)) {
         lineup.cells[playerId][inning] = position
       }
     })
-
+Object.entries(assigned).forEach(([playerId, position]) => {
+  if (FIELD_POSITIONS.includes(position)) {
+    incrementPlanPositionCount(planPositionCounts, playerId, position)
+  }
+})
+    
     const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
     eligibleIds.forEach((id) => {
       if (lockedValue(lineup, id, inning)) return
