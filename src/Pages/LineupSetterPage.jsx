@@ -641,7 +641,16 @@ export default function LineupSetterPage({
         setSortConfig={setTrackingSort}
       />
 
+const totalNeeded = currentPlanLineupsOrdered.reduce((sum, lineup) => {
+  const players = lineup.availablePlayerIds?.length || 0
+  const innings = lineup.innings || 0
+  return sum + Math.max(players - 9, 0) * innings
+}, 0)
 
+const totalAssigned = Object.values(optimizerPlanSitOutTargets)
+  .filter((v) => v !== '' && v != null)
+  .reduce((sum, v) => sum + Number(v || 0), 0)
+      
     <div className="card" style={{ marginTop: 12 }}>
   <h4 style={{ marginTop: 0 }}>Target Sit Outs (Plan Override)</h4>
 
