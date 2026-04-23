@@ -11,6 +11,19 @@ export function pk(id) {
   return String(id)
 }
 
+function computePlanSitOutNeeds({
+  playerId,
+  totalsBefore,
+  planSitOutTargets,
+}) {
+  const target = planSitOutTargets?.[playerId]
+
+  if (target === '' || target == null) return 0
+
+  const current = Number(totalsBefore?.[playerId]?.Out || 0)
+
+  return target - current
+}
 
 export function blankLineup(playerIds, innings = 6, availablePlayerIds = playerIds) {
   const cells = {}
