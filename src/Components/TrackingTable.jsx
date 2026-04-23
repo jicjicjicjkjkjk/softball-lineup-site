@@ -11,10 +11,9 @@ export default function TrackingTable({
   universeLabel,
   center = true,
   sitOutTargets = {},
+  showSitOutTargets = false,
   hideSitOutRunningTotal = false,
 }) {
-  const hasTargets = true
-
   const sitOutRunningByPlayer = Object.fromEntries(
     (sitOutRows || []).map((row) => {
       const runningValues = (row.running || []).filter(
@@ -33,21 +32,18 @@ export default function TrackingTable({
     (players || []).map((player) => {
       const id = pk(player.id)
       const t = totals?.[id] || {}
-
       const targetOuts = sitOutTargets?.[id]
-      const actualOuts = t.Out || 0
-
       const gap =
         targetOuts === '' || targetOuts == null
           ? ''
-          : Number(targetOuts) - Number(actualOuts)
+          : Number(targetOuts) - Number(t.Out || 0)
 
       return {
         playerId: id,
         name: player.name,
         games: t.games || 0,
         fieldTotal: t.fieldTotal || 0,
-        Out: actualOuts,
+        Out: t.Out || 0,
         targetOuts: targetOuts ?? '',
         gap,
         sitOutRunningTotal: sitOutRunningByPlayer[id] || 0,
@@ -88,8 +84,12 @@ export default function TrackingTable({
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'fieldTotal'))}>Fld</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'Out'))}>Out</th>
 
-            {hasTargets && <th>Target</th>}
-            {hasTargets && <th>Gap</th>}
+            {showSitOutTargets && (
+              <>
+                <th onClick={() => setSortConfig(nextSort(sortConfig, 'targetOuts'))}>Target</th>
+                <th onClick={() => setSortConfig(nextSort(sortConfig, 'gap'))}>Gap</th>
+              </>
+            )}
 
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'P'))}>P</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'C'))}>C</th>
@@ -119,24 +119,11 @@ export default function TrackingTable({
               <td>{row.fieldTotal}</td>
               <td>{row.Out}</td>
 
-              {hasTargets && <td>{row.targetOuts}</td>}
-
-              {hasTargets && (
-                <td
-                  style={{
-                    fontWeight: 600,
-                    color:
-                      row.gap === ''
-                        ? ''
-                        : row.gap < 0
-                        ? '#b91c1c' // red (over target)
-                        : row.gap > 0
-                        ? '#15803d' // green (under target)
-                        : '',
-                  }}
-                >
-                  {row.gap}
-                </td>
+              {showSitOutTargets && (
+                <>
+                  <td>{row.targetOuts}</td>
+                  <td>{row.gap}</td>
+                </>
               )}
 
               <td>{row.P}</td>
