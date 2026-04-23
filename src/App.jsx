@@ -1612,7 +1612,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
       if (!availableIds.length) return
 
-      const optimized = buildOptimizedLineup({
+            const optimized = buildOptimizedLineup({
         game: { ...game, innings: Number(source?.innings || game.innings || 6) },
         players,
         availablePlayerIds: availableIds,
@@ -1622,6 +1622,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         fitMap: fitByPlayer,
         planSitOutTargets: optimizerPlanSitOutTargets,
         batchCurrentOuts: planAssignedOuts,
+        existingPlanLineups: Object.values(next).filter(Boolean),
       })
 
       next[gameId] = optimized
@@ -1686,7 +1687,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       })
     })
       
-    const rebuilt = buildOptimizedLineup({
+        const rebuilt = buildOptimizedLineup({
       game: { ...game, innings: Number(source?.innings || game.innings || 6) },
       players,
       availablePlayerIds: availableIds,
@@ -1696,6 +1697,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       fitMap: fitByPlayer,
       planSitOutTargets: optimizerPlanSitOutTargets,
       batchCurrentOuts,
+      existingPlanLineups: otherPreviewLineups.filter(Boolean),
     })
 
     setOptimizerPreviewByGame((current) => ({
