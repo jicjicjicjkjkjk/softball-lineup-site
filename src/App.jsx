@@ -1079,80 +1079,48 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   }, [activePlayers, trackingTotals, priorityByPlayer, trackingSort])
 
     const trackingPriorityByPositionRows = useMemo(() => {
-    const positions = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
+  const totalTeamFieldInnings = activePlayers.reduce((sum, player) => {
+    return sum + Number(trackingTotals[pk(player.id)]?.fieldTotal || 0)
+  }, 0)
 
-    const totalTeamFieldInnings = activePlayers.reduce((sum, player) => {
-      return sum + Number(trackingTotals[pk(player.id)]?.fieldTotal || 0)
-    }, 0)
+  const actPctByTeam = (value) => {
+    const actual = Number(value || 0)
+    if (!actual || !totalTeamFieldInnings) return ''
+    return Number(((actual / totalTeamFieldInnings) * 100).toFixed(1))
+  }
 
-    const buildTargetActual = (rowPosition, columnPosition) => {
-      const targetTotal = activePlayers.reduce((sum, player) => {
-        const priority = priorityByPlayer[pk(player.id)] || {}
+  return activePlayers.map((player) => {
+    const totals = trackingTotals[pk(player.id)] || {}
+    const priority = priorityByPlayer[pk(player.id)] || {}
 
-        const targetValue =
-          columnPosition === '1B'
-            ? priority['1B']?.priority_pct
-            : columnPosition === '2B'
-            ? priority['2B']?.priority_pct
-            : columnPosition === '3B'
-            ? priority['3B']?.priority_pct
-            : priority[columnPosition]?.priority_pct
+    return {
+      playerId: pk(player.id),
+      name: player.name,
+      fieldTotal: totals.fieldTotal || 0,
 
-        return sum + Number(targetValue || 0)
-      }, 0)
+      targP: priority.P?.priority_pct || '',
+      actP: actPctByTeam(totals.P),
 
-      const actualCount = activePlayers.reduce((sum, player) => {
-        return sum + Number(trackingTotals[pk(player.id)]?.[columnPosition] || 0)
-      }, 0)
+      targC: priority.C?.priority_pct || '',
+      actC: actPctByTeam(totals.C),
 
-      const actualPct =
-        totalTeamFieldInnings > 0
-          ? Number(((actualCount / totalTeamFieldInnings) * 100).toFixed(1))
-          : 0
+      targ1B: priority['1B']?.priority_pct || '',
+      act1B: actPctByTeam(totals['1B']),
 
-      if (rowPosition !== columnPosition) {
-        return { target: '', actual: '' }
-      }
+      targ2B: priority['2B']?.priority_pct || '',
+      act2B: actPctByTeam(totals['2B']),
 
-      return {
-        target: Number(targetTotal.toFixed(1)),
-        actual: actualPct,
-      }
+      targ3B: priority['3B']?.priority_pct || '',
+      act3B: actPctByTeam(totals['3B']),
+
+      targSS: priority.SS?.priority_pct || '',
+      actSS: actPctByTeam(totals.SS),
+
+      targOF: priority.OF?.priority_pct || '',
+      actOF: actPctByTeam(totals.OF),
     }
-
-    return positions.map((rowPosition) => {
-      const actualCount = activePlayers.reduce((sum, player) => {
-        return sum + Number(trackingTotals[pk(player.id)]?.[rowPosition] || 0)
-      }, 0)
-
-      return {
-        position: rowPosition,
-        fieldTotal: actualCount,
-
-        targP: buildTargetActual(rowPosition, 'P').target,
-        actP: buildTargetActual(rowPosition, 'P').actual,
-
-        targC: buildTargetActual(rowPosition, 'C').target,
-        actC: buildTargetActual(rowPosition, 'C').actual,
-
-        targ1B: buildTargetActual(rowPosition, '1B').target,
-        act1B: buildTargetActual(rowPosition, '1B').actual,
-
-        targ2B: buildTargetActual(rowPosition, '2B').target,
-        act2B: buildTargetActual(rowPosition, '2B').actual,
-
-        targ3B: buildTargetActual(rowPosition, '3B').target,
-        act3B: buildTargetActual(rowPosition, '3B').actual,
-
-        targSS: buildTargetActual(rowPosition, 'SS').target,
-        actSS: buildTargetActual(rowPosition, 'SS').actual,
-
-        targOF: buildTargetActual(rowPosition, 'OF').target,
-        actOF: buildTargetActual(rowPosition, 'OF').actual,
-      }
-    })
-  }, [activePlayers, trackingTotals, priorityByPlayer, pk])
-
+  })
+}, [activePlayers, trackingTotals, priorityByPlayer, pk])
 
   
   const filteredAttendanceEvents = useMemo(() => {
