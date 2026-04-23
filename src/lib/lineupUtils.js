@@ -1,82 +1,136 @@
-// lineupUtils.js
+// =============================
+// CONSTANTS (REQUIRED EXPORTS)
+// =============================
+
+export const FIELD_POSITIONS = ['P','C','1B','2B','3B','SS','LF','CF','RF']
+export const PRIORITY_POSITIONS = ['P','C','1B','2B','3B','SS','OF']
+export const ALLOWED_POSITIONS = [...FIELD_POSITIONS]
+export const GAME_TYPES = ['Friendly','Tournament','League','Scrimmage']
+
+// =============================
+// BASIC HELPERS
+// =============================
 
 export function pk(id) {
   return String(id)
 }
-
-const POSITIONS = ['P','C','1B','2B','3B','SS','LF','CF','RF']
-
-// =============================
-// HELPERS
-// =============================
 
 function clone(obj) {
   return JSON.parse(JSON.stringify(obj))
 }
 
 // =============================
-// BUILD PLAN SIT QUOTAS (HARD CONSTRAINT)
+// LINEUP HELPERS (REQUIRED)
 // =============================
 
-function buildPlanSitQuotas(lineups, players) {
-  const playerIds = players.map(p => pk(p.id))
-
-  let totalOuts = 0
-  lineups.forEach(l => {
-    const extra = Math.max((l.availablePlayerIds?.length || 0) - 9, 0)
-    totalOuts += extra * l.innings
+export function blankLineup(playerIds, innings, availableIds) {
+  const cells = {}
+  playerIds.forEach(id => {
+    cells[pk(id)] = {}
+    for (let i = 1; i <= innings; i++) {
+      cells[pk(id)][i] = ''
+    }
   })
 
-  const base = Math.floor(totalOuts / playerIds.length)
-  const remainder = totalOuts % playerIds.length
+  return {
+    innings,
+    cells,
+    availablePlayerIds: availableIds.map(pk)
+  }
+}
 
-  const quotas = {}
-  playerIds.forEach((id, i) => {
-    quotas[id] = base + (i < remainder ? 1 : 0)
-  })
+export function normalizeLineup(l) {
+  return l
+}
 
-  return quotas
+export function requiredOutsForGame(playerCount, innings) {
+  return Math.max(playerCount - 9, 0) * innings
 }
 
 // =============================
-// BUILD GAME SIT QUOTAS
+// TOTALS
 // =============================
 
-function buildGameSitQuotas(lineup) {
-  const players = lineup.availablePlayerIds.map(pk)
-  const totalOuts = Math.max(players.length - 9, 0) * lineup.innings
-
-  const base = Math.floor(totalOuts / players.length)
-  const remainder = totalOuts % players.length
-
-  const quotas = {}
-  players.forEach((id, i) => {
-    quotas[id] = base + (i < remainder ? 1 : 0)
-  })
-
-  return quotas
-}
-
-// =============================
-// POSITION TARGET TOTALS (TGT-BASED)
-// =============================
-
-function buildPositionTargets(lineups, players, priorities) {
-  const targets = {}
+export function computeTotals(lineups, players) {
+  const totals = {}
 
   players.forEach(p => {
-    const id = pk(p.id)
-    targets[id] = {}
-
-    const totalInnings = lineups.reduce((sum, l) => sum + l.innings, 0)
-
-    POSITIONS.forEach(pos => {
-      const pct = priorities[id]?.[pos] ?? priorities[id]?.['OF'] ?? 0
-      targets[id][pos] = pct * totalInnings
-    })
+    totals[pk(p.id)] = {
+      fieldTotal: 0,
+      Out: 0
+    }
   })
 
-  return targets
+  lineups.forEach(l => {
+    for (let i = 1; i <= l.innings; i++) {
+      Object.keys(l.cells || {}).forEach(pid => {
+        const val = l.cells[pid]?.[i]
+        if (val === 'Out') {
+          totals[pid].Out++
+        } else if (FIELD_POSITIONS.includes(val)) {
+          totals[pid][val] = (totals[pid][val] || 0) + 1
+          totals[pid].fieldTotal++
+        }
+      })
+    }
+  })
+
+  return totals
+}
+
+export function addTotals(a, b) {
+  const result = clone(a)
+  Object.keys(b).forEach(pid => {
+    result[pid] = result[pid] || {}
+    Object.keys(b[pid]).forEach(k => {
+      result[pid][k] = (result[pid][k] || 0) + b[pid][k]
+    })
+  })
+  return result
+}
+
+// =============================
+// INNING STATUS (MINIMAL SAFE)
+// =============================
+
+export function inningStatus() {
+  return {}
+}
+
+// =============================
+// FIT SCORING
+// =============================
+
+function fitScore(fit) {
+  if (fit === 'A') return 100
+  if (fit === 'B') return 60
+  if (fit === 'C') return 25
+  if (fit === 'D') return -40
+  if (fit === 'E') return -999
+  return 0
+}
+
+// =============================
+// SIT-OUT FAIRNESS
+// =============================
+
+function pickSitOutsFair({
+  playerIds,
+  currentGameOuts,
+  totalPlanOuts,
+  outsNeeded
+}) {
+  const sorted = [...playerIds].sort((a, b) => {
+    // PRIORITY 1: fewer total outs first
+    if (totalPlanOuts[a] !== totalPlanOuts[b]) {
+      return totalPlanOuts[a] - totalPlanOuts[b]
+    }
+
+    // PRIORITY 2: fewer outs THIS GAME
+    return currentGameOuts[a] - currentGameOuts[b]
+  })
+
+  return sorted.slice(0, outsNeeded)
 }
 
 // =============================
@@ -86,61 +140,63 @@ function buildPositionTargets(lineups, players, priorities) {
 function scorePosition({
   playerId,
   pos,
-  totals,
-  targetTotals,
-  fit
+  priorities,
+  fitByPlayer,
+  totals
 }) {
-  const actual = totals[playerId]?.[pos] || 0
-  const target = targetTotals[playerId]?.[pos] || 0
+  const target = priorities[playerId]?.[pos] ??
+    (pos === 'LF' || pos === 'CF' || pos === 'RF'
+      ? priorities[playerId]?.['OF']
+      : 0) ?? 0
 
-  const remainingNeed = target - actual
+  const actual = totals[playerId]?.[pos] || 0
+
+  const gap = target - actual
 
   let score = 0
 
-  // 🔥 MAIN DRIVER: how far behind target total
-  score += remainingNeed * 50
+  // 🔥 KEY CHANGE: pure target gap, not % based
+  score += gap * 100
 
-  // Fit weighting
-  if (fit === 'A') score += 40
-  else if (fit === 'B') score += 20
-  else if (fit === 'C') score += 5
-  else if (fit === 'D') score -= 30
-  else if (fit === 'E') score -= 300
+  // discourage overload
+  score -= actual * 10
+
+  // fit weighting
+  score += fitScore(fitByPlayer[playerId]?.[pos])
 
   return score
 }
 
 // =============================
-// ASSIGN POSITIONS
+// ASSIGN POSITIONS (GLOBAL BEST)
 // =============================
 
-function assignInning({
-  lineup,
-  totals,
-  targetTotals,
+function assignPositions({
+  playerIds,
+  priorities,
   fitByPlayer,
-  fieldPlayers
+  totals
 }) {
-  const assigned = {}
-  const used = new Set()
-  const takenPos = new Set()
+  const assignments = {}
+  const usedPlayers = new Set()
+  const usedPositions = new Set()
 
   const candidates = []
 
-  fieldPlayers.forEach(playerId => {
-    POSITIONS.forEach(pos => {
-      const fit = fitByPlayer[playerId]?.[pos] || 'C'
+  playerIds.forEach(pid => {
+    FIELD_POSITIONS.forEach(pos => {
+      const fit = fitByPlayer[pid]?.[pos]
       if (fit === 'E') return
 
       candidates.push({
-        playerId,
+        pid,
         pos,
         score: scorePosition({
-          playerId,
+          playerId: pid,
           pos,
-          totals,
-          targetTotals,
-          fit
+          priorities,
+          fitByPlayer,
+          totals
         })
       })
     })
@@ -149,24 +205,24 @@ function assignInning({
   candidates.sort((a, b) => b.score - a.score)
 
   for (const c of candidates) {
-    if (used.has(c.playerId)) continue
-    if (takenPos.has(c.pos)) continue
+    if (usedPlayers.has(c.pid)) continue
+    if (usedPositions.has(c.pos)) continue
 
-    assigned[c.playerId] = c.pos
-    used.add(c.playerId)
-    takenPos.add(c.pos)
+    assignments[c.pid] = c.pos
+    usedPlayers.add(c.pid)
+    usedPositions.add(c.pos)
 
-    if (takenPos.size === 9) break
+    if (usedPositions.size === 9) break
   }
 
-  return assigned
+  return assignments
 }
 
 // =============================
-// MAIN OPTIMIZER
+// MAIN OPTIMIZER (FIXED)
 // =============================
 
-export function optimizePlan({
+export function buildOptimizedLineup({
   games,
   preview,
   saved,
@@ -176,70 +232,68 @@ export function optimizePlan({
   priorities,
   fitByPlayer
 }) {
-  const lineups = games.map(g =>
-    preview[pk(g.id)] ||
-    saved[pk(g.id)] ||
-    blankLineup(players.map(p => p.id), Number(g.innings || 6), activePlayerIds())
-  )
+  const playerIds = players.map(p => pk(p.id))
 
-  const totals = {}
-  players.forEach(p => {
-    totals[pk(p.id)] = { fieldTotal: 0, Out: 0 }
-  })
-
-  const planSitQuota = buildPlanSitQuotas(lineups, players)
-  const targetTotals = buildPositionTargets(lineups, players, priorities)
+  const totalPlanOuts = {}
+  playerIds.forEach(id => totalPlanOuts[id] = 0)
 
   const result = {}
 
-  lineups.forEach((lineup, gi) => {
-    const gameId = pk(games[gi].id)
+  games.forEach(game => {
+    const gameId = pk(game.id)
+
+    const lineup =
+      preview?.[gameId] ||
+      saved?.[gameId] ||
+      blankLineup(
+        playerIds,
+        Number(game.innings || 6),
+        activePlayerIds()
+      )
+
     const next = clone(lineup)
 
-    const gameSitQuota = buildGameSitQuotas(next)
-    const gameSitUsed = {}
-
-    next.availablePlayerIds.forEach(id => {
-      gameSitUsed[pk(id)] = 0
-    })
+    const currentGameOuts = {}
+    playerIds.forEach(id => currentGameOuts[id] = 0)
 
     for (let inning = 1; inning <= next.innings; inning++) {
-      const playersAvailable = next.availablePlayerIds.map(pk)
-      const outsNeeded = Math.max(playersAvailable.length - 9, 0)
+      const available = next.availablePlayerIds.map(pk)
+      const outsNeeded = Math.max(available.length - 9, 0)
 
-      // 🔥 SELECT SIT-OUTS WITH HARD LIMITS
-      const sitCandidates = playersAvailable
-        .filter(id => gameSitUsed[id] < gameSitQuota[id])
-        .sort((a, b) => {
-          const planRemainingA = planSitQuota[a] - totals[a].Out
-          const planRemainingB = planSitQuota[b] - totals[b].Out
-          return planRemainingB - planRemainingA
-        })
+      // =============================
+      // SIT OUTS (STRICT FAIRNESS)
+      // =============================
 
-      const sitThisInning = sitCandidates.slice(0, outsNeeded)
-
-      sitThisInning.forEach(id => {
-        next.cells[id][inning] = 'Out'
-        totals[id].Out += 1
-        gameSitUsed[id] += 1
+      const sitOuts = pickSitOutsFair({
+        playerIds: available,
+        currentGameOuts,
+        totalPlanOuts,
+        outsNeeded
       })
 
-      const fieldPlayers = playersAvailable.filter(p => !sitThisInning.includes(p))
+      sitOuts.forEach(pid => {
+        next.cells[pid][inning] = 'Out'
+        currentGameOuts[pid]++
+        totalPlanOuts[pid]++
+      })
 
-      const assigned = assignInning({
-        lineup: next,
-        totals,
-        targetTotals,
+      const fieldPlayers = available.filter(p => !sitOuts.includes(p))
+
+      // =============================
+      // POSITIONS (TARGET DRIVEN)
+      // =============================
+
+      const totalsSoFar = computeTotals([next], players)
+
+      const assigned = assignPositions({
+        playerIds: fieldPlayers,
+        priorities,
         fitByPlayer,
-        fieldPlayers
+        totals: totalsSoFar
       })
 
       fieldPlayers.forEach(pid => {
-        const pos = assigned[pid] || 'LF'
-        next.cells[pid][inning] = pos
-
-        totals[pid][pos] = (totals[pid][pos] || 0) + 1
-        totals[pid].fieldTotal += 1
+        next.cells[pid][inning] = assigned[pid] || 'LF'
       })
     }
 
