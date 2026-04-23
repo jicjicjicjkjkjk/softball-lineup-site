@@ -475,10 +475,9 @@ function chooseSitOutsForInning({
   const currentGameOutCounts = getGameOutCounts(lineup, players)
 
   const ranked = unlockedEligibleIds.map((id) => {
-    const explicitTarget =
-      planSitOutTargets?.[id] === '' || planSitOutTargets?.[id] == null
-        ? null
-        : Number(planSitOutTargets[id])
+    const rawTarget = planSitOutTargets?.[id]
+    const hasTarget = rawTarget !== '' && rawTarget != null
+    const explicitTarget = hasTarget ? Number(rawTarget) : null
 
     const currentPlanOuts = Number(cumulativePlanOutCounts?.[id] || 0)
     const currentGameOuts = Number(currentGameOutCounts[id] || 0)
@@ -486,6 +485,7 @@ function chooseSitOutsForInning({
 
     const targetNeed = explicitTarget == null ? 0 : explicitTarget - currentPlanOuts
     const mustSit = explicitTarget != null && targetNeed > 0
+    const atOrOverTarget = explicitTarget != null && currentPlanOuts >= explicitTarget
     const spacingBad = violatesSitSpacing(lineup, id, inning, innings)
 
     return {
@@ -493,6 +493,7 @@ function chooseSitOutsForInning({
       explicitTarget,
       targetNeed,
       mustSit,
+      atOrOverTarget,
       currentPlanOuts,
       currentGameOuts,
       seasonOuts,
@@ -503,6 +504,7 @@ function chooseSitOutsForInning({
 
   ranked.sort((a, b) => {
     if (a.mustSit !== b.mustSit) return b.mustSit - a.mustSit
+    if (a.atOrOverTarget !== b.atOrOverTarget) return a.atOrOverTarget ? 1 : -1
     if (a.spacingBad !== b.spacingBad) return a.spacingBad ? 1 : -1
     if (a.currentGameOuts !== b.currentGameOuts) return a.currentGameOuts - b.currentGameOuts
     if (a.currentPlanOuts !== b.currentPlanOuts) return a.currentPlanOuts - b.currentPlanOuts
@@ -512,69 +514,62 @@ function chooseSitOutsForInning({
 
   const chosen = []
 
-  const hypotheticalGameCountsBase = {}
-  ranked.forEach((row) => {
-    hypotheticalGameCountsBase[row.id] = row.currentGameOuts
-  })
+  function canAddCandidate(candidate) {
+    if (candidate.atOrOverTarget) return false
 
-  const hypotheticalPlanCountsBase = {}
-  ranked.forEach((row) => {
-    hypotheticalPlanCountsBase[row.id] = Number(cumulativePlanOutCounts?.[row.id] || 0)
-  })
+    const gameCounts = {}
+    const planCounts = {}
 
-  function canAddCandidate(candidateId) {
-    const hypotheticalGameCounts = { ...hypotheticalGameCountsBase }
-    const hypotheticalPlanCounts = { ...hypotheticalPlanCountsBase }
-
-    chosen.forEach((id) => {
-      hypotheticalGameCounts[id] = Number(hypotheticalGameCounts[id] || 0) + 1
-      hypotheticalPlanCounts[id] = Number(hypotheticalPlanCounts[id] || 0) + 1
+    ranked.forEach((row) => {
+      gameCounts[row.id] = row.currentGameOuts
+      planCounts[row.id] = Number(cumulativePlanOutCounts?.[row.id] || 0)
     })
 
-    hypotheticalGameCounts[candidateId] = Number(hypotheticalGameCounts[candidateId] || 0) + 1
-    hypotheticalPlanCounts[candidateId] = Number(hypotheticalPlanCounts[candidateId] || 0) + 1
+    chosen.forEach((id) => {
+      gameCounts[id] = Number(gameCounts[id] || 0) + 1
+      planCounts[id] = Number(planCounts[id] || 0) + 1
+    })
 
-    const gameValues = unlockedEligibleIds.map((id) => Number(hypotheticalGameCounts[id] || 0))
-    const maxGame = Math.max(...gameValues)
-    const minGame = Math.min(...gameValues)
+    gameCounts[candidate.id] = Number(gameCounts[candidate.id] || 0) + 1
+    planCounts[candidate.id] = Number(planCounts[candidate.id] || 0) + 1
 
-    if (maxGame - minGame > 1) return false
+    const gameValues = unlockedEligibleIds.map((id) => Number(gameCounts[id] || 0))
+    if (Math.max(...gameValues) - Math.min(...gameValues) > 1) return false
 
-    const planValues = unlockedEligibleIds.map((id) => Number(hypotheticalPlanCounts[id] || 0))
-    const maxPlan = Math.max(...planValues)
-    const minPlan = Math.min(...planValues)
-
-    if (maxPlan - minPlan > 1) return false
+    const planValues = unlockedEligibleIds.map((id) => Number(planCounts[id] || 0))
+    if (Math.max(...planValues) - Math.min(...planValues) > 1) return false
 
     return true
   }
 
-  // First pass: force target sits wherever possible
-for (const candidate of ranked) {
-  if (chosen.length >= additionalOutsNeeded) break
-  if (!candidate.mustSit) continue
-  if (chosen.includes(candidate.id)) continue
+  // 1. Hit user-entered targets first, but do not exceed them.
+  for (const candidate of ranked) {
+    if (chosen.length >= additionalOutsNeeded) break
+    if (!candidate.mustSit) continue
+    if (candidate.spacingBad) continue
+    chosen.push(candidate.id)
+  }
 
-  chosen.push(candidate.id)
-}
-
-  // Second pass: fill remaining with fairness rules
+  // 2. Fill remaining fairly, avoiding players already at target.
   for (const candidate of ranked) {
     if (chosen.length >= additionalOutsNeeded) break
     if (chosen.includes(candidate.id)) continue
-
-    if (canAddCandidate(candidate.id)) {
-      chosen.push(candidate.id)
-    }
+    if (canAddCandidate(candidate)) chosen.push(candidate.id)
   }
 
-  // Final fallback: if fairness box is impossible because of locks/targets, still fill
-  if (chosen.length < additionalOutsNeeded) {
-    for (const candidate of ranked) {
-      if (chosen.length >= additionalOutsNeeded) break
-      if (chosen.includes(candidate.id)) continue
-      chosen.push(candidate.id)
-    }
+  // 3. Emergency fill, still avoid explicit targets already met.
+  for (const candidate of ranked) {
+    if (chosen.length >= additionalOutsNeeded) break
+    if (chosen.includes(candidate.id)) continue
+    if (candidate.atOrOverTarget) continue
+    chosen.push(candidate.id)
+  }
+
+  // 4. Absolute fallback only if locks make everything impossible.
+  for (const candidate of ranked) {
+    if (chosen.length >= additionalOutsNeeded) break
+    if (chosen.includes(candidate.id)) continue
+    chosen.push(candidate.id)
   }
 
   return chosen
@@ -597,7 +592,7 @@ function scorePlayerForPosition({
   else if (fit === 'B' || fit === 'secondary') fitScore = 300
   else if (fit === 'C') fitScore = 50
   else if (fit === 'D') fitScore = -200
-  else fitScore = -10000 // E / no
+  else fitScore = -1000000 // E / no
 
   const targetPct = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
   const actualCount = getPositionActualCount(rollingTotals, playerId, position)
@@ -818,44 +813,6 @@ function enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap }) {
   return lineup
 }
 
-function forceTargetSitCompliance(lineup, players, planSitOutTargets, cumulativePlanOutCounts) {
-  const innings = Number(lineup.innings || 0)
-
-  ;(players || []).forEach((player) => {
-    const id = pk(player.id)
-
-    const rawTarget = planSitOutTargets?.[id]
-    if (rawTarget === '' || rawTarget == null) return
-
-    const target = Number(rawTarget)
-    const current = countPlayerOuts(lineup, id)
-
-    let deficit = target - current
-    if (deficit <= 0) return
-
-    for (let inning = innings; inning >= 1 && deficit > 0; inning -= 1) {
-      if (lockedValue(lineup, id, inning)) continue
-
-      const currentVal = lineup.cells?.[id]?.[inning] || ''
-      if (!FIELD_POSITIONS.includes(currentVal)) continue
-
-      const swapId = (players || [])
-        .map((p) => pk(p.id))
-        .find((pid) => {
-          if (pid === id) return false
-          if (lockedValue(lineup, pid, inning)) return false
-          return lineup.cells?.[pid]?.[inning] === 'Out'
-        })
-
-      if (!swapId) continue
-
-      lineup.cells[swapId][inning] = currentVal
-      lineup.cells[id][inning] = 'Out'
-      deficit -= 1
-    }
-  })
-}
-
 export function buildOptimizedLineup({
   game,
   players,
@@ -998,43 +955,6 @@ export function buildOptimizedLineup({
       current.delta = Number((current.actualOuts - current.expectedOuts).toFixed(2))
     })
   }
-
-function forceTargetSitCompliance(lineup, players, planSitOutTargets, cumulativePlanOutCounts) {
-  const innings = Number(lineup.innings || 0)
-
-  ;(players || []).forEach((player) => {
-    const id = pk(player.id)
-
-    const target = Number(planSitOutTargets?.[id] || 0)
-    const current = Number(cumulativePlanOutCounts?.[id] || 0)
-
-    let deficit = target - current
-    if (deficit <= 0) return
-
-    for (let inning = innings; inning >= 1 && deficit > 0; inning--) {
-      if (lockedValue(lineup, id, inning)) continue
-
-      const currentVal = lineup.cells[id][inning]
-
-      // Only swap if currently playing
-      if (FIELD_POSITIONS.includes(currentVal)) {
-        // Find someone sitting we can swap with
-        const swapId = (players || [])
-          .map(p => pk(p.id))
-          .find(pid =>
-            lineup.cells[pid][inning] === 'Out' &&
-            !lockedValue(lineup, pid, inning)
-          )
-
-        if (swapId) {
-          lineup.cells[swapId][inning] = currentVal
-          lineup.cells[id][inning] = 'Out'
-          deficit--
-        }
-      }
-    }
-  })
-}
   
   enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap })
   return lineup
