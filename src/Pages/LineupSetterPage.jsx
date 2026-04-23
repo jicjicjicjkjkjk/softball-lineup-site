@@ -649,6 +649,8 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   players={activePlayers}
   sortConfig={trackingSort}
   setSortConfig={setTrackingSort}
+  sitOutTargets={optimizerPlanSitOutTargets}
+  hideSitOutRunningTotal
 />
 
 {/* === PLAN SIT-OUT TARGET OVERRIDE === */}
