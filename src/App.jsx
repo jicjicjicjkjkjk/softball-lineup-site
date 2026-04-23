@@ -77,6 +77,7 @@ export default function App() {
   const [optimizerFocusGameId, setOptimizerFocusGameId] = useState('')
   const [optimizerBatchGameIds, setOptimizerBatchGameIds] = useState([])
   const [optimizerPreviewByGame, setOptimizerPreviewByGame] = useState({})
+  const [optimizerPlanSitOutTargets, setOptimizerPlanSitOutTargets] = useState({})
 
   const [newGameDate, setNewGameDate] = useState('')
   const [newGameOpponent, setNewGameOpponent] = useState('')
