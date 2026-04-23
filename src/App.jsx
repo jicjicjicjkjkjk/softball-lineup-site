@@ -1603,6 +1603,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         totalsBefore: rollingTotals,
         priorityMap: priorityByPlayer,
         fitMap: fitByPlayer,
+        planSitOutTargets: optimizerPlanSitOutTargets,
       })
 
       next[gameId] = optimized
@@ -1650,6 +1651,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       totalsBefore: totalsBeforeThisGame,
       priorityMap: priorityByPlayer,
       fitMap: fitByPlayer,
+      planSitOutTargets: optimizerPlanSitOutTargets,
     })
 
     setOptimizerPreviewByGame((current) => ({
