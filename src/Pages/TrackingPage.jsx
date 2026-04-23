@@ -870,8 +870,8 @@ const filterSummary = useMemo(() => {
         </div>
       </div>
 
-      <div className="card tracking-card">
-        <h3>Tracking vs Positioning Priority - Position</h3>
+            <div className="card tracking-card">
+        <h3>Tracking by Positioning by Priority - Position</h3>
         <div className="tracking-scroll">
           <table className="tracking-table priority-groups">
             <thead>
@@ -881,19 +881,37 @@ const filterSummary = useMemo(() => {
                   className="sticky-col-1 col-player"
                   style={{ textAlign: 'left', verticalAlign: 'middle' }}
                 >
-                  Player
+                  Position
                 </th>
-                <th rowSpan="2" className="sticky-col-2 col-small" style={centerHeader}>
-                  Field
+                <th
+                  rowSpan="2"
+                  className="sticky-col-2 col-small"
+                  style={centerHeader}
+                >
+                  Fld
                 </th>
 
-                <th colSpan="2" className="group-box" style={centerHeader}>P</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>C</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>1B</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>2B</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>3B</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>SS</th>
-                <th colSpan="2" className="group-box" style={centerHeader}>OF</th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  P
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  C
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  1B
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  2B
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  3B
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  SS
+                </th>
+                <th colSpan="2" className="group-box" style={centerHeader}>
+                  OF
+                </th>
               </tr>
               <tr>
                 <th className="col-small group-start" style={centerHeader}>TGT</th>
@@ -920,9 +938,9 @@ const filterSummary = useMemo(() => {
             </thead>
             <tbody>
               {(trackingPriorityByPositionRows || []).map((row) => (
-                <tr key={row.playerId}>
+                <tr key={row.position}>
                   <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>
-                    {row.name}
+                    {row.position}
                   </td>
                   <td className="sticky-col-2 col-small" style={centerCell}>
                     {row.fieldTotal}
