@@ -1153,60 +1153,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     })
   }, [activePlayers, trackingTotals, priorityByPlayer, pk])
 
-  const totalActualByPosition = Object.fromEntries(
-    positions.map((pos) => [
-      pos,
-      activePlayers.reduce(
-        (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.[pos] || 0),
-        0
-      ),
-    ])
-  )
 
-  const rawTargetByPosition = Object.fromEntries(
-    positions.map((pos) => [
-      pos,
-      activePlayers.reduce((sum, player) => {
-        const priority = priorityByPlayer[pk(player.id)] || {}
-        return sum + Number(priority[pos]?.priority_pct || 0)
-      }, 0),
-    ])
-  )
-
-  const totalAllActual = positions.reduce(
-    (sum, pos) => sum + Number(totalActualByPosition[pos] || 0),
-    0
-  )
-
-  const totalAllTarget = positions.reduce(
-    (sum, pos) => sum + Number(rawTargetByPosition[pos] || 0),
-    0
-  )
-
-  return positions.map((pos) => {
-    const actualCount = Number(totalActualByPosition[pos] || 0)
-
-    const targetPct =
-      totalAllTarget > 0
-        ? Number(((Number(rawTargetByPosition[pos] || 0) / totalAllTarget) * 100).toFixed(1))
-        : 0
-
-    const actualPct =
-      totalAllActual > 0
-        ? Number(((actualCount / totalAllActual) * 100).toFixed(1))
-        : 0
-
-    const diffPct = Number((actualPct - targetPct).toFixed(1))
-
-    return {
-      position: pos,
-      targetPct,
-      actualPct,
-      diffPct,
-      actualCount,
-    }
-  })
-}, [activePlayers, trackingTotals, priorityByPlayer, pk])
   
   const filteredAttendanceEvents = useMemo(() => {
     return sortRows(attendanceEvents, attendanceSort)
