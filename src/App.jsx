@@ -1560,7 +1560,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     })
   }
 
-  function runOptimizeAll() {
+    function runOptimizeAll() {
     if (!optimizerBatchGames.length) {
       alert('No games in plan')
       return
@@ -1579,7 +1579,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     players.forEach((player) => {
       planAssignedOuts[pk(player.id)] = 0
     })
-    
+
     orderedGames.forEach((game) => {
       const gameId = pk(game.id)
 
@@ -1587,7 +1587,19 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         const lockedLineup = lineupsByGame[gameId]
         if (lockedLineup) {
           next[gameId] = lockedLineup
-          rollingTotals = addTotals(rollingTotals, computeTotals([lockedLineup], players), players)
+          rollingTotals = addTotals(
+            rollingTotals,
+            computeTotals([lockedLineup], players),
+            players
+          )
+
+          players.forEach((player) => {
+            const id = pk(player.id)
+            const outCount = Object.values(lockedLineup?.cells?.[id] || {}).filter(
+              (value) => value === 'Out'
+            ).length
+            planAssignedOuts[id] = Number(planAssignedOuts[id] || 0) + outCount
+          })
         }
         return
       }
@@ -1624,7 +1636,8 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
 
       persistLineup(gameId, optimized)
       rollingTotals = addTotals(rollingTotals, computeTotals([optimized], players), players)
-    
+    })
+
     setOptimizerPreviewByGame((current) => ({ ...current, ...next }))
   }
 
