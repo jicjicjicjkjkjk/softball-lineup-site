@@ -460,6 +460,7 @@ function chooseSitOutsForInning({
 }) {
   const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
   const lockedInfo = getLockedAssignmentsForInning(lineup, inning, players)
+
   const outsNeeded = Math.max(0, eligibleIds.length - 9)
   const additionalOutsNeeded = Math.max(0, outsNeeded - lockedInfo.lockedOuts)
 
@@ -468,6 +469,8 @@ function chooseSitOutsForInning({
   const unlockedEligibleIds = eligibleIds.filter(
     (id) => !lockedInfo.lockedFieldPlayers.has(id) && !lockedInfo.lockedOutPlayers.has(id)
   )
+
+  if (!unlockedEligibleIds.length) return []
 
   const currentGameOutCounts = getGameOutCounts(lineup, players)
 
@@ -482,12 +485,14 @@ function chooseSitOutsForInning({
     const seasonOuts = Number(totalsBefore?.[id]?.Out || 0)
 
     const targetNeed = explicitTarget == null ? 0 : explicitTarget - currentPlanOuts
+    const mustSit = explicitTarget != null && targetNeed > 0
     const spacingBad = violatesSitSpacing(lineup, id, inning, innings)
 
     return {
       id,
       explicitTarget,
       targetNeed,
+      mustSit,
       currentPlanOuts,
       currentGameOuts,
       seasonOuts,
@@ -497,10 +502,7 @@ function chooseSitOutsForInning({
   })
 
   ranked.sort((a, b) => {
-    const aNeedsTarget = a.targetNeed > 0 ? 1 : 0
-    const bNeedsTarget = b.targetNeed > 0 ? 1 : 0
-    if (aNeedsTarget !== bNeedsTarget) return bNeedsTarget - aNeedsTarget
-
+    if (a.mustSit !== b.mustSit) return b.mustSit - a.mustSit
     if (a.spacingBad !== b.spacingBad) return a.spacingBad ? 1 : -1
     if (a.currentGameOuts !== b.currentGameOuts) return a.currentGameOuts - b.currentGameOuts
     if (a.currentPlanOuts !== b.currentPlanOuts) return a.currentPlanOuts - b.currentPlanOuts
@@ -510,44 +512,69 @@ function chooseSitOutsForInning({
 
   const chosen = []
 
-  for (const candidate of ranked) {
-    if (chosen.length >= additionalOutsNeeded) break
+  const hypotheticalGameCountsBase = {}
+  ranked.forEach((row) => {
+    hypotheticalGameCountsBase[row.id] = row.currentGameOuts
+  })
 
-    const hypothetical = {}
-    ranked.forEach((r) => {
-      hypothetical[r.id] = r.currentGameOuts
-    })
+  const hypotheticalPlanCountsBase = {}
+  ranked.forEach((row) => {
+    hypotheticalPlanCountsBase[row.id] = Number(cumulativePlanOutCounts?.[row.id] || 0)
+  })
+
+  function canAddCandidate(candidateId) {
+    const hypotheticalGameCounts = { ...hypotheticalGameCountsBase }
+    const hypotheticalPlanCounts = { ...hypotheticalPlanCountsBase }
 
     chosen.forEach((id) => {
-      hypothetical[id] += 1
+      hypotheticalGameCounts[id] = Number(hypotheticalGameCounts[id] || 0) + 1
+      hypotheticalPlanCounts[id] = Number(hypotheticalPlanCounts[id] || 0) + 1
     })
-    hypothetical[candidate.id] += 1
 
-    const values = Object.values(hypothetical)
-    const maxGame = Math.max(...values)
-    const minGame = Math.min(...values)
+    hypotheticalGameCounts[candidateId] = Number(hypotheticalGameCounts[candidateId] || 0) + 1
+    hypotheticalPlanCounts[candidateId] = Number(hypotheticalPlanCounts[candidateId] || 0) + 1
 
-    if (maxGame - minGame > 1) continue
+    const gameValues = unlockedEligibleIds.map((id) => Number(hypotheticalGameCounts[id] || 0))
+    const maxGame = Math.max(...gameValues)
+    const minGame = Math.min(...gameValues)
 
-    const hypotheticalPlan = { ...cumulativePlanOutCounts }
-    chosen.forEach((id) => {
-      hypotheticalPlan[id] = Number(hypotheticalPlan[id] || 0) + 1
-    })
-    hypotheticalPlan[candidate.id] = Number(hypotheticalPlan[candidate.id] || 0) + 1
+    if (maxGame - minGame > 1) return false
 
-    const eligiblePlanValues = unlockedEligibleIds.map((id) => Number(hypotheticalPlan[id] || 0))
-    const maxPlan = Math.max(...eligiblePlanValues)
-    const minPlan = Math.min(...eligiblePlanValues)
+    const planValues = unlockedEligibleIds.map((id) => Number(hypotheticalPlanCounts[id] || 0))
+    const maxPlan = Math.max(...planValues)
+    const minPlan = Math.min(...planValues)
 
-    if (maxPlan - minPlan > 1) continue
+    if (maxPlan - minPlan > 1) return false
 
-    chosen.push(candidate.id)
+    return true
   }
 
+  // First pass: force target sits wherever possible
+  for (const candidate of ranked) {
+    if (chosen.length >= additionalOutsNeeded) break
+    if (!candidate.mustSit) continue
+    if (chosen.includes(candidate.id)) continue
+
+    if (canAddCandidate(candidate.id)) {
+      chosen.push(candidate.id)
+    }
+  }
+
+  // Second pass: fill remaining with fairness rules
+  for (const candidate of ranked) {
+    if (chosen.length >= additionalOutsNeeded) break
+    if (chosen.includes(candidate.id)) continue
+
+    if (canAddCandidate(candidate.id)) {
+      chosen.push(candidate.id)
+    }
+  }
+
+  // Final fallback: if fairness box is impossible because of locks/targets, still fill
   if (chosen.length < additionalOutsNeeded) {
     for (const candidate of ranked) {
-      if (chosen.includes(candidate.id)) continue
       if (chosen.length >= additionalOutsNeeded) break
+      if (chosen.includes(candidate.id)) continue
       chosen.push(candidate.id)
     }
   }
@@ -565,14 +592,14 @@ function scorePlayerForPosition({
   inning,
 }) {
   const fit = fitTier(fitMap, playerId, position)
-  const disallowed = isDisallowedFit(fit)
 
-  const fitScore =
-    fit === 'primary' || fit === 'A' ? 40 :
-    fit === 'secondary' || fit === 'B' ? 20 :
-    fit === 'C' ? 5 :
-    fit === 'D' ? -15 :
-    -1000
+  // 🔥 HARD FIT TIERS (this is the big fix)
+  let fitScore = 0
+  if (fit === 'A' || fit === 'primary') fitScore = 1000
+  else if (fit === 'B' || fit === 'secondary') fitScore = 300
+  else if (fit === 'C') fitScore = 50
+  else if (fit === 'D') fitScore = -200
+  else fitScore = -10000 // E / no
 
   const targetPct = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
   const actualCount = getPositionActualCount(rollingTotals, playerId, position)
@@ -581,17 +608,16 @@ function scorePlayerForPosition({
   const pctGap = targetPct - actualPct
 
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
-  const continuityBonus = prevValue === position ? 5 : 0
+  const continuityBonus = prevValue === position ? 10 : 0
 
   return {
     playerId,
     position,
     totalScore:
-      pctGap * 10 +
-      fitScore +
+      fitScore +                  // 🔥 dominates everything
+      pctGap * 5 +               // reduced influence
       continuityBonus -
-      actualCount * 2 -
-      (disallowed ? 10000 : 0),
+      actualCount * 2,
   }
 }
 
