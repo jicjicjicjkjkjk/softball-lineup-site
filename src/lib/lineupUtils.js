@@ -625,29 +625,38 @@ function buildSitPlan({
 
             let pickedId = null
 
-      const legalCandidates = ranked.filter((candidate) => {
-        const remainingFielders = unlockedEligibleIds.filter(
-          (id) => !chosenSits.has(id) && id !== candidate.id
-        )
+const legalCandidates = ranked.filter((candidate) => {
+  const remainingFielders = unlockedEligibleIds.filter(
+    (id) => !chosenSits.has(id) && id !== candidate.id
+  )
 
-        const canCoverStrict = canCoverOpenPositions(remainingFielders, openPositions, fitMap, true)
-        const canCoverLoose = canCoverOpenPositions(remainingFielders, openPositions, fitMap, false)
+  const canCoverStrict = canCoverOpenPositions(remainingFielders, openPositions, fitMap, true)
+  const canCoverLoose = canCoverOpenPositions(remainingFielders, openPositions, fitMap, false)
 
-        return canCoverStrict || canCoverLoose
-      })
+  return canCoverStrict || canCoverLoose
+})
 
-            const underOrAtTargetCandidates = legalCandidates.filter(
-        (candidate) =>
-          candidate.batchTarget == null || candidate.batchAfterPick <= candidate.batchTarget
-      )
+const candidatesStillNeedingTarget = legalCandidates.filter((candidate) => {
+  const hasTarget = Number(candidate.batchTarget || 0) > 0
+  if (!hasTarget) return false
+  return candidate.batchNow < candidate.batchTarget
+})
 
-      if (underOrAtTargetCandidates.length) {
-        pickedId = underOrAtTargetCandidates[0].id
-      } else if (legalCandidates.length) {
-        pickedId = legalCandidates[0].id
-      } else {
-        pickedId = ranked[0]?.id || null
-      }
+const underOrAtTargetCandidates = legalCandidates.filter((candidate) => {
+  const hasTarget = Number(candidate.batchTarget || 0) > 0
+  if (!hasTarget) return true
+  return candidate.batchAfterPick <= candidate.batchTarget
+})
+
+if (candidatesStillNeedingTarget.length) {
+  pickedId = candidatesStillNeedingTarget[0].id
+} else if (underOrAtTargetCandidates.length) {
+  pickedId = underOrAtTargetCandidates[0].id
+} else if (legalCandidates.length) {
+  pickedId = legalCandidates[0].id
+} else {
+  pickedId = ranked[0]?.id || null
+}
 
       if (!pickedId) break
 
