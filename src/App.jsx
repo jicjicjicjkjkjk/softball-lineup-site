@@ -1079,45 +1079,74 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   }, [activePlayers, trackingTotals, priorityByPlayer, trackingSort])
 
     const trackingPriorityByPositionRows = useMemo(() => {
-  const totalTeamFieldInnings = activePlayers.reduce((sum, player) => {
-    return sum + Number(trackingTotals[pk(player.id)]?.fieldTotal || 0)
-  }, 0)
+  const positionTotals = {
+    P: activePlayers.reduce(
+      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.P || 0),
+      0
+    ),
+    C: activePlayers.reduce(
+      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.C || 0),
+      0
+    ),
+    '1B': activePlayers.reduce(
+      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.['1B'] || 0),
+      0
+    ),
+    '2B': activePlayers.reduce(
+      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.['2B'] || 0),
+      0
+    ),
+    '3B': activePlayers.reduce(
+      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.['3B'] || 0),
+      0
+    ),
+    SS: activePlayers.reduce(
+      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.SS || 0),
+      0
+    ),
+    OF: activePlayers.reduce(
+      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.OF || 0),
+      0
+    ),
+  }
 
-  const actPctByTeam = (value) => {
-    const actual = Number(value || 0)
-    if (!actual || !totalTeamFieldInnings) return ''
-    return Number(((actual / totalTeamFieldInnings) * 100).toFixed(1))
+  const actPctByPosition = (playerTotal, positionKey) => {
+    const numer = Number(playerTotal || 0)
+    const denom = Number(positionTotals[positionKey] || 0)
+    if (!numer || !denom) return ''
+    return Number(((numer / denom) * 100).toFixed(1))
   }
 
   return activePlayers.map((player) => {
-    const totals = trackingTotals[pk(player.id)] || {}
-    const priority = priorityByPlayer[pk(player.id)] || {}
+    const playerId = pk(player.id)
+    const totals = trackingTotals[playerId] || {}
+    const priority = priorityByPlayer[playerId] || {}
 
     return {
-      playerId: pk(player.id),
+      playerId,
       name: player.name,
       fieldTotal: totals.fieldTotal || 0,
 
       targP: priority.P?.priority_pct || '',
-      actP: actPctByTeam(totals.P),
+      actP: actPctByPosition(totals.P, 'P'),
 
       targC: priority.C?.priority_pct || '',
-      actC: actPctByTeam(totals.C),
+      actC: actPctByPosition(totals.C, 'C'),
 
       targ1B: priority['1B']?.priority_pct || '',
-      act1B: actPctByTeam(totals['1B']),
+      act1B: actPctByPosition(totals['1B'], '1B'),
 
       targ2B: priority['2B']?.priority_pct || '',
-      act2B: actPctByTeam(totals['2B']),
+      act2B: actPctByPosition(totals['2B'], '2B'),
 
       targ3B: priority['3B']?.priority_pct || '',
-      act3B: actPctByTeam(totals['3B']),
+      act3B: actPctByPosition(totals['3B'], '3B'),
 
       targSS: priority.SS?.priority_pct || '',
-      actSS: actPctByTeam(totals.SS),
+      actSS: actPctByPosition(totals.SS, 'SS'),
 
       targOF: priority.OF?.priority_pct || '',
-      actOF: actPctByTeam(totals.OF),
+      actOF: actPctByPosition(totals.OF, 'OF'),
     }
   })
 }, [activePlayers, trackingTotals, priorityByPlayer, pk])
