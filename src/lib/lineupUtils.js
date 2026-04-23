@@ -585,7 +585,14 @@ function scorePlayerForPosition({
   inning,
 }) {
   const fit = fitTier(fitMap, playerId, position)
-
+if (fit === 'E' || fit === 'no') {
+  return {
+    playerId,
+    position,
+    totalScore: -999999,
+  }
+}
+  
   // 🔥 HARD FIT TIERS (this is the big fix)
   let fitScore = 0
   if (fit === 'A' || fit === 'primary') fitScore = 1000
