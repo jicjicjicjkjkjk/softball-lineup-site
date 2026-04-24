@@ -26,6 +26,8 @@ export default function LineupFocusPanel(props) {
     LineupGrid,
     fitByPlayer,
     focusStatuses = [],
+    togglePreviewBattingLock,
+    togglePreviewAllBattingLock,
     addPreviewInning,
     removePreviewInning,
     updatePreviewCell,
