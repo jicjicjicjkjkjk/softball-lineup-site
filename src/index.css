@@ -470,3 +470,69 @@ th {
     margin: 0.4in;
   }
 }
+
+/* ===== FORCE CLEAN PRINT (OVERRIDES EVERYTHING ABOVE) ===== */
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.35in;
+  }
+
+  /* 🔴 Hide EVERYTHING */
+  body * {
+    display: none !important;
+  }
+
+  /* ✅ Only show print section */
+  .print-only,
+  .print-only * {
+    display: block !important;
+  }
+
+  .print-only {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    background: white;
+  }
+
+  /* Fix tables */
+  .print-only table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed;
+    font-size: 10px;
+  }
+
+  .print-only thead {
+    display: table-header-group !important;
+  }
+
+  .print-only tbody {
+    display: table-row-group !important;
+  }
+
+  .print-only tr {
+    display: table-row !important;
+  }
+
+  .print-only th,
+  .print-only td {
+    display: table-cell !important;
+    border: 1px solid #000 !important;
+    padding: 4px !important;
+    text-align: center !important;
+  }
+
+  .print-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+}
