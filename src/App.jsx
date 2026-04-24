@@ -1755,6 +1755,14 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     })
   }
 
+function togglePreviewBattingLock(gameId, playerId) {
+  updatePreview(gameId, (lineup) => {
+    if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
+    lineup.lockedBattingOrder[pk(playerId)] = !lineup.lockedBattingOrder[pk(playerId)]
+    return lineup
+  })
+}
+  
   function updatePreviewCell(gameId, playerId, inning, value) {
     updatePreview(gameId, (lineup) => {
       lineup.cells[pk(playerId)][inning] = value
@@ -2258,6 +2266,10 @@ lineup.lockedInnings = nextLockedInnings
             toggleSavedAvailable={toggleSavedAvailable}
             fitByPlayer={fitByPlayer}
             LineupGrid={LineupGrid}
+            togglePreviewBattingLock={togglePreviewBattingLock}
+            toggleSavedBattingLock={toggleSavedBattingLock}
+            onBattingLockToggle={(playerId) => togglePreviewBattingLock(gameId, playerId)}
+            onBattingLockToggle={(playerId) => toggleSavedBattingLock(gameId, playerId)}
             updateSavedCell={updateSavedCell}
             updateSavedBatting={updateSavedBatting}
             toggleSavedCellLock={toggleSavedCellLock}
@@ -2316,6 +2328,10 @@ lineup.lockedInnings = nextLockedInnings
     removePreviewInning={removePreviewInning}
     togglePreviewAvailable={togglePreviewAvailable}
     LineupGrid={LineupGrid}
+    togglePreviewBattingLock={togglePreviewBattingLock}
+    toggleSavedBattingLock={toggleSavedBattingLock}
+    onBattingLockToggle={(playerId) => toggleSavedBattingLock(gameId, playerId)}
+    onBattingLockToggle={(playerId) => togglePreviewBattingLock(gameId, playerId)}
     fitByPlayer={fitByPlayer}
     updatePreviewCell={updatePreviewCell}
     updatePreviewBatting={updatePreviewBatting}
