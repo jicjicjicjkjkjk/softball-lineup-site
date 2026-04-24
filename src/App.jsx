@@ -2310,7 +2310,6 @@ function toggleSavedAllBattingLock(gameId) {
             toggleSavedAvailable={toggleSavedAvailable}
             fitByPlayer={fitByPlayer}
             LineupGrid={LineupGrid}
-            toggleSavedBattingLock={toggleSavedBattingLock}
             updateSavedCell={updateSavedCell}
             updateSavedBatting={updateSavedBatting}
             toggleSavedCellLock={toggleSavedCellLock}
