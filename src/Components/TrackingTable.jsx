@@ -1,26 +1,25 @@
-import { pk, fitTier } from '../lib/lineupUtils'
+import { pk, PRIORITY_POSITIONS } from '../lib/lineupUtils'
 import { nextSort, sortRows } from '../lib/appHelpers'
 
-const POSITION_COLUMNS = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'IF', 'OF']
+function getFitColor(fit) {
+  if (fit === 'primary' || fit === 'A') return '#dcfce7'
+  if (fit === 'secondary' || fit === 'B' || fit === 'C') return '#fef9c3'
+  if (fit === 'no' || fit === 'E' || fit === 'D') return '#fee2e2'
+  return ''
+}
 
-function fitColor(fitMap, playerId, position) {
-  if (position === 'IF' || position === 'OF') return {}
+function positionFit(fitByPlayer, playerId, position) {
+  if (!fitByPlayer) return ''
 
-  const tier = fitTier(fitMap, playerId, position)
-
-  if (tier === 'primary' || tier === 'A') {
-    return { background: '#dcfce7' }
+  if (position === 'LF' || position === 'RF') {
+    return fitByPlayer?.[pk(playerId)]?.[position] || fitByPlayer?.[pk(playerId)]?.OF || ''
   }
 
-  if (tier === 'secondary' || tier === 'B' || tier === 'C' || tier === 'D') {
-    return { background: '#fef9c3' }
+  if (position === 'CF') {
+    return fitByPlayer?.[pk(playerId)]?.CF || fitByPlayer?.[pk(playerId)]?.OF || ''
   }
 
-  if (tier === 'no' || tier === 'E') {
-    return { background: '#fee2e2' }
-  }
-
-  return {}
+  return fitByPlayer?.[pk(playerId)]?.[position] || ''
 }
 
 export default function TrackingTable({
@@ -36,10 +35,7 @@ export default function TrackingTable({
   showSitOutTargets = false,
   hideSitOutRunningTotal = false,
   fitByPlayer = {},
-  editableSitOutTargets = false,
-  setSitOutTargets = null,
-  planSitOutSummary = null,
-  runningTotalLabel = 'Sit Out Running Total',
+  enableFitColors = false,
 }) {
   const sitOutRunningByPlayer = Object.fromEntries(
     (sitOutRows || []).map((row) => {
@@ -47,10 +43,7 @@ export default function TrackingTable({
         (v) => v !== 'x' && v !== '' && v !== null && v !== undefined
       )
 
-      const lastRunningValue = runningValues.length
-        ? runningValues[runningValues.length - 1]
-        : 0
-
+      const lastRunningValue = runningValues.length ? runningValues[runningValues.length - 1] : 0
       return [pk(row.playerId), lastRunningValue]
     })
   )
@@ -61,9 +54,7 @@ export default function TrackingTable({
       const t = totals?.[id] || {}
       const targetOuts = sitOutTargets?.[id]
       const gap =
-        targetOuts === '' || targetOuts == null
-          ? ''
-          : Number(targetOuts) - Number(t.Out || 0)
+        targetOuts === '' || targetOuts == null ? '' : Number(targetOuts) - Number(t.Out || 0)
 
       return {
         playerId: id,
@@ -90,13 +81,12 @@ export default function TrackingTable({
     sortConfig
   )
 
-  function updateTarget(playerId, value) {
-    if (!setSitOutTargets) return
+  function posCell(row, position) {
+    const value = row[position]
+    const fit = positionFit(fitByPlayer, row.playerId, position)
+    const backgroundColor = enableFitColors && value ? getFitColor(fit) : ''
 
-    setSitOutTargets((prev) => ({
-      ...prev,
-      [playerId]: value === '' ? '' : Number(value),
-    }))
+    return <td style={backgroundColor ? { backgroundColor } : undefined}>{value}</td>
   }
 
   return (
@@ -127,15 +117,21 @@ export default function TrackingTable({
               </>
             )}
 
-            {POSITION_COLUMNS.map((pos) => (
-              <th key={pos} onClick={() => setSortConfig(nextSort(sortConfig, pos))}>
-                {pos}
-              </th>
-            ))}
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'P'))}>P</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'C'))}>C</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, '1B'))}>1B</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, '2B'))}>2B</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, '3B'))}>3B</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'SS'))}>SS</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'LF'))}>LF</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'CF'))}>CF</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'RF'))}>RF</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'IF'))}>IF</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'OF'))}>OF</th>
 
             {!hideSitOutRunningTotal && (
               <th onClick={() => setSortConfig(nextSort(sortConfig, 'sitOutRunningTotal'))}>
-                {runningTotalLabel}
+                Sit Out Running Total
               </th>
             )}
           </tr>
@@ -151,48 +147,29 @@ export default function TrackingTable({
 
               {showSitOutTargets && (
                 <>
-                  <td>
-                    {editableSitOutTargets ? (
-                      <input
-                        type="number"
-                        min="0"
-                        value={row.targetOuts}
-                        onChange={(e) => updateTarget(row.playerId, e.target.value)}
-                        style={{ width: 60, textAlign: 'center' }}
-                      />
-                    ) : (
-                      row.targetOuts
-                    )}
-                  </td>
+                  <td>{row.targetOuts}</td>
                   <td>{row.gap}</td>
                 </>
               )}
 
-              {POSITION_COLUMNS.map((pos) => (
-                <td
-                  key={`${row.playerId}-${pos}`}
-                  style={row[pos] ? fitColor(fitByPlayer, row.playerId, pos) : {}}
-                >
-                  {row[pos]}
-                </td>
-              ))}
+              {posCell(row, 'P')}
+              {posCell(row, 'C')}
+              {posCell(row, '1B')}
+              {posCell(row, '2B')}
+              {posCell(row, '3B')}
+              {posCell(row, 'SS')}
+              {posCell(row, 'LF')}
+              {posCell(row, 'CF')}
+              {posCell(row, 'RF')}
+
+              <td>{row.IF}</td>
+              <td>{row.OF}</td>
 
               {!hideSitOutRunningTotal && <td>{row.sitOutRunningTotal}</td>}
             </tr>
           ))}
         </tbody>
       </table>
-
-      {planSitOutSummary && (
-        <div className="summary-box" style={{ marginTop: 16 }}>
-          <strong>Total Sit-Outs Needed:</strong> {planSitOutSummary.totalNeeded}
-          <br />
-          <strong>Total Assigned:</strong> {planSitOutSummary.totalAssigned}
-          <br />
-          <strong>Remaining:</strong>{' '}
-          {planSitOutSummary.totalNeeded - planSitOutSummary.totalAssigned}
-        </div>
-      )}
     </div>
   )
 }
