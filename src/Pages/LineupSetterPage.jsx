@@ -639,6 +639,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   totals={filteredGamesBeforeTotalsWithRunning}
   sitOutRows={ytdBeforeSitOutRows}
   players={activePlayers}
+  enableFitColors={false}
   sortConfig={trackingSort}
   setSortConfig={setTrackingSort}
 />
@@ -655,6 +656,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   editableSitOutTargets={true}
   setSitOutTargets={setOptimizerPlanSitOutTargets}
   fitByPlayer={fitByPlayer}
+  enableFitColors={true}
   planSitOutSummary={{
     totalNeeded,
     totalAssigned,
@@ -668,6 +670,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   universeLabel={`Filtered by: ${filterSummary} (${optimizerBatchGames.length} plan games)`}
   totals={filteredPlusPlanTotalsWithRunning}
   sitOutRows={ytdAfterSitOutRows}
+  enableFitColors={false}
   players={activePlayers}
   sortConfig={trackingSort}
   setSortConfig={setTrackingSort}
