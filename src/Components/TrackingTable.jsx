@@ -1,4 +1,4 @@
-import { pk, PRIORITY_POSITIONS } from '../lib/lineupUtils'
+import { pk } from '../lib/lineupUtils'
 import { nextSort, sortRows } from '../lib/appHelpers'
 
 function getFitColor(fit) {
@@ -32,11 +32,14 @@ export default function TrackingTable({
   universeLabel,
   center = true,
   sitOutTargets = {},
-setSitOutTargets,
-showSitOutTargets = false,
-hideSitOutRunningTotal = false,
-fitByPlayer = {},
-enableFitColors = false,
+  setSitOutTargets,
+  showSitOutTargets = false,
+  editableSitOutTargets = false,
+  hideSitOutRunningTotal = false,
+  fitByPlayer = {},
+  enableFitColors = false,
+  planSitOutSummary = null,
+  runningTotalLabel = 'Sit Out Running Total',
 }) {
   const sitOutRunningByPlayer = Object.fromEntries(
     (sitOutRows || []).map((row) => {
@@ -132,7 +135,7 @@ enableFitColors = false,
 
             {!hideSitOutRunningTotal && (
               <th onClick={() => setSortConfig(nextSort(sortConfig, 'sitOutRunningTotal'))}>
-                Sit Out Running Total
+                {runningTotalLabel}
               </th>
             )}
           </tr>
@@ -149,23 +152,26 @@ enableFitColors = false,
               {showSitOutTargets && (
                 <>
                   <td>
-  {showSitOutTargets === 'editable' ? (
-    <input
-      type="number"
-      min="0"
-      value={row.targetOuts}
-      onChange={(e) =>
-        setSitOutTargets?.((prev) => ({
-          ...prev,
-          [row.playerId]: e.target.value === '' ? '' : Number(e.target.value),
-        }))
-      }
-      style={{ width: 60, textAlign: 'center' }}
-    />
-  ) : (
-    row.targetOuts
-  )}
-</td>
+                    {editableSitOutTargets ? (
+                      <input
+                        type="number"
+                        min="0"
+                        value={row.targetOuts}
+                        onChange={(e) =>
+                          setSitOutTargets?.((prev) => ({
+                            ...prev,
+                            [row.playerId]: e.target.value === '' ? '' : Number(e.target.value),
+                          }))
+                        }
+                        style={{
+                          width: 60,
+                          textAlign: 'center',
+                        }}
+                      />
+                    ) : (
+                      row.targetOuts
+                    )}
+                  </td>
                   <td>{row.gap}</td>
                 </>
               )}
@@ -188,6 +194,18 @@ enableFitColors = false,
           ))}
         </tbody>
       </table>
+
+      {planSitOutSummary && (
+        <div className="summary-box" style={{ marginTop: 16 }}>
+          <strong>Total Sit-Outs Needed:</strong> {planSitOutSummary.totalNeeded}
+          <br />
+          <strong>Total Assigned:</strong> {planSitOutSummary.totalAssigned}
+          <br />
+          <strong>Remaining:</strong>{' '}
+          {Number(planSitOutSummary.totalNeeded || 0) -
+            Number(planSitOutSummary.totalAssigned || 0)}
+        </div>
+      )}
     </div>
   )
 }
