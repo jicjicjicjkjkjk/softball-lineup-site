@@ -1043,22 +1043,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   )
 }
 
-<div className="print-only">
-  <h1>Coach Summary</h1>
 
-  {/* CURRENT PLAN TABLE */}
-  <h2>Current Plan</h2>
-  <TrackingTable
-    rows={coachSummarySitRows}
-    sort={trackingSort}
-    setSort={() => {}}
-  />
-
-  <div style={{ height: 24 }} />
-
-  <button onClick={() => window.print()}>
-  Print Coach Summary
-</button>
   
   {/* GAME LINEUPS */}
   {coachSummaryGames.map((game) => {
