@@ -20,6 +20,7 @@ function clone(obj) {
 export function blankLineup(playerIds, innings = 6, availablePlayerIds = playerIds) {
   const cells = {}
   const battingOrder = {}
+  const lockedBattingOrder = {}
   const lockedCells = {}
   const lockedRows = {}
   const lockedInnings = {}
@@ -28,6 +29,7 @@ export function blankLineup(playerIds, innings = 6, availablePlayerIds = playerI
     const key = pk(id)
     cells[key] = {}
     battingOrder[key] = ''
+    lockedBattingOrder[key] = false
     lockedCells[key] = {}
     lockedRows[key] = false
 
@@ -45,6 +47,7 @@ export function blankLineup(playerIds, innings = 6, availablePlayerIds = playerI
     cells,
     lockedCells,
     lockedRows,
+    lockedBattingOrder,
     lockedInnings,
   }
 }
@@ -68,6 +71,7 @@ export function normalizeLineup(lineup, playersOrIds, inningsFallback = 6, avail
   out.battingOrder = out.battingOrder || {}
   out.lockedCells = out.lockedCells || {}
   out.lockedRows = out.lockedRows || {}
+  out.lockedBattingOrder = out.lockedBattingOrder || {}
   out.lockedInnings = out.lockedInnings || {}
 
   playerIds.forEach((id) => {
@@ -75,6 +79,7 @@ export function normalizeLineup(lineup, playersOrIds, inningsFallback = 6, avail
     if (!out.cells[key]) out.cells[key] = {}
     if (!out.lockedCells[key]) out.lockedCells[key] = {}
     if (out.battingOrder[key] === undefined) out.battingOrder[key] = ''
+    if (out.lockedBattingOrder[key] === undefined) out.lockedBattingOrder[key] = false
     if (out.lockedRows[key] === undefined) out.lockedRows[key] = false
 
     for (let inning = 1; inning <= out.innings; inning += 1) {
