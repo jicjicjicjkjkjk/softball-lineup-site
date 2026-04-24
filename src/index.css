@@ -536,3 +536,10 @@ th {
     margin-bottom: 12px;
   }
 }
+
+
+@media print {
+  .print-page-break {
+    page-break-before: always;
+  }
+}
