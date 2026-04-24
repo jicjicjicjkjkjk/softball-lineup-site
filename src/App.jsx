@@ -1787,11 +1787,17 @@ function togglePreviewBattingLock(gameId, playerId) {
   })
 }
 
-function toggleSavedBattingLock(gameId, playerId) {
-  updateSavedLineup(gameId, (lineup) => {
+  function togglePreviewAllBattingLock(gameId) {
+  updatePreview(gameId, (lineup) => {
     if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
-    lineup.lockedBattingOrder[pk(playerId)] = !lineup.lockedBattingOrder[pk(playerId)]
-    autoSave(gameId, lineup)
+
+    const ids = Object.keys(lineup.battingOrder || {})
+    const allLocked = ids.length > 0 && ids.every((id) => lineup.lockedBattingOrder[id] === true)
+
+    ids.forEach((id) => {
+      lineup.lockedBattingOrder[id] = !allLocked
+    })
+
     return lineup
   })
 }
@@ -2383,6 +2389,7 @@ lineup.lockedInnings = nextLockedInnings
     trackingPriorityRows={trackingPriorityRows}
     optimizerImportSourceGameId={optimizerImportSourceGameId}
     setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
+    togglePreviewAllBattingLock={togglePreviewAllBattingLock}
     optimizerImportableGames={optimizerImportableGames}
     importLineupToPreview={importLineupToPreview}
     clearPreviewLineup={clearPreviewLineup}
