@@ -32,10 +32,11 @@ export default function TrackingTable({
   universeLabel,
   center = true,
   sitOutTargets = {},
-  showSitOutTargets = false,
-  hideSitOutRunningTotal = false,
-  fitByPlayer = {},
-  enableFitColors = false,
+setSitOutTargets,
+showSitOutTargets = false,
+hideSitOutRunningTotal = false,
+fitByPlayer = {},
+enableFitColors = false,
 }) {
   const sitOutRunningByPlayer = Object.fromEntries(
     (sitOutRows || []).map((row) => {
@@ -147,7 +148,24 @@ export default function TrackingTable({
 
               {showSitOutTargets && (
                 <>
-                  <td>{row.targetOuts}</td>
+                  <td>
+  {showSitOutTargets === 'editable' ? (
+    <input
+      type="number"
+      min="0"
+      value={row.targetOuts}
+      onChange={(e) =>
+        setSitOutTargets?.((prev) => ({
+          ...prev,
+          [row.playerId]: e.target.value === '' ? '' : Number(e.target.value),
+        }))
+      }
+      style={{ width: 60, textAlign: 'center' }}
+    />
+  ) : (
+    row.targetOuts
+  )}
+</td>
                   <td>{row.gap}</td>
                 </>
               )}
