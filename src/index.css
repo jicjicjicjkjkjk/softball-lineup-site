@@ -471,7 +471,7 @@ th {
   }
 }
 
-/* ===== FORCE CLEAN PRINT (OVERRIDES EVERYTHING ABOVE) ===== */
+/* ===== COACH SUMMARY PRINT ONLY ===== */
 
 .print-only {
   display: none;
@@ -483,48 +483,33 @@ th {
     margin: 0.35in;
   }
 
-  /* 🔴 Hide EVERYTHING */
   body * {
-    display: none !important;
+    visibility: hidden !important;
   }
 
-  /* ✅ Only show print section */
   .print-only,
   .print-only * {
-    display: block !important;
+    visibility: visible !important;
   }
 
   .print-only {
-    position: absolute;
-    inset: 0;
+    display: block !important;
+    position: absolute !important;
+    left: 0;
+    top: 0;
     width: 100%;
-    background: white;
+    background: white !important;
   }
 
-  /* Fix tables */
   .print-only table {
-    display: table !important;
     width: 100% !important;
     border-collapse: collapse !important;
     table-layout: fixed;
-    font-size: 10px;
-  }
-
-  .print-only thead {
-    display: table-header-group !important;
-  }
-
-  .print-only tbody {
-    display: table-row-group !important;
-  }
-
-  .print-only tr {
-    display: table-row !important;
+    font-size: 10px !important;
   }
 
   .print-only th,
   .print-only td {
-    display: table-cell !important;
     border: 1px solid #000 !important;
     padding: 4px !important;
     text-align: center !important;
@@ -535,11 +520,9 @@ th {
     font-weight: 700;
     margin-bottom: 12px;
   }
-}
 
-
-@media print {
   .print-page-break {
     page-break-before: always;
+    break-before: page;
   }
 }
