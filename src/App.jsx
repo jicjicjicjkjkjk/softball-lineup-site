@@ -1768,7 +1768,8 @@ function togglePreviewBattingLock(gameId, playerId) {
     if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
 
     const ids = Object.keys(lineup.battingOrder || {})
-    const allLocked = ids.length > 0 && ids.every((id) => lineup.lockedBattingOrder[id] === true)
+    const allLocked =
+      ids.length > 0 && ids.every((id) => lineup.lockedBattingOrder[id] === true)
 
     ids.forEach((id) => {
       lineup.lockedBattingOrder[id] = !allLocked
