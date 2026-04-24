@@ -1206,3 +1206,64 @@ th.player-col {
     text-align: center;
   }
 }
+
+
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.35in;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-only,
+  .print-only * {
+    visibility: visible !important;
+  }
+
+  .print-only {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+
+  .print-only th,
+  .print-only td {
+    border: 1px solid #111;
+    padding: 4px 6px;
+    text-align: center;
+  }
+
+  .print-only th {
+    background: #e6ffff !important;
+  }
+
+  .print-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin: 0 0 14px;
+  }
+
+  .print-page-break {
+    page-break-before: always;
+  }
+}
