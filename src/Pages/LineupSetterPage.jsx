@@ -1080,7 +1080,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
           })
 
           return (
-            <div key={game.id} style={{ pageBreakBefore: 'always' }}>
+              <div key={game.id} className="print-page-break">
               <div className="print-title">
                 {formatDateShort(game.date) || 'No Date'} vs {game.opponent || 'Opponent'}
               </div>
