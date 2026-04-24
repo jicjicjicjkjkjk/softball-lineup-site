@@ -21,6 +21,7 @@ export default function LineupGrid({
   onCellLockToggle,
   onRowLockToggle,
   onInningLockToggle,
+  onBattingLockToggle,
 }) {
   const visibleSet = new Set((visiblePlayerIds || []).map(pk))
   const innings = Number(lineup?.innings || 0)
@@ -41,7 +42,8 @@ export default function LineupGrid({
           <th>#</th>
           <th className="player-col">Player</th>
           <th>Batting</th>
-          {showLocks && <th>Lock</th>}
+          {showLocks && <th>Bat Lock</th>}
+          {showLocks && <th>Inning Lock</th>}
 
           {Array.from({ length: innings }, (_, i) => i + 1).map((inning) => {
             const status = inningStatus(lineup, inning, players, fitMap)
@@ -102,13 +104,12 @@ export default function LineupGrid({
         {sortedRows.map((player) => {
           const id = pk(player.id)
           const summary = rowSummary(lineup, id)
+
           const rowLocked = lineup?.lockedRows?.[id] === true
+          const battingLocked = lineup?.lockedBattingOrder?.[id] === true
 
           return (
-            <tr
-              key={id}
-              className={rowLocked ? 'row-locked' : ''}
-            >
+            <tr key={id} className={rowLocked ? 'row-locked' : ''}>
               <td>{player.jersey_number || ''}</td>
               <td>{player.name}</td>
 
@@ -116,7 +117,7 @@ export default function LineupGrid({
                 <input
                   type="number"
                   value={lineup?.battingOrder?.[id] || ''}
-                  disabled={lockedLineup || rowLocked}
+                  disabled={lockedLineup || battingLocked}
                   onChange={(e) => onBattingChange(id, e.target.value)}
                   style={{
                     width: 56,
@@ -132,11 +133,25 @@ export default function LineupGrid({
                   <label className="checkbox-item" style={{ margin: 0, fontSize: 11 }}>
                     <input
                       type="checkbox"
+                      checked={battingLocked}
+                      disabled={lockedLineup}
+                      onChange={() => onBattingLockToggle?.(id)}
+                    />
+                    Bat
+                  </label>
+                </td>
+              )}
+
+              {showLocks && (
+                <td>
+                  <label className="checkbox-item" style={{ margin: 0, fontSize: 11 }}>
+                    <input
+                      type="checkbox"
                       checked={rowLocked}
                       disabled={lockedLineup}
                       onChange={() => onRowLockToggle(id)}
                     />
-                    All
+                    All Innings
                   </label>
                 </td>
               )}
@@ -191,7 +206,7 @@ export default function LineupGrid({
                           <input
                             type="checkbox"
                             checked={cellLocked}
-                            disabled={lockedLineup || rowLocked}
+                            disabled={lockedLineup || rowLocked || inningLocked}
                             onChange={() => onCellLockToggle(id, inning)}
                           />
                           Lock
