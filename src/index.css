@@ -65,6 +65,7 @@ th {
   background: #e6fffb;
 }
 
+/* Layout */
 .app-shell {
   display: grid;
   grid-template-columns: 260px 1fr;
@@ -75,26 +76,6 @@ th {
   background: #0b3c49;
   color: white;
   padding: 20px;
-}
-
-.sidebar h1 {
-  margin-top: 0;
-  font-size: 24px;
-}
-
-.nav-stack {
-  display: grid;
-  gap: 10px;
-}
-
-.nav-button {
-  width: 100%;
-  text-align: left;
-  background: #14556a;
-}
-
-.nav-button.active {
-  background: #0f766e;
 }
 
 .main-content {
@@ -108,42 +89,11 @@ th {
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
 }
 
-.stack {
-  display: grid;
-  gap: 16px;
-}
-
-.grid {
-  display: grid;
-  gap: 16px;
-}
-
-.two-col {
-  grid-template-columns: 1fr 1fr;
-}
-
-.four-col {
-  grid-template-columns: repeat(4, 1fr);
-}
-
-.checkbox-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(120px, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-}
-
-.checkbox-item input {
-  margin: 0;
-  width: auto;
-}
+/* Utilities */
+.stack { display: grid; gap: 16px; }
+.grid { display: grid; gap: 16px; }
+.two-col { grid-template-columns: 1fr 1fr; }
+.four-col { grid-template-columns: repeat(4, 1fr); }
 
 .button-row {
   display: flex;
@@ -155,405 +105,96 @@ th {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
 }
 
-.align-end {
-  display: flex;
-  align-items: flex-end;
-}
-
-.print-card h2,
-.print-card h3 {
-  margin-top: 0;
-}
-
+/* Responsive */
 @media (max-width: 1000px) {
   .app-shell {
     grid-template-columns: 1fr;
   }
 
   .two-col,
-  .four-col,
-  .checkbox-grid {
+  .four-col {
     grid-template-columns: 1fr;
   }
 }
 
-@media print {
-  .no-print,
-  .sidebar {
-    display: none !important;
-  }
-
-  .app-shell {
-    display: block;
-  }
-
-  .main-content {
-    padding: 0;
-  }
-
-  .card {
-    box-shadow: none;
-    border-radius: 0;
-    padding: 0;
-  }
-
-  body {
-    background: white;
-  }
-
-  button {
-    display: none;
-  }
-
-  input,
-  select {
-    border: none;
-    padding: 0;
-    appearance: none;
-    background: transparent;
-  }
-}
-
-.mini-diamond-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-width: 92px;
-}
-
-.mini-diamond {
-  position: relative;
-  width: 72px;
-  height: 72px;
-  margin: 0 auto;
-}
-
-.diamond-label {
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
-  background: white;
-  font-size: 9px;
-  line-height: 20px;
-  text-align: center;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.diamond-spot.filled {
-  background: #dcfce7;
-  border-color: #16a34a;
-}
-
-.diamond-spot.duplicate {
-  background: #fee2e2;
-  border-color: #dc2626;
-}
-
-.diamond-label.cf {
-  top: 0;
-  left: 25px;
-}
-
-.diamond-label.lf {
-  top: 12px;
-  left: 2px;
-}
-
-.diamond-label.rf {
-  top: 12px;
-  right: 2px;
-}
-
-.diamond-label.second {
-  top: 18px;
-  left: 25px;
-}
-
-.diamond-label.ss {
-  top: 30px;
-  left: 10px;
-}
-
-.diamond-label.third {
-  top: 42px;
-  left: 2px;
-}
-
-.diamond-label.first {
-  top: 42px;
-  right: 2px;
-}
-
-.diamond-label.p {
-  top: 40px;
-  left: 25px;
-}
-
-.diamond-label.c {
-  bottom: 0;
-  left: 25px;
-}
-
-.inning-number {
-  font-size: 12px;
-  font-weight: 700;
-}
-
-
-@media print {
-  @page {
-    size: landscape;
-    margin: 0.35in;
-  }
-
-  .no-print,
-  .sidebar,
-  .print-hide {
-    display: none !important;
-  }
-
-  .print-only {
-    display: block !important;
-  }
-
-  body,
-  .app-shell,
-  .main-content {
-    background: white !important;
-  }
-
-  .app-shell {
-    display: block !important;
-    min-height: auto !important;
-  }
-
-  .main-content {
-    padding: 0 !important;
-  }
-
-  .card {
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  table {
-    width: 100% !important;
-    font-size: 11px !important;
-  }
-
-  th,
-  td {
-    padding: 4px 6px !important;
-  }
-
-  select,
-  input {
-    border: none !important;
-    background: transparent !important;
-    padding: 0 !important;
-    appearance: none !important;
-    font-size: 11px !important;
-  }
-}
-
-.print-only {
-  display: none;
-}
-
-
-.small-note {
-  font-size: 13px;
-  color: #475569;
-  margin-top: 8px;
-}
-
-.compact-grid {
-  align-items: end;
-}
-
-.input-center {
-  text-align: center;
-}
-
-.center-cell {
-  text-align: center;
-}
-
-.narrow-cell {
-  min-width: 70px;
-}
-
-.wide-text-cell {
-  min-width: 220px;
-}
-
-.wide-text-cell input {
-  min-width: 220px;
-}
-
-.table-center th,
-.table-center td {
-  text-align: center;
-  vertical-align: middle;
-}
-
-.grouped-table th.group-col,
-.grouped-table td.group-col {
-  border-right: 2px solid #94a3b8;
-}
-
-.print-only {
-  display: none;
-}
-
-.wrap-row {
-  flex-wrap: wrap;
-}
-
-@media (max-width: 900px) {
-  .compact-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .wide-text-cell,
-  .wide-text-cell input {
-    min-width: 140px;
-  }
-}
-
-@media print {
-  .no-print,
-  .sidebar,
-  .small-note,
-  button,
-  input,
-  select {
-    display: none !important;
-  }
-
-  .print-only {
-    display: block !important;
-  }
-
-  .print-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 12px;
-  }
-
-  .print-table-compact {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-    font-size: 10px;
-  }
-
-  .print-table-compact th,
-  .print-table-compact td {
-    border: 1px solid #000;
-    padding: 4px;
-    text-align: center;
-    word-wrap: break-word;
-  }
-
-  @page {
-    size: landscape;
-    margin: 0.4in;
-  }
-}
-
-/* ===== COACH SUMMARY PRINT ONLY ===== */
+/* ========================= */
+/* PRINT (CLEAN + FIXED) */
+/* ========================= */
 
 .print-only {
   display: none;
 }
 
 @media print {
+
   @page {
     size: landscape;
-    margin: 0.35in;
+    margin: 0.3in;
   }
 
-  .print-only table {
-  width: 100% !important;
-  table-layout: auto !important;   /* 🔴 change from fixed → auto */
-  font-size: 9px !important;       /* shrink slightly */
-}
-
-.print-only th,
-.print-only td {
-  white-space: nowrap !important;  /* keep cells tight */
-  padding: 3px !important;         /* tighter spacing */
-}
-
-  .print-only {
-  overflow: visible !important;
-}
-
-.print-only table {
-  transform: scale(0.95);         /* slight shrink to fit */
-  transform-origin: top left;
-}
-
-  .lineup-print-table {
-  table-layout: fixed !important;
-}
-
-.lineup-print-table th,
-.lineup-print-table td {
-  font-size: 9px !important;
-  word-break: break-word !important;
-}
-  
+  /* Hide everything */
   body * {
-    visibility: hidden !important;
+    display: none !important;
   }
 
+  /* Show only print content */
   .print-only,
   .print-only * {
+    display: revert !important;
     visibility: visible !important;
   }
 
   .print-only {
     display: block !important;
-    position: absolute !important;
-    left: 0;
-    top: 0;
+    position: static !important;
     width: 100%;
-    background: white !important;
+    background: white;
   }
 
+  /* Titles */
+  .print-only h1 {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .print-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 8px 0;
+    page-break-after: avoid;
+  }
+
+  /* Tables */
   .print-only table {
-    width: 100% !important;
-    border-collapse: collapse !important;
+    width: 100%;
+    border-collapse: collapse;
     table-layout: fixed;
-    font-size: 10px !important;
+    font-size: 8px;
+    page-break-inside: avoid;
   }
 
   .print-only th,
   .print-only td {
-    border: 1px solid #000 !important;
-    padding: 4px !important;
-    text-align: center !important;
+    border: 1px solid #000;
+    padding: 2px 3px;
+    text-align: center;
+    line-height: 1.1;
+    word-break: break-word;
   }
 
-  .print-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 12px;
+  /* Prevent splitting */
+  .print-only tr {
+    page-break-inside: avoid;
   }
 
-  .print-page-break {
+  /* Each game = new page */
+  .print-game {
     page-break-before: always;
-    break-before: page;
+  }
+
+  .print-game:first-of-type {
+    page-break-before: avoid;
   }
 }
