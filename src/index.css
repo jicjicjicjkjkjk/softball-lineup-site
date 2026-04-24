@@ -483,6 +483,37 @@ th {
     margin: 0.35in;
   }
 
+  .print-only table {
+  width: 100% !important;
+  table-layout: auto !important;   /* 🔴 change from fixed → auto */
+  font-size: 9px !important;       /* shrink slightly */
+}
+
+.print-only th,
+.print-only td {
+  white-space: nowrap !important;  /* keep cells tight */
+  padding: 3px !important;         /* tighter spacing */
+}
+
+  .print-only {
+  overflow: visible !important;
+}
+
+.print-only table {
+  transform: scale(0.95);         /* slight shrink to fit */
+  transform-origin: top left;
+}
+
+  .lineup-print-table {
+  table-layout: fixed !important;
+}
+
+.lineup-print-table th,
+.lineup-print-table td {
+  font-size: 9px !important;
+  word-break: break-word !important;
+}
+  
   body * {
     visibility: hidden !important;
   }
