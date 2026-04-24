@@ -2268,8 +2268,6 @@ lineup.lockedInnings = nextLockedInnings
             LineupGrid={LineupGrid}
             togglePreviewBattingLock={togglePreviewBattingLock}
             toggleSavedBattingLock={toggleSavedBattingLock}
-            onBattingLockToggle={(playerId) => togglePreviewBattingLock(gameId, playerId)}
-            onBattingLockToggle={(playerId) => toggleSavedBattingLock(gameId, playerId)}
             updateSavedCell={updateSavedCell}
             updateSavedBatting={updateSavedBatting}
             toggleSavedCellLock={toggleSavedCellLock}
@@ -2330,8 +2328,6 @@ lineup.lockedInnings = nextLockedInnings
     LineupGrid={LineupGrid}
     togglePreviewBattingLock={togglePreviewBattingLock}
     toggleSavedBattingLock={toggleSavedBattingLock}
-    onBattingLockToggle={(playerId) => toggleSavedBattingLock(gameId, playerId)}
-    onBattingLockToggle={(playerId) => togglePreviewBattingLock(gameId, playerId)}
     fitByPlayer={fitByPlayer}
     updatePreviewCell={updatePreviewCell}
     updatePreviewBatting={updatePreviewBatting}
