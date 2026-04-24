@@ -17,6 +17,10 @@ function clone(obj) {
   return JSON.parse(JSON.stringify(obj))
 }
 
+function battingLocked(lineup, playerId) {
+  return lineup?.lockedBattingOrder?.[playerId] === true
+}
+
 export function blankLineup(playerIds, innings = 6, availablePlayerIds = playerIds) {
   const cells = {}
   const battingOrder = {}
@@ -80,7 +84,7 @@ export function normalizeLineup(lineup, playersOrIds, inningsFallback = 6, avail
     if (!out.lockedCells[key]) out.lockedCells[key] = {}
     if (out.battingOrder[key] === undefined) out.battingOrder[key] = ''
     if (out.lockedBattingOrder[key] === undefined) out.lockedBattingOrder[key] = false
-    if (out.lockedRows[key] === undefined) out.lockedRows[key] = false
+      if (out.lockedRows[key] === undefined) out.lockedRows[key] = false
 
     for (let inning = 1; inning <= out.innings; inning += 1) {
       if (out.cells[key][inning] === undefined) out.cells[key][inning] = ''
@@ -90,6 +94,14 @@ export function normalizeLineup(lineup, playersOrIds, inningsFallback = 6, avail
   })
 
   return out
+}
+
+export function setAllBattingLocks(lineup, value) {
+  const next = clone(lineup)
+  Object.keys(next.battingOrder || {}).forEach((id) => {
+    next.lockedBattingOrder[id] = value
+  })
+  return next
 }
 
 export function rowSummary(lineup, playerId) {
