@@ -1090,11 +1090,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
 
                   {Array.from({ length: lineup.innings }, (_, i) => {
                     const inning = i + 1
-                    return (
-                      <td key={inning}>
-                        {lineup.cells?.[id]?.[inning] || ''}
-                      </td>
-                    )
+                    return <td key={inning}>{lineup.cells?.[id]?.[inning] || ''}</td>
                   })}
                 </tr>
               )
@@ -1105,3 +1101,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
     )
   })}
 </div>
+      </div>
+    </div>
+  )
+}
