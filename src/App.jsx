@@ -148,30 +148,6 @@ function getImportableGamesForGame(currentGameId) {
     .filter((game) => lineupsByGame[pk(game.id)])
     .sort((a, b) => compareGamesAsc(b, a, pk))
 }
-
-function toggleSavedBattingLock(gameId, playerId) {
-  updateSavedLineup(gameId, (lineup) => {
-    if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
-    lineup.lockedBattingOrder[pk(playerId)] =
-      !lineup.lockedBattingOrder[pk(playerId)]
-
-    autoSave(gameId, lineup)
-    return lineup
-  })
-}
-
-  function toggleSavedAllBattingLock(gameId) {
-  updateSavedLineup(gameId, (lineup) => {
-    const allLocked = Object.values(lineup.lockedBattingOrder || {}).every(Boolean)
-
-    Object.keys(lineup.battingOrder || {}).forEach((id) => {
-      lineup.lockedBattingOrder[id] = !allLocked
-    })
-
-    autoSave(gameId, lineup)
-    return lineup
-  })
-}
   
 function importLineupToPreview(targetGameId, sourceGameId) {
   if (!targetGameId || !sourceGameId) return
