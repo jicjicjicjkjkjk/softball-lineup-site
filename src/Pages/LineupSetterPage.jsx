@@ -414,6 +414,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         <div className="table-scroll">
           <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
+            <button onClick={() => window.print()}>Print Coach Summary</button>
           </div>
 
           <table className="table-center" style={{ tableLayout: 'fixed' }}>
@@ -1038,6 +1039,86 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             </tbody>
           </table>
         </div>
+            </div>
+
+      <div className="print-only">
+        <h1>Coach Summary</h1>
+
+        <h2>Current Plan</h2>
+        <TrackingTable
+          title="Current Plan"
+          totals={currentPlanTotalsWithRunning}
+          sitOutRows={ytdAfterSitOutRows}
+          players={activePlayers}
+          sortConfig={trackingSort}
+          setSortConfig={setTrackingSort}
+          sitOutTargets={optimizerPlanSitOutTargets}
+          showSitOutTargets={true}
+          fitByPlayer={fitByPlayer}
+          enableFitColors={true}
+          planSitOutSummary={{
+            totalNeeded,
+            totalAssigned,
+          }}
+        />
+
+        {orderedPlanGames.map((game) => {
+          const lineup =
+            optimizerPreviewByGame[pk(game.id)] ||
+            lineupsByGame[pk(game.id)]
+
+          if (!lineup) return null
+
+          const playersInGame = activePlayers.filter((player) =>
+            (lineup.availablePlayerIds || []).includes(pk(player.id))
+          )
+
+          const sortedPlayers = [...playersInGame].sort((a, b) => {
+            const aOrder = Number(lineup.battingOrder?.[pk(a.id)] || 999)
+            const bOrder = Number(lineup.battingOrder?.[pk(b.id)] || 999)
+            return aOrder - bOrder
+          })
+
+          return (
+            <div key={game.id} style={{ pageBreakBefore: 'always' }}>
+              <div className="print-title">
+                {formatDateShort(game.date) || 'No Date'} vs {game.opponent || 'Opponent'}
+              </div>
+
+              <table className="print-table-compact lineup-print-table">
+                <thead>
+                  <tr>
+                    <th>Batting</th>
+                    <th>Player</th>
+                    <th>#</th>
+                    {Array.from({ length: Number(lineup.innings || 0) }, (_, i) => (
+                      <th key={i + 1}>{i + 1}</th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {sortedPlayers.map((player) => {
+                    const id = pk(player.id)
+
+                    return (
+                      <tr key={id}>
+                        <td>{lineup.battingOrder?.[id] || ''}</td>
+                        <td>{player.name}</td>
+                        <td>{player.jersey_number || ''}</td>
+
+                        {Array.from({ length: Number(lineup.innings || 0) }, (_, i) => {
+                          const inning = i + 1
+                          return <td key={inning}>{lineup.cells?.[id]?.[inning] || ''}</td>
+                        })}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
