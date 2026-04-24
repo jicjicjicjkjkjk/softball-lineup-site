@@ -304,10 +304,10 @@ export default function GameDetailPage({
                   toggleSavedInningLock(selectedGame.id, inning)
                 }
                 onBattingLockToggle={(playerId) =>
-                  toggleSavedBattingLock?.(selectedGame.id, playerId)
+                  toggleSavedBattingLock(selectedGame.id, playerId)
                 }
                 onAllBattingLockToggle={() =>
-                  toggleSavedAllBattingLock?.(selectedGame.id)
+                  toggleSavedAllBattingLock(selectedGame.id)
                 }
               />
             </div>
