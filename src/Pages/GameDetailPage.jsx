@@ -25,6 +25,8 @@ function compareGamesDescLocal(a, b, pk) {
 }
 
 function getPrintRows(players, lineup, pk) {
+  if (!lineup) return []
+
   const availableIds = new Set((lineup?.availablePlayerIds || []).map(pk))
 
   return [...(players || [])]
@@ -46,10 +48,7 @@ function getPrintRows(players, lineup, pk) {
       const aHasOrder = aOrder !== null && !Number.isNaN(aOrder) && aOrder > 0
       const bHasOrder = bOrder !== null && !Number.isNaN(bOrder) && bOrder > 0
 
-      if (aHasOrder && bHasOrder && aOrder !== bOrder) {
-        return aOrder - bOrder
-      }
-
+      if (aHasOrder && bHasOrder && aOrder !== bOrder) return aOrder - bOrder
       if (aHasOrder && !bHasOrder) return -1
       if (!aHasOrder && bHasOrder) return 1
 
@@ -83,6 +82,8 @@ export default function GameDetailPage({
   toggleSavedCellLock,
   toggleSavedRowLock,
   toggleSavedInningLock,
+  toggleSavedBattingLock,
+  toggleSavedAllBattingLock,
   updateGameField,
   seasonOptions = [],
   gameTypeOptions = [],
@@ -256,30 +257,28 @@ export default function GameDetailPage({
           ))}
         </div>
 
-        <div style={{ height: 16 }} />
-
-
         {!!selectedLineup && (
           <>
             <div style={{ height: 20 }} />
 
             <div className="row-between wrap-row inning-toolbar">
-  <h3 style={{ margin: 0 }}>Grid</h3>
+              <h3 style={{ margin: 0 }}>Grid</h3>
 
-  <div className="button-row">
-    <button onClick={() => addSavedInning(selectedGame.id)} disabled={selectedLocked}>
-      Add Inning
-    </button>
+              <div className="button-row">
+                <button onClick={() => addSavedInning(selectedGame.id)} disabled={selectedLocked}>
+                  Add Inning
+                </button>
 
-    <button onClick={() => toggleLineupLocked(selectedGame.id, !selectedLocked)}>
-      {selectedLocked ? 'Unlock Lineup' : 'Lock Lineup'}
-    </button>
+                <button onClick={() => toggleLineupLocked(selectedGame.id, !selectedLocked)}>
+                  {selectedLocked ? 'Unlock Lineup' : 'Lock Lineup'}
+                </button>
 
-    <button onClick={() => clearSavedLineup(selectedGame.id)} disabled={selectedLocked}>
-      Clear Lineup
-    </button>
-  </div>
-</div>
+                <button onClick={() => clearSavedLineup(selectedGame.id)} disabled={selectedLocked}>
+                  Clear Lineup
+                </button>
+              </div>
+            </div>
+
             <div className="table-scroll no-print" style={{ marginTop: 12 }}>
               <LineupGrid
                 players={activePlayers}
@@ -303,6 +302,12 @@ export default function GameDetailPage({
                 }
                 onInningLockToggle={(inning) =>
                   toggleSavedInningLock(selectedGame.id, inning)
+                }
+                onBattingLockToggle={(playerId) =>
+                  toggleSavedBattingLock?.(selectedGame.id, playerId)
+                }
+                onAllBattingLockToggle={() =>
+                  toggleSavedAllBattingLock?.(selectedGame.id)
                 }
               />
             </div>
