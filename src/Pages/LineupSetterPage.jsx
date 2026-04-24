@@ -646,58 +646,21 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
      <TrackingTable
   title="Current Plan"
   totals={currentPlanTotalsWithRunning}
+  sitOutRows={ytdAfterSitOutRows}
   players={activePlayers}
   sortConfig={trackingSort}
   setSortConfig={setTrackingSort}
   sitOutTargets={optimizerPlanSitOutTargets}
   showSitOutTargets={true}
-  hideSitOutRunningTotal={true}
+  editableSitOutTargets={true}
+  setSitOutTargets={setOptimizerPlanSitOutTargets}
+  fitByPlayer={fitByPlayer}
+  planSitOutSummary={{
+    totalNeeded,
+    totalAssigned,
+  }}
+  runningTotalLabel="Filtered Games + Current Plan Sit Out Running Total"
 />
-
-{/* === PLAN SIT-OUT TARGET OVERRIDE === */}
-<div className="card" style={{ marginTop: 12 }}>
-  <h4 style={{ marginTop: 0 }}>Target Sit Outs (Plan Override)</h4>
-
-  <div style={{ marginBottom: 8 }}>
-    <strong>Total Sit-Outs Needed:</strong> {totalNeeded} <br />
-    <strong>Total Assigned:</strong> {totalAssigned} <br />
-    <strong>Remaining:</strong> {totalNeeded - totalAssigned}
-  </div>
-
-  <table className="table-center" style={{ maxWidth: 500 }}>
-    <thead>
-      <tr>
-        <th style={{ textAlign: 'left' }}>Player</th>
-        <th style={{ textAlign: 'center' }}>Target Outs</th>
-      </tr>
-    </thead>
-    <tbody>
-      {activePlayers.map((p) => {
-        const playerId = pk(p.id)
-        return (
-          <tr key={playerId}>
-            <td style={{ textAlign: 'left' }}>{p.name}</td>
-            <td style={{ textAlign: 'center' }}>
-              <input
-                type="number"
-                min="0"
-                value={optimizerPlanSitOutTargets[playerId] ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value
-                  setOptimizerPlanSitOutTargets((prev) => ({
-                    ...prev,
-                    [playerId]: val === '' ? '' : Number(val),
-                  }))
-                }}
-                style={{ width: 60, textAlign: 'center' }}
-              />
-            </td>
-          </tr>
-        )
-      })}
-    </tbody>
-  </table>
-</div>      
 
 
       <TrackingTable
