@@ -1762,6 +1762,15 @@ function togglePreviewBattingLock(gameId, playerId) {
     return lineup
   })
 }
+
+function toggleSavedBattingLock(gameId, playerId) {
+  updateSavedLineup(gameId, (lineup) => {
+    if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
+    lineup.lockedBattingOrder[pk(playerId)] = !lineup.lockedBattingOrder[pk(playerId)]
+    autoSave(gameId, lineup)
+    return lineup
+  })
+}
   
   function updatePreviewCell(gameId, playerId, inning, value) {
     updatePreview(gameId, (lineup) => {
@@ -2266,7 +2275,6 @@ lineup.lockedInnings = nextLockedInnings
             toggleSavedAvailable={toggleSavedAvailable}
             fitByPlayer={fitByPlayer}
             LineupGrid={LineupGrid}
-            togglePreviewBattingLock={togglePreviewBattingLock}
             toggleSavedBattingLock={toggleSavedBattingLock}
             updateSavedCell={updateSavedCell}
             updateSavedBatting={updateSavedBatting}
@@ -2327,7 +2335,6 @@ lineup.lockedInnings = nextLockedInnings
     togglePreviewAvailable={togglePreviewAvailable}
     LineupGrid={LineupGrid}
     togglePreviewBattingLock={togglePreviewBattingLock}
-    toggleSavedBattingLock={toggleSavedBattingLock}
     fitByPlayer={fitByPlayer}
     updatePreviewCell={updatePreviewCell}
     updatePreviewBatting={updatePreviewBatting}
