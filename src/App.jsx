@@ -1911,6 +1911,35 @@ lineup.lockedInnings = nextLockedInnings
     })
   }
 
+function toggleSavedBattingLock(gameId, playerId) {
+  updateSavedLineup(gameId, (lineup) => {
+    if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
+
+    const id = pk(playerId)
+    lineup.lockedBattingOrder[id] = !(lineup.lockedBattingOrder[id] === true)
+
+    autoSave(gameId, lineup)
+    return lineup
+  })
+}
+
+function toggleSavedAllBattingLock(gameId) {
+  updateSavedLineup(gameId, (lineup) => {
+    if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
+
+    const ids = Object.keys(lineup.battingOrder || {})
+    const allLocked =
+      ids.length > 0 && ids.every((id) => lineup.lockedBattingOrder[id] === true)
+
+    ids.forEach((id) => {
+      lineup.lockedBattingOrder[id] = !allLocked
+    })
+
+    autoSave(gameId, lineup)
+    return lineup
+  })
+}
+  
   function addSavedInning(gameId) {
   updateSavedLineup(gameId, (lineup) => {
     const newInning = lineup.innings + 1
