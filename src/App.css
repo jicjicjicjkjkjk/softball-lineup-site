@@ -5,8 +5,8 @@
   --text: #1f2f46;
   --muted: #5f6f84;
   --sidebar: #163847;
-  --sidebar-text: #ffffff;
   --sidebar-active: #3c817d;
+  --sidebar-text: #ffffff;
   --accent: #3c817d;
   --accent-dark: #2f6763;
   --header-bg: #dff0ef;
@@ -676,4 +676,43 @@ th {
     left: auto !important;
     top: auto !important;
   }
+}
+
+
+.lineup-print-table th,
+.lineup-print-table td {
+  padding: 4px 5px;
+  font-size: 12px;
+}
+
+.lineup-print-table select {
+  min-width: 72px;
+  height: 30px;
+  min-height: 30px;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.lineup-print-table input[type='number'] {
+  width: 54px;
+  min-width: 54px;
+  height: 30px;
+  min-height: 30px;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.inning-header {
+  min-width: 56px;
+  gap: 2px;
+}
+
+.mini-diamond-wrap {
+  width: 12px;
+  height: 12px;
+}
+
+.mini-diamond-dot {
+  width: 10px;
+  height: 10px;
 }
