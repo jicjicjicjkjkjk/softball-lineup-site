@@ -1042,93 +1042,68 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             </div>
 
       <div className="print-only">
-        <h1>Coach Summary</h1>
+  {orderedPlanGames.map((game) => {
+    const lineup =
+      optimizerPreviewByGame[pk(game.id)] ||
+      lineupsByGame[pk(game.id)]
 
-        <h2>Current Plan</h2>
+    if (!lineup) return null
 
-<table className="print-current-plan-table">
-  <thead>
-    <tr>
-      <th>Player</th>
-      <th>Target Outs</th>
-      <th>Plan Outs</th>
-    </tr>
-  </thead>
-  <tbody>
-    {activePlayers.map((player) => {
-      const id = pk(player.id)
-      const target = optimizerPlanSitOutTargets?.[id] ?? ''
-      const planOuts = currentPlanLineupsOrdered.reduce(
-        (sum, lineup) => sum + countPlayerOuts(lineup, id),
-        0
-      )
+    const playersInGame = activePlayers.filter((player) =>
+      (lineup.availablePlayerIds || []).map(pk).includes(pk(player.id))
+    )
 
-      return (
-        <tr key={id}>
-          <td>{player.name}</td>
-          <td>{target}</td>
-          <td>{planOuts}</td>
-        </tr>
-      )
-    })}
-  </tbody>
-</table>
+    const sortedPlayers = [...playersInGame].sort((a, b) => {
+      const aOrder = Number(lineup.battingOrder?.[pk(a.id)] || 999)
+      const bOrder = Number(lineup.battingOrder?.[pk(b.id)] || 999)
+      return aOrder - bOrder
+    })
 
-        {orderedPlanGames.map((game) => {
-          const lineup =
-            optimizerPreviewByGame[pk(game.id)] ||
-            lineupsByGame[pk(game.id)]
+    return (
+      <div key={game.id} className="print-game">
+        <div className="print-title">
+          {formatDateShort(game.date) || 'No Date'} vs {game.opponent || 'Opponent'}
+        </div>
 
-          if (!lineup) return null
+        <table className="coach-lineup-table">
+          <thead>
+            <tr>
+              <th>Bat</th>
+              <th>Player</th>
+              <th>#</th>
+              {Array.from({ length: Number(lineup.innings || 0) }, (_, i) => (
+                <th key={i + 1}>{i + 1}</th>
+              ))}
+            </tr>
+          </thead>
 
-          const playersInGame = activePlayers.filter((player) =>
-            (lineup.availablePlayerIds || []).includes(pk(player.id))
-          )
+          <tbody>
+            {sortedPlayers.map((player) => {
+              const id = pk(player.id)
 
-          const sortedPlayers = [...playersInGame].sort((a, b) => {
-            const aOrder = Number(lineup.battingOrder?.[pk(a.id)] || 999)
-            const bOrder = Number(lineup.battingOrder?.[pk(b.id)] || 999)
-            return aOrder - bOrder
-          })
+              return (
+                <tr key={id}>
+                  <td>{lineup.battingOrder?.[id] || ''}</td>
+                  <td>{player.name}</td>
+                  <td>{player.jersey_number || ''}</td>
 
-          return (
-              <div key={game.id} className="print-game">
-              <div className="print-title">
-                {formatDateShort(game.date) || 'No Date'} vs {game.opponent || 'Opponent'}
-              </div>
-
-              <table className="print-table-compact lineup-print-table">
-                <thead>
-                  <tr>
-                    <th>Batting</th>
-                    <th>Player</th>
-                    <th>#</th>
-                    {Array.from({ length: Number(lineup.innings || 0) }, (_, i) => (
-                      <th key={i + 1}>{i + 1}</th>
-                    ))}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {sortedPlayers.map((player) => {
-                    const id = pk(player.id)
-
+                  {Array.from({ length: Number(lineup.innings || 0) }, (_, i) => {
+                    const inning = i + 1
                     return (
-                      <tr key={id}>
-                        <td>{lineup.battingOrder?.[id] || ''}</td>
-                        <td>{player.name}</td>
-                        <td>{player.jersey_number || ''}</td>
-
-                        {Array.from({ length: Number(lineup.innings || 0) }, (_, i) => {
-                          const inning = i + 1
-                          return <td key={inning}>{lineup.cells?.[id]?.[inning] || ''}</td>
-                        })}
-                      </tr>
+                      <td key={inning}>
+                        {lineup.cells?.[id]?.[inning] || ''}
+                      </td>
                     )
                   })}
-                </tbody>
-              </table>
-            </div>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    )
+  })}
+</div>
           )
         })}
       </div>
