@@ -118,7 +118,7 @@ export default function GameDetailPage({
 
   return (
     <div className="stack">
-      <div className="card no-print">
+      <div className={`card no-print ${printMode === 'gameDetail' ? 'hide-on-print' : ''}`}>
         <div className="row-between wrap-row">
           <div>
             <h2 style={{ marginBottom: 8 }}>Game Detail</h2>
@@ -320,7 +320,7 @@ export default function GameDetailPage({
       </div>
 
       {!!selectedLineup && (
-        <div className={`card print-only ${printMode === 'gameDetail' ? 'active-print' : ''}`}>
+        <div className={`card ${printMode === 'gameDetail' ? 'active-print' : ''}`}>
           <div className="print-title">
             {formatDateShort(selectedGame.date) || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
           </div>
