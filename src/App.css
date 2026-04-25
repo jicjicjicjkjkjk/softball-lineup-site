@@ -583,6 +583,9 @@ th {
    ========================= */
 
 @media print {
+.hide-on-print {
+  display: none !important;
+}
   @page {
     size: landscape;
     margin: 0.25in;
