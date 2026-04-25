@@ -1960,45 +1960,40 @@ function toggleSavedAllBattingLock(gameId) {
 }
 
   function removeSavedInning(gameId, inningToRemove) {
-  const confirmed = window.confirm(`Remove inning ${inningToRemove}?`)
-  if (!confirmed) return
+  setLineups((prev) => {
+    const next = { ...prev }
+    const lineup = { ...next[gameId] }
 
-  updateSavedLineup(gameId, (lineup) => {
-    if (lineup.innings <= 1) return lineup
+    // 1. reduce inning count
+    lineup.innings = Math.max(0, (lineup.innings || 0) - 1)
 
-    Object.keys(lineup.cells).forEach((id) => {
-      const newCells = {}
-      const newLocks = {}
-      let idx = 1
+    // 2. rebuild cells WITHOUT that inning
+    const newCells = {}
 
-      for (let inning = 1; inning <= lineup.innings; inning += 1) {
-        if (inning === inningToRemove) continue
-        newCells[idx] = lineup.cells[id][inning] || ''
-        newLocks[idx] = lineup.lockedCells[id][inning] || false
-        idx += 1
-      }
+    Object.entries(lineup.cells || {}).forEach(([playerId, innings]) => {
+      const updated = {}
 
-      lineup.cells[id] = newCells
-      lineup.lockedCells[id] = newLocks
+      Object.entries(innings || {}).forEach(([inning, value]) => {
+        const num = Number(inning)
+
+        if (num < inningToRemove) {
+          updated[num] = value
+        } else if (num > inningToRemove) {
+          // shift everything down
+          updated[num - 1] = value
+        }
+      })
+
+      newCells[playerId] = updated
     })
 
-    const newLockedInnings = {}
-    let idx = 1
+    lineup.cells = newCells
 
-    for (let inning = 1; inning <= lineup.innings; inning += 1) {
-      if (inning === inningToRemove) continue
-      newLockedInnings[idx] = lineup.lockedInnings?.[inning] === true
-      idx += 1
-    }
-
-    lineup.lockedInnings = newLockedInnings
-    lineup.innings -= 1
-
-    autoSave(gameId, lineup)
-    return lineup
+    next[gameId] = lineup
+    return next
   })
 }
-
+  
   async function saveSavedLineup() {
     return
   }
