@@ -186,6 +186,8 @@ export default function LineupSetterPage({
   trackingPriorityRows = [],
   trackingPriorityByPositionRows = [],
 }) {
+  const [printMode, setPrintMode] = useState(null)
+  
   const focusStatuses = optimizerFocusLineup
     ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
         inning,
@@ -414,7 +416,14 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         <div className="table-scroll">
           <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
-            <button onClick={() => window.print()}>Print Coach Summary</button>
+            <button
+  onClick={() => {
+    setPrintMode('lineupSetter')
+    setTimeout(() => window.print(), 100)
+  }}
+>
+  Print Coach Summary
+</button>
           </div>
 
           <table className="table-center" style={{ tableLayout: 'fixed' }}>
@@ -1041,7 +1050,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         </div>
             </div>
 
-            <div className="print-only">
+            <div className={`print-only ${printMode === 'lineupSetter' ? 'active-print' : ''}`}>
         {orderedPlanGames.map((game) => {
           const lineup =
             optimizerPreviewByGame[pk(game.id)] ||
