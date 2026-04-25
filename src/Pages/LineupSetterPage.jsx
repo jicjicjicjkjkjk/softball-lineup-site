@@ -1041,79 +1041,66 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         </div>
             </div>
 
-      
-      <div className="print-only">
-  {orderedPlanGames.map((game) => {
-    const lineup =
-      optimizerPreviewByGame[pk(game.id)] ||
-      lineupsByGame[pk(game.id)]
+            <div className="print-only">
+        {orderedPlanGames.map((game) => {
+          const lineup =
+            optimizerPreviewByGame[pk(game.id)] ||
+            lineupsByGame[pk(game.id)]
 
-    if (!lineup) {
-      return null
-    }
+          if (!lineup) return null
 
-    const playersInGame = activePlayers.filter((player) =>
-      (lineup.availablePlayerIds || []).map(pk).includes(pk(player.id))
-    )
+          const playersInGame = activePlayers.filter((player) =>
+            (lineup.availablePlayerIds || []).map(pk).includes(pk(player.id))
+          )
 
-    const sortedPlayers = playersInGame.sort((a, b) => {
-      const aOrder = Number(lineup.battingOrder?.[pk(a.id)] || 999)
-      const bOrder = Number(lineup.battingOrder?.[pk(b.id)] || 999)
-      return aOrder - bOrder
-    })
+          const sortedPlayers = [...playersInGame].sort((a, b) => {
+            const aOrder = Number(lineup.battingOrder?.[pk(a.id)] || 999)
+            const bOrder = Number(lineup.battingOrder?.[pk(b.id)] || 999)
+            return aOrder - bOrder
+          })
 
-    return (
-      <div key={game.id} className="print-game">
-        <div className="print-title">
-          {formatDateShort(game.date) || 'No Date'} vs {game.opponent || 'Opponent'}
-        </div>
+          return (
+            <div key={game.id} className="print-game">
+              <div className="print-title">
+                {formatDateShort(game.date) || 'No Date'} vs {game.opponent || 'Opponent'}
+              </div>
 
-        <table className="coach-lineup-table">
-          <thead>
-            <tr>
-              <th>Bat</th>
-              <th>Player</th>
-              <th>#</th>
-              {Array.from({ length: Number(lineup.innings || 0) }).map((_, i) => (
-                <th key={i}>{i + 1}</th>
-              ))}
-            </tr>
-          </thead>
+              <table className="coach-lineup-table">
+                <thead>
+                  <tr>
+                    <th>Bat</th>
+                    <th>Player</th>
+                    <th>#</th>
+                    {Array.from({ length: Number(lineup.innings || 0) }).map((_, i) => (
+                      <th key={i}>{i + 1}</th>
+                    ))}
+                  </tr>
+                </thead>
 
-          <tbody>
-            {sortedPlayers.map((player) => {
-              const id = pk(player.id)
+                <tbody>
+                  {sortedPlayers.map((player) => {
+                    const id = pk(player.id)
 
-              return (
-                <tr key={id}>
-                  <td>{lineup.battingOrder?.[id] || ''}</td>
-                  <td>{player.name}</td>
-                  <td>{player.jersey_number || ''}</td>
-
-                  {Array.from({ length: Number(lineup.innings || 0) }).map((_, i) => {
-                    const inning = i + 1
                     return (
-                      <td key={inning}>
-                        {lineup.cells?.[id]?.[inning] || ''}
-                      </td>
+                      <tr key={id}>
+                        <td>{lineup.battingOrder?.[id] || ''}</td>
+                        <td>{player.name}</td>
+                        <td>{player.jersey_number || ''}</td>
+
+                        {Array.from({ length: Number(lineup.innings || 0) }).map((_, i) => {
+                          const inning = i + 1
+                          return <td key={inning}>{lineup.cells?.[id]?.[inning] || ''}</td>
+                        })}
+                      </tr>
                     )
                   })}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-    )
-  })}
-</div>
+                </tbody>
+              </table>
+            </div>
           )
         })}
       </div>
     </div>
   )
 }
-
-
-  
-  
+      
