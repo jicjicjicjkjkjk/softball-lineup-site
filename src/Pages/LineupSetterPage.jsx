@@ -1048,13 +1048,15 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
       optimizerPreviewByGame[pk(game.id)] ||
       lineupsByGame[pk(game.id)]
 
-    if (!lineup) return null
+    if (!lineup) {
+      return null
+    }
 
     const playersInGame = activePlayers.filter((player) =>
       (lineup.availablePlayerIds || []).map(pk).includes(pk(player.id))
     )
 
-    const sortedPlayers = [...playersInGame].sort((a, b) => {
+    const sortedPlayers = playersInGame.sort((a, b) => {
       const aOrder = Number(lineup.battingOrder?.[pk(a.id)] || 999)
       const bOrder = Number(lineup.battingOrder?.[pk(b.id)] || 999)
       return aOrder - bOrder
@@ -1072,8 +1074,8 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
               <th>Bat</th>
               <th>Player</th>
               <th>#</th>
-              {Array.from({ length: Number(lineup.innings || 0) }, (_, i) => (
-                <th key={i + 1}>{i + 1}</th>
+              {Array.from({ length: Number(lineup.innings || 0) }).map((_, i) => (
+                <th key={i}>{i + 1}</th>
               ))}
             </tr>
           </thead>
@@ -1088,7 +1090,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
                   <td>{player.name}</td>
                   <td>{player.jersey_number || ''}</td>
 
-                  {Array.from({ length: Number(lineup.innings || 0) }, (_, i) => {
+                  {Array.from({ length: Number(lineup.innings || 0) }).map((_, i) => {
                     const inning = i + 1
                     return (
                       <td key={inning}>
