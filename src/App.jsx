@@ -1302,29 +1302,6 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     if (res.error) setAppError(res.error.message)
   }
 
-function normalizeLineup(lineup) {
-  const maxInnings = Number(lineup.innings || 0)
-  const cleanedCells = {}
-
-  Object.entries(lineup.cells || {}).forEach(([playerId, innings]) => {
-    const updated = {}
-
-    Object.entries(innings || {}).forEach(([inning, value]) => {
-      const num = Number(inning)
-      if (num <= maxInnings) {
-        updated[num] = value
-      }
-    })
-
-    cleanedCells[playerId] = updated
-  })
-
-  return {
-    ...lineup,
-    cells: cleanedCells,
-  }
-}
-  
   async function deleteGame(gameId) {
     if (lineupLockedByGame[pk(gameId)]) {
       setAppError('Unlock the lineup before deleting the game.')
@@ -1983,37 +1960,71 @@ function toggleSavedAllBattingLock(gameId) {
 }
 
   function removeSavedInning(gameId, inningToRemove) {
-  setLineups((prev) => {
-    const next = { ...prev }
-    let lineup = { ...next[gameId] }
+  const confirmed = window.confirm(`Remove inning ${inningToRemove}?`)
+  if (!confirmed) return
 
-    // 🔴 CLEAN FIRST (this fixes your current bug)
-    lineup = normalizeLineup(lineup)
+  let lineupToSave = null
+
+  setLineupsByGame((prev) => {
+    const existing = prev[pk(gameId)]
+    if (!existing) return prev
+
+    let lineup = normalizeLineup(
+      JSON.parse(JSON.stringify(existing)),
+      players,
+      Number(existing.innings || 0),
+      existing.availablePlayerIds || activePlayerIds()
+    )
+
+    if (Number(lineup.innings || 0) <= 1) return prev
 
     const newCells = {}
+    const newLockedCells = {}
 
     Object.entries(lineup.cells || {}).forEach(([playerId, innings]) => {
-      const updated = {}
+      const updatedCells = {}
+      const updatedLocks = {}
 
-      Object.entries(innings || {}).forEach(([inning, value]) => {
-        const num = Number(inning)
+      for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+        if (inning === inningToRemove) continue
 
-        if (num < inningToRemove) {
-          updated[num] = value
-        } else if (num > inningToRemove) {
-          updated[num - 1] = value
-        }
-      })
+        const newInning = inning > inningToRemove ? inning - 1 : inning
+        updatedCells[newInning] = innings?.[inning] || ''
+        updatedLocks[newInning] = lineup.lockedCells?.[playerId]?.[inning] || false
+      }
 
-      newCells[playerId] = updated
+      newCells[playerId] = updatedCells
+      newLockedCells[playerId] = updatedLocks
     })
 
-    lineup.cells = newCells
-    lineup.innings = Math.max(0, (lineup.innings || 0) - 1)
+    const newLockedInnings = {}
 
-    next[gameId] = lineup
-    return next
+    for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+      if (inning === inningToRemove) continue
+
+      const newInning = inning > inningToRemove ? inning - 1 : inning
+      newLockedInnings[newInning] = lineup.lockedInnings?.[inning] === true
+    }
+
+    lineup = {
+      ...lineup,
+      innings: Number(lineup.innings || 0) - 1,
+      cells: newCells,
+      lockedCells: newLockedCells,
+      lockedInnings: newLockedInnings,
+    }
+
+    lineupToSave = lineup
+
+    return {
+      ...prev,
+      [pk(gameId)]: lineup,
+    }
   })
+
+  if (lineupToSave) {
+    persistLineup(gameId, lineupToSave)
+  }
 }
   
   async function saveSavedLineup() {
