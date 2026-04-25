@@ -1,3 +1,5 @@
+// FILE: src/Pages/GameDetailPage.jsx
+
 import { useState } from 'react'
 import { formatDateShort } from '../lib/appHelpers'
 
@@ -33,27 +35,9 @@ function getPrintRows(players, lineup, pk) {
   return [...(players || [])]
     .filter((player) => availableIds.has(pk(player.id)))
     .sort((a, b) => {
-      const aOrderRaw = lineup?.battingOrder?.[pk(a.id)]
-      const bOrderRaw = lineup?.battingOrder?.[pk(b.id)]
-
-      const aOrder =
-        aOrderRaw === '' || aOrderRaw === null || aOrderRaw === undefined
-          ? null
-          : Number(aOrderRaw)
-
-      const bOrder =
-        bOrderRaw === '' || bOrderRaw === null || bOrderRaw === undefined
-          ? null
-          : Number(bOrderRaw)
-
-      const aHasOrder = aOrder !== null && !Number.isNaN(aOrder) && aOrder > 0
-      const bHasOrder = bOrder !== null && !Number.isNaN(bOrder) && bOrder > 0
-
-      if (aHasOrder && bHasOrder && aOrder !== bOrder) return aOrder - bOrder
-      if (aHasOrder && !bHasOrder) return -1
-      if (!aHasOrder && bHasOrder) return 1
-
-      return String(a.name || '').localeCompare(String(b.name || ''))
+      const aOrder = Number(lineup?.battingOrder?.[pk(a.id)] || 999)
+      const bOrder = Number(lineup?.battingOrder?.[pk(b.id)] || 999)
+      return aOrder - bOrder
     })
 }
 
@@ -118,23 +102,17 @@ export default function GameDetailPage({
 
   return (
     <div className="stack">
-      <div className={`card no-print ${printMode === 'gameDetail' ? 'hide-on-print' : ''}`}>
+      <div className={`card no-print ${printMode ? 'hide-on-print' : ''}`}>
         <div className="row-between wrap-row">
           <div>
-            <h2 style={{ marginBottom: 8 }}>Game Detail</h2>
+            <h2>Game Detail</h2>
             <div className="small-note">
-              {formatDateShort(selectedGame.date) || 'No Date'} vs{' '}
-              {selectedGame.opponent || 'Opponent'}
+              {formatDateShort(selectedGame.date)} vs {selectedGame.opponent}
             </div>
           </div>
 
-          <div className="button-row">
-            <button onClick={() => setPage('games')}>Back to Games</button>
-            <button onClick={handlePrint}>Print</button>
-          </div>
+          <button onClick={() => setPage('games')}>Back</button>
         </div>
-
-        <div style={{ height: 16 }} />
 
         <div className="grid two-col">
           <div>
@@ -142,7 +120,7 @@ export default function GameDetailPage({
             <select value={selectedGameId} onChange={(e) => setSelectedGameId(e.target.value)}>
               {orderedGamesDesc.map((game) => (
                 <option key={game.id} value={String(game.id)}>
-                  {(formatDateShort(game.date) || 'No Date')} vs {game.opponent || 'Opponent'}
+                  {formatDateShort(game.date)} vs {game.opponent}
                 </option>
               ))}
             </select>
@@ -169,186 +147,135 @@ export default function GameDetailPage({
               onChange={(e) => updateGameField(selectedGame.id, 'opponent', e.target.value)}
             />
           </div>
-
-          <div>
-            <label>Game Type</label>
-            <select
-              value={selectedGame.game_type || ''}
-              onChange={(e) => updateGameField(selectedGame.id, 'game_type', e.target.value)}
-            >
-              <option value="">Select type</option>
-              {gameTypeOptions.map((option) => (
-                <option key={renderOptionValue(option)} value={renderOptionValue(option)}>
-                  {renderOptionLabel(option)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label>Season</label>
-            <select
-              value={selectedGame.season || ''}
-              onChange={(e) => updateGameField(selectedGame.id, 'season', e.target.value)}
-            >
-              <option value="">Select season</option>
-              {seasonOptions.map((option) => (
-                <option key={renderOptionValue(option)} value={renderOptionValue(option)}>
-                  {renderOptionLabel(option)}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
-
-        <div style={{ height: 20 }} />
-
-        <div className="card" style={{ padding: 16 }}>
-          <h3 style={{ marginTop: 0 }}>Import Lineup</h3>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr auto',
-              gap: 12,
-              alignItems: 'end',
-            }}
-          >
-            <div>
-              <label>Source Game</label>
-              <select
-                value={gameDetailImportSourceGameId}
-                onChange={(e) => setGameDetailImportSourceGameId(e.target.value)}
-                disabled={selectedLocked}
-              >
-                <option value="">Select game to import</option>
-                {gameDetailImportableGames.map((game) => (
-                  <option key={game.id} value={pk(game.id)}>
-                    {(formatDateShort(game.date) || 'No Date')} vs {game.opponent || 'Opponent'}
-                    {game.game_type ? ` • ${game.game_type}` : ''}
-                    {game.season ? ` • ${game.season}` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <button
-                onClick={() =>
-                  importLineupToSaved(selectedGame.id, gameDetailImportSourceGameId)
-                }
-                disabled={!gameDetailImportSourceGameId || selectedLocked}
-              >
-                Import Lineup
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ height: 20 }} />
 
         <h3>Game Availability</h3>
+
         <div className="checkbox-grid">
-          {activePlayers.map((player) => (
-            <label key={player.id} className="checkbox-item">
-              <input
-                type="checkbox"
-                checked={(selectedLineup?.availablePlayerIds || []).includes(pk(player.id))}
-                onChange={() => toggleSavedAvailable(selectedGame.id, player.id)}
-                disabled={selectedLocked}
-              />
-              {player.name}
-            </label>
-          ))}
+          {activePlayers.map((player) => {
+            const isChecked = (selectedLineup?.availablePlayerIds || []).includes(pk(player.id))
+
+            return (
+              <label key={player.id}>
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => {
+                    const confirmMsg = isChecked
+                      ? `Remove ${player.name}?`
+                      : `Add ${player.name}?`
+
+                    if (window.confirm(confirmMsg)) {
+                      toggleSavedAvailable(selectedGame.id, player.id)
+                    }
+                  }}
+                />
+                {player.name}
+              </label>
+            )
+          })}
         </div>
 
         {!!selectedLineup && (
           <>
-            <div style={{ height: 20 }} />
-
-            <div className="row-between wrap-row inning-toolbar">
-              <h3 style={{ margin: 0 }}>Grid</h3>
+            <div className="row-between">
+              <h3>Grid</h3>
 
               <div className="button-row">
-                <button onClick={() => addSavedInning(selectedGame.id)} disabled={selectedLocked}>
+                <button onClick={handlePrint}>Print</button>
+
+                <button onClick={() => addSavedInning(selectedGame.id)}>
                   Add Inning
                 </button>
 
-                <button onClick={() => toggleLineupLocked(selectedGame.id, !selectedLocked)}>
-                  {selectedLocked ? 'Unlock Lineup' : 'Lock Lineup'}
+                <button
+                  onClick={() =>
+                    toggleLineupLocked(selectedGame.id, !selectedLocked)
+                  }
+                >
+                  {selectedLocked ? 'Unlock' : 'Lock'}
                 </button>
 
-                <button onClick={() => clearSavedLineup(selectedGame.id)} disabled={selectedLocked}>
-                  Clear Lineup
+                <button
+                  onClick={() => {
+                    if (window.confirm('Clear lineup?')) {
+                      clearSavedLineup(selectedGame.id)
+                    }
+                  }}
+                >
+                  Clear
                 </button>
               </div>
             </div>
 
-            <div className="table-scroll no-print" style={{ marginTop: 12 }}>
-              <LineupGrid
-                players={activePlayers}
-                lineup={selectedLineup}
-                fitMap={fitByPlayer}
-                onRemoveInning={(inning) => removeSavedInning(selectedGame.id, inning)}
-                showLocks={true}
-                lockedLineup={selectedLocked}
-                visiblePlayerIds={visibleIds}
-                onCellChange={(playerId, inning, value) =>
-                  updateSavedCell(selectedGame.id, playerId, inning, value)
-                }
-                onBattingChange={(playerId, value) =>
-                  updateSavedBatting(selectedGame.id, playerId, value)
-                }
-                onCellLockToggle={(playerId, inning) =>
-                  toggleSavedCellLock(selectedGame.id, playerId, inning)
-                }
-                onRowLockToggle={(playerId) =>
-                  toggleSavedRowLock(selectedGame.id, playerId)
-                }
-                onInningLockToggle={(inning) =>
-                  toggleSavedInningLock(selectedGame.id, inning)
-                }
-                onBattingLockToggle={(playerId) =>
-                  toggleSavedBattingLock(selectedGame.id, playerId)
-                }
-                onAllBattingLockToggle={() =>
-                  toggleSavedAllBattingLock(selectedGame.id)
-                }
-              />
-            </div>
+            <LineupGrid
+              players={activePlayers}
+              lineup={selectedLineup}
+              fitMap={fitByPlayer}
+              showLocks
+              lockedLineup={selectedLocked}
+              visiblePlayerIds={visibleIds}
+              onRemoveInning={(inning) =>
+                removeSavedInning(selectedGame.id, inning)
+              }
+              onCellChange={(p, i, v) =>
+                updateSavedCell(selectedGame.id, p, i, v)
+              }
+              onBattingChange={(p, v) =>
+                updateSavedBatting(selectedGame.id, p, v)
+              }
+              onCellLockToggle={(p, i) =>
+                toggleSavedCellLock(selectedGame.id, p, i)
+              }
+              onRowLockToggle={(p) =>
+                toggleSavedRowLock(selectedGame.id, p)
+              }
+              onInningLockToggle={(i) =>
+                toggleSavedInningLock(selectedGame.id, i)
+              }
+              onBattingLockToggle={(p) =>
+                toggleSavedBattingLock(selectedGame.id, p)
+              }
+              onAllBattingLockToggle={() =>
+                toggleSavedAllBattingLock(selectedGame.id)
+              }
+            />
           </>
         )}
       </div>
 
-      {!!selectedLineup && (
-        <div className={`card ${printMode === 'gameDetail' ? 'active-print' : ''}`}>
+      {/* PRINT */}
+      {!!selectedLineup && printMode && (
+        <div className="card print-only">
           <div className="print-title">
-            {formatDateShort(selectedGame.date) || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
+            {formatDateShort(selectedGame.date)} vs {selectedGame.opponent}
           </div>
 
-          <table className="print-table-compact lineup-print-table">
+          <table className="lineup-print-table">
             <thead>
               <tr>
-                <th>Batting Order</th>
+                <th>Bat</th>
                 <th>Player</th>
                 <th>#</th>
-                {Array.from({ length: Number(selectedLineup.innings || 0) }, (_, i) => (
-                  <th key={i + 1}>{i + 1}</th>
+                {Array.from({ length: selectedLineup.innings || 0 }).map((_, i) => (
+                  <th key={i}>{i + 1}</th>
                 ))}
               </tr>
             </thead>
+
             <tbody>
               {printPlayers.map((player) => {
-                const playerId = pk(player.id)
+                const id = pk(player.id)
 
                 return (
-                  <tr key={playerId}>
-                    <td>{selectedLineup?.battingOrder?.[playerId] || ''}</td>
+                  <tr key={id}>
+                    <td>{selectedLineup.battingOrder?.[id]}</td>
                     <td>{player.name}</td>
-                    <td>{player.jersey_number || ''}</td>
-                    {Array.from({ length: Number(selectedLineup.innings || 0) }, (_, i) => {
+                    <td>{player.jersey_number}</td>
+
+                    {Array.from({ length: selectedLineup.innings || 0 }).map((_, i) => {
                       const inning = i + 1
-                      const value = selectedLineup?.cells?.[playerId]?.[inning] || ''
-                      return <td key={inning}>{value}</td>
+                      return <td key={inning}>{selectedLineup.cells?.[id]?.[inning]}</td>
                     })}
                   </tr>
                 )
