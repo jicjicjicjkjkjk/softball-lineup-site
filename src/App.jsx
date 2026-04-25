@@ -1302,6 +1302,29 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     if (res.error) setAppError(res.error.message)
   }
 
+function normalizeLineup(lineup) {
+  const maxInnings = Number(lineup.innings || 0)
+  const cleanedCells = {}
+
+  Object.entries(lineup.cells || {}).forEach(([playerId, innings]) => {
+    const updated = {}
+
+    Object.entries(innings || {}).forEach(([inning, value]) => {
+      const num = Number(inning)
+      if (num <= maxInnings) {
+        updated[num] = value
+      }
+    })
+
+    cleanedCells[playerId] = updated
+  })
+
+  return {
+    ...lineup,
+    cells: cleanedCells,
+  }
+}
+  
   async function deleteGame(gameId) {
     if (lineupLockedByGame[pk(gameId)]) {
       setAppError('Unlock the lineup before deleting the game.')
@@ -1962,12 +1985,11 @@ function toggleSavedAllBattingLock(gameId) {
   function removeSavedInning(gameId, inningToRemove) {
   setLineups((prev) => {
     const next = { ...prev }
-    const lineup = { ...next[gameId] }
+    let lineup = { ...next[gameId] }
 
-    // 1. reduce inning count
-    lineup.innings = Math.max(0, (lineup.innings || 0) - 1)
+    // 🔴 CLEAN FIRST (this fixes your current bug)
+    lineup = normalizeLineup(lineup)
 
-    // 2. rebuild cells WITHOUT that inning
     const newCells = {}
 
     Object.entries(lineup.cells || {}).forEach(([playerId, innings]) => {
@@ -1979,7 +2001,6 @@ function toggleSavedAllBattingLock(gameId) {
         if (num < inningToRemove) {
           updated[num] = value
         } else if (num > inningToRemove) {
-          // shift everything down
           updated[num - 1] = value
         }
       })
@@ -1988,6 +2009,7 @@ function toggleSavedAllBattingLock(gameId) {
     })
 
     lineup.cells = newCells
+    lineup.innings = Math.max(0, (lineup.innings || 0) - 1)
 
     next[gameId] = lineup
     return next
