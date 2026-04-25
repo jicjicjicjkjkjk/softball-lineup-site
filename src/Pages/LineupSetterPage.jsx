@@ -1041,6 +1041,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         </div>
             </div>
 
+      
       <div className="print-only">
   {orderedPlanGames.map((game) => {
     const lineup =
