@@ -1045,22 +1045,34 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         <h1>Coach Summary</h1>
 
         <h2>Current Plan</h2>
-        <TrackingTable
-          title="Current Plan"
-          totals={currentPlanTotalsWithRunning}
-          sitOutRows={ytdAfterSitOutRows}
-          players={activePlayers}
-          sortConfig={trackingSort}
-          setSortConfig={setTrackingSort}
-          sitOutTargets={optimizerPlanSitOutTargets}
-          showSitOutTargets={true}
-          fitByPlayer={fitByPlayer}
-          enableFitColors={true}
-          planSitOutSummary={{
-            totalNeeded,
-            totalAssigned,
-          }}
-        />
+
+<table className="print-current-plan-table">
+  <thead>
+    <tr>
+      <th>Player</th>
+      <th>Target Outs</th>
+      <th>Plan Outs</th>
+    </tr>
+  </thead>
+  <tbody>
+    {activePlayers.map((player) => {
+      const id = pk(player.id)
+      const target = optimizerPlanSitOutTargets?.[id] ?? ''
+      const planOuts = currentPlanLineupsOrdered.reduce(
+        (sum, lineup) => sum + countPlayerOuts(lineup, id),
+        0
+      )
+
+      return (
+        <tr key={id}>
+          <td>{player.name}</td>
+          <td>{target}</td>
+          <td>{planOuts}</td>
+        </tr>
+      )
+    })}
+  </tbody>
+</table>
 
         {orderedPlanGames.map((game) => {
           const lineup =
