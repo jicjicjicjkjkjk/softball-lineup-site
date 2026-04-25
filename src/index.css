@@ -1,1 +1,79 @@
 @import './App.css';
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.25in;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-only,
+  .print-only * {
+    visibility: visible !important;
+  }
+
+  .print-only {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: white !important;
+  }
+
+  .print-only h1 {
+    font-size: 18px;
+    margin: 0 0 6px;
+  }
+
+  .print-only h2 {
+    font-size: 14px;
+    margin: 8px 0 4px;
+  }
+
+  .print-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 8px 0 4px;
+  }
+
+  .print-only table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    font-size: 9px !important;
+    margin-bottom: 8px;
+  }
+
+  .print-only th,
+  .print-only td {
+    border: 1px solid #000 !important;
+    padding: 3px 4px !important;
+    text-align: center !important;
+    line-height: 1.1 !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  .print-current-plan-table th:first-child,
+  .print-current-plan-table td:first-child,
+  .lineup-print-table th:nth-child(2),
+  .lineup-print-table td:nth-child(2) {
+    text-align: left !important;
+  }
+
+  .print-game {
+    page-break-before: auto !important;
+    break-before: auto !important;
+    page-break-inside: avoid !important;
+  }
+
+  button,
+  .sidebar,
+  .no-print {
+    display: none !important;
+  }
+}
