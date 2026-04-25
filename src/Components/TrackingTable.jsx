@@ -1,5 +1,16 @@
+// FILE: src/Components/TrackingTable.jsx
+
 import { pk } from '../lib/lineupUtils'
 import { nextSort, sortRows } from '../lib/appHelpers'
+
+function safeNumber(val) {
+  const n = Number(val)
+  return Number.isNaN(n) ? 0 : n
+}
+
+function displayNumber(val) {
+  return Math.round(safeNumber(val))
+}
 
 function getFitColor(fit) {
   if (fit === 'primary' || fit === 'A') return '#dcfce7'
@@ -48,7 +59,7 @@ export default function TrackingTable({
       )
 
       const lastRunningValue = runningValues.length ? runningValues[runningValues.length - 1] : 0
-      return [pk(row.playerId), lastRunningValue]
+      return [pk(row.playerId), safeNumber(lastRunningValue)]
     })
   )
 
@@ -56,37 +67,41 @@ export default function TrackingTable({
     (players || []).map((player) => {
       const id = pk(player.id)
       const t = totals?.[id] || {}
+
       const targetOuts = sitOutTargets?.[id]
+
       const gap =
-        targetOuts === '' || targetOuts == null ? '' : Number(targetOuts) - Number(t.Out || 0)
+        targetOuts === '' || targetOuts == null
+          ? ''
+          : safeNumber(targetOuts) - safeNumber(t.Out)
 
       return {
         playerId: id,
         name: player.name,
-        games: t.games || 0,
-        fieldTotal: t.fieldTotal || 0,
-        Out: t.Out || 0,
+        games: safeNumber(t.games),
+        fieldTotal: safeNumber(t.fieldTotal),
+        Out: safeNumber(t.Out),
         targetOuts: targetOuts ?? '',
         gap,
-        sitOutRunningTotal: sitOutRunningByPlayer[id] || 0,
-        P: t.P || 0,
-        C: t.C || 0,
-        '1B': t['1B'] || 0,
-        '2B': t['2B'] || 0,
-        '3B': t['3B'] || 0,
-        SS: t.SS || 0,
-        LF: t.LF || 0,
-        CF: t.CF || 0,
-        RF: t.RF || 0,
-        IF: t.IF || 0,
-        OF: t.OF || 0,
+        sitOutRunningTotal: safeNumber(sitOutRunningByPlayer[id]),
+        P: safeNumber(t.P),
+        C: safeNumber(t.C),
+        '1B': safeNumber(t['1B']),
+        '2B': safeNumber(t['2B']),
+        '3B': safeNumber(t['3B']),
+        SS: safeNumber(t.SS),
+        LF: safeNumber(t.LF),
+        CF: safeNumber(t.CF),
+        RF: safeNumber(t.RF),
+        IF: safeNumber(t.IF),
+        OF: safeNumber(t.OF),
       }
     }),
     sortConfig
   )
 
   function posCell(row, position) {
-    const value = row[position]
+    const value = displayNumber(row[position])
     const fit = positionFit(fitByPlayer, row.playerId, position)
     const backgroundColor = enableFitColors && value ? getFitColor(fit) : ''
 
@@ -145,9 +160,9 @@ export default function TrackingTable({
           {rows.map((row) => (
             <tr key={`${title}-${row.playerId}`}>
               <td>{row.name}</td>
-              <td>{row.games}</td>
-              <td>{row.fieldTotal}</td>
-              <td>{row.Out}</td>
+              <td>{displayNumber(row.games)}</td>
+              <td>{displayNumber(row.fieldTotal)}</td>
+              <td>{displayNumber(row.Out)}</td>
 
               {showSitOutTargets && (
                 <>
@@ -160,13 +175,11 @@ export default function TrackingTable({
                         onChange={(e) =>
                           setSitOutTargets?.((prev) => ({
                             ...prev,
-                            [row.playerId]: e.target.value === '' ? '' : Number(e.target.value),
+                            [row.playerId]:
+                              e.target.value === '' ? '' : Number(e.target.value),
                           }))
                         }
-                        style={{
-                          width: 60,
-                          textAlign: 'center',
-                        }}
+                        style={{ width: 60, textAlign: 'center' }}
                       />
                     ) : (
                       row.targetOuts
@@ -186,10 +199,12 @@ export default function TrackingTable({
               {posCell(row, 'CF')}
               {posCell(row, 'RF')}
 
-              <td>{row.IF}</td>
-              <td>{row.OF}</td>
+              <td>{displayNumber(row.IF)}</td>
+              <td>{displayNumber(row.OF)}</td>
 
-              {!hideSitOutRunningTotal && <td>{row.sitOutRunningTotal}</td>}
+              {!hideSitOutRunningTotal && (
+                <td>{displayNumber(row.sitOutRunningTotal)}</td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -197,13 +212,15 @@ export default function TrackingTable({
 
       {planSitOutSummary && (
         <div className="summary-box" style={{ marginTop: 16 }}>
-          <strong>Total Sit-Outs Needed:</strong> {planSitOutSummary.totalNeeded}
+          <strong>Total Sit-Outs Needed:</strong> {displayNumber(planSitOutSummary.totalNeeded)}
           <br />
-          <strong>Total Assigned:</strong> {planSitOutSummary.totalAssigned}
+          <strong>Total Assigned:</strong> {displayNumber(planSitOutSummary.totalAssigned)}
           <br />
           <strong>Remaining:</strong>{' '}
-          {Number(planSitOutSummary.totalNeeded || 0) -
-            Number(planSitOutSummary.totalAssigned || 0)}
+          {displayNumber(
+            safeNumber(planSitOutSummary.totalNeeded) -
+              safeNumber(planSitOutSummary.totalAssigned)
+          )}
         </div>
       )}
     </div>
