@@ -795,3 +795,78 @@ th {
     display: none !important;
   }
 }
+
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.25in;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-only,
+  .print-only * {
+    visibility: visible !important;
+  }
+
+  .print-only {
+    display: block !important;
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: white !important;
+  }
+
+  .print-game {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .print-game:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .print-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+  }
+
+  .coach-lineup-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    font-size: 12px !important;
+  }
+
+  .coach-lineup-table th,
+  .coach-lineup-table td {
+    border: 1px solid #000 !important;
+    padding: 6px !important;
+    text-align: center !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  .coach-lineup-table th:nth-child(2),
+  .coach-lineup-table td:nth-child(2) {
+    text-align: left !important;
+    width: 24%;
+  }
+
+  .coach-lineup-table th:first-child,
+  .coach-lineup-table td:first-child,
+  .coach-lineup-table th:nth-child(3),
+  .coach-lineup-table td:nth-child(3) {
+    width: 7%;
+  }
+}
