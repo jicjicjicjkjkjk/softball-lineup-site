@@ -425,7 +425,7 @@ function isCompleteLineup(lineup) {
       }
     }
 
-    await updateGameField(gameId, 'innings', lineup.innings)
+    
 
     setLineupsByGame((current) => ({
       ...current,
