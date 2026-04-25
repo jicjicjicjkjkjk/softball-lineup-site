@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { formatDateShort } from '../lib/appHelpers'
 
 function renderOptionLabel(option) {
@@ -89,8 +90,11 @@ export default function GameDetailPage({
   gameTypeOptions = [],
   pk,
 }) {
+  const [printMode, setPrintMode] = useState(null)
+
   function handlePrint() {
-    window.print()
+    setPrintMode('gameDetail')
+    setTimeout(() => window.print(), 100)
   }
 
   if (!selectedGame) {
@@ -316,7 +320,7 @@ export default function GameDetailPage({
       </div>
 
       {!!selectedLineup && (
-        <div className="card print-only">
+        <div className={`card print-only ${printMode === 'gameDetail' ? 'active-print' : ''}`}>
           <div className="print-title">
             {formatDateShort(selectedGame.date) || 'No Date'} vs {selectedGame.opponent || 'Opponent'}
           </div>
