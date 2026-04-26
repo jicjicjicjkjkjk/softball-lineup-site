@@ -234,6 +234,62 @@ th {
   text-align: center;
 }
 
+/* Games page table cleanup */
+.games-table {
+  min-width: 1250px;
+  table-layout: fixed;
+}
+
+.games-table th,
+.games-table td {
+  padding: 10px 8px;
+}
+
+.games-table .games-date-col {
+  width: 155px;
+}
+
+.games-table .games-order-col {
+  width: 90px;
+}
+
+.games-table .games-opponent-col {
+  width: 230px;
+  text-align: left;
+}
+
+.games-table .games-type-col {
+  width: 170px;
+}
+
+.games-table .games-season-col {
+  width: 130px;
+}
+
+.games-table .games-innings-col {
+  width: 95px;
+}
+
+.games-table .games-status-col {
+  width: 150px;
+}
+
+.games-table .games-lineup-col {
+  width: 100px;
+}
+
+.games-table .games-action-col {
+  width: 105px;
+}
+
+.games-table input,
+.games-table select {
+  width: 100%;
+  min-width: 0;
+  font-size: 15px;
+  padding: 8px 10px;
+}
+
 .center-cell,
 .input-center {
   text-align: center;
