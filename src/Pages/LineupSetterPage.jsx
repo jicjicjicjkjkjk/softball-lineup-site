@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { formatDateShort } from '../lib/appHelpers'
 import LineupFocusPanel from '../Components/LineupFocusPanel'
 
@@ -148,6 +148,8 @@ export default function LineupSetterPage({
 }) {
   const [printMode, setPrintMode] = useState(null)
 
+
+  
 useEffect(() => {
   const handler = () => setPrintMode(null)
   window.addEventListener('afterprint', handler)
