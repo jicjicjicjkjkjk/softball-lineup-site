@@ -635,6 +635,35 @@ th {
 }
 
 
+/* FILE: src/App.css */
+/* Horizontal scrolling fix for Game Detail / Lineup Setter grids */
+
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
+.table-scroll > table,
+.table-scroll .lineup-print-table {
+  min-width: max-content;
+}
+
+.lineup-print-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.card {
+  min-width: 0;
+}
+
+.main-content {
+  min-width: 0;
+}
 
 /* =========================
    CLEAN WORKING PRINT
