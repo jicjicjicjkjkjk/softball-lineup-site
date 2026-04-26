@@ -147,6 +147,12 @@ export default function LineupSetterPage({
   trackingPriorityByPositionRows = [],
 }) {
   const [printMode, setPrintMode] = useState(null)
+
+useEffect(() => {
+  const handler = () => setPrintMode(null)
+  window.addEventListener('afterprint', handler)
+  return () => window.removeEventListener('afterprint', handler)
+}, [])
   
   const focusStatuses = optimizerFocusLineup
     ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
@@ -1002,13 +1008,13 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         </div>
             </div>
 
-            <div className={`print-only ${printMode === 'lineupSetter' ? 'active-print' : ''}`}>
+            <div className="print-only">
         {orderedPlanGames.map((game) => {
           const lineup =
             optimizerPreviewByGame[pk(game.id)] ||
             lineupsByGame[pk(game.id)]
 
-          if (!lineup) return null
+          if (!lineup || !lineup.innings) return null
 
           const playersInGame = activePlayers.filter((player) =>
             (lineup.availablePlayerIds || []).map(pk).includes(pk(player.id))
