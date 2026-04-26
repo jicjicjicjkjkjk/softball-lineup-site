@@ -820,3 +820,46 @@ th {
     top: auto !important;
   }
 }
+
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-only,
+  .print-only * {
+    visibility: visible;
+  }
+
+  .print-only {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .print-game {
+    page-break-after: always;
+    margin-bottom: 20px;
+  }
+
+  .coach-lineup-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .coach-lineup-table th,
+  .coach-lineup-table td {
+    border: 1px solid #000;
+    padding: 4px;
+    text-align: center;
+  }
+
+  .print-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+}
