@@ -214,6 +214,7 @@ useEffect(() => {
               </div>
             </div>
 
+            <div className="table-scroll no-print" style={{ marginTop: 12 }}>  
             <LineupGrid
               players={activePlayers}
               lineup={selectedLineup}
@@ -242,10 +243,11 @@ useEffect(() => {
               onBattingLockToggle={(p) =>
                 toggleSavedBattingLock(selectedGame.id, p)
               }
-              onAllBattingLockToggle={() =>
+                            onAllBattingLockToggle={() =>
                 toggleSavedAllBattingLock(selectedGame.id)
               }
             />
+</div>
           </>
         )}
       </div>
