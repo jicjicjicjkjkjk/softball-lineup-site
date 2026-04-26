@@ -822,44 +822,153 @@ th {
 }
 
 
+/* =========================
+   FINAL PRINT MODE
+   ========================= */
+
+.print-only,
+.active-print {
+  display: none;
+}
+
 @media print {
+  @page {
+    size: landscape;
+    margin: 0.25in;
+  }
+
+  html,
+  body,
+  #root {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   body * {
-    visibility: hidden;
+    visibility: hidden !important;
   }
 
-  .print-only,
-  .print-only * {
-    visibility: visible;
+  .active-print,
+  .active-print * {
+    visibility: visible !important;
   }
 
-  .print-only {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+  .active-print {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
   }
 
-  .print-game {
-    page-break-after: always;
-    margin-bottom: 20px;
+  .active-print table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    font-size: 11px !important;
+    background: #fff !important;
   }
 
-  .coach-lineup-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
+  .active-print thead {
+    display: table-header-group !important;
   }
 
-  .coach-lineup-table th,
-  .coach-lineup-table td {
-    border: 1px solid #000;
-    padding: 4px;
-    text-align: center;
+  .active-print tbody {
+    display: table-row-group !important;
+  }
+
+  .active-print tr {
+    display: table-row !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .active-print th,
+  .active-print td {
+    display: table-cell !important;
+    border: 1px solid #000 !important;
+    padding: 4px 5px !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    color: #000 !important;
+    background: #fff !important;
+    line-height: 1.15 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+
+  .active-print th {
+    font-weight: 800 !important;
+    background: #e6f4f4 !important;
   }
 
   .print-title {
-    font-size: 16px;
-    font-weight: bold;
-    margin-bottom: 8px;
+    visibility: visible !important;
+    display: block !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    margin: 0 0 8px 0 !important;
+    color: #000 !important;
+  }
+
+  .print-game {
+    display: block !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .print-game:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  .coach-lineup-table th:nth-child(1),
+  .coach-lineup-table td:nth-child(1),
+  .lineup-print-table th:nth-child(1),
+  .lineup-print-table td:nth-child(1) {
+    width: 8% !important;
+  }
+
+  .coach-lineup-table th:nth-child(2),
+  .coach-lineup-table td:nth-child(2),
+  .lineup-print-table th:nth-child(2),
+  .lineup-print-table td:nth-child(2) {
+    width: 24% !important;
+    text-align: left !important;
+  }
+
+  .coach-lineup-table th:nth-child(3),
+  .coach-lineup-table td:nth-child(3),
+  .lineup-print-table th:nth-child(3),
+  .lineup-print-table td:nth-child(3) {
+    width: 8% !important;
+  }
+
+  .print-current-plan-table {
+    font-size: 8px !important;
+  }
+
+  .print-current-plan-table th,
+  .print-current-plan-table td {
+    padding: 2px 3px !important;
+  }
+
+  .sidebar,
+  .no-print,
+  .hide-on-print,
+  button,
+  input,
+  select,
+  textarea {
+    display: none !important;
   }
 }
