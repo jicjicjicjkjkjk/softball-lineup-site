@@ -47,47 +47,7 @@ function countPlayerOuts(lineup, playerId) {
   return total
 }
 
-function buildSitOutRunningLookup(lineups, players, pk) {
-  const running = {}
 
-  ;(players || []).forEach((player) => {
-    running[pk(player.id)] = 0
-  })
-
-  ;(lineups || []).forEach((lineup) => {
-    const availableIds = (lineup?.availablePlayerIds || []).map(pk)
-    if (!availableIds.length) return
-
-    const totalSitOuts = availableIds.reduce((sum, playerId) => {
-      return sum + countPlayerOuts(lineup, playerId)
-    }, 0)
-
-    const avgSit = totalSitOuts / availableIds.length
-
-    availableIds.forEach((playerId) => {
-      const playerOuts = countPlayerOuts(lineup, playerId)
-      const delta = avgSit - playerOuts
-      running[playerId] = Number(((running[playerId] || 0) + delta).toFixed(2))
-    })
-  })
-
-  return running
-}
-
-function applySitOutRunningTotals(totals, lineups, players, pk) {
-  const runningLookup = buildSitOutRunningLookup(lineups, players, pk)
-  const next = { ...(totals || {}) }
-
-  ;(players || []).forEach((player) => {
-    const playerId = pk(player.id)
-    next[playerId] = {
-      ...(next[playerId] || {}),
-      sitOutRunningTotal: runningLookup[playerId] || 0,
-    }
-  })
-
-  return next
-}
 
 function nextMatrixSort(current, key) {
   if (current.key !== key) return { key, direction: 'asc' }
@@ -232,26 +192,11 @@ export default function LineupSetterPage({
     })
     .filter(Boolean)
 
-  const filteredGamesBeforeTotalsWithRunning = applySitOutRunningTotals(
-    ytdBeforeTotals,
-    filteredLineups,
-    activePlayers,
-    pk
-  )
+  const filteredGamesBeforeTotalsWithRunning = ytdBeforeTotals
 
-  const currentPlanTotalsWithRunning = applySitOutRunningTotals(
-    currentBatchTotals,
-    currentPlanLineupsOrdered,
-    activePlayers,
-    pk
-  )
+  const currentPlanTotalsWithRunning = currentBatchTotals
 
-  const filteredPlusPlanTotalsWithRunning = applySitOutRunningTotals(
-    ytdAfterTotals,
-    [...filteredLineups, ...currentPlanLineupsOrdered],
-    activePlayers,
-    pk
-  )
+  const filteredPlusPlanTotalsWithRunning = ytdAfterTotals
 
   const [priorityPlayerSort, setPriorityPlayerSort] = useState({
     key: 'name',
