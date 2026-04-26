@@ -634,397 +634,60 @@ th {
   }
 }
 
-/* =========================
-   ONE CLEAN PRINT SYSTEM
-   ========================= */
-
-@media print {
-.hide-on-print {
-  display: none !important;
-}
-  @page {
-    size: landscape;
-    margin: 0.25in;
-  }
-
-  html,
-  body,
-  #root {
-    background: #fff !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    min-height: auto !important;
-  }
-
-  body * {
-    display: none !important;
-    visibility: hidden !important;
-  }
-
-  .active-print,
-  .active-print * {
-    display: revert !important;
-    visibility: visible !important;
-  }
-
-  .active-print {
-    display: block !important;
-    position: absolute !important;
-    inset: 0 auto auto 0 !important;
-    width: 100% !important;
-    background: #fff !important;
-    color: #000 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .app-shell,
-  .main-content,
-  .stack,
-  .card {
-    background: #fff !important;
-    box-shadow: none !important;
-    border: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: visible !important;
-  }
-
-  .print-title {
-    display: block !important;
-    font-size: 15px !important;
-    font-weight: 800 !important;
-    line-height: 1.15 !important;
-    margin: 0 0 8px !important;
-    color: #000 !important;
-  }
-
-  .print-game {
-    display: block !important;
-    width: 100% !important;
-    min-height: 7in !important;
-    page-break-after: always !important;
-    break-after: page !important;
-    page-break-inside: avoid !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .print-game:last-child {
-    page-break-after: auto !important;
-    break-after: auto !important;
-  }
-
-  .print-page-break {
-    page-break-before: always !important;
-    break-before: page !important;
-  }
-
-  table {
-    min-width: 0 !important;
-  }
-
-  .coach-lineup-table,
-  .lineup-print-table,
-  .print-table-compact {
-    display: table !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    border-collapse: collapse !important;
-    table-layout: fixed !important;
-    background: #fff !important;
-    color: #000 !important;
-    font-size: 10px !important;
-    margin: 0 !important;
-  }
-
-  .coach-lineup-table thead,
-  .lineup-print-table thead,
-  .print-table-compact thead {
-    display: table-header-group !important;
-  }
-
-  .coach-lineup-table tbody,
-  .lineup-print-table tbody,
-  .print-table-compact tbody {
-    display: table-row-group !important;
-  }
-
-  .coach-lineup-table tr,
-  .lineup-print-table tr,
-  .print-table-compact tr {
-    display: table-row !important;
-    page-break-inside: avoid !important;
-  }
-
-  .coach-lineup-table th,
-  .coach-lineup-table td,
-  .lineup-print-table th,
-  .lineup-print-table td,
-  .print-table-compact th,
-  .print-table-compact td {
-    display: table-cell !important;
-    border: 1px solid #000 !important;
-    padding: 4px 5px !important;
-    text-align: center !important;
-    vertical-align: middle !important;
-    line-height: 1.15 !important;
-    color: #000 !important;
-    background: #fff !important;
-    white-space: normal !important;
-    word-break: normal !important;
-    overflow-wrap: anywhere !important;
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
-  }
-
-  .coach-lineup-table th,
-  .lineup-print-table th,
-  .print-table-compact th {
-    font-weight: 800 !important;
-    background: #e6f4f4 !important;
-  }
-
-  .coach-lineup-table th:nth-child(1),
-  .coach-lineup-table td:nth-child(1),
-  .lineup-print-table th:nth-child(1),
-  .lineup-print-table td:nth-child(1) {
-    width: 42px !important;
-  }
-
-  .coach-lineup-table th:nth-child(2),
-  .coach-lineup-table td:nth-child(2),
-  .lineup-print-table th:nth-child(2),
-  .lineup-print-table td:nth-child(2) {
-    width: 150px !important;
-    text-align: left !important;
-  }
-
-  .coach-lineup-table th:nth-child(3),
-  .coach-lineup-table td:nth-child(3),
-  .lineup-print-table th:nth-child(3),
-  .lineup-print-table td:nth-child(3) {
-    width: 42px !important;
-  }
-
-  .lineup-card {
-    display: table !important;
-    width: 65% !important;
-    min-width: 0 !important;
-    border-collapse: collapse !important;
-    table-layout: fixed !important;
-    font-size: 11px !important;
-    margin-top: 10px !important;
-  }
-
-  .lineup-card th,
-  .lineup-card td {
-    display: table-cell !important;
-    border: 1px solid #000 !important;
-    padding: 6px !important;
-    text-align: left !important;
-    color: #000 !important;
-    background: #fff !important;
-  }
-
-  .print-current-plan-table {
-    display: table !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    border-collapse: collapse !important;
-    table-layout: fixed !important;
-    font-size: 8px !important;
-  }
-
-  .print-current-plan-table th,
-  .print-current-plan-table td {
-    display: table-cell !important;
-    border: 1px solid #000 !important;
-    padding: 2px 3px !important;
-    text-align: center !important;
-    line-height: 1.05 !important;
-    color: #000 !important;
-    background: #fff !important;
-  }
-
-  .print-current-plan-table th:first-child,
-  .print-current-plan-table td:first-child {
-    text-align: left !important;
-    width: 120px !important;
-  }
-
-  .tracking-table,
-  .tracking-scroll,
-  .table-scroll {
-    overflow: visible !important;
-  }
-
-  .tracking-table {
-    width: 100% !important;
-    min-width: 0 !important;
-    table-layout: fixed !important;
-  }
-
-  .tracking-table th,
-  .tracking-table td {
-    font-size: 7px !important;
-    padding: 2px !important;
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
-  }
-}
 
 
 /* =========================
-   FINAL PRINT MODE
+   CLEAN WORKING PRINT
    ========================= */
 
-.print-only,
-.active-print {
+.print-only {
   display: none;
 }
 
 @media print {
-  @page {
-    size: landscape;
-    margin: 0.25in;
-  }
-
-  html,
-  body,
-  #root {
-    background: #fff !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
   body * {
-    visibility: hidden !important;
+    visibility: hidden;
   }
 
-  .active-print,
-  .active-print * {
-    visibility: visible !important;
+  .print-only,
+  .print-only * {
+    visibility: visible;
   }
 
-  .active-print {
-    display: block !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
-    background: #fff !important;
-    color: #000 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    border: 0 !important;
+  .print-only {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #fff;
+    padding: 10px;
   }
 
-  .active-print table {
-    display: table !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    border-collapse: collapse !important;
-    table-layout: fixed !important;
-    font-size: 11px !important;
-    background: #fff !important;
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
   }
 
-  .active-print thead {
-    display: table-header-group !important;
-  }
-
-  .active-print tbody {
-    display: table-row-group !important;
-  }
-
-  .active-print tr {
-    display: table-row !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  .active-print th,
-  .active-print td {
-    display: table-cell !important;
-    border: 1px solid #000 !important;
-    padding: 4px 5px !important;
-    text-align: center !important;
-    vertical-align: middle !important;
-    color: #000 !important;
-    background: #fff !important;
-    line-height: 1.15 !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-  }
-
-  .active-print th {
-    font-weight: 800 !important;
-    background: #e6f4f4 !important;
+  th,
+  td {
+    border: 1px solid #000;
+    padding: 4px;
+    text-align: center;
   }
 
   .print-title {
-    visibility: visible !important;
-    display: block !important;
-    font-size: 16px !important;
-    font-weight: 800 !important;
-    margin: 0 0 8px 0 !important;
-    color: #000 !important;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
   }
 
   .print-game {
-    display: block !important;
-    page-break-after: always !important;
-    break-after: page !important;
+    page-break-after: always;
   }
 
   .print-game:last-child {
-    page-break-after: auto !important;
-    break-after: auto !important;
-  }
-
-  .coach-lineup-table th:nth-child(1),
-  .coach-lineup-table td:nth-child(1),
-  .lineup-print-table th:nth-child(1),
-  .lineup-print-table td:nth-child(1) {
-    width: 8% !important;
-  }
-
-  .coach-lineup-table th:nth-child(2),
-  .coach-lineup-table td:nth-child(2),
-  .lineup-print-table th:nth-child(2),
-  .lineup-print-table td:nth-child(2) {
-    width: 24% !important;
-    text-align: left !important;
-  }
-
-  .coach-lineup-table th:nth-child(3),
-  .coach-lineup-table td:nth-child(3),
-  .lineup-print-table th:nth-child(3),
-  .lineup-print-table td:nth-child(3) {
-    width: 8% !important;
-  }
-
-  .print-current-plan-table {
-    font-size: 8px !important;
-  }
-
-  .print-current-plan-table th,
-  .print-current-plan-table td {
-    padding: 2px 3px !important;
-  }
-
-  .sidebar,
-  .no-print,
-  .hide-on-print,
-  button,
-  input,
-  select,
-  textarea {
-    display: none !important;
+    page-break-after: auto;
   }
 }
