@@ -373,14 +373,12 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
             <button
   onClick={() => {
-    setPrintMode('lineupSetter')
+  setPrintMode('lineupSetter')
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        window.print()
-      })
-    })
-  }}
+  setTimeout(() => {
+    window.print()
+  }, 100)
+}}
 >
   Print Coach Summary
 </button>
@@ -1023,7 +1021,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         </div>
             </div>
 
-            <div className="print-only">
+            <div className={`print-only ${printMode === 'lineupSetter' ? 'show-print' : ''}`}>
         {orderedPlanGames.map((game) => {
           const lineup =
             optimizerPreviewByGame[pk(game.id)] ||
