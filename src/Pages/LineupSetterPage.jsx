@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { formatDateShort } from '../lib/appHelpers'
 import LineupFocusPanel from '../Components/LineupFocusPanel'
 
@@ -322,7 +322,9 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
                   onChange={(e) => setOptimizerExistingGameId(e.target.value)}
                 >
                   <option value="">Select game</option>
-                  {games.map((game) => (
+                  {[...(games || [])]
+  .sort((a, b) => -compareGamesAscLocal(a, b, pk))
+  .map((game) => (
                     <option key={game.id} value={pk(game.id)}>
                       {(formatDateShort(game.date) || 'No Date')} vs {game.opponent || 'Opponent'}
                       {game.game_type ? ` • ${game.game_type}` : ''}
@@ -419,7 +421,12 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             <button
   onClick={() => {
     setPrintMode('lineupSetter')
-    setTimeout(() => window.print(), 100)
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print()
+      })
+    })
   }}
 >
   Print Coach Summary
