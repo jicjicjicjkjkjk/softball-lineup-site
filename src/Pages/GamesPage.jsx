@@ -157,21 +157,21 @@ export default function GamesPage({
         <div className="table-scroll">
           <table className="table-center games-table">
             <thead>
-              <tr>
-                <th onClick={() => nextSort('date')}>Date</th>
-                <th onClick={() => nextSort('game_order')}>Order</th>
-                <th onClick={() => nextSort('opponent')} style={{ textAlign: 'left' }}>
-                  Opponent
-                </th>
-                <th onClick={() => nextSort('game_type')}>Game Type</th>
-                <th onClick={() => nextSort('season')}>Season</th>
-                <th onClick={() => nextSort('innings')}>Innings</th>
-                <th onClick={() => nextSort('status')}>Status</th>
-                <th onClick={() => nextSort('lineupState')}>Lineup</th>
-                <th>Open</th>
-                <th>Delete</th>
-              </tr>
-            </thead>
+  <tr>
+    <th className="games-date-col" onClick={() => nextSort('date')}>Date</th>
+    <th className="games-order-col" onClick={() => nextSort('game_order')}>Order</th>
+    <th className="games-opponent-col" onClick={() => nextSort('opponent')}>
+      Opponent
+    </th>
+    <th className="games-type-col" onClick={() => nextSort('game_type')}>Game Type</th>
+    <th className="games-season-col" onClick={() => nextSort('season')}>Season</th>
+    <th className="games-innings-col" onClick={() => nextSort('innings')}>Innings</th>
+    <th className="games-status-col" onClick={() => nextSort('status')}>Status</th>
+    <th className="games-lineup-col" onClick={() => nextSort('lineupState')}>Lineup</th>
+    <th className="games-action-col">Open</th>
+    <th className="games-action-col">Delete</th>
+  </tr>
+</thead>
 
             <tbody>
               {sortedGames.map((game) => (
