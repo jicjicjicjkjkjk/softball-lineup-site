@@ -1034,10 +1034,10 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
           )
 
           const sortedPlayers = [...playersInGame].sort((a, b) => {
-            const aOrder = Number(lineup.battingOrder?.[pk(a.id)] || 999)
-            const bOrder = Number(lineup.battingOrder?.[pk(b.id)] || 999)
-            return aOrder - bOrder
-          })
+  const aOrder = Number(lineup.battingOrder?.[pk(a.id)] ?? 999)
+  const bOrder = Number(lineup.battingOrder?.[pk(b.id)] ?? 999)
+  return aOrder - bOrder
+})
 
           return (
             <div key={game.id} className="print-game">
@@ -1069,7 +1069,15 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
 
                         {Array.from({ length: Number(lineup.innings || 0) }).map((_, i) => {
                           const inning = i + 1
-                          return <td key={inning}>{lineup.cells?.[id]?.[inning] || ''}</td>
+                          const value = lineup.cells?.[id]?.[inning]
+
+return (
+  <td key={inning}>
+    {value === 'Out'
+      ? 'OUT'
+      : value || '-'}
+  </td>
+)
                         })}
                       </tr>
                     )
