@@ -1,6 +1,6 @@
 // FILE: src/Pages/GameDetailPage.jsx
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatDateShort } from '../lib/appHelpers'
 
 function renderOptionLabel(option) {
@@ -76,6 +76,12 @@ export default function GameDetailPage({
 }) {
   const [printMode, setPrintMode] = useState(null)
 
+useEffect(() => {
+  const handler = () => setPrintMode(null)
+  window.addEventListener('afterprint', handler)
+  return () => window.removeEventListener('afterprint', handler)
+}, [])
+  
   function handlePrint() {
     setPrintMode('gameDetail')
     setTimeout(() => window.print(), 100)
