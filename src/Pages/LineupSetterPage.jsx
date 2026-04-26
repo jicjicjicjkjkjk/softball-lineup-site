@@ -442,7 +442,20 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
                       </button>
                     </td>
                     <td>
-                      <button onClick={() => removeBatchGame(game.id)}>Remove</button>
+                      <button
+  onClick={() => {
+    const confirmed = window.confirm(
+      `Remove ${formatDateShort(game.date) || 'No Date'} vs ${
+        game.opponent || 'Opponent'
+      } from the current plan?`
+    )
+
+    if (!confirmed) return
+    removeBatchGame(game.id)
+  }}
+>
+  Remove
+</button>
                     </td>
                   </tr>
                 )
