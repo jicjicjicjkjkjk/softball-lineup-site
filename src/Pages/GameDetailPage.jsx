@@ -120,7 +120,7 @@ useEffect(() => {
           <button onClick={() => setPage('games')}>Back</button>
         </div>
 
-        <div className="grid two-col">
+        <div className="game-detail-fields">
           <div>
             <label>Select Game</label>
             <select value={selectedGameId} onChange={(e) => setSelectedGameId(e.target.value)}>
