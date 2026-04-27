@@ -834,7 +834,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
 </button>
           </div>
 
-          <table className="table-center" style={{ tableLayout: 'fixed' }}>
+          <table className="table-center lineup-setter-current-plan-table" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th>Focus</th>
