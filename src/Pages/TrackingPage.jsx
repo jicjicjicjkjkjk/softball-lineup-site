@@ -203,11 +203,7 @@ export default function TrackingPage({
     key: 'name',
     direction: 'asc',
   })
-
-  const [priorityPositionSort, setPriorityPositionSort] = useState({
-    key: 'name',
-    direction: 'asc',
-  })
+  
   
   const trackingGameIds = useMemo(
     () => new Set((trackingSitSummary || []).map((g) => pk(g.gameId))),
@@ -319,25 +315,39 @@ const filterSummary = useMemo(() => {
     })
   }, [computedSitRows, runningSort])
 
-  const sortedPriorityPlayerRows = useMemo(() => {
-    return [...(trackingPriorityRows || [])].sort((a, b) =>
+    const sortedCombinedPriorityRows = useMemo(() => {
+    const byPosition = Object.fromEntries(
+      (trackingPriorityByPositionRows || []).map((row) => [pk(row.playerId), row])
+    )
+
+    const rows = (trackingPriorityRows || []).map((row) => {
+      const posRow = byPosition[pk(row.playerId)] || {}
+
+      return {
+        ...row,
+        posActP: posRow.actP ?? '',
+        posActC: posRow.actC ?? '',
+        posAct1B: posRow.act1B ?? '',
+        posAct2B: posRow.act2B ?? '',
+        posAct3B: posRow.act3B ?? '',
+        posActSS: posRow.actSS ?? '',
+        posActOF: posRow.actOF ?? '',
+      }
+    })
+
+    return rows.sort((a, b) =>
       compareMatrixValue(
         a?.[priorityPlayerSort.key],
         b?.[priorityPlayerSort.key],
         priorityPlayerSort.direction
       )
     )
-  }, [trackingPriorityRows, priorityPlayerSort])
-
-  const sortedPriorityPositionRows = useMemo(() => {
-    return [...(trackingPriorityByPositionRows || [])].sort((a, b) =>
-      compareMatrixValue(
-        a?.[priorityPositionSort.key],
-        b?.[priorityPositionSort.key],
-        priorityPositionSort.direction
-      )
-    )
-  }, [trackingPriorityByPositionRows, priorityPositionSort])
+  }, [
+    trackingPriorityRows,
+    trackingPriorityByPositionRows,
+    priorityPlayerSort,
+    pk,
+  ])
   
   return (
     <div className="stack">
@@ -1023,174 +1033,118 @@ const filterSummary = useMemo(() => {
           </table>
         </div>
       </div>
-            <div className="card tracking-card">
-        <h3>Tracking by Positioning by Priority - Position</h3>
+                  <div className="card tracking-card">
+        <h3>Tracking by Positioning by Priority</h3>
+
         <div className="tracking-scroll">
-          <table className="tracking-table priority-groups">
+          <table className="tracking-table priority-groups priority-combined-table">
             <thead>
               <tr>
                 <th
                   rowSpan="2"
                   className="sticky-col-1 col-player"
                   style={{ textAlign: 'left', verticalAlign: 'middle', cursor: 'pointer' }}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'name'))}
+                  onClick={() => setPriorityPlayerSort((s) => nextMatrixSort(s, 'name'))}
                 >
                   Player
                 </th>
+
                 <th
                   rowSpan="2"
                   className="sticky-col-2 col-small"
                   style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'fieldTotal'))}
+                  onClick={() => setPriorityPlayerSort((s) => nextMatrixSort(s, 'fieldTotal'))}
                 >
-                  Fld
+                  Field
                 </th>
 
-                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>P</th>
-                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>C</th>
-                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>1B</th>
-                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>2B</th>
-                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>3B</th>
-                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>SS</th>
-                <th colSpan="2" className="group-box" style={{ textAlign: 'center' }}>OF</th>
+                {['P', 'C', '1B', '2B', '3B', 'SS', 'OF'].map((pos) => (
+                  <th key={pos} colSpan="3" className="group-box" style={{ textAlign: 'center' }}>
+                    {pos}
+                  </th>
+                ))}
               </tr>
+
               <tr>
-                <th
-                  className="col-small group-start"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'targP'))}
-                >
-                  TGT
-                </th>
-                <th
-                  className="col-small group-end"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'actP'))}
-                >
-                  ACT
-                </th>
+                {[
+                  ['P', 'targP', 'actP', 'posActP'],
+                  ['C', 'targC', 'actC', 'posActC'],
+                  ['1B', 'targ1B', 'act1B', 'posAct1B'],
+                  ['2B', 'targ2B', 'act2B', 'posAct2B'],
+                  ['3B', 'targ3B', 'act3B', 'posAct3B'],
+                  ['SS', 'targSS', 'actSS', 'posActSS'],
+                  ['OF', 'targOF', 'actOF', 'posActOF'],
+                ].map(([pos, targetKey, playerKey, positionKey]) => (
+                  <>
+                    <th
+                      key={`${pos}-target`}
+                      className="col-small group-start"
+                      style={sortableHeaderStyle}
+                      onClick={() => setPriorityPlayerSort((s) => nextMatrixSort(s, targetKey))}
+                    >
+                      TGT %
+                    </th>
 
-                <th
-                  className="col-small group-start"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'targC'))}
-                >
-                  TGT
-                </th>
-                <th
-                  className="col-small group-end"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'actC'))}
-                >
-                  ACT
-                </th>
+                    <th
+                      key={`${pos}-player`}
+                      className="col-small"
+                      style={sortableHeaderStyle}
+                      onClick={() => setPriorityPlayerSort((s) => nextMatrixSort(s, playerKey))}
+                    >
+                      Act % Ply
+                    </th>
 
-                <th
-                  className="col-small group-start"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'targ1B'))}
-                >
-                  TGT
-                </th>
-                <th
-                  className="col-small group-end"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'act1B'))}
-                >
-                  ACT
-                </th>
-
-                <th
-                  className="col-small group-start"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'targ2B'))}
-                >
-                  TGT
-                </th>
-                <th
-                  className="col-small group-end"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'act2B'))}
-                >
-                  ACT
-                </th>
-
-                <th
-                  className="col-small group-start"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'targ3B'))}
-                >
-                  TGT
-                </th>
-                <th
-                  className="col-small group-end"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'act3B'))}
-                >
-                  ACT
-                </th>
-
-                <th
-                  className="col-small group-start"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'targSS'))}
-                >
-                  TGT
-                </th>
-                <th
-                  className="col-small group-end"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'actSS'))}
-                >
-                  ACT
-                </th>
-
-                <th
-                  className="col-small group-start"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'targOF'))}
-                >
-                  TGT
-                </th>
-                <th
-                  className="col-small group-end"
-                  style={sortableHeaderStyle}
-                  onClick={() => setPriorityPositionSort((s) => nextMatrixSort(s, 'actOF'))}
-                >
-                  ACT
-                </th>
+                    <th
+                      key={`${pos}-position`}
+                      className="col-small group-end"
+                      style={sortableHeaderStyle}
+                      onClick={() => setPriorityPlayerSort((s) => nextMatrixSort(s, positionKey))}
+                    >
+                      Act % Pos
+                    </th>
+                  </>
+                ))}
               </tr>
             </thead>
+
             <tbody>
-              {sortedPriorityPositionRows.map((row) => (
+              {sortedCombinedPriorityRows.map((row) => (
                 <tr key={row.playerId}>
                   <td className="sticky-col-1 col-player" style={{ textAlign: 'left' }}>
                     {row.name}
                   </td>
+
                   <td className="sticky-col-2 col-small" style={{ textAlign: 'center' }}>
                     {row.fieldTotal}
                   </td>
 
-                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targP}</td>
-                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actP}</td>
+                  <td className="col-small group-start">{row.targP}</td>
+                  <td className="col-small">{row.actP}</td>
+                  <td className="col-small group-end">{row.posActP}</td>
 
-                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targC}</td>
-                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actC}</td>
+                  <td className="col-small group-start">{row.targC}</td>
+                  <td className="col-small">{row.actC}</td>
+                  <td className="col-small group-end">{row.posActC}</td>
 
-                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ1B}</td>
-                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act1B}</td>
+                  <td className="col-small group-start">{row.targ1B}</td>
+                  <td className="col-small">{row.act1B}</td>
+                  <td className="col-small group-end">{row.posAct1B}</td>
 
-                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ2B}</td>
-                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act2B}</td>
+                  <td className="col-small group-start">{row.targ2B}</td>
+                  <td className="col-small">{row.act2B}</td>
+                  <td className="col-small group-end">{row.posAct2B}</td>
 
-                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targ3B}</td>
-                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.act3B}</td>
+                  <td className="col-small group-start">{row.targ3B}</td>
+                  <td className="col-small">{row.act3B}</td>
+                  <td className="col-small group-end">{row.posAct3B}</td>
 
-                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targSS}</td>
-                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actSS}</td>
+                  <td className="col-small group-start">{row.targSS}</td>
+                  <td className="col-small">{row.actSS}</td>
+                  <td className="col-small group-end">{row.posActSS}</td>
 
-                  <td className="col-small group-start" style={{ textAlign: 'center' }}>{row.targOF}</td>
-                  <td className="col-small group-end" style={{ textAlign: 'center' }}>{row.actOF}</td>
+                  <td className="col-small group-start">{row.targOF}</td>
+                  <td className="col-small">{row.actOF}</td>
+                  <td className="col-small group-end">{row.posActOF}</td>
                 </tr>
               ))}
             </tbody>
