@@ -474,7 +474,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
     const currentPlanRows = activePlayers
   .map((player) => {
     const id = pk(player.id)
-    const totals = currentBatchTotals?.[id] || {}
+    const totals = currentPlanTotalsWithRunning?.[id] || {}
 
     const getFitClass = (pos) => {
       const fit =
@@ -514,6 +514,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         ${td(totals.RF, 'RF')}
         ${td(totals.IF, 'IF')}
         ${td(totals.OF, 'OF')}
+        <td>${n(totals.sitOutRunningTotal)}</td>
       </tr>
     `
   })
@@ -566,6 +567,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
                   <th>RF</th>
                   <th>IF</th>
                   <th>OF</th>
+                  <th>Sit Run</th>
                 </tr>
               </thead>
               <tbody>${currentPlanRows}</tbody>
