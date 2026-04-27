@@ -185,12 +185,14 @@ export default function LineupFocusPanel(props) {
               onRemoveInning={(inning) =>
                 removePreviewInning(optimizerFocusGame.id, inning)
               }
-              onBattingLockToggle={(playerId) =>
+                            onBattingLockToggle={(playerId) => {
+                if (typeof togglePreviewBattingLock !== 'function') return
                 togglePreviewBattingLock(optimizerFocusGame.id, playerId)
-              }
-              onAllBattingLockToggle={() =>
+              }}
+              onAllBattingLockToggle={() => {
+                if (typeof togglePreviewAllBattingLock !== 'function') return
                 togglePreviewAllBattingLock(optimizerFocusGame.id)
-              }
+              }}
             />
           </div>
         </div>
