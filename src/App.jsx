@@ -877,17 +877,9 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     [lineupSetterFilteredTotals, currentBatchTotals, players]
   )
 
-    const lineupSetterFutureGamesWithLineups = useMemo(() => {
-    const previewGames = optimizerBatchGames.filter(
-      (game) => optimizerPreviewByGame[pk(game.id)]
-    )
-
-    return [...lineupSetterFilteredGamesWithLineups, ...previewGames]
-  }, [
-    lineupSetterFilteredGamesWithLineups,
-    optimizerBatchGames,
-    optimizerPreviewByGame,
-  ])
+      const lineupSetterFutureGamesWithLineups = useMemo(() => {
+    return [...lineupSetterFilteredGamesWithLineups, ...optimizerBatchGames]
+  }, [lineupSetterFilteredGamesWithLineups, optimizerBatchGames])
 
   const lineupSetterFutureSitSummary = useMemo(
     () =>
