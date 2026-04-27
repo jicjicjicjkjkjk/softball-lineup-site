@@ -1160,7 +1160,9 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             </div>
 
             <div className={`print-only coach-summary-print ${printMode === 'lineupSetter' ? 'show-print' : ''}`}>
-    {orderedPlanGames.map((game) => {
+  <div className="coach-summary-heading">Coach Lineup Summary</div>
+
+  {orderedPlanGames.map((game) => {
     const lineup =
       optimizerPreviewByGame[pk(game.id)] ||
       lineupsByGame[pk(game.id)]
@@ -1227,43 +1229,54 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
     )
   })}
 
-  <div className="print-current-plan">
-    <div className="coach-summary-heading">Current Plan</div>
+  <div className="print-plan-page">
+    <div className="print-title">
+      <span>Current Plan Totals</span>
+    </div>
 
-    <table className="coach-lineup-table">
+    <table className="coach-plan-table">
       <thead>
         <tr>
-          <th>Date</th>
-          <th>Order</th>
-          <th>Opponent</th>
-          <th>Type</th>
-          <th>Season</th>
-          <th>Innings</th>
-          <th>Req. Outs</th>
+          <th>Player</th>
+          <th>Games</th>
+          <th>Fld</th>
+          <th>Out</th>
+          <th>P</th>
+          <th>C</th>
+          <th>1B</th>
+          <th>2B</th>
+          <th>3B</th>
+          <th>SS</th>
+          <th>LF</th>
+          <th>CF</th>
+          <th>RF</th>
+          <th>IF</th>
+          <th>OF</th>
         </tr>
       </thead>
 
       <tbody>
-        {orderedPlanGames.map((game) => {
-          const lineup =
-            optimizerPreviewByGame[pk(game.id)] ||
-            lineupsByGame[pk(game.id)]
-
-          const effectiveInnings = Number(lineup?.innings || game.innings || 6)
-          const effectiveRequiredOuts = requiredOutsForGame(
-            (lineup?.availablePlayerIds || []).length,
-            effectiveInnings
-          )
+        {[...(activePlayers || [])].map((player) => {
+          const id = pk(player.id)
+          const t = currentBatchTotals?.[id] || {}
 
           return (
-            <tr key={`print-plan-${game.id}`}>
-              <td>{formatDateShort(game.date) || 'No Date'}</td>
-              <td>{game.game_order ?? ''}</td>
-              <td>{game.opponent || 'Opponent'}</td>
-              <td>{getOptionLabel(gameTypeOptions, game.game_type)}</td>
-              <td>{getOptionLabel(seasonOptions, game.season)}</td>
-              <td>{effectiveInnings}</td>
-              <td>{effectiveRequiredOuts}</td>
+            <tr key={id}>
+              <td>{player.name}</td>
+              <td>{Math.round(Number(t.games || 0))}</td>
+              <td>{Math.round(Number(t.fieldTotal || 0))}</td>
+              <td>{Math.round(Number(t.Out || 0))}</td>
+              <td>{Math.round(Number(t.P || 0))}</td>
+              <td>{Math.round(Number(t.C || 0))}</td>
+              <td>{Math.round(Number(t['1B'] || 0))}</td>
+              <td>{Math.round(Number(t['2B'] || 0))}</td>
+              <td>{Math.round(Number(t['3B'] || 0))}</td>
+              <td>{Math.round(Number(t.SS || 0))}</td>
+              <td>{Math.round(Number(t.LF || 0))}</td>
+              <td>{Math.round(Number(t.CF || 0))}</td>
+              <td>{Math.round(Number(t.RF || 0))}</td>
+              <td>{Math.round(Number(t.IF || 0))}</td>
+              <td>{Math.round(Number(t.OF || 0))}</td>
             </tr>
           )
         })}
