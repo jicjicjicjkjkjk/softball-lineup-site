@@ -1160,8 +1160,6 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             </div>
 
             <div className={`print-only coach-summary-print ${printMode === 'lineupSetter' ? 'show-print' : ''}`}>
-  <div className="coach-summary-heading">Coach Lineup Summary</div>
-
   {orderedPlanGames.map((game) => {
     const lineup =
       optimizerPreviewByGame[pk(game.id)] ||
@@ -1229,10 +1227,8 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
     )
   })}
 
-  <div className="print-plan-page">
-    <div className="print-title">
-      <span>Current Plan Totals</span>
-    </div>
+  <div className="coach-plan-page">
+    <div className="coach-plan-title">Current Plan</div>
 
     <table className="coach-plan-table">
       <thead>
@@ -1256,27 +1252,32 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
       </thead>
 
       <tbody>
-        {[...(activePlayers || [])].map((player) => {
+        {activePlayers.map((player) => {
           const id = pk(player.id)
-          const t = currentBatchTotals?.[id] || {}
+          const totals = currentPlanTotalsWithRunning?.[id] || {}
+
+          const n = (value) => {
+            const numberValue = Number(value || 0)
+            return Number.isNaN(numberValue) ? 0 : Math.round(numberValue)
+          }
 
           return (
             <tr key={id}>
               <td>{player.name}</td>
-              <td>{Math.round(Number(t.games || 0))}</td>
-              <td>{Math.round(Number(t.fieldTotal || 0))}</td>
-              <td>{Math.round(Number(t.Out || 0))}</td>
-              <td>{Math.round(Number(t.P || 0))}</td>
-              <td>{Math.round(Number(t.C || 0))}</td>
-              <td>{Math.round(Number(t['1B'] || 0))}</td>
-              <td>{Math.round(Number(t['2B'] || 0))}</td>
-              <td>{Math.round(Number(t['3B'] || 0))}</td>
-              <td>{Math.round(Number(t.SS || 0))}</td>
-              <td>{Math.round(Number(t.LF || 0))}</td>
-              <td>{Math.round(Number(t.CF || 0))}</td>
-              <td>{Math.round(Number(t.RF || 0))}</td>
-              <td>{Math.round(Number(t.IF || 0))}</td>
-              <td>{Math.round(Number(t.OF || 0))}</td>
+              <td>{n(totals.games)}</td>
+              <td>{n(totals.fieldTotal)}</td>
+              <td>{n(totals.Out)}</td>
+              <td>{n(totals.P)}</td>
+              <td>{n(totals.C)}</td>
+              <td>{n(totals['1B'])}</td>
+              <td>{n(totals['2B'])}</td>
+              <td>{n(totals['3B'])}</td>
+              <td>{n(totals.SS)}</td>
+              <td>{n(totals.LF)}</td>
+              <td>{n(totals.CF)}</td>
+              <td>{n(totals.RF)}</td>
+              <td>{n(totals.IF)}</td>
+              <td>{n(totals.OF)}</td>
             </tr>
           )
         })}
