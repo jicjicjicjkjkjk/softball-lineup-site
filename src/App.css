@@ -698,19 +698,7 @@ th {
 @media print {
   @page {
     size: letter portrait;
-    margin: 0.35in;
-  }
-
-  html,
-  body,
-  #root {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    min-height: 0 !important;
-    height: auto !important;
-    background: #fff !important;
-    overflow: visible !important;
+    margin: 0.3in;
   }
 
   body * {
@@ -724,53 +712,35 @@ th {
 
   .print-only.show-print {
     display: block !important;
-    position: fixed !important;
-    inset: 0 auto auto 0 !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
     width: 100% !important;
-    height: auto !important;
-    margin: 0 !important;
     padding: 0 !important;
-    background: #fff !important;
-    overflow: visible !important;
-  }
-
-  .app-shell,
-  .main-content,
-  .stack,
-  .card,
-  .table-scroll,
-  .tracking-scroll {
-    display: block !important;
-    width: auto !important;
-    min-width: 0 !important;
-    max-width: none !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
     margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    box-shadow: none !important;
-    border: 0 !important;
     background: #fff !important;
   }
 
   .print-game {
-    margin: 0 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 0 0 14px 0 !important;
     padding: 0 !important;
-    break-after: page;
-    page-break-after: always;
   }
 
-  .print-game:last-child {
+  .print-game:not(:last-child) {
     break-after: auto;
     page-break-after: auto;
   }
 
   .print-title {
-    font-size: 15px !important;
+    display: flex !important;
+    gap: 10px !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    font-size: 14px !important;
     font-weight: 800 !important;
-    margin: 0 0 8px 0 !important;
+    margin: 0 0 6px 0 !important;
     color: #1f2f46 !important;
   }
 
@@ -779,15 +749,16 @@ th {
     min-width: 0 !important;
     border-collapse: collapse !important;
     table-layout: fixed !important;
-    font-size: 10.5px !important;
+    font-size: 9.5px !important;
     background: #fff !important;
+    margin-bottom: 8px !important;
   }
 
   .coach-lineup-table th,
   .coach-lineup-table td {
-    border: 1.25px solid #111 !important;
-    padding: 3px 4px !important;
-    line-height: 1.05 !important;
+    border: 1px solid #111 !important;
+    padding: 2px 3px !important;
+    line-height: 1 !important;
     text-align: center !important;
     vertical-align: middle !important;
     color: #1f2f46 !important;
@@ -801,16 +772,17 @@ th {
 
   .coach-lineup-table th:nth-child(1),
   .coach-lineup-table td:nth-child(1) {
-    width: 42px !important;
+    width: 32px !important;
   }
 
   .coach-lineup-table th:nth-child(2),
   .coach-lineup-table td:nth-child(2) {
-    width: 92px !important;
+    width: 82px !important;
+    text-align: left !important;
   }
 
   .coach-lineup-table th:nth-child(3),
   .coach-lineup-table td:nth-child(3) {
-    width: 36px !important;
+    width: 28px !important;
   }
 }
