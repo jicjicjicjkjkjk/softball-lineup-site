@@ -393,7 +393,9 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
             <button
   onClick={() => {
-    const rows = orderedPlanGames
+    const n = (value) => Math.round(Number(value || 0))
+
+    const lineupPages = orderedPlanGames
       .map((game) => {
         const lineup = optimizerPreviewByGame[pk(game.id)] || lineupsByGame[pk(game.id)]
         if (!lineup || !lineup.innings) return ''
@@ -457,19 +459,31 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
       })
       .join('')
 
-    const planRows = orderedPlanGames
-      .map(
-        (game) => `
+    const currentPlanRows = activePlayers
+      .map((player) => {
+        const id = pk(player.id)
+        const totals = currentBatchTotals?.[id] || {}
+
+        return `
           <tr>
-            <td>${formatDateShort(game.date) || ''}</td>
-            <td>${game.game_order ?? ''}</td>
-            <td class="name">${game.opponent || 'Opponent'}</td>
-            <td>${getOptionLabel(gameTypeOptions, game.game_type)}</td>
-            <td>${getOptionLabel(seasonOptions, game.season)}</td>
-            <td>${game.innings || ''}</td>
+            <td class="name">${player.name}</td>
+            <td>${n(totals.games)}</td>
+            <td>${n(totals.fieldTotal)}</td>
+            <td>${n(totals.Out)}</td>
+            <td>${n(totals.P)}</td>
+            <td>${n(totals.C)}</td>
+            <td>${n(totals['1B'])}</td>
+            <td>${n(totals['2B'])}</td>
+            <td>${n(totals['3B'])}</td>
+            <td>${n(totals.SS)}</td>
+            <td>${n(totals.LF)}</td>
+            <td>${n(totals.CF)}</td>
+            <td>${n(totals.RF)}</td>
+            <td>${n(totals.IF)}</td>
+            <td>${n(totals.OF)}</td>
           </tr>
         `
-      )
+      })
       .join('')
 
     const html = `
@@ -483,27 +497,39 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             h1 { font-size: 18px; margin: 0 0 4px; }
             .subtitle { font-size: 12px; margin-bottom: 10px; font-weight: 700; }
             table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            th, td { border: 1px solid #111; padding: 5px; text-align: center; font-size: 12px; }
+            th, td { border: 1px solid #111; padding: 5px; text-align: center; font-size: 11px; }
             th { background: #e6f4f4; font-weight: 800; }
-            .name { text-align: left; width: 130px; }
+            .name { text-align: left; width: 110px; }
+            .plan-page { page-break-before: always; }
+            .plan-table th, .plan-table td { font-size: 9.5px; padding: 4px 3px; }
           </style>
         </head>
         <body>
-          ${rows}
-          <section>
+          ${lineupPages}
+
+          <section class="plan-page">
             <h1>Current Plan</h1>
-            <table>
+            <table class="plan-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Order</th>
-                  <th>Opponent</th>
-                  <th>Type</th>
-                  <th>Season</th>
-                  <th>Innings</th>
+                  <th>Player</th>
+                  <th>Games</th>
+                  <th>Fld</th>
+                  <th>Out</th>
+                  <th>P</th>
+                  <th>C</th>
+                  <th>1B</th>
+                  <th>2B</th>
+                  <th>3B</th>
+                  <th>SS</th>
+                  <th>LF</th>
+                  <th>CF</th>
+                  <th>RF</th>
+                  <th>IF</th>
+                  <th>OF</th>
                 </tr>
               </thead>
-              <tbody>${planRows}</tbody>
+              <tbody>${currentPlanRows}</tbody>
             </table>
           </section>
         </body>
