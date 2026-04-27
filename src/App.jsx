@@ -161,7 +161,13 @@ function getImportableGamesForGame(currentGameId) {
 function importLineupToPreview(targetGameId, sourceGameId) {
   if (!targetGameId || !sourceGameId) return
 
-  const sourceLineup = lineupsByGame[pk(sourceGameId)] || optimizerPreviewByGame[pk(sourceGameId)]
+  const targetGame = games.find((game) => pk(game.id) === pk(targetGameId))
+
+  const sourceLineup =
+    currentPlanLineupsByGame[pk(sourceGameId)] ||
+    lineupsByGame[pk(sourceGameId)] ||
+    optimizerPreviewByGame[pk(sourceGameId)]
+
   if (!sourceLineup) {
     setAppError('Selected source game does not have a lineup.')
     return
@@ -172,7 +178,12 @@ function importLineupToPreview(targetGameId, sourceGameId) {
   )
   if (!confirmed) return
 
-  const copied = JSON.parse(JSON.stringify(sourceLineup))
+  const copied = normalizeLineup(
+    JSON.parse(JSON.stringify(sourceLineup)),
+    players,
+    Number(targetGame?.innings || sourceLineup.innings || 6),
+    sourceLineup.availablePlayerIds || activePlayerIds()
+  )
 
   setOptimizerPreviewByGame((current) => ({
     ...current,
@@ -185,7 +196,13 @@ function importLineupToPreview(targetGameId, sourceGameId) {
 function importLineupToSaved(targetGameId, sourceGameId) {
   if (!targetGameId || !sourceGameId) return
 
-  const sourceLineup = lineupsByGame[pk(sourceGameId)] || optimizerPreviewByGame[pk(sourceGameId)]
+  const targetGame = games.find((game) => pk(game.id) === pk(targetGameId))
+
+  const sourceLineup =
+    currentPlanLineupsByGame[pk(sourceGameId)] ||
+    lineupsByGame[pk(sourceGameId)] ||
+    optimizerPreviewByGame[pk(sourceGameId)]
+
   if (!sourceLineup) {
     setAppError('Selected source game does not have a lineup.')
     return
@@ -196,7 +213,12 @@ function importLineupToSaved(targetGameId, sourceGameId) {
   )
   if (!confirmed) return
 
-  const copied = JSON.parse(JSON.stringify(sourceLineup))
+  const copied = normalizeLineup(
+    JSON.parse(JSON.stringify(sourceLineup)),
+    players,
+    Number(targetGame?.innings || sourceLineup.innings || 6),
+    sourceLineup.availablePlayerIds || activePlayerIds()
+  )
 
   setLineupsByGame((current) => ({
     ...current,
@@ -2034,11 +2056,12 @@ function toggleSavedAllBattingLock(gameId) {
     return
   }
 
-  async function toggleLineupLocked(gameId, nextLocked) {
+    async function toggleLineupLocked(gameId, nextLocked) {
+    const game = games.find((g) => pk(g.id) === pk(gameId))
+
     const currentLineup =
-      optimizerPreviewByGame[pk(gameId)] ||
-      lineupsByGame[pk(gameId)] ||
-      blankLineup(players.map((p) => p.id), 6, activePlayerIds())
+      currentPlanLineupsByGame[pk(gameId)] ||
+      blankLineup(players.map((p) => p.id), Number(game?.innings || 6), activePlayerIds())
 
     const ok = await persistLineup(gameId, currentLineup, nextLocked)
     if (!ok) return
