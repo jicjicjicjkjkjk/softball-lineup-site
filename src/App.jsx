@@ -2417,6 +2417,9 @@ function toggleSavedAllBattingLock(gameId) {
     filteredLineups={lineupSetterFilteredLineups}
     ytdBeforeTotals={lineupSetterFilteredTotals}
     currentBatchTotals={currentBatchTotals}
+    currentPlanSitOutRows={buildCumulativeSitOutRows(
+      buildPlayerSitOuts(optimizerBatchGames, optimizerPreviewByGame, activePlayers, pk)
+    )}
     ytdAfterTotals={lineupSetterFutureTotals}
     ytdBeforeSitOutRows={lineupSetterComputedSitRows}
     ytdAfterSitOutRows={lineupSetterFutureComputedSitRows}
