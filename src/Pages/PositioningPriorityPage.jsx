@@ -157,6 +157,10 @@ export default function PositioningPriorityPage({
               padding: 3px 8px;
               border: 1px solid #111;
             }
+                        .page-break {
+              page-break-before: always;
+              break-before: page;
+            }
           </style>
         </head>
 
@@ -187,6 +191,8 @@ export default function PositioningPriorityPage({
               </tr>
             </tfoot>
           </table>
+
+                <div class="page-break"></div>
 
           <h2>Allowed Positions</h2>
           <div class="legend">
