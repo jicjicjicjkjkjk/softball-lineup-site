@@ -514,7 +514,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         ${td(totals.RF, 'RF')}
         ${td(totals.IF, 'IF')}
         ${td(totals.OF, 'OF')}
-        <td>${n(totals.sitOutRunningTotal)}</td>
+        <td>${Number(totals.sitOutRunningTotal || 0).toFixed(2)}</td>
       </tr>
     `
   })
