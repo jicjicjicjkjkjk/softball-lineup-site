@@ -848,26 +848,18 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     return merged
   }, [lineupsByGame, optimizerPreviewByGame])
 
-    const currentPlanSitOutRows = useMemo(() => {
-    const allGamesInPlan = [
-      ...lineupSetterFilteredGamesWithLineups,
-      ...optimizerBatchGames,
-    ]
-
-    return buildCumulativeSitOutRows(
-      buildPlayerSitOuts(
-        allGamesInPlan,
-        currentPlanLineupsByGame,
-        activePlayers,
-        pk
-      )
-    )
-  }, [
-    lineupSetterFilteredGamesWithLineups,
-    optimizerBatchGames,
-    currentPlanLineupsByGame,
-    activePlayers,
-  ])
+      const currentPlanSitOutRows = useMemo(
+    () =>
+      buildCumulativeSitOutRows(
+        buildPlayerSitOuts(
+          optimizerBatchGames,
+          currentPlanLineupsByGame,
+          activePlayers,
+          pk
+        )
+      ),
+    [optimizerBatchGames, currentPlanLineupsByGame, activePlayers]
+  )
   
     const currentBatchTotals = useMemo(
     () =>
@@ -897,27 +889,17 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     optimizerPreviewByGame,
   ])
 
-  const lineupSetterFutureLineupsByGame = useMemo(() => {
-    const merged = { ...lineupsByGame }
-
-    Object.entries(optimizerPreviewByGame || {}).forEach(([gameId, lineup]) => {
-      if (lineup) merged[pk(gameId)] = lineup
-    })
-
-    return merged
-  }, [lineupsByGame, optimizerPreviewByGame])
-
   const lineupSetterFutureSitSummary = useMemo(
     () =>
       buildSitOutSummary(
         lineupSetterFutureGamesWithLineups,
-        lineupSetterFutureLineupsByGame,
+        currentPlanLineupsByGame,
         activePlayers,
         pk
       ),
     [
       lineupSetterFutureGamesWithLineups,
-      lineupSetterFutureLineupsByGame,
+      currentPlanLineupsByGame,
       activePlayers,
     ]
   )
@@ -926,13 +908,13 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     () =>
       buildPlayerSitOuts(
         lineupSetterFutureGamesWithLineups,
-        lineupSetterFutureLineupsByGame,
+        currentPlanLineupsByGame,
         activePlayers,
         pk
       ),
     [
       lineupSetterFutureGamesWithLineups,
-      lineupSetterFutureLineupsByGame,
+      currentPlanLineupsByGame,
       activePlayers,
     ]
   )
