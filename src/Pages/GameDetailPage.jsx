@@ -76,7 +76,7 @@ export default function GameDetailPage({
     )
   }
 
-  const visibleIds = selectedLineup?.availablePlayerIds || activePlayerIds()
+  const visibleIds = selectedLineup?.availablePlayerIds || activePlayerIds?.() || []
 
   const orderedGamesDesc = [...(games || [])].sort((a, b) =>
     compareGamesDescLocal(a, b, pk)
@@ -170,7 +170,10 @@ export default function GameDetailPage({
                   Add Inning
                 </button>
 
-                <button type="button" onClick={handleToggleLock}>
+                <button
+  type="button"
+  onClick={() => handleToggleLock()}
+>
   {selectedLocked ? 'Unlock' : 'Lock'}
 </button>
 
