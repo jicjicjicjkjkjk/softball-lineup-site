@@ -488,10 +488,15 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
     }
 
     const td = (value, pos) => {
-      const v = n(value)
-      if (!pos || v === 0) return `<td>${v}</td>`
-      return `<td class="${getFitClass(pos)}">${v}</td>`
-    }
+  const v = n(value)
+
+  // DO NOT color IF / OF
+  if (!pos || v === 0 || pos === 'IF' || pos === 'OF') {
+    return `<td>${v}</td>`
+  }
+
+  return `<td class="${getFitClass(pos)}">${v}</td>`
+}
 
     return `
       <tr>
