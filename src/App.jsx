@@ -27,6 +27,7 @@ import {
   buildPlayerSitOuts,
   buildPositionByPlayer,
 } from './lib/appHelpers'
+import { formatGameLabel } from './lib/gameLabels'
 import PlayersPage from './Pages/PlayersPage'
 import PositioningPriorityPage from './Pages/PositioningPriorityPage'
 import GameDetailPage from './Pages/GameDetailPage'
@@ -831,7 +832,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     [lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers]
   )
 
-    const lineupSetterComputedSitRows = useMemo(() => {
+      const lineupSetterComputedSitRows = useMemo(() => {
     return (lineupSetterSitByPlayer || []).map((row) => {
       let runningTotal = 0
 
@@ -844,16 +845,16 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         if (Number.isNaN(playerOuts)) return 'x'
 
         runningTotal += playerOuts
-        return runningTotal
+        return Number(runningTotal.toFixed(2))
       })
 
       return {
         ...row,
+        deltaPerGame: row.perGame,
         running,
-        sitOutRunningTotal:
-          running.length && running[running.length - 1] !== 'x'
-            ? running[running.length - 1]
-            : 0,
+        sitOutRunningTotal: running
+          .filter((value) => value !== 'x')
+          .at(-1) ?? 0,
       }
     })
   }, [lineupSetterSitByPlayer])
@@ -924,7 +925,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     ]
   )
 
-    const lineupSetterFutureComputedSitRows = useMemo(() => {
+      const lineupSetterFutureComputedSitRows = useMemo(() => {
     return (lineupSetterFutureSitByPlayer || []).map((row) => {
       let runningTotal = 0
 
@@ -937,16 +938,16 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         if (Number.isNaN(playerOuts)) return 'x'
 
         runningTotal += playerOuts
-        return runningTotal
+        return Number(runningTotal.toFixed(2))
       })
 
       return {
         ...row,
+        deltaPerGame: row.perGame,
         running,
-        sitOutRunningTotal:
-          running.length && running[running.length - 1] !== 'x'
-            ? running[running.length - 1]
-            : 0,
+        sitOutRunningTotal: running
+          .filter((value) => value !== 'x')
+          .at(-1) ?? 0,
       }
     })
   }, [lineupSetterFutureSitByPlayer])
@@ -1720,14 +1721,6 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     })
   }
 
-  function formatGameLabel(game) {
-    if (!game) return 'this game'
-
-    const date = game.date || ''
-    const opponent = game.opponent || 'Opponent'
-
-    return `${date || 'No Date'} vs ${opponent}`
-  }
   
     function togglePreviewAvailable(gameId, playerId) {
     const id = pk(playerId)
