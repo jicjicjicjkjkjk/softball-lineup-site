@@ -482,30 +482,20 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         (['LF', 'CF', 'RF'].includes(pos) ? fitByPlayer?.[id]?.OF : '') ||
         ''
 
-      if (fit === 'primary' || fit === 'A') return 'primary'
+       if (fit === 'primary' || fit === 'A') return 'primary'
       if (fit === 'secondary' || fit === 'B' || fit === 'C') return 'secondary'
       return 'not-allowed'
     }
 
     const td = (value, pos) => {
-  const v = n(value)
+      const v = n(value)
 
-  // 🚫 Do NOT color IF / OF
-  if (!pos || v === 0 || pos === 'IF' || pos === 'OF') {
-    return `<td>${v}</td>`
-  }
+      if (!pos || v === 0 || pos === 'IF' || pos === 'OF') {
+        return `<td>${v}</td>`
+      }
 
-  return `<td class="${getFitClass(pos)}">${v}</td>`
-}
-  const v = n(value)
-
-  // DO NOT color IF / OF
-  if (!pos || v === 0 || pos === 'IF' || pos === 'OF') {
-    return `<td>${v}</td>`
-  }
-
-  return `<td class="${getFitClass(pos)}">${v}</td>`
-}
+      return `<td class="${getFitClass(pos)}">${v}</td>`
+    }
 
     return `
       <tr>
