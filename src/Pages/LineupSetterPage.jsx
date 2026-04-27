@@ -520,6 +520,105 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   })
   .join('')
 
+    const pct = (numerator, denominator) => {
+      const n = Number(numerator || 0)
+      const d = Number(denominator || 0)
+      if (!n || !d) return ''
+      return Number(((n / d) * 100).toFixed(1))
+    }
+
+    const priorityTargetByPlayer = Object.fromEntries(
+      (trackingPriorityRows || []).map((row) => [pk(row.playerId), row])
+    )
+
+    const priorityPositions = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
+
+    const priorityPlayerRowsHtml = activePlayers
+      .map((player) => {
+        const id = pk(player.id)
+        const totals = currentBatchTotals?.[id] || {}
+        const target = priorityTargetByPlayer[id] || {}
+        const fieldTotal = Number(totals.fieldTotal || 0)
+
+        return `
+          <tr>
+            <td class="name">${player.name}</td>
+            <td>${n(fieldTotal)}</td>
+            ${priorityPositions
+              .map((pos) => {
+                const targetKey = `targ${pos}`
+                const totalValue = totals[pos] || 0
+                return `
+                  <td>${target[targetKey] || ''}</td>
+                  <td>${pct(totalValue, fieldTotal)}</td>
+                `
+              })
+              .join('')}
+          </tr>
+        `
+      })
+      .join('')
+
+    const currentPlanPositionTotals = Object.fromEntries(
+      priorityPositions.map((pos) => [
+        pos,
+        activePlayers.reduce((sum, player) => {
+          const id = pk(player.id)
+          return sum + Number(currentBatchTotals?.[id]?.[pos] || 0)
+        }, 0),
+      ])
+    )
+
+    const priorityPositionRowsHtml = activePlayers
+      .map((player) => {
+        const id = pk(player.id)
+        const totals = currentBatchTotals?.[id] || {}
+        const target = priorityTargetByPlayer[id] || {}
+
+        return `
+          <tr>
+            <td class="name">${player.name}</td>
+            <td>${n(totals.fieldTotal)}</td>
+            ${priorityPositions
+              .map((pos) => {
+                const targetKey = `targ${pos}`
+                const totalValue = totals[pos] || 0
+                return `
+                  <td>${target[targetKey] || ''}</td>
+                  <td>${pct(totalValue, currentPlanPositionTotals[pos])}</td>
+                `
+              })
+              .join('')}
+          </tr>
+        `
+      })
+      .join('')
+
+    const priorityHeaderHtml = `
+      <thead>
+        <tr>
+          <th rowspan="2">Player</th>
+          <th rowspan="2">Fld</th>
+          <th colspan="2">P</th>
+          <th colspan="2">C</th>
+          <th colspan="2">1B</th>
+          <th colspan="2">2B</th>
+          <th colspan="2">3B</th>
+          <th colspan="2">SS</th>
+          <th colspan="2">OF</th>
+        </tr>
+        <tr>
+          <th>TGT</th><th>ACT</th>
+          <th>TGT</th><th>ACT</th>
+          <th>TGT</th><th>ACT</th>
+          <th>TGT</th><th>ACT</th>
+          <th>TGT</th><th>ACT</th>
+          <th>TGT</th><th>ACT</th>
+          <th>TGT</th><th>ACT</th>
+        </tr>
+      </thead>
+    `
+    
     const html = `
       <html>
         <head>
@@ -542,6 +641,19 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             .plan-table td.primary { background: #dcfce7; font-weight: 700; }
             .plan-table td.secondary { background: #fef9c3; }
             .plan-table td.not-allowed { background: #fee2e2; }
+                        .priority-page { page-break-before: always; }
+            .priority-print-table { margin-bottom: 18px; }
+            .priority-print-table th,
+            .priority-print-table td {
+              font-size: 8.5px;
+              padding: 3px 2px;
+            }
+            .priority-print-table th {
+              background: #e6f4f4;
+            }
+            .second-priority-title {
+              margin-top: 16px;
+            }
           </style>
         </head>
         <body>
@@ -571,6 +683,20 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
                 </tr>
               </thead>
               <tbody>${currentPlanRows}</tbody>
+            </table>
+                    </section>
+
+          <section class="priority-page">
+            <h1>Current Plan — Tracking by Positioning by Priority - Player</h1>
+            <table class="priority-print-table">
+              ${priorityHeaderHtml}
+              <tbody>${priorityPlayerRowsHtml}</tbody>
+            </table>
+
+            <h1 class="second-priority-title">Current Plan — Tracking by Positioning by Priority - Position</h1>
+            <table class="priority-print-table">
+              ${priorityHeaderHtml}
+              <tbody>${priorityPositionRowsHtml}</tbody>
             </table>
           </section>
         </body>
