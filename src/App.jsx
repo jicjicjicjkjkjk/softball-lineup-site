@@ -861,9 +861,9 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   )
 
         const lineupSetterComputedSitRows = useMemo(
-    () => buildCumulativeSitOutRows(lineupSetterSitByPlayer),
-    [lineupSetterSitByPlayer]
-  )
+  () => buildCumulativeSitOutRows(lineupSetterSitByPlayer, lineupSetterSitSummary),
+  [lineupSetterSitByPlayer, lineupSetterSitSummary]
+)
 
     const currentPlanLineupsByGame = useMemo(() => {
     const merged = { ...lineupsByGame }
@@ -878,13 +878,19 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       const currentPlanSitOutRows = useMemo(
     () =>
       buildCumulativeSitOutRows(
-        buildPlayerSitOuts(
-          optimizerBatchGames,
-          currentPlanLineupsByGame,
-          activePlayers,
-          pk
-        )
-      ),
+  buildPlayerSitOuts(
+    optimizerBatchGames,
+    currentPlanLineupsByGame,
+    activePlayers,
+    pk
+  ),
+  buildSitOutSummary(
+    optimizerBatchGames,
+    currentPlanLineupsByGame,
+    activePlayers,
+    pk
+  )
+),
     [optimizerBatchGames, currentPlanLineupsByGame, activePlayers]
   )
   
@@ -939,9 +945,9 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   )
 
         const lineupSetterFutureComputedSitRows = useMemo(
-    () => buildCumulativeSitOutRows(lineupSetterFutureSitByPlayer),
-    [lineupSetterFutureSitByPlayer]
-  )
+  () => buildCumulativeSitOutRows(lineupSetterFutureSitByPlayer, lineupSetterFutureSitSummary),
+  [lineupSetterFutureSitByPlayer, lineupSetterFutureSitSummary]
+)
   
   const lockedLineupsOnly = useMemo(() => {
     return Object.entries(lineupsByGame)
