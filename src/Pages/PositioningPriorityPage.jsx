@@ -241,7 +241,7 @@ export default function PositioningPriorityPage({
             </button>
           </div>
 
-          <table className="table-center" style={{ tableLayout: 'fixed' }}>
+          <table className="table-center positioning-priority-table" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th onClick={() => setPrioritySort(nextSort(prioritySort, 'name'))}>Player</th>
@@ -292,7 +292,7 @@ export default function PositioningPriorityPage({
       <div className="card">
         <div className="table-scroll">
           <h3>Allowed Positions</h3>
-          <table className="table-center" style={{ tableLayout: 'fixed' }}>
+          <table className="table-center positioning-priority-table allowed-position-table" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th onClick={() => setAllowedSort(nextSort(allowedSort, 'name'))}>Player</th>
