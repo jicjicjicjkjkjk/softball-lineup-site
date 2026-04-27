@@ -804,14 +804,33 @@ th {
     width: 30px !important;
   }
 
+    .print-plan-page,
   .coach-plan-page {
+    page-break-before: always !important;
+    break-before: page !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  .coach-plan-title {
+  .coach-plan-title,
+  .print-plan-page .print-title {
     font-size: 16px !important;
     font-weight: 800 !important;
     margin: 0 0 10px 0 !important;
+  }
+
+  .coach-plan-table {
+    font-size: 9px !important;
+  }
+
+  .coach-plan-table th,
+  .coach-plan-table td {
+    padding: 3px 2px !important;
+  }
+
+  .coach-plan-table th:first-child,
+  .coach-plan-table td:first-child {
+    width: 82px !important;
+    text-align: left !important;
   }
 }
