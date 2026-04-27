@@ -748,10 +748,19 @@ useEffect(() => {
     [selectedGame, lineupsByGame]
   )
 
-  const selectedLocked = useMemo(
-    () => (selectedGame ? lineupLockedByGame[pk(selectedGame.id)] === true : false),
-    [selectedGame, lineupLockedByGame]
-  )
+  const selectedLocked = useMemo(() => {
+  if (!selectedGame) return false
+
+  const id = pk(selectedGame.id)
+
+  // If explicitly locked → locked
+  if (lineupLockedByGame[id] === true) return true
+
+  // If lineup exists but no lock state yet → treat as locked
+  if (lineupsByGame[id]) return true
+
+  return false
+}, [selectedGame, lineupLockedByGame, lineupsByGame])
 
   
   const sortedPlayers = useMemo(() => {
