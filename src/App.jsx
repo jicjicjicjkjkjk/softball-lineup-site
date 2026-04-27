@@ -81,7 +81,6 @@ export default function App() {
   const [optimizerPreviewByGame, setOptimizerPreviewByGame] = useState({})
   const [optimizerPlanSitOutTargets, setOptimizerPlanSitOutTargets] = useState({})
   const [lineupSetterStateLoaded, setLineupSetterStateLoaded] = useState(false)
-  const [lineupSetterStateLoaded, setLineupSetterStateLoaded] = useState(false)
   
   const [newGameDate, setNewGameDate] = useState('')
   const [newGameOpponent, setNewGameOpponent] = useState('')
@@ -633,33 +632,6 @@ if (savedBatchIds.length) {
 
 setLineupSetterStateLoaded(true)
 
-      const lineupSetterStateRes = await supabase
-        .from('lineup_setter_state')
-        .select('batch_game_ids, focus_game_id')
-        .eq('team_id', TEAM_ID)
-        .maybeSingle()
-
-      if (!lineupSetterStateRes.error && lineupSetterStateRes.data) {
-        const savedIds = Array.isArray(lineupSetterStateRes.data.batch_game_ids)
-          ? lineupSetterStateRes.data.batch_game_ids.map(pk)
-          : []
-
-        const validIds = savedIds.filter((gameId) =>
-          loadedGames.some((game) => pk(game.id) === pk(gameId))
-        )
-
-        setOptimizerBatchGameIds(validIds)
-
-        if (
-          lineupSetterStateRes.data.focus_game_id &&
-          validIds.includes(pk(lineupSetterStateRes.data.focus_game_id))
-        ) {
-          setOptimizerFocusGameId(pk(lineupSetterStateRes.data.focus_game_id))
-          setOptimizerExistingGameId(pk(lineupSetterStateRes.data.focus_game_id))
-        }
-      }
-
-      setLineupSetterStateLoaded(true)
     } catch (error) {
       setAppError(error.message || 'Failed to load data.')
     } finally {
@@ -863,29 +835,6 @@ useEffect(() => {
     [games, optimizerBatchGameIds]
   )
 
-  useEffect(() => {
-    if (!lineupSetterStateLoaded) return
-
-    async function saveLineupSetterState() {
-      const batchGameIds = optimizerBatchGameIds.map(pk)
-
-      const { error } = await supabase
-        .from('lineup_setter_state')
-        .upsert({
-          team_id: TEAM_ID,
-          batch_game_ids: batchGameIds,
-          focus_game_id: optimizerFocusGameId || null,
-          updated_at: new Date().toISOString(),
-        })
-
-      if (error) {
-        console.error('Failed to save lineup setter state', error)
-      }
-    }
-
-    saveLineupSetterState()
-  }, [lineupSetterStateLoaded, optimizerBatchGameIds, optimizerFocusGameId])
-  
   const optimizerFocusGame = useMemo(
     () => games.find((game) => pk(game.id) === pk(optimizerFocusGameId)) || null,
     [games, optimizerFocusGameId]
