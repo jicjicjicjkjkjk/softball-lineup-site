@@ -1310,32 +1310,3 @@
   min-width: 58px !important;
   max-width: 58px !important;
 }
-
-
-/* FINAL priority combined table cleanup */
-.priority-combined-table {
-  table-layout: fixed !important;
-}
-
-.priority-combined-table th,
-.priority-combined-table td {
-  white-space: normal !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-}
-
-.priority-combined-table .priority-wrap-header {
-  width: 58px !important;
-  min-width: 58px !important;
-  max-width: 58px !important;
-  font-size: 10px !important;
-  line-height: 1.05 !important;
-  padding: 4px 2px !important;
-  overflow-wrap: anywhere !important;
-}
-
-.priority-combined-table .col-small {
-  width: 58px !important;
-  min-width: 58px !important;
-  max-width: 58px !important;
-}
