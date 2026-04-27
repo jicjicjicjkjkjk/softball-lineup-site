@@ -106,18 +106,10 @@ export function printGameDetail({
             margin-bottom: 12px;
           }
 
-          .logo-mark {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #111827;
-            color: #38bdf8;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 26px;
-            font-weight: 900;
-            border: 3px solid #3c817d;
+          .logo-img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
           }
 
           .brand-title {
@@ -217,7 +209,7 @@ export function printGameDetail({
         <!-- PAGE 1 -->
         <section class="print-page">
           <div class="brand-header">
-            <div class="logo-mark">T</div>
+            <img src="/thunder-logo.png" class="logo-img" />
             <div>
               <div class="brand-title">Thunder Game Lineup</div>
               <div class="brand-subtitle">Arlington Heights Thunder 12U Teal</div>
@@ -242,7 +234,7 @@ export function printGameDetail({
         <!-- PAGE 2 -->
         <section class="print-page">
           <div class="brand-header">
-            <div class="logo-mark">T</div>
+            <img src="/thunder-logo.png" class="logo-img" />
             <div>
               <div class="lineup-card-title">Official Lineup Card</div>
               <div class="brand-subtitle">Arlington Heights Thunder 12U Teal</div>
