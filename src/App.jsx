@@ -212,6 +212,7 @@ function clearLineupContents(lineup) {
   Object.keys(next.cells || {}).forEach((playerId) => {
     for (let inning = 1; inning <= Number(next.innings || 0); inning += 1) {
       next.cells[playerId][inning] = ''
+
       if (!next.lockedCells[playerId]) next.lockedCells[playerId] = {}
       next.lockedCells[playerId][inning] = false
     }
@@ -223,6 +224,14 @@ function clearLineupContents(lineup) {
 
   Object.keys(next.lockedRows || {}).forEach((playerId) => {
     next.lockedRows[playerId] = false
+  })
+
+  Object.keys(next.lockedBattingOrder || {}).forEach((playerId) => {
+    next.lockedBattingOrder[playerId] = false
+  })
+
+  Object.keys(next.lockedInnings || {}).forEach((inning) => {
+    next.lockedInnings[inning] = false
   })
 
   return next
@@ -1500,8 +1509,11 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     }))
   }
 
-  function removeBatchGame(gameId) {
+    function removeBatchGame(gameId) {
     setOptimizerBatchGameIds((current) => current.filter((id) => pk(id) !== pk(gameId)))
+
+    if (lineupsByGame[pk(gameId)]) return
+
     setOptimizerPreviewByGame((current) => {
       const next = { ...current }
       delete next[pk(gameId)]
