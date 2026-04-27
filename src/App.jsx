@@ -184,12 +184,10 @@ function importLineupToPreview(targetGameId, sourceGameId) {
     sourceLineup.availablePlayerIds || activePlayerIds()
   )
 
-  setOptimizerPreviewByGame((current) => ({
+    setOptimizerPreviewByGame((current) => ({
     ...current,
     [pk(targetGameId)]: copied,
   }))
-
-  persistLineup(targetGameId, copied)
 }
 
 function importLineupToSaved(targetGameId, sourceGameId) {
