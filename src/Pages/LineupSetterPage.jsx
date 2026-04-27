@@ -1092,6 +1092,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   setSitOutTargets={setOptimizerPlanSitOutTargets}
   fitByPlayer={fitByPlayer}
   enableFitColors={true}
+  forceNotAllowedRed={true}
   planSitOutSummary={{
     totalNeeded,
     totalAssigned,
