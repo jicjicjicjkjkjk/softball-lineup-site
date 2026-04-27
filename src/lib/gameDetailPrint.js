@@ -23,9 +23,6 @@ export function printGameDetail({
       return aOrder - bOrder
     })
 
-  const fullName = (player) =>
-    [player.name, player.last_name].filter(Boolean).join(' ').trim()
-
   const gameDate = formatDateShort(selectedGame?.date) || 'No Date'
   const opponent = selectedGame?.opponent || 'Opponent'
   const gameTime = selectedGame?.game_time || selectedGame?.time || ''
@@ -65,7 +62,8 @@ export function printGameDetail({
         <tr>
           <td>${htmlEscape(selectedLineup?.battingOrder?.[id] || '')}</td>
           <td>${htmlEscape(player.jersey_number || '')}</td>
-          <td class="lineup-name">${htmlEscape(fullName(player))}</td>
+          <td class="first">${htmlEscape(player.name || '')}</td>
+          <td class="last">${htmlEscape(player.last_name || '')}</td>
           <td></td>
         </tr>
       `
@@ -79,14 +77,12 @@ export function printGameDetail({
         <style>
           @page {
             size: letter portrait;
-            margin: 0.3in;
+            margin: 0.35in;
           }
 
-          html,
-          body {
+          html, body {
             margin: 0;
             padding: 0;
-            background: #ffffff;
           }
 
           body {
@@ -95,75 +91,64 @@ export function printGameDetail({
           }
 
           .print-page {
-            break-after: page;
             page-break-after: always;
           }
 
           .print-page:last-child {
-            break-after: auto;
             page-break-after: auto;
           }
 
+          /* HEADER */
           .brand-header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 14px;
-            margin-bottom: 10px;
-          }
-
-          .brand-left {
-            display: flex;
-            align-items: center;
             gap: 12px;
+            margin-bottom: 12px;
           }
 
           .logo-mark {
-            width: 52px;
-            height: 52px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             background: #111827;
             color: #38bdf8;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 900;
-            border: 4px solid #3c817d;
+            border: 3px solid #3c817d;
           }
 
           .brand-title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 900;
-            margin: 0;
             line-height: 1.1;
           }
 
           .brand-subtitle {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             color: #3c817d;
-            margin-top: 2px;
           }
 
           h1 {
-            font-size: 18px;
+            font-size: 16px;
             margin: 0 0 10px;
           }
 
+          /* TABLE */
           table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
           }
 
-          th,
-          td {
+          th, td {
             border: 1px solid #111;
-            padding: 5px;
+            padding: 4px;
             text-align: center;
-            font-size: 11px;
-            line-height: 1.15;
+            font-size: 10.5px;
           }
 
           th {
@@ -171,74 +156,52 @@ export function printGameDetail({
             font-weight: 800;
           }
 
-          .position-table th:nth-child(1),
-          .position-table td:nth-child(1) {
-            width: 34px;
-          }
-
-          .position-table th:nth-child(2),
-          .position-table td:nth-child(2) {
-            width: 110px;
-          }
-
-          .position-table th:nth-child(3),
-          .position-table td:nth-child(3) {
-            width: 34px;
-          }
-
           .name {
             text-align: left;
           }
 
+          /* LINEUP CARD */
           .lineup-card-title {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 900;
-            margin: 0 0 10px;
+            margin-bottom: 8px;
           }
 
           .lineup-meta {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px 28px;
-            margin-bottom: 12px;
-            font-size: 13px;
-          }
-
-          .lineup-meta div {
-            white-space: nowrap;
+            gap: 6px 20px;
+            margin-bottom: 10px;
+            font-size: 12px;
           }
 
           .lineup-card-table th {
             background: #111;
             color: #fff;
-            font-size: 12px;
+            font-size: 11px;
           }
 
           .lineup-card-table td {
-            font-size: 12px;
-            padding: 6px 5px;
+            font-size: 11px;
+            padding: 5px;
           }
 
-          .lineup-card-table th:nth-child(1),
-          .lineup-card-table td:nth-child(1) {
-            width: 52px;
-          }
-
-          .lineup-card-table th:nth-child(2),
-          .lineup-card-table td:nth-child(2) {
-            width: 60px;
-          }
-
-          .lineup-name {
+          .first {
             text-align: left;
-            width: 260px;
+            width: 130px;
           }
 
+          .last {
+            text-align: left;
+            width: 140px;
+          }
+
+          /* SIGNATURE */
           .signature-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 90px;
-            margin-top: 34px;
+            gap: 80px;
+            margin-top: 28px;
             font-size: 12px;
             text-align: center;
           }
@@ -251,20 +214,19 @@ export function printGameDetail({
       </head>
 
       <body>
+        <!-- PAGE 1 -->
         <section class="print-page">
           <div class="brand-header">
-            <div class="brand-left">
-              <div class="logo-mark">T</div>
-              <div>
-                <div class="brand-title">Thunder Game Lineup</div>
-                <div class="brand-subtitle">Arlington Heights Thunder 12U Teal</div>
-              </div>
+            <div class="logo-mark">T</div>
+            <div>
+              <div class="brand-title">Thunder Game Lineup</div>
+              <div class="brand-subtitle">Arlington Heights Thunder 12U Teal</div>
             </div>
           </div>
 
           <h1>${htmlEscape(gameDate)} vs ${htmlEscape(opponent)}</h1>
 
-          <table class="position-table">
+          <table>
             <thead>
               <tr>
                 <th>Bat</th>
@@ -277,14 +239,13 @@ export function printGameDetail({
           </table>
         </section>
 
+        <!-- PAGE 2 -->
         <section class="print-page">
           <div class="brand-header">
-            <div class="brand-left">
-              <div class="logo-mark">T</div>
-              <div>
-                <div class="lineup-card-title">Official Lineup Card</div>
-                <div class="brand-subtitle">Arlington Heights Thunder 12U Teal</div>
-              </div>
+            <div class="logo-mark">T</div>
+            <div>
+              <div class="lineup-card-title">Official Lineup Card</div>
+              <div class="brand-subtitle">Arlington Heights Thunder 12U Teal</div>
             </div>
           </div>
 
@@ -292,7 +253,7 @@ export function printGameDetail({
             <div><strong>Team:</strong> Thunder</div>
             <div><strong>Date:</strong> ${htmlEscape(gameDate)}</div>
             <div><strong>Opponent:</strong> ${htmlEscape(opponent)}</div>
-            <div><strong>Game Time:</strong> ${htmlEscape(gameTime || '__________')}</div>
+            <div><strong>Time:</strong> ${htmlEscape(gameTime || '__________')}</div>
           </div>
 
           <table class="lineup-card-table">
@@ -300,7 +261,8 @@ export function printGameDetail({
               <tr>
                 <th>Bat</th>
                 <th>#</th>
-                <th>Name (First + Last)</th>
+                <th>First Name</th>
+                <th>Last Name</th>
                 <th>Position</th>
               </tr>
             </thead>
@@ -308,7 +270,7 @@ export function printGameDetail({
           </table>
 
           <div class="signature-row">
-            <div class="signature-line">Coach Signature</div>
+            <div class="signature-line">Coach</div>
             <div class="signature-line">Umpire</div>
           </div>
         </section>
