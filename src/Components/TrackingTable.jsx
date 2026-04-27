@@ -115,12 +115,18 @@ export default function TrackingTable({
           sitOutRunningByPlayer[id] !== undefined
             ? safeNumber(sitOutRunningByPlayer[id])
             : safeNumber(t.sitOutRunningTotal),
-        extraRunningTotals: Object.fromEntries(
-          (extraRunningTotals || []).map((item) => [
-            item.key,
-            safeNumber(item.totals?.[id]?.sitOutRunningTotal),
-          ])
-        ),
+        ...Object.fromEntries(
+  (extraRunningTotals || []).map((item) => [
+    item.key,
+    safeNumber(item.totals?.[id]?.sitOutRunningTotal),
+  ])
+),
+extraRunningTotals: Object.fromEntries(
+  (extraRunningTotals || []).map((item) => [
+    item.key,
+    safeNumber(item.totals?.[id]?.sitOutRunningTotal),
+  ])
+),
         P: safeNumber(t.P),
         C: safeNumber(t.C),
         '1B': safeNumber(t['1B']),
@@ -192,10 +198,13 @@ export default function TrackingTable({
             )}
 
             {(extraRunningTotals || []).map((item) => (
-              <th key={item.key}>
-                {item.label}
-              </th>
-            ))}
+  <th
+    key={item.key}
+    onClick={() => setSortConfig(nextSort(sortConfig, item.key))}
+  >
+    {item.label}
+  </th>
+))}
           </tr>
         </thead>
 
