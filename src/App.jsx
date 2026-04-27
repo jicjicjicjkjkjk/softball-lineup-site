@@ -163,10 +163,9 @@ function importLineupToPreview(targetGameId, sourceGameId) {
 
   const targetGame = games.find((game) => pk(game.id) === pk(targetGameId))
 
-  const sourceLineup =
-    currentPlanLineupsByGame[pk(sourceGameId)] ||
-    lineupsByGame[pk(sourceGameId)] ||
-    optimizerPreviewByGame[pk(sourceGameId)]
+    const sourceLineup =
+    optimizerPreviewByGame[pk(sourceGameId)] ||
+    lineupsByGame[pk(sourceGameId)]
 
   if (!sourceLineup) {
     setAppError('Selected source game does not have a lineup.')
@@ -198,10 +197,9 @@ function importLineupToSaved(targetGameId, sourceGameId) {
 
   const targetGame = games.find((game) => pk(game.id) === pk(targetGameId))
 
-  const sourceLineup =
-    currentPlanLineupsByGame[pk(sourceGameId)] ||
-    lineupsByGame[pk(sourceGameId)] ||
-    optimizerPreviewByGame[pk(sourceGameId)]
+    const sourceLineup =
+    optimizerPreviewByGame[pk(sourceGameId)] ||
+    lineupsByGame[pk(sourceGameId)]
 
   if (!sourceLineup) {
     setAppError('Selected source game does not have a lineup.')
