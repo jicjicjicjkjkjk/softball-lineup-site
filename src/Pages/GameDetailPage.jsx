@@ -1,19 +1,7 @@
 // FILE: src/Pages/GameDetailPage.jsx
 
-import { useEffect, useState } from 'react'
 import { formatDateShort } from '../lib/appHelpers'
-
-function renderOptionLabel(option) {
-  if (!option) return ''
-  if (typeof option === 'string') return option
-  return option.label || option.value || ''
-}
-
-function renderOptionValue(option) {
-  if (!option) return ''
-  if (typeof option === 'string') return option
-  return option.value || option.label || ''
-}
+import { printGameDetail } from '../lib/gameDetailPrint'
 
 function compareGamesDescLocal(a, b, pk) {
   const aDate = a?.date || ''
@@ -25,20 +13,6 @@ function compareGamesDescLocal(a, b, pk) {
   if (aOrder !== bOrder) return bOrder - aOrder
 
   return String(pk(b?.id)).localeCompare(String(pk(a?.id)))
-}
-
-function getPrintRows(players, lineup, pk) {
-  if (!lineup) return []
-
-  const availableIds = new Set((lineup?.availablePlayerIds || []).map(pk))
-
-  return [...(players || [])]
-    .filter((player) => availableIds.has(pk(player.id)))
-    .sort((a, b) => {
-      const aOrder = Number(lineup?.battingOrder?.[pk(a.id)] || 999)
-      const bOrder = Number(lineup?.battingOrder?.[pk(b.id)] || 999)
-      return aOrder - bOrder
-    })
 }
 
 export default function GameDetailPage({
@@ -55,10 +29,6 @@ export default function GameDetailPage({
   clearSavedLineup,
   addSavedInning,
   removeSavedInning,
-  gameDetailImportSourceGameId,
-  setGameDetailImportSourceGameId,
-  gameDetailImportableGames = [],
-  importLineupToSaved,
   toggleSavedAvailable,
   fitByPlayer,
   LineupGrid,
@@ -74,17 +44,14 @@ export default function GameDetailPage({
   gameTypeOptions = [],
   pk,
 }) {
-  const [printMode, setPrintMode] = useState(null)
-
-useEffect(() => {
-  const handler = () => setPrintMode(null)
-  window.addEventListener('afterprint', handler)
-  return () => window.removeEventListener('afterprint', handler)
-}, [])
-  
   function handlePrint() {
-    setPrintMode('gameDetail')
-    setTimeout(() => window.print(), 100)
+    printGameDetail({
+      selectedGame,
+      selectedLineup,
+      activePlayers,
+      formatDateShort,
+      pk,
+    })
   }
 
   if (!selectedGame) {
@@ -100,7 +67,6 @@ useEffect(() => {
   }
 
   const visibleIds = selectedLineup?.availablePlayerIds || activePlayerIds()
-  const printPlayers = getPrintRows(activePlayers, selectedLineup, pk)
 
   const orderedGamesDesc = [...(games || [])].sort((a, b) =>
     compareGamesDescLocal(a, b, pk)
@@ -108,7 +74,7 @@ useEffect(() => {
 
   return (
     <div className="stack">
-      <div className={`card no-print ${printMode ? 'hide-on-print' : ''}`}>
+      <div className="card no-print">
         <div className="row-between wrap-row">
           <div>
             <h2>Game Detail</h2>
@@ -214,84 +180,43 @@ useEffect(() => {
               </div>
             </div>
 
-            <div className="table-scroll no-print" style={{ marginTop: 12 }}>  
-            <LineupGrid
-              players={activePlayers}
-              lineup={selectedLineup}
-              fitMap={fitByPlayer}
-              showLocks
-              lockedLineup={selectedLocked}
-              visiblePlayerIds={visibleIds}
-              onRemoveInning={(inning) =>
-                removeSavedInning(selectedGame.id, inning)
-              }
-              onCellChange={(p, i, v) =>
-                updateSavedCell(selectedGame.id, p, i, v)
-              }
-              onBattingChange={(p, v) =>
-                updateSavedBatting(selectedGame.id, p, v)
-              }
-              onCellLockToggle={(p, i) =>
-                toggleSavedCellLock(selectedGame.id, p, i)
-              }
-              onRowLockToggle={(p) =>
-                toggleSavedRowLock(selectedGame.id, p)
-              }
-              onInningLockToggle={(i) =>
-                toggleSavedInningLock(selectedGame.id, i)
-              }
-              onBattingLockToggle={(p) =>
-                toggleSavedBattingLock(selectedGame.id, p)
-              }
-                            onAllBattingLockToggle={() =>
-                toggleSavedAllBattingLock(selectedGame.id)
-              }
-            />
-</div>
+            <div className="table-scroll no-print" style={{ marginTop: 12 }}>
+              <LineupGrid
+                players={activePlayers}
+                lineup={selectedLineup}
+                fitMap={fitByPlayer}
+                showLocks
+                lockedLineup={selectedLocked}
+                visiblePlayerIds={visibleIds}
+                onRemoveInning={(inning) =>
+                  removeSavedInning(selectedGame.id, inning)
+                }
+                onCellChange={(p, i, v) =>
+                  updateSavedCell(selectedGame.id, p, i, v)
+                }
+                onBattingChange={(p, v) =>
+                  updateSavedBatting(selectedGame.id, p, v)
+                }
+                onCellLockToggle={(p, i) =>
+                  toggleSavedCellLock(selectedGame.id, p, i)
+                }
+                onRowLockToggle={(p) =>
+                  toggleSavedRowLock(selectedGame.id, p)
+                }
+                onInningLockToggle={(i) =>
+                  toggleSavedInningLock(selectedGame.id, i)
+                }
+                onBattingLockToggle={(p) =>
+                  toggleSavedBattingLock(selectedGame.id, p)
+                }
+                onAllBattingLockToggle={() =>
+                  toggleSavedAllBattingLock(selectedGame.id)
+                }
+              />
+            </div>
           </>
         )}
       </div>
-
-      {/* PRINT */}
-      {!!selectedLineup && printMode && (
-        <div className="card print-only">
-          <div className="print-title">
-            {formatDateShort(selectedGame.date)} vs {selectedGame.opponent}
-          </div>
-
-          <table className="lineup-print-table">
-            <thead>
-              <tr>
-                <th>Bat</th>
-                <th>Player</th>
-                <th>#</th>
-                {Array.from({ length: selectedLineup.innings || 0 }).map((_, i) => (
-                  <th key={i}>{i + 1}</th>
-                ))}
-              </tr>
-            </thead>
-
-            <tbody>
-              {printPlayers.map((player) => {
-                const id = pk(player.id)
-
-                return (
-                  <tr key={id}>
-                    <td>{selectedLineup.battingOrder?.[id]}</td>
-                    <td>{player.name}</td>
-                    <td>{player.jersey_number}</td>
-
-                    {Array.from({ length: selectedLineup.innings || 0 }).map((_, i) => {
-                      const inning = i + 1
-                      return <td key={inning}>{selectedLineup.cells?.[id]?.[inning]}</td>
-                    })}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   )
 }
