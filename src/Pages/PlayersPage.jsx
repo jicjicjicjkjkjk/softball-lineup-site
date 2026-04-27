@@ -1,6 +1,8 @@
 export default function PlayersPage({
   newPlayerName,
   setNewPlayerName,
+  newPlayerLastName,
+  setNewPlayerLastName,
   newPlayerNumber,
   setNewPlayerNumber,
   newPlayerActive,
@@ -18,15 +20,26 @@ export default function PlayersPage({
     <div className="stack">
       <div className="card">
         <h2>Players</h2>
+
         <div className="grid four-col compact-grid">
           <div>
-            <label>Name</label>
+            <label>First Name</label>
             <input value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} />
           </div>
+
+          <div>
+            <label>Last Name</label>
+            <input
+              value={newPlayerLastName}
+              onChange={(e) => setNewPlayerLastName(e.target.value)}
+            />
+          </div>
+
           <div>
             <label>Number</label>
             <input value={newPlayerNumber} onChange={(e) => setNewPlayerNumber(e.target.value)} />
           </div>
+
           <div>
             <label>Active</label>
             <select
@@ -37,6 +50,7 @@ export default function PlayersPage({
               <option>No</option>
             </select>
           </div>
+
           <div className="align-end">
             <button onClick={addPlayer}>Add Player</button>
           </div>
@@ -48,22 +62,33 @@ export default function PlayersPage({
           <table className="games-table">
             <thead>
               <tr>
-                <th onClick={() => setPlayerSort(nextSort(playerSort, 'name'))}>Player</th>
+                <th onClick={() => setPlayerSort(nextSort(playerSort, 'name'))}>First Name</th>
+                <th onClick={() => setPlayerSort(nextSort(playerSort, 'last_name'))}>Last Name</th>
                 <th onClick={() => setPlayerSort(nextSort(playerSort, 'jersey_number'))}>#</th>
                 <th onClick={() => setPlayerSort(nextSort(playerSort, 'activeText'))}>Active</th>
                 <th>Delete</th>
               </tr>
             </thead>
+
             <tbody>
               {sortedPlayers.map((player) => (
                 <tr key={player.id}>
                   <td>
                     <input
-                      value={player.name}
+                      value={player.name || ''}
                       onChange={(e) => updatePlayerLocal(player.id, 'name', e.target.value)}
                       onBlur={() => upsertPlayer(player)}
                     />
                   </td>
+
+                  <td>
+                    <input
+                      value={player.last_name || ''}
+                      onChange={(e) => updatePlayerLocal(player.id, 'last_name', e.target.value)}
+                      onBlur={() => upsertPlayer(player)}
+                    />
+                  </td>
+
                   <td>
                     <input
                       value={player.jersey_number || ''}
@@ -71,6 +96,7 @@ export default function PlayersPage({
                       onBlur={() => upsertPlayer(player)}
                     />
                   </td>
+
                   <td>
                     <select
                       value={player.active === false ? 'No' : 'Yes'}
@@ -84,6 +110,7 @@ export default function PlayersPage({
                       <option>No</option>
                     </select>
                   </td>
+
                   <td>
                     <button onClick={() => deletePlayer(player.id)}>Delete</button>
                   </td>
