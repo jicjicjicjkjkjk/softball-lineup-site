@@ -1720,20 +1720,58 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     })
   }
 
-  function togglePreviewAvailable(gameId, playerId) {
-    updatePreview(gameId, (lineup) => {
-      const id = pk(playerId)
+  function formatGameLabel(game) {
+    if (!game) return 'this game'
 
-      if (lineup.availablePlayerIds.includes(id)) {
-        lineup.availablePlayerIds = lineup.availablePlayerIds.filter((x) => x !== id)
-        for (let inning = 1; inning <= lineup.innings; inning += 1) {
+    const date = game.date || ''
+    const opponent = game.opponent || 'Opponent'
+
+    return `${date || 'No Date'} vs ${opponent}`
+  }
+  
+    function togglePreviewAvailable(gameId, playerId) {
+    const id = pk(playerId)
+    const game = games.find((g) => pk(g.id) === pk(gameId))
+    const player = players.find((p) => pk(p.id) === id)
+
+    const currentLineup =
+      optimizerPreviewByGame[pk(gameId)] ||
+      lineupsByGame[pk(gameId)] ||
+      blankLineup(players.map((p) => p.id), Number(game?.innings || 6), activePlayerIds())
+
+    const currentlyAvailable = (currentLineup.availablePlayerIds || []).map(pk).includes(id)
+
+    const confirmed = window.confirm(
+      currentlyAvailable
+        ? `Remove ${player?.name || 'this player'} from availability for ${
+            formatGameLabel(game)
+          }? This will clear their positions and batting order for this game.`
+        : `Add ${player?.name || 'this player'} to availability for ${formatGameLabel(game)}?`
+    )
+
+    if (!confirmed) return
+
+    updatePreview(gameId, (lineup) => {
+      if (!lineup.availablePlayerIds) lineup.availablePlayerIds = []
+
+      if (currentlyAvailable) {
+        lineup.availablePlayerIds = lineup.availablePlayerIds.filter((x) => pk(x) !== id)
+
+        for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+          if (!lineup.cells[id]) lineup.cells[id] = {}
+          if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
+
           lineup.cells[id][inning] = ''
           lineup.lockedCells[id][inning] = false
         }
+
+        if (!lineup.lockedRows) lineup.lockedRows = {}
+        if (!lineup.battingOrder) lineup.battingOrder = {}
+
         lineup.lockedRows[id] = false
         lineup.battingOrder[id] = ''
       } else {
-        lineup.availablePlayerIds.push(id)
+        lineup.availablePlayerIds = [...new Set([...lineup.availablePlayerIds.map(pk), id])]
       }
 
       return lineup
