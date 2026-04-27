@@ -165,7 +165,7 @@ export default function GamesPage({
     </th>
     <th className="games-type-col" onClick={() => nextSort('game_type')}>Game Type</th>
     <th className="games-season-col" onClick={() => nextSort('season')}>Season</th>
-    <th className="games-innings-col" onClick={() => nextSort('innings')}>Innings</th>
+    <th className="games-innings-col">Innings</th>
     <th className="games-status-col" onClick={() => nextSort('status')}>Status</th>
     <th className="games-lineup-col" onClick={() => nextSort('lineupState')}>Lineup</th>
     <th className="games-action-col">Open</th>
@@ -243,15 +243,8 @@ export default function GamesPage({
                     </select>
                   </td>
 
-                  <td>
-                    <input
-                      type="number"
-                      min="1"
-                      value={game.innings ?? 6}
-                      onChange={(e) =>
-                        updateGameField(game.id, 'innings', e.target.value)
-                      }
-                    />
+                  <td className="center-cell">
+                    {game.innings ?? 6}
                   </td>
 
                   <td>
