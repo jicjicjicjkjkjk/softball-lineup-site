@@ -1107,3 +1107,58 @@ th {
     font-size: 10.5px;
   }
 }
+
+
+/* Game Detail mobile/tablet cleanup */
+.game-detail-availability {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(90px, 1fr));
+  gap: 10px 24px;
+  align-items: center;
+}
+
+.game-detail-availability label,
+.game-detail-availability-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.game-detail-availability input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+}
+
+.game-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.game-detail-actions button {
+  padding: 8px 14px;
+  font-size: 14px;
+  line-height: 1.1;
+  min-height: 36px;
+  border-radius: 10px;
+}
+
+@media (max-width: 700px) {
+  .game-detail-availability {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: 8px 16px;
+  }
+
+  .game-detail-actions {
+    justify-content: flex-start;
+  }
+
+  .game-detail-actions button {
+    padding: 7px 11px;
+    font-size: 13px;
+    min-height: 34px;
+  }
+}
