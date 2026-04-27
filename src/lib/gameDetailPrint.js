@@ -58,15 +58,19 @@ export function printGameDetail({
     .map((player) => {
       const id = pk(player.id)
 
-      return `
-        <tr>
-          <td>${htmlEscape(selectedLineup?.battingOrder?.[id] || '')}</td>
-          <td>${htmlEscape(player.jersey_number || '')}</td>
-          <td class="first">${htmlEscape(player.name || '')}</td>
-          <td class="last">${htmlEscape(player.last_name || '')}</td>
-          <td></td>
-        </tr>
-      `
+      const firstPosition =
+  Array.from({ length: Number(selectedLineup?.innings || 0) })
+    .map((_, i) => selectedLineup?.cells?.[id]?.[i + 1])
+    .find((value) => value && value !== 'Out') || ''
+
+return `
+  <tr>
+    <td>${htmlEscape(selectedLineup?.battingOrder?.[id] || '')}</td>
+    <td>${htmlEscape(player.jersey_number || '')}</td>
+    <td class="lineup-name">${htmlEscape(fullName(player))}</td>
+    <td>${htmlEscape(firstPosition)}</td>
+  </tr>
+`
     })
     .join('')
 
