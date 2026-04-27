@@ -861,14 +861,16 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     [optimizerBatchGames, currentPlanLineupsByGame, activePlayers]
   )
   
-  const currentBatchTotals = useMemo(
-  () =>
-    computeTotals(
-      Object.values(optimizerPreviewByGame).filter(isCompleteLineup),
-      players
-    ),
-  [optimizerPreviewByGame, players]
-)
+    const currentBatchTotals = useMemo(
+    () =>
+      computeTotals(
+        optimizerBatchGames
+          .map((game) => currentPlanLineupsByGame[pk(game.id)])
+          .filter(isCompleteLineup),
+        players
+      ),
+    [optimizerBatchGames, currentPlanLineupsByGame, players]
+  )
 
   const lineupSetterFutureTotals = useMemo(
     () => addTotals(lineupSetterFilteredTotals, currentBatchTotals, players),
