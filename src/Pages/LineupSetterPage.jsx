@@ -203,11 +203,43 @@ useEffect(() => {
     })
     .filter(Boolean)
 
-  const filteredGamesBeforeTotalsWithRunning = ytdBeforeTotals
+  function addRunningTotalsToTotals(totals, sitOutRows) {
+  const next = { ...(totals || {}) }
 
-  const currentPlanTotalsWithRunning = currentBatchTotals
+  ;(sitOutRows || []).forEach((row) => {
+    const id = pk(row.playerId)
 
-  const filteredPlusPlanTotalsWithRunning = ytdAfterTotals
+    const runningValues = (row.running || []).filter(
+      (v) => v !== 'x' && v !== '' && v !== null && v !== undefined
+    )
+
+    const lastValue = runningValues.length
+      ? Number(runningValues[runningValues.length - 1])
+      : 0
+
+    next[id] = {
+      ...(next[id] || {}),
+      sitOutRunningTotal: Number.isNaN(lastValue) ? 0 : lastValue,
+    }
+  })
+
+  return next
+}
+
+const filteredGamesBeforeTotalsWithRunning = addRunningTotalsToTotals(
+  ytdBeforeTotals,
+  ytdBeforeSitOutRows
+)
+
+const currentPlanTotalsWithRunning = addRunningTotalsToTotals(
+  currentBatchTotals,
+  currentPlanSitOutRows
+)
+
+const filteredPlusPlanTotalsWithRunning = addRunningTotalsToTotals(
+  ytdAfterTotals,
+  ytdAfterSitOutRows
+)
 
   const [priorityPlayerSort, setPriorityPlayerSort] = useState({
     key: 'name',
