@@ -1228,62 +1228,58 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   })}
 
   <div className="coach-plan-page">
-  <div className="coach-plan-title">Current Plan</div>
+    <div className="coach-plan-title">Current Plan</div>
 
-  <table className="coach-plan-table">
-    <thead>
-      <tr>
-        <th>Player</th>
-        <th>Games</th>
-        <th>Fld</th>
-        <th>Out</th>
-        <th>P</th>
-        <th>C</th>
-        <th>1B</th>
-        <th>2B</th>
-        <th>3B</th>
-        <th>SS</th>
-        <th>LF</th>
-        <th>CF</th>
-        <th>RF</th>
-        <th>IF</th>
-        <th>OF</th>
-      </tr>
-    </thead>
+    <table className="coach-plan-table">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Games</th>
+          <th>Fld</th>
+          <th>Out</th>
+          <th>P</th>
+          <th>C</th>
+          <th>1B</th>
+          <th>2B</th>
+          <th>3B</th>
+          <th>SS</th>
+          <th>LF</th>
+          <th>CF</th>
+          <th>RF</th>
+          <th>IF</th>
+          <th>OF</th>
+        </tr>
+      </thead>
 
-    <tbody>
-      {activePlayers.map((player) => {
-        const id = pk(player.id)
-        const totals = currentBatchTotals?.[id] || {}
+      <tbody>
+        {activePlayers.map((player) => {
+          const id = pk(player.id)
+          const totals = currentBatchTotals?.[id] || {}
+          const n = (value) => Math.round(Number(value || 0))
 
-        const n = (value) => {
-          const numberValue = Number(value || 0)
-          return Number.isNaN(numberValue) ? 0 : Math.round(numberValue)
-        }
-
-        return (
-          <tr key={id}>
-            <td>{player.name}</td>
-            <td>{n(totals.games)}</td>
-            <td>{n(totals.fieldTotal)}</td>
-            <td>{n(totals.Out)}</td>
-            <td>{n(totals.P)}</td>
-            <td>{n(totals.C)}</td>
-            <td>{n(totals['1B'])}</td>
-            <td>{n(totals['2B'])}</td>
-            <td>{n(totals['3B'])}</td>
-            <td>{n(totals.SS)}</td>
-            <td>{n(totals.LF)}</td>
-            <td>{n(totals.CF)}</td>
-            <td>{n(totals.RF)}</td>
-            <td>{n(totals.IF)}</td>
-            <td>{n(totals.OF)}</td>
-          </tr>
-        )
-      })}
-    </tbody>
-  </table>
-</div>
+          return (
+            <tr key={id}>
+              <td>{player.name}</td>
+              <td>{n(totals.games)}</td>
+              <td>{n(totals.fieldTotal)}</td>
+              <td>{n(totals.Out)}</td>
+              <td>{n(totals.P)}</td>
+              <td>{n(totals.C)}</td>
+              <td>{n(totals['1B'])}</td>
+              <td>{n(totals['2B'])}</td>
+              <td>{n(totals['3B'])}</td>
+              <td>{n(totals.SS)}</td>
+              <td>{n(totals.LF)}</td>
+              <td>{n(totals.CF)}</td>
+              <td>{n(totals.RF)}</td>
+              <td>{n(totals.IF)}</td>
+              <td>{n(totals.OF)}</td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  </div>
 </div>
     </div>
   )
