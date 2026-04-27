@@ -2027,7 +2027,7 @@ function toggleSavedAllBattingLock(gameId) {
   }
   
   
-  function clearSavedLineup(gameId) {
+    async function clearSavedLineup(gameId) {
     if (lineupLockedByGame[pk(gameId)]) {
       setAppError('Unlock the lineup before clearing it.')
       return
@@ -2036,29 +2036,54 @@ function toggleSavedAllBattingLock(gameId) {
     const confirmed = window.confirm('Clear the lineup for this game?')
     if (!confirmed) return
 
+    const res = await supabase
+      .from('game_lineups')
+      .delete()
+      .eq('game_id', gameId)
+      .eq('lineup_name', 'Main')
+
+    if (res.error) {
+      setAppError(res.error.message)
+      return
+    }
+
     setLineupsByGame((current) => {
+      const next = { ...current }
+      delete next[pk(gameId)]
+      return next
+    })
+
+    setOptimizerPreviewByGame((current) => {
       const next = { ...current }
       delete next[pk(gameId)]
       return next
     })
   }
 
-  function toggleSavedAvailable(gameId, playerId) {
+    function toggleSavedAvailable(gameId, playerId) {
     updateSavedLineup(gameId, (lineup) => {
       const id = pk(playerId)
 
+      if (!lineup.availablePlayerIds) lineup.availablePlayerIds = []
+
       if (lineup.availablePlayerIds.includes(id)) {
         lineup.availablePlayerIds = lineup.availablePlayerIds.filter((x) => x !== id)
+
         for (let inning = 1; inning <= lineup.innings; inning += 1) {
+          if (!lineup.cells[id]) lineup.cells[id] = {}
+          if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
+
           lineup.cells[id][inning] = ''
           lineup.lockedCells[id][inning] = false
         }
+
         lineup.lockedRows[id] = false
         lineup.battingOrder[id] = ''
       } else {
         lineup.availablePlayerIds.push(id)
       }
 
+      autoSave(gameId, lineup)
       return lineup
     })
   }
