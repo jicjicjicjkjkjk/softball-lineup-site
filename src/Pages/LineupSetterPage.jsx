@@ -138,6 +138,7 @@ export default function LineupSetterPage({
   currentBatchTotals,
   ytdAfterTotals,
   ytdBeforeSitOutRows = [],
+  currentPlanSitOutRows = [],
   ytdAfterSitOutRows = [],
   trackingSort,
   setTrackingSort,
@@ -628,10 +629,10 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   setSortConfig={setTrackingSort}
 />
 
-     <TrackingTable
+          <TrackingTable
   title="Current Plan"
   totals={currentPlanTotalsWithRunning}
-  sitOutRows={ytdAfterSitOutRows}
+  sitOutRows={currentPlanSitOutRows}
   players={activePlayers}
   sortConfig={trackingSort}
   setSortConfig={setTrackingSort}
@@ -645,7 +646,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
     totalNeeded,
     totalAssigned,
   }}
-  runningTotalLabel="Filtered Games + Current Plan Sit Out Running Total"
+  runningTotalLabel="Current Plan Sit Out Running Total"
 />
 
 
