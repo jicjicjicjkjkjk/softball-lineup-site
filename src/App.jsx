@@ -90,7 +90,7 @@ export default function App() {
   const [optimizerNewDate, setOptimizerNewDate] = useState('')
   const [optimizerNewOpponent, setOptimizerNewOpponent] = useState('')
   const [optimizerNewType, setOptimizerNewType] = useState('')
-  const [optimizerNewSeason, setOptimizerNewSeason] = useState('')f
+  const [optimizerNewSeason, setOptimizerNewSeason] = useState('')
 
   const [newPlayerName, setNewPlayerName] = useState('')
   const [newPlayerLastName, setNewPlayerLastName] = useState('')
