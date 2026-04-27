@@ -732,6 +732,15 @@ th {
     page-break-after: auto;
   }
 
+.print-game {
+  page-break-after: always;
+  break-after: page;
+}
+
+.print-game:last-child {
+  page-break-after: auto;
+}
+  
   .print-title,
   .coach-summary-heading {
     font-size: 15px !important;
