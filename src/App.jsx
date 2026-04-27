@@ -1474,23 +1474,22 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     }))
   }
 
-  function addExistingGameToBatch() {
+    function addExistingGameToBatch() {
     if (!optimizerExistingGameId) return
 
     const gameId = pk(optimizerExistingGameId)
     const game = games.find((g) => pk(g.id) === gameId)
     if (!game) return
 
-    const savedLineup =
-      optimizerPreviewByGame[gameId] ||
-      lineupsByGame[gameId] ||
+    const sourceLineup =
+      currentPlanLineupsByGame[gameId] ||
       blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
 
     const normalized = normalizeLineup(
-      savedLineup,
+      sourceLineup,
       players,
       Number(game.innings || 6),
-      savedLineup.availablePlayerIds || activePlayerIds()
+      sourceLineup.availablePlayerIds || activePlayerIds()
     )
 
     setOptimizerBatchGameIds((current) => [...new Set([...current, gameId])])
