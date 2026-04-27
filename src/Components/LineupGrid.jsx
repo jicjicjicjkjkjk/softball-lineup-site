@@ -1,3 +1,5 @@
+// src/Components/LineupGrid.jsx
+
 import {
   FIELD_POSITIONS,
   GRID_OPTIONS,
@@ -32,8 +34,17 @@ export default function LineupGrid({
     .sort((a, b) => {
       const aOrderRaw = lineup?.battingOrder?.[pk(a.id)]
       const bOrderRaw = lineup?.battingOrder?.[pk(b.id)]
-      const aOrder = aOrderRaw === '' || aOrderRaw == null ? 999 : Number(aOrderRaw)
-      const bOrder = bOrderRaw === '' || bOrderRaw == null ? 999 : Number(bOrderRaw)
+
+      const aOrder =
+        aOrderRaw === '' || aOrderRaw === null || aOrderRaw === undefined
+          ? 999
+          : Number(aOrderRaw)
+
+      const bOrder =
+        bOrderRaw === '' || bOrderRaw === null || bOrderRaw === undefined
+          ? 999
+          : Number(bOrderRaw)
+
       if (aOrder !== bOrder) return aOrder - bOrder
       return String(a.name || '').localeCompare(String(b.name || ''))
     })
@@ -43,75 +54,89 @@ export default function LineupGrid({
     battingIds.length > 0 &&
     battingIds.every((id) => lineup?.lockedBattingOrder?.[id] === true)
 
-  function getCellBackground(id, value, inning) {
-    if (!value) return 'white'
-    if (!FIELD_POSITIONS.includes(value)) return '#eef6ff'
-
-    const status = inningStatus(lineup, inning, players, fitMap)
-    if (status.duplicate.includes(value)) return '#fee2e2'
-
-    const tier = fitTier(fitMap, id, value)
-    if (tier === 'primary' || tier === 'A') return '#d1fae5'
-    if (tier === 'secondary' || tier === 'B' || tier === 'C') return '#fef9c3'
-    return '#fee2e2'
-  }
-
-  function renderPositionControl(id, inning, rowLocked = false) {
-    const value = lineup?.cells?.[id]?.[inning] || ''
-    const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
-    const inningLocked = lineup?.lockedInnings?.[inning] === true
-    const effectiveLocked = lockedLineup || rowLocked || inningLocked || cellLocked
-
-    return (
-      <div className="position-cell">
-        <select
-          value={value}
-          disabled={effectiveLocked}
-          onChange={(e) => onCellChange?.(id, inning, e.target.value)}
-          style={{ background: getCellBackground(id, value, inning) }}
-          className="position-select"
-        >
-          {GRID_OPTIONS.map((option) => (
-            <option key={option || 'blank'} value={option}>
-              {option || '--'}
-            </option>
-          ))}
-        </select>
-
-        {showLocks && (
-          <label className="checkbox-item grid-lock-label">
-            <input
-              type="checkbox"
-              checked={cellLocked}
-              disabled={lockedLineup || rowLocked}
-              onChange={() => onCellLockToggle?.(id, inning)}
-            />
-            Lock
-          </label>
-        )}
-      </div>
-    )
-  }
-
   return (
-    <>
-      <div className="mobile-lineup-grid">
-        <div className="mobile-lineup-header">
-          <strong>Mobile Grid</strong>
+    <table className="lineup-print-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th className="player-col">Player</th>
 
-          {showLocks && (
-            <label className="checkbox-item grid-lock-label">
-              <input
-                type="checkbox"
-                checked={allBattingLocked}
-                disabled={lockedLineup}
-                onChange={() => onAllBattingLockToggle?.()}
-              />
-              All Bat
-            </label>
-          )}
-        </div>
+          <th>
+            <div className="batting-header">
+              <span>Batting</span>
 
+              {showLocks && (
+                <label className="checkbox-item grid-lock-label">
+                  <input
+                    type="checkbox"
+                    checked={allBattingLocked}
+                    disabled={lockedLineup}
+                    onChange={() => onAllBattingLockToggle?.()}
+                  />
+                  All Bat
+                </label>
+              )}
+            </div>
+          </th>
+
+          {showLocks && <th>Lock</th>}
+
+          {Array.from({ length: innings }, (_, i) => i + 1).map((inning) => {
+            const status = inningStatus(lineup, inning, players, fitMap)
+            const inningLocked = lineup?.lockedInnings?.[inning] === true
+
+            return (
+              <th key={inning}>
+                <div className="inning-header">
+                  {onRemoveInning ? (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveInning?.(inning)}
+                      disabled={lockedLineup}
+                      className="inning-remove"
+                      title={`Remove inning ${inning}`}
+                    >
+                      ✕
+                    </button>
+                  ) : (
+                    <div style={{ height: 20 }} />
+                  )}
+
+                  <MiniDiamond
+                    status={status}
+                    inning={inning}
+                    lineup={lineup}
+                    players={players}
+                  />
+
+                  {showLocks && (
+                    <label className="inning-lock-wrap">
+                      <input
+                        type="checkbox"
+                        className="inning-lock"
+                        checked={inningLocked}
+                        disabled={lockedLineup}
+                        onChange={() => onInningLockToggle?.(inning)}
+                      />
+                      <span>Inning</span>
+                    </label>
+                  )}
+
+                  <div className="inning-number">{inning}</div>
+                </div>
+              </th>
+            )
+          })}
+
+          <th>IF</th>
+          <th>OF</th>
+          <th>P</th>
+          <th>C</th>
+          <th>X</th>
+        </tr>
+      </thead>
+
+      <tbody>
         {sortedRows.map((player) => {
           const id = pk(player.id)
           const summary = rowSummary(lineup, id)
@@ -119,18 +144,36 @@ export default function LineupGrid({
           const battingLocked = lineup?.lockedBattingOrder?.[id] === true
 
           return (
-            <div key={id} className={`mobile-player-card ${rowLocked ? 'row-locked' : ''}`}>
-              <div className="mobile-player-top">
-                <div>
-                  <div className="mobile-player-name">
-                    #{player.jersey_number || ''} {player.name}
-                  </div>
-                  <div className="mobile-player-summary">
-                    IF {summary.IF} · OF {summary.OF} · P {summary.P} · C {summary.C} · X {summary.X}
-                  </div>
-                </div>
+            <tr key={id} className={rowLocked ? 'row-locked' : ''}>
+              <td>{player.jersey_number || ''}</td>
+              <td className="player-col">{player.name}</td>
 
-                {showLocks && (
+              <td>
+                <div className="batting-cell">
+                  <input
+                    type="number"
+                    value={lineup?.battingOrder?.[id] || ''}
+                    disabled={lockedLineup || battingLocked}
+                    onChange={(e) => onBattingChange?.(id, e.target.value)}
+                    className="batting-order-input"
+                  />
+
+                  {showLocks && (
+                    <button
+                      type="button"
+                      disabled={lockedLineup}
+                      onClick={() => onBattingLockToggle?.(id)}
+                      className="batting-lock-button"
+                      title="Lock batting order spot"
+                    >
+                      {battingLocked ? '🔒 Bat' : '🔓 Bat'}
+                    </button>
+                  )}
+                </div>
+              </td>
+
+              {showLocks && (
+                <td>
                   <label className="checkbox-item grid-lock-label">
                     <input
                       type="checkbox"
@@ -140,47 +183,75 @@ export default function LineupGrid({
                     />
                     All
                   </label>
-                )}
-              </div>
+                </td>
+              )}
 
-              <div className="mobile-batting-row">
-                <label>Bat</label>
-                <input
-                  type="number"
-                  value={lineup?.battingOrder?.[id] || ''}
-                  disabled={lockedLineup || battingLocked}
-                  onChange={(e) => onBattingChange?.(id, e.target.value)}
-                  className="batting-order-input"
-                />
+              {Array.from({ length: innings }, (_, i) => i + 1).map((inning) => {
+                const value = lineup?.cells?.[id]?.[inning] || ''
+                const cellLocked = lineup?.lockedCells?.[id]?.[inning] === true
+                const inningLocked = lineup?.lockedInnings?.[inning] === true
+                const effectiveLocked = lockedLineup || rowLocked || inningLocked || cellLocked
 
-                {showLocks && (
-                  <button
-                    type="button"
-                    disabled={lockedLineup}
-                    onClick={() => onBattingLockToggle?.(id)}
-                    className="batting-lock-button"
-                  >
-                    {battingLocked ? '🔒 Bat' : '🔓 Bat'}
-                  </button>
-                )}
-              </div>
+                let background = value ? '#eef6ff' : 'white'
 
-              <div className="mobile-innings-row">
-                {Array.from({ length: innings }, (_, i) => i + 1).map((inning) => (
-                  <div key={inning} className="mobile-inning-cell">
-                    <div className="mobile-inning-label">Inn {inning}</div>
-                    {renderPositionControl(id, inning, rowLocked)}
-                  </div>
-                ))}
-              </div>
-            </div>
+                if (FIELD_POSITIONS.includes(value)) {
+                  const status = inningStatus(lineup, inning, players, fitMap)
+
+                  if (status.duplicate.includes(value)) {
+                    background = '#fee2e2'
+                  } else {
+                    const tier = fitTier(fitMap, id, value)
+                    background =
+                      tier === 'primary' || tier === 'A'
+                        ? '#d1fae5'
+                        : tier === 'secondary' || tier === 'B' || tier === 'C'
+                        ? '#fef9c3'
+                        : '#fee2e2'
+                  }
+                }
+
+                return (
+                  <td key={inning}>
+                    <div className="position-cell">
+                      <select
+                        value={value}
+                        disabled={effectiveLocked}
+                        onChange={(e) => onCellChange?.(id, inning, e.target.value)}
+                        style={{ background }}
+                        className="position-select"
+                      >
+                        {GRID_OPTIONS.map((option) => (
+                          <option key={option || 'blank'} value={option}>
+                            {option || '--'}
+                          </option>
+                        ))}
+                      </select>
+
+                      {showLocks && (
+                        <label className="checkbox-item grid-lock-label">
+                          <input
+                            type="checkbox"
+                            checked={cellLocked}
+                            disabled={lockedLineup || rowLocked}
+                            onChange={() => onCellLockToggle?.(id, inning)}
+                          />
+                          Lock
+                        </label>
+                      )}
+                    </div>
+                  </td>
+                )
+              })}
+
+              <td>{summary.IF}</td>
+              <td>{summary.OF}</td>
+              <td>{summary.P}</td>
+              <td>{summary.C}</td>
+              <td>{summary.X}</td>
+            </tr>
           )
         })}
-      </div>
-
-      <table className="lineup-print-table desktop-lineup-grid">
-        {/* keep your existing table exactly as before */}
-      </table>
-    </>
+      </tbody>
+    </table>
   )
 }
