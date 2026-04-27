@@ -1162,3 +1162,60 @@ th {
     min-height: 34px;
   }
 }
+
+
+.lineup-setter-top-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 700px) {
+  .lineup-setter-top-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .lineup-setter-top-grid select,
+  .lineup-setter-top-grid input {
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .lineup-setter-top-grid button {
+    width: 100%;
+  }
+
+  .lineup-setter-new-game-fields {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .lineup-setter-new-game-action button {
+    width: 100%;
+  }
+}
+@media (max-width: 700px) {
+  .lineup-setter-current-plan-table {
+    min-width: 760px;
+    table-layout: fixed;
+  }
+
+  .lineup-setter-current-plan-table th,
+  .lineup-setter-current-plan-table td {
+    font-size: 11px;
+    padding: 5px 4px;
+  }
+
+  .lineup-setter-current-plan-table th:nth-child(1),
+  .lineup-setter-current-plan-table td:nth-child(1) {
+    width: 72px;
+  }
+
+  .lineup-setter-current-plan-table th:nth-child(4),
+  .lineup-setter-current-plan-table td:nth-child(4) {
+    width: 130px;
+    white-space: normal;
+  }
+}
