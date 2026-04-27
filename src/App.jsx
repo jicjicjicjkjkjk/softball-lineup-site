@@ -837,6 +837,19 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     () => buildCumulativeSitOutRows(lineupSetterSitByPlayer),
     [lineupSetterSitByPlayer]
   )
+
+  const currentPlanSitOutRows = useMemo(
+    () =>
+      buildCumulativeSitOutRows(
+        buildPlayerSitOuts(
+          optimizerBatchGames,
+          optimizerPreviewByGame,
+          activePlayers,
+          pk
+        )
+      ),
+    [optimizerBatchGames, optimizerPreviewByGame, activePlayers]
+  )
   
   const currentBatchTotals = useMemo(
   () =>
@@ -2417,9 +2430,7 @@ function toggleSavedAllBattingLock(gameId) {
     filteredLineups={lineupSetterFilteredLineups}
     ytdBeforeTotals={lineupSetterFilteredTotals}
     currentBatchTotals={currentBatchTotals}
-    currentPlanSitOutRows={buildCumulativeSitOutRows(
-      buildPlayerSitOuts(optimizerBatchGames, optimizerPreviewByGame, activePlayers, pk)
-    )}
+    currentPlanSitOutRows={currentPlanSitOutRows}
     ytdAfterTotals={lineupSetterFutureTotals}
     ytdBeforeSitOutRows={lineupSetterComputedSitRows}
     ytdAfterSitOutRows={lineupSetterFutureComputedSitRows}
