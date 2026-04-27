@@ -490,6 +490,15 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
     const td = (value, pos) => {
   const v = n(value)
 
+  // 🚫 Do NOT color IF / OF
+  if (!pos || v === 0 || pos === 'IF' || pos === 'OF') {
+    return `<td>${v}</td>`
+  }
+
+  return `<td class="${getFitClass(pos)}">${v}</td>`
+}
+  const v = n(value)
+
   // DO NOT color IF / OF
   if (!pos || v === 0 || pos === 'IF' || pos === 'OF') {
     return `<td>${v}</td>`
@@ -539,6 +548,9 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             .name { text-align: left; width: 110px; }
             .plan-page { page-break-before: always; }
             .plan-table th, .plan-table td { font-size: 9.5px; padding: 4px 3px; }
+            .plan-table td.primary { background: #dcfce7; font-weight: 700; }
+            .plan-table td.secondary { background: #fef9c3; }
+            .plan-table td.not-allowed { background: #fee2e2; }
           </style>
         </head>
         <body>
