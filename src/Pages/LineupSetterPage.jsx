@@ -791,7 +791,19 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
     totalNeeded,
     totalAssigned,
   }}
-  runningTotalLabel="Current Plan Sit Out Running Total"
+    runningTotalLabel="Current Plan Sit Out Running Total"
+  extraRunningTotals={[
+    {
+      key: 'filteredSitOutRunningTotal',
+      label: 'Filtered Sit Out Running Total',
+      totals: filteredGamesBeforeTotalsWithRunning,
+    },
+    {
+      key: 'updatedSitOutRunningTotal',
+      label: 'Updated Sit Out Running Total',
+      totals: filteredPlusPlanTotalsWithRunning,
+    },
+  ]}
 />
 
 
