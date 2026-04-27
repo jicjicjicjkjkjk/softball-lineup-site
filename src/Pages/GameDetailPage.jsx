@@ -157,7 +157,7 @@ useEffect(() => {
 
         <h3>Game Availability</h3>
 
-        <div className="checkbox-grid">
+        <div className="game-detail-availability">
           {activePlayers.map((player) => {
             const isChecked = (selectedLineup?.availablePlayerIds || []).includes(pk(player.id))
 
@@ -187,7 +187,7 @@ useEffect(() => {
             <div className="row-between">
               <h3>Grid</h3>
 
-              <div className="button-row">
+              <div className="game-detail-actions">
                 <button onClick={handlePrint}>Print</button>
 
                 <button onClick={() => addSavedInning(selectedGame.id)}>
