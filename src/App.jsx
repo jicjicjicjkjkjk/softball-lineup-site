@@ -90,12 +90,13 @@ export default function App() {
   const [optimizerNewDate, setOptimizerNewDate] = useState('')
   const [optimizerNewOpponent, setOptimizerNewOpponent] = useState('')
   const [optimizerNewType, setOptimizerNewType] = useState('')
-  const [optimizerNewSeason, setOptimizerNewSeason] = useState('')
+  const [optimizerNewSeason, setOptimizerNewSeason] = useState('')f
 
   const [newPlayerName, setNewPlayerName] = useState('')
+  const [newPlayerLastName, setNewPlayerLastName] = useState('')
   const [newPlayerNumber, setNewPlayerNumber] = useState('')
   const [newPlayerActive, setNewPlayerActive] = useState(true)
-
+  
   const [playerSort, setPlayerSort] = useState({ key: 'name', direction: 'asc' })
   const [gameSort, setGameSort] = useState({ key: 'date', direction: 'desc' })
   const [prioritySort, setPrioritySort] = useState({ key: 'name', direction: 'asc' })
@@ -490,7 +491,7 @@ function isCompleteLineup(lineup) {
 
       const playersRes = await supabase
         .from('players')
-        .select('id, name, jersey_number, active')
+        .select('id, name, last_name, jersey_number, active')
         .eq('team_id', TEAM_ID)
         .order('name', { ascending: true })
 
@@ -1416,10 +1417,11 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       const updateRes = await supabase
         .from('players')
         .update({
-          name: player.name,
-          jersey_number: player.jersey_number,
-          active: player.active,
-        })
+  name: player.name,
+  last_name: player.last_name || '',
+  jersey_number: player.jersey_number,
+  active: player.active,
+})
         .eq('id', player.id)
 
       if (updateRes.error) {
@@ -1433,12 +1435,13 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     const insertRes = await supabase
       .from('players')
       .insert({
-        team_id: TEAM_ID,
-        name: player.name,
-        jersey_number: player.jersey_number,
-        active: player.active,
-      })
-      .select('id, name, jersey_number, active')
+  team_id: TEAM_ID,
+  name: player.name,
+  last_name: player.last_name || '',
+  jersey_number: player.jersey_number,
+  active: player.active,
+})
+.select('id, name, last_name, jersey_number, active')
       .single()
 
     if (insertRes.error) {
@@ -1458,17 +1461,19 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   }
 
   async function addPlayer() {
-    await upsertPlayer({
-      name: newPlayerName,
-      jersey_number: newPlayerNumber,
-      active: newPlayerActive,
-    })
+  await upsertPlayer({
+    name: newPlayerName,
+    last_name: newPlayerLastName,
+    jersey_number: newPlayerNumber,
+    active: newPlayerActive,
+  })
 
-    setNewPlayerName('')
-    setNewPlayerNumber('')
-    setNewPlayerActive(true)
-    await loadAll()
-  }
+  setNewPlayerName('')
+  setNewPlayerLastName('')
+  setNewPlayerNumber('')
+  setNewPlayerActive(true)
+  await loadAll()
+}
 
   async function deletePlayer(playerId) {
     const confirmed = window.confirm('Delete this player?')
@@ -2394,8 +2399,9 @@ function toggleSavedAllBattingLock(gameId) {
           <PlayersPage
             newPlayerName={newPlayerName}
             setNewPlayerName={setNewPlayerName}
+            newPlayerLastName={newPlayerLastName}
+            setNewPlayerLastName={setNewPlayerLastName}
             newPlayerNumber={newPlayerNumber}
-            setNewPlayerNumber={setNewPlayerNumber}
             newPlayerActive={newPlayerActive}
             setNewPlayerActive={setNewPlayerActive}
             addPlayer={addPlayer}
