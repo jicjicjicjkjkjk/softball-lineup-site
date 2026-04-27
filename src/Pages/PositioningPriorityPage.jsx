@@ -16,14 +16,224 @@ export default function PositioningPriorityPage({
   updateFitLocal,
   persistFitTier,
 }) {
+  function printPositioningPriority() {
+    const priorityRows = activePriorityRows
+      .map((row) => {
+        const cells = PRIORITY_POSITIONS.map(
+          (position) => `<td>${row[position] || ''}</td>`
+        ).join('')
+
+        return `
+          <tr>
+            <td class="name">${row.name}</td>
+            <td>${row.jersey_number || ''}</td>
+            ${cells}
+            <td>${row.subtotal || ''}</td>
+          </tr>
+        `
+      })
+      .join('')
+
+    const priorityFooterCells = PRIORITY_POSITIONS.map(
+      (position) => `<th>${priorityFooter[position] || ''}</th>`
+    ).join('')
+
+    const allowedPositionRows = allowedRows
+      .map((row) => {
+        const cells = ALLOWED_POSITIONS.map((position) => {
+          const tier = fitByPlayer[row.playerId]?.[position] || 'secondary'
+
+          const lockedPrimary =
+            Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0 ||
+            (['LF', 'RF'].includes(position) &&
+              Number(priorityByPlayer[row.playerId]?.OF?.priority_pct || 0) > 0)
+
+          const effectiveTier = lockedPrimary ? 'primary' : tier
+
+          const label =
+            effectiveTier === 'primary'
+              ? 'Primary'
+              : effectiveTier === 'secondary'
+              ? 'Non-Primary'
+              : 'No'
+
+          const className =
+            effectiveTier === 'primary'
+              ? 'primary'
+              : effectiveTier === 'secondary'
+              ? 'secondary'
+              : 'no'
+
+          return `<td class="${className}">${label}</td>`
+        }).join('')
+
+        return `
+          <tr>
+            <td class="name">${row.name}</td>
+            <td>${row.jersey_number || ''}</td>
+            ${cells}
+          </tr>
+        `
+      })
+      .join('')
+
+    const html = `
+      <html>
+        <head>
+          <title>Positioning Priority</title>
+          <style>
+            @page { size: letter landscape; margin: 0.3in; }
+
+            body {
+              font-family: Arial, sans-serif;
+              color: #1f2f46;
+            }
+
+            h1 {
+              font-size: 20px;
+              margin: 0 0 6px;
+            }
+
+            h2 {
+              font-size: 15px;
+              margin: 14px 0 6px;
+            }
+
+            .note {
+              font-size: 11px;
+              margin-bottom: 10px;
+              color: #475569;
+            }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              table-layout: fixed;
+              margin-bottom: 12px;
+            }
+
+            th,
+            td {
+              border: 1px solid #111;
+              padding: 4px 5px;
+              text-align: center;
+              vertical-align: middle;
+              font-size: 10px;
+            }
+
+            th {
+              background: #e6f4f4;
+              font-weight: 800;
+            }
+
+            .name {
+              text-align: left;
+              width: 115px;
+            }
+
+            .primary {
+              background: #dcfce7;
+              font-weight: 700;
+            }
+
+            .secondary {
+              background: #fef3c7;
+            }
+
+            .no {
+              background: #fee2e2;
+              font-weight: 700;
+            }
+
+            .legend {
+              display: flex;
+              gap: 12px;
+              font-size: 10px;
+              margin-bottom: 8px;
+            }
+
+            .legend span {
+              display: inline-block;
+              padding: 3px 8px;
+              border: 1px solid #111;
+            }
+          </style>
+        </head>
+
+        <body>
+          <h1>Positioning Priority</h1>
+          <div class="note">
+            Priority percentages are target shares of each player’s field innings.
+          </div>
+
+          <h2>Priority Targets</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>#</th>
+                ${PRIORITY_POSITIONS.map((position) => `<th>${position}</th>`).join('')}
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${priorityRows}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th colspan="2">Subtotal</th>
+                ${priorityFooterCells}
+                <th>${priorityFooter.subtotal || ''}</th>
+              </tr>
+            </tfoot>
+          </table>
+
+          <h2>Allowed Positions</h2>
+          <div class="legend">
+            <span class="primary">Primary</span>
+            <span class="secondary">Non-Primary</span>
+            <span class="no">No</span>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>#</th>
+                ${ALLOWED_POSITIONS.map((position) => `<th>${position}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${allowedPositionRows}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    const printWindow = window.open('', '_blank')
+    printWindow.document.write(html)
+    printWindow.document.close()
+    printWindow.focus()
+    printWindow.print()
+  }
+
   return (
     <div className="stack">
       <div className="card">
         <div className="table-scroll">
-          <h2>Positioning Priority</h2>
-          <p className="small-note" style={{ marginBottom: 12 }}>
-            These percentages are used as a target share of that player’s field innings.
-          </p>
+          <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+            <div>
+              <h2 style={{ marginBottom: 4 }}>Positioning Priority</h2>
+              <p className="small-note" style={{ marginBottom: 0 }}>
+                These percentages are used as a target share of that player’s field innings.
+              </p>
+            </div>
+
+            <button type="button" onClick={printPositioningPriority}>
+              Print Positioning Priority
+            </button>
+          </div>
 
           <table className="table-center" style={{ tableLayout: 'fixed' }}>
             <thead>
