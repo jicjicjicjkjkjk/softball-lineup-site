@@ -1345,8 +1345,13 @@ th {
 }
 
 @media (max-width: 900px) and (orientation: landscape) {
-  .tracking-scroll,
   .table-scroll {
+    max-height: none !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+  }
+
+  .tracking-scroll {
     max-height: 68vh;
     overflow: auto !important;
   }
