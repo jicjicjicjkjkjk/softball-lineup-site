@@ -393,13 +393,128 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
             <button
   onClick={() => {
-    setPrintMode('lineupSetter')
+    const rows = orderedPlanGames
+      .map((game) => {
+        const lineup = optimizerPreviewByGame[pk(game.id)] || lineupsByGame[pk(game.id)]
+        if (!lineup || !lineup.innings) return ''
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        window.print()
+        const playersInGame = activePlayers.filter((player) =>
+          (lineup.availablePlayerIds || []).map(pk).includes(pk(player.id))
+        )
+
+        const sortedPlayers = [...playersInGame].sort((a, b) => {
+          const aOrder = Number(lineup.battingOrder?.[pk(a.id)] ?? 999)
+          const bOrder = Number(lineup.battingOrder?.[pk(b.id)] ?? 999)
+          return aOrder - bOrder
+        })
+
+        const inningHeaders = Array.from({ length: Number(lineup.innings || 0) })
+          .map((_, i) => `<th>${i + 1}</th>`)
+          .join('')
+
+        const playerRows = sortedPlayers
+          .map((player) => {
+            const id = pk(player.id)
+
+            const cells = Array.from({ length: Number(lineup.innings || 0) })
+              .map((_, i) => {
+                const value = lineup.cells?.[id]?.[i + 1]
+                return `<td>${value === 'Out' ? 'OUT' : value || '-'}</td>`
+              })
+              .join('')
+
+            return `
+              <tr>
+                <td>${lineup.battingOrder?.[id] || ''}</td>
+                <td class="name">${player.name}</td>
+                <td>${player.jersey_number || ''}</td>
+                ${cells}
+              </tr>
+            `
+          })
+          .join('')
+
+        return `
+          <section class="print-page">
+            <h1>${formatDateShort(game.date) || 'No Date'} vs ${game.opponent || 'Opponent'}</h1>
+            <div class="subtitle">
+              ${getOptionLabel(gameTypeOptions, game.game_type) || ''} 
+              ${getOptionLabel(seasonOptions, game.season) || ''}
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Bat</th>
+                  <th>Player</th>
+                  <th>#</th>
+                  ${inningHeaders}
+                </tr>
+              </thead>
+              <tbody>${playerRows}</tbody>
+            </table>
+          </section>
+        `
       })
-    })
+      .join('')
+
+    const planRows = orderedPlanGames
+      .map(
+        (game) => `
+          <tr>
+            <td>${formatDateShort(game.date) || ''}</td>
+            <td>${game.game_order ?? ''}</td>
+            <td class="name">${game.opponent || 'Opponent'}</td>
+            <td>${getOptionLabel(gameTypeOptions, game.game_type)}</td>
+            <td>${getOptionLabel(seasonOptions, game.season)}</td>
+            <td>${game.innings || ''}</td>
+          </tr>
+        `
+      )
+      .join('')
+
+    const html = `
+      <html>
+        <head>
+          <title>Coach Lineup Packet</title>
+          <style>
+            @page { size: letter portrait; margin: 0.35in; }
+            body { font-family: Arial, sans-serif; color: #1f2f46; }
+            .print-page { page-break-after: always; }
+            h1 { font-size: 18px; margin: 0 0 4px; }
+            .subtitle { font-size: 12px; margin-bottom: 10px; font-weight: 700; }
+            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            th, td { border: 1px solid #111; padding: 5px; text-align: center; font-size: 12px; }
+            th { background: #e6f4f4; font-weight: 800; }
+            .name { text-align: left; width: 130px; }
+          </style>
+        </head>
+        <body>
+          ${rows}
+          <section>
+            <h1>Current Plan</h1>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Order</th>
+                  <th>Opponent</th>
+                  <th>Type</th>
+                  <th>Season</th>
+                  <th>Innings</th>
+                </tr>
+              </thead>
+              <tbody>${planRows}</tbody>
+            </table>
+          </section>
+        </body>
+      </html>
+    `
+
+    const printWindow = window.open('', '_blank')
+    printWindow.document.write(html)
+    printWindow.document.close()
+    printWindow.focus()
+    printWindow.print()
   }}
 >
   Print Coach Summary
