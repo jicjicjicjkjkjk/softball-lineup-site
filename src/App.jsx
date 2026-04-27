@@ -1353,22 +1353,42 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   }
 
   async function updateGameField(gameId, field, value) {
-    setGames((current) =>
-      current.map((game) => (pk(game.id) === pk(gameId) ? { ...game, [field]: value } : game))
+  setGames((current) =>
+    current.map((game) =>
+      pk(game.id) === pk(gameId) ? { ...game, [field]: value } : game
     )
+  )
 
-    const updates = {}
-    if (field === 'date') updates.game_date = value || null
-    if (field === 'opponent') updates.opponent = value || null
-    if (field === 'innings') updates.innings = Number(value)
-    if (field === 'status') updates.status = value
-    if (field === 'game_type') updates.game_type = value || null
-    if (field === 'season') updates.season = value || null
-    if (field === 'game_order') updates.game_order = value === '' ? null : Number(value)
+  const updates = {}
+  if (field === 'date') updates.game_date = value || null
+  if (field === 'opponent') updates.opponent = value || null
+  if (field === 'innings') updates.innings = Number(value)
+  if (field === 'status') updates.status = value
+  if (field === 'game_type') updates.game_type = value || null
+  if (field === 'season') updates.season = value || null
+  if (field === 'game_order') updates.game_order = value === '' ? null : Number(value)
 
-    const res = await supabase.from('games').update(updates).eq('id', gameId)
-    if (res.error) setAppError(res.error.message)
+  const res = await supabase.from('games').update(updates).eq('id', gameId)
+  if (res.error) {
+    setAppError(res.error.message)
+    return
   }
+
+  // ✅ AUTO LOCK WHEN COMPLETE
+  if (field === 'status' && String(value).toLowerCase() === 'complete') {
+    const game = games.find((g) => pk(g.id) === pk(gameId))
+
+    const currentLineup =
+      currentPlanLineupsByGame[pk(gameId)] ||
+      blankLineup(
+        players.map((p) => p.id),
+        Number(game?.innings || 6),
+        activePlayerIds()
+      )
+
+    await persistLineup(gameId, currentLineup, true)
+  }
+}
 
   async function deleteGame(gameId) {
     if (lineupLockedByGame[pk(gameId)]) {
