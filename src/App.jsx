@@ -81,6 +81,7 @@ export default function App() {
   const [optimizerPreviewByGame, setOptimizerPreviewByGame] = useState({})
   const [optimizerPlanSitOutTargets, setOptimizerPlanSitOutTargets] = useState({})
   const [lineupSetterStateLoaded, setLineupSetterStateLoaded] = useState(false)
+  const [lineupSetterStateLoaded, setLineupSetterStateLoaded] = useState(false)
   
   const [newGameDate, setNewGameDate] = useState('')
   const [newGameOpponent, setNewGameOpponent] = useState('')
@@ -599,15 +600,38 @@ function isCompleteLineup(lineup) {
 
       await loadAppOptions()
 
-            if (loadedGames.length) {
-        const latestGame = [...loadedGames].sort((a, b) => compareGamesAsc(a, b, pk)).at(-1)
+            const stateRes = await supabase
+  .from('lineup_setter_state')
+  .select('batch_game_ids, focus_game_id')
+  .eq('team_id', TEAM_ID)
+  .maybeSingle()
 
-        if (latestGame) {
-          setSelectedGameId(pk(latestGame.id))
-          setOptimizerExistingGameId(pk(latestGame.id))
-          setOptimizerFocusGameId(pk(latestGame.id))
-        }
-      }
+const validGameIds = new Set(loadedGames.map((game) => pk(game.id)))
+
+const savedBatchIds = Array.isArray(stateRes.data?.batch_game_ids)
+  ? stateRes.data.batch_game_ids.map(pk).filter((id) => validGameIds.has(id))
+  : []
+
+const savedFocusId =
+  stateRes.data?.focus_game_id && validGameIds.has(pk(stateRes.data.focus_game_id))
+    ? pk(stateRes.data.focus_game_id)
+    : savedBatchIds[0] || ''
+
+if (savedBatchIds.length) {
+  setOptimizerBatchGameIds(savedBatchIds)
+  setOptimizerFocusGameId(savedFocusId)
+  setOptimizerExistingGameId(savedFocusId)
+} else if (loadedGames.length) {
+  const latestGame = [...loadedGames].sort((a, b) => compareGamesAsc(a, b, pk)).at(-1)
+
+  if (latestGame) {
+    setSelectedGameId(pk(latestGame.id))
+    setOptimizerExistingGameId(pk(latestGame.id))
+    setOptimizerFocusGameId(pk(latestGame.id))
+  }
+}
+
+setLineupSetterStateLoaded(true)
 
       const lineupSetterStateRes = await supabase
         .from('lineup_setter_state')
@@ -654,6 +678,29 @@ function isCompleteLineup(lineup) {
   }
 }, [trackingFilters])
 
+useEffect(() => {
+  if (loading || !lineupSetterStateLoaded) return
+  if (!dbReady()) return
+
+  async function saveLineupSetterState() {
+    const res = await supabase.from('lineup_setter_state').upsert(
+      {
+        team_id: TEAM_ID,
+        batch_game_ids: optimizerBatchGameIds,
+        focus_game_id: optimizerFocusGameId || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'team_id' }
+    )
+
+    if (res.error) {
+      console.error('Failed to save lineup setter state', res.error)
+    }
+  }
+
+  saveLineupSetterState()
+}, [optimizerBatchGameIds, optimizerFocusGameId, loading, lineupSetterStateLoaded])
+  
   useEffect(() => {
     loadAll()
   }, [])
