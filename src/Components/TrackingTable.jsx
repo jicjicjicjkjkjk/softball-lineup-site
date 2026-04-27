@@ -18,9 +18,31 @@ function displayRunningTotal(val) {
 }
 
 function getFitColor(fit) {
-  if (fit === 'primary' || fit === 'A') return '#dcfce7'
-  if (fit === 'secondary' || fit === 'B' || fit === 'C') return '#fef9c3'
-  if (fit === 'no' || fit === 'E' || fit === 'D') return '#fee2e2'
+  const normalized = String(fit || '').toLowerCase().trim()
+
+  if (normalized === 'primary' || normalized === 'a') return '#dcfce7'
+
+  if (
+    normalized === 'secondary' ||
+    normalized === 'non-primary' ||
+    normalized === 'nonprimary' ||
+    normalized === 'b' ||
+    normalized === 'c'
+  ) {
+    return '#fef9c3'
+  }
+
+  if (
+    normalized === 'no' ||
+    normalized === 'not_allowed' ||
+    normalized === 'not-allowed' ||
+    normalized === 'not allowed' ||
+    normalized === 'd' ||
+    normalized === 'e'
+  ) {
+    return '#fee2e2'
+  }
+
   return ''
 }
 
