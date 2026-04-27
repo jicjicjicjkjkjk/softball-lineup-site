@@ -753,15 +753,14 @@ useEffect(() => {
 
   const id = pk(selectedGame.id)
 
-  // If explicitly locked → locked
-  if (lineupLockedByGame[id] === true) return true
+  if (Object.prototype.hasOwnProperty.call(lineupLockedByGame, id)) {
+    return lineupLockedByGame[id] === true
+  }
 
-  // If lineup exists but no lock state yet → treat as locked
   if (lineupsByGame[id]) return true
 
   return false
 }, [selectedGame, lineupLockedByGame, lineupsByGame])
-
   
   const sortedPlayers = useMemo(() => {
     return sortRows(
@@ -2177,15 +2176,28 @@ function toggleSavedAllBattingLock(gameId) {
   }
 
     async function toggleLineupLocked(gameId, nextLocked) {
-    const game = games.find((g) => pk(g.id) === pk(gameId))
+  const game = games.find((g) => pk(g.id) === pk(gameId))
 
-    const currentLineup =
-      currentPlanLineupsByGame[pk(gameId)] ||
-      blankLineup(players.map((p) => p.id), Number(game?.innings || 6), activePlayerIds())
+  const currentLineup =
+    currentPlanLineupsByGame[pk(gameId)] ||
+    lineupsByGame[pk(gameId)] ||
+    optimizerPreviewByGame[pk(gameId)] ||
+    blankLineup(players.map((p) => p.id), Number(game?.innings || 6), activePlayerIds())
 
-    const ok = await persistLineup(gameId, currentLineup, nextLocked)
-    if (!ok) return
+  setLineupLockedByGame((current) => ({
+    ...current,
+    [pk(gameId)]: nextLocked,
+  }))
+
+  const ok = await persistLineup(gameId, currentLineup, nextLocked)
+
+  if (!ok) {
+    setLineupLockedByGame((current) => ({
+      ...current,
+      [pk(gameId)]: !nextLocked,
+    }))
   }
+}
   
   
     async function clearSavedLineup(gameId) {
