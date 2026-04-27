@@ -1067,10 +1067,13 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
           return (
             <div key={game.id} className="print-game">
               <div className="print-title">
-                {formatDateShort(game.date) || 'No Date'} vs {game.opponent || 'Opponent'}
-              </div>
+  <span>{formatDateShort(game.date) || 'No Date'}</span>
+  <span>vs {game.opponent || 'Opponent'}</span>
+  {game.game_type ? <span>{getOptionLabel(gameTypeOptions, game.game_type)}</span> : null}
+  {game.season ? <span>{getOptionLabel(seasonOptions, game.season)}</span> : null}
+</div>
 
-              <table className="coach-lineup-table">
+<table className="coach-lineup-table">
                 <thead>
                   <tr>
                     <th>Bat</th>
