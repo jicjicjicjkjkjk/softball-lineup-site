@@ -499,6 +499,8 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         visibleIds={visibleIds}
         updatePreviewCell={updatePreviewCell}
         updatePreviewBatting={updatePreviewBatting}
+        togglePreviewBattingLock={togglePreviewBattingLock}
+        togglePreviewAllBattingLock={togglePreviewAllBattingLock}
         togglePreviewCellLock={togglePreviewCellLock}
         togglePreviewRowLock={togglePreviewRowLock}
         togglePreviewInningLock={togglePreviewInningLock}
@@ -506,7 +508,6 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         seasonOptions={seasonOptions}
         trackingPriorityByPositionRows={trackingPriorityByPositionRows}
       />
-
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Filters</h3>
 
