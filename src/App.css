@@ -1253,3 +1253,16 @@
     background: #fff;
   }
 }
+
+/* Priority table: readable headers + rounded values */
+.priority-combined-table th {
+  white-space: normal !important;
+  line-height: 1.05;
+  overflow-wrap: break-word;
+}
+
+.priority-combined-table .col-small {
+  width: 54px !important;
+  min-width: 54px !important;
+  max-width: 54px !important;
+}
