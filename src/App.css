@@ -692,32 +692,55 @@ th {
   min-width: 0;
 }
 
-/* Sticky player column in lineup grids */
+/* Sticky number + player columns in lineup grids */
 
-.lineup-print-table th:first-child,
-.lineup-print-table td:first-child {
+.lineup-print-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.lineup-print-table th:nth-child(1),
+.lineup-print-table td:nth-child(1) {
   position: sticky;
   left: 0;
   z-index: 6;
+  width: 54px;
+  min-width: 54px;
+  max-width: 54px;
   background: #fff;
-}
-
-.lineup-print-table thead th:first-child {
-  z-index: 8;
-  background: #e6f4f4;
 }
 
 .lineup-print-table th:nth-child(2),
 .lineup-print-table td:nth-child(2) {
   position: sticky;
-  left: 86px;
+  left: 54px;
   z-index: 6;
+  width: 76px;
+  min-width: 76px;
+  max-width: 76px;
   background: #fff;
 }
 
-.lineup-print-table thead th:nth-child(2) {
-  z-index: 8;
+.lineup-print-table th:nth-child(3),
+.lineup-print-table td:nth-child(3) {
+  position: sticky;
+  left: 130px;
+  z-index: 6;
+  width: 92px;
+  min-width: 92px;
+  max-width: 92px;
+  background: #fff;
+}
+
+.lineup-print-table thead th:nth-child(1),
+.lineup-print-table thead th:nth-child(2),
+.lineup-print-table thead th:nth-child(3) {
+  z-index: 9;
   background: #e6f4f4;
+}
+
+.lineup-print-table td:nth-child(3) {
+  text-align: left;
 }
 
 /* =========================
