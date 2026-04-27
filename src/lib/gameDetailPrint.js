@@ -5,9 +5,6 @@ export function printGameDetail({
   formatDateShort,
   pk,
 }) {
-  const TEAM_NAME = 'Arlington Heights Thunder 12U Teal'
-  const LOGO_URL = '/thunder-logo.png'
-
   const htmlEscape = (value) =>
     String(value ?? '')
       .replaceAll('&', '&amp;')
@@ -26,20 +23,22 @@ export function printGameDetail({
       return aOrder - bOrder
     })
 
-  const innings = Number(selectedLineup?.innings || 0)
-
   const fullName = (player) =>
-    `${player.name || ''} ${player.last_name || ''}`.trim()
+    [player.name, player.last_name].filter(Boolean).join(' ').trim()
 
-  const inningHeaders = Array.from({ length: innings })
+  const gameDate = formatDateShort(selectedGame?.date) || 'No Date'
+  const opponent = selectedGame?.opponent || 'Opponent'
+  const gameTime = selectedGame?.game_time || selectedGame?.time || ''
+
+  const inningHeaders = Array.from({ length: Number(selectedLineup?.innings || 0) })
     .map((_, i) => `<th>${i + 1}</th>`)
     .join('')
 
-  const gridRows = printPlayers
+  const positionRows = printPlayers
     .map((player) => {
       const id = pk(player.id)
 
-      const cells = Array.from({ length: innings })
+      const cells = Array.from({ length: Number(selectedLineup?.innings || 0) })
         .map((_, i) => {
           const inning = i + 1
           const value = selectedLineup?.cells?.[id]?.[inning]
@@ -61,15 +60,12 @@ export function printGameDetail({
   const lineupCardRows = printPlayers
     .map((player) => {
       const id = pk(player.id)
-      const firstInningPosition = selectedLineup?.cells?.[id]?.[1]
-      const position = firstInningPosition === 'Out' ? '' : firstInningPosition || ''
 
       return `
         <tr>
           <td>${htmlEscape(selectedLineup?.battingOrder?.[id] || '')}</td>
           <td>${htmlEscape(player.jersey_number || '')}</td>
           <td class="lineup-name">${htmlEscape(fullName(player))}</td>
-          <td>${htmlEscape(position)}</td>
           <td></td>
         </tr>
       `
@@ -79,64 +75,80 @@ export function printGameDetail({
   const html = `
     <html>
       <head>
-        <title>Thunder Game Packet</title>
+        <title>Game Lineup</title>
         <style>
           @page {
             size: letter portrait;
-            margin: 0.35in;
+            margin: 0.3in;
+          }
+
+          html,
+          body {
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
           }
 
           body {
             font-family: Arial, Helvetica, sans-serif;
             color: #1f2f46;
-            margin: 0;
           }
 
-          .page {
+          .print-page {
+            break-after: page;
             page-break-after: always;
           }
 
-          .page:last-child {
+          .print-page:last-child {
+            break-after: auto;
             page-break-after: auto;
           }
 
           .brand-header {
-            display: grid;
-            grid-template-columns: 72px 1fr;
-            gap: 12px;
+            display: flex;
             align-items: center;
+            justify-content: space-between;
+            gap: 14px;
             margin-bottom: 10px;
-            border-bottom: 4px solid #3c817d;
-            padding-bottom: 8px;
           }
 
-          .logo {
-            width: 64px;
-            height: 64px;
-            object-fit: contain;
+          .brand-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
           }
 
-          .team-title {
+          .logo-mark {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: #111827;
+            color: #38bdf8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 900;
+            border: 4px solid #3c817d;
+          }
+
+          .brand-title {
             font-size: 20px;
             font-weight: 900;
             margin: 0;
-            line-height: 1.05;
+            line-height: 1.1;
           }
 
-          .game-title {
-            font-size: 15px;
-            font-weight: 800;
-            margin-top: 4px;
-            line-height: 1.15;
-          }
-
-          .meta-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px 18px;
-            margin: 10px 0 12px;
+          .brand-subtitle {
             font-size: 12px;
             font-weight: 700;
+            color: #3c817d;
+            margin-top: 2px;
+          }
+
+          h1 {
+            font-size: 18px;
+            margin: 0 0 10px;
           }
 
           table {
@@ -147,112 +159,112 @@ export function printGameDetail({
 
           th,
           td {
-            border: 1.5px solid #111;
+            border: 1px solid #111;
             padding: 5px;
             text-align: center;
             font-size: 11px;
-            line-height: 1.1;
+            line-height: 1.15;
           }
 
           th {
-            background: #dff0ef;
-            font-weight: 900;
+            background: #e6f4f4;
+            font-weight: 800;
           }
 
-          .grid-table th:nth-child(1),
-          .grid-table td:nth-child(1) {
+          .position-table th:nth-child(1),
+          .position-table td:nth-child(1) {
             width: 34px;
           }
 
-          .grid-table th:nth-child(2),
-          .grid-table td:nth-child(2) {
+          .position-table th:nth-child(2),
+          .position-table td:nth-child(2) {
             width: 110px;
           }
 
-          .grid-table th:nth-child(3),
-          .grid-table td:nth-child(3) {
+          .position-table th:nth-child(3),
+          .position-table td:nth-child(3) {
             width: 34px;
           }
 
-          .name,
-          .lineup-name {
+          .name {
             text-align: left;
-            font-weight: 700;
           }
 
-          .lineup-card th {
-            background: #163847;
-            color: white;
+          .lineup-card-title {
+            font-size: 22px;
+            font-weight: 900;
+            margin: 0 0 10px;
           }
 
-          .lineup-card th:nth-child(1),
-          .lineup-card td:nth-child(1) {
-            width: 42px;
+          .lineup-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 28px;
+            margin-bottom: 12px;
+            font-size: 13px;
           }
 
-          .lineup-card th:nth-child(2),
-          .lineup-card td:nth-child(2) {
-            width: 46px;
+          .lineup-meta div {
+            white-space: nowrap;
           }
 
-          .lineup-card th:nth-child(4),
-          .lineup-card td:nth-child(4) {
-            width: 80px;
-          }
-
-          .lineup-card th:nth-child(5),
-          .lineup-card td:nth-child(5) {
-            width: 110px;
-          }
-
-          .lineup-card td {
-            height: 28px;
+          .lineup-card-table th {
+            background: #111;
+            color: #fff;
             font-size: 12px;
           }
 
-          .card-title {
-            font-size: 18px;
-            font-weight: 900;
-            margin: 0 0 8px;
+          .lineup-card-table td {
+            font-size: 12px;
+            padding: 6px 5px;
           }
 
-          .small-note {
-            font-size: 10px;
-            margin-top: 10px;
-            color: #5f6f84;
+          .lineup-card-table th:nth-child(1),
+          .lineup-card-table td:nth-child(1) {
+            width: 52px;
+          }
+
+          .lineup-card-table th:nth-child(2),
+          .lineup-card-table td:nth-child(2) {
+            width: 60px;
+          }
+
+          .lineup-name {
+            text-align: left;
+            width: 260px;
           }
 
           .signature-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 80px;
+            gap: 90px;
             margin-top: 34px;
+            font-size: 12px;
+            text-align: center;
           }
 
           .signature-line {
             border-top: 2px solid #111;
-            text-align: center;
-            padding-top: 5px;
-            font-size: 11px;
-            font-weight: 700;
+            padding-top: 6px;
           }
         </style>
       </head>
 
       <body>
-        <section class="page">
+        <section class="print-page">
           <div class="brand-header">
-            <img class="logo" src="${LOGO_URL}" onerror="this.style.display='none'" />
-            <div>
-              <div class="team-title">${htmlEscape(TEAM_NAME)}</div>
-              <div class="game-title">
-                ${htmlEscape(formatDateShort(selectedGame?.date) || 'No Date')}
-                vs ${htmlEscape(selectedGame?.opponent || 'Opponent')}
+            <div class="brand-left">
+              <div class="logo-mark">T</div>
+              <div>
+                <div class="brand-title">Thunder Game Lineup</div>
+                <div class="brand-subtitle">Arlington Heights Thunder 12U Teal</div>
               </div>
             </div>
           </div>
 
-          <table class="grid-table">
+          <h1>${htmlEscape(gameDate)} vs ${htmlEscape(opponent)}</h1>
+
+          <table class="position-table">
             <thead>
               <tr>
                 <th>Bat</th>
@@ -261,48 +273,43 @@ export function printGameDetail({
                 ${inningHeaders}
               </tr>
             </thead>
-            <tbody>${gridRows}</tbody>
+            <tbody>${positionRows}</tbody>
           </table>
         </section>
 
-        <section class="page">
+        <section class="print-page">
           <div class="brand-header">
-            <img class="logo" src="${LOGO_URL}" onerror="this.style.display='none'" />
-            <div>
-              <div class="team-title">Official Lineup Card</div>
-              <div class="game-title">${htmlEscape(TEAM_NAME)}</div>
+            <div class="brand-left">
+              <div class="logo-mark">T</div>
+              <div>
+                <div class="lineup-card-title">Official Lineup Card</div>
+                <div class="brand-subtitle">Arlington Heights Thunder 12U Teal</div>
+              </div>
             </div>
           </div>
 
-          <div class="meta-grid">
-            <div>Team: ${htmlEscape(TEAM_NAME)}</div>
-            <div>Date: ${htmlEscape(formatDateShort(selectedGame?.date) || '')}</div>
-            <div>Opponent: ${htmlEscape(selectedGame?.opponent || '')}</div>
-            <div>Game Time: __________________</div>
-            <div>Manager/Coach: __________________</div>
-            <div>Field: __________________</div>
+          <div class="lineup-meta">
+            <div><strong>Team:</strong> Thunder</div>
+            <div><strong>Date:</strong> ${htmlEscape(gameDate)}</div>
+            <div><strong>Opponent:</strong> ${htmlEscape(opponent)}</div>
+            <div><strong>Game Time:</strong> ${htmlEscape(gameTime || '__________')}</div>
           </div>
 
-          <table class="lineup-card">
+          <table class="lineup-card-table">
             <thead>
               <tr>
                 <th>Bat</th>
                 <th>#</th>
-                <th>Player Name</th>
-                <th>Pos</th>
-                <th>Sub/Re-Entry</th>
+                <th>Name (First + Last)</th>
+                <th>Position</th>
               </tr>
             </thead>
             <tbody>${lineupCardRows}</tbody>
           </table>
 
           <div class="signature-row">
-            <div class="signature-line">Manager / Coach Signature</div>
-            <div class="signature-line">Plate Umpire</div>
-          </div>
-
-          <div class="small-note">
-            Lineup card prepared for tournament/game exchange. Confirm any event-specific USSSA lineup-card requirements with the tournament director.
+            <div class="signature-line">Coach Signature</div>
+            <div class="signature-line">Umpire</div>
           </div>
         </section>
       </body>
