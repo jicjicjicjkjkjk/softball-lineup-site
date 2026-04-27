@@ -1219,3 +1219,105 @@ th {
     white-space: normal;
   }
 }
+
+
+/* Mobile table usability: freeze first column + top row */
+
+@media (max-width: 700px) {
+  .table-scroll {
+    max-height: 72vh;
+    overflow: auto !important;
+  }
+
+  .positioning-priority-table,
+  .lineup-setter-current-plan-table {
+    min-width: 980px !important;
+    table-layout: fixed !important;
+  }
+
+  .positioning-priority-table th,
+  .positioning-priority-table td,
+  .lineup-setter-current-plan-table th,
+  .lineup-setter-current-plan-table td {
+    font-size: 12px !important;
+    padding: 7px 8px !important;
+    white-space: nowrap;
+  }
+
+  .positioning-priority-table thead th,
+  .lineup-setter-current-plan-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 8;
+  }
+
+  .positioning-priority-table th:first-child,
+  .positioning-priority-table td:first-child,
+  .lineup-setter-current-plan-table th:first-child,
+  .lineup-setter-current-plan-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 9;
+    width: 105px !important;
+    min-width: 105px !important;
+    max-width: 105px !important;
+    background: #fff !important;
+    text-align: left !important;
+  }
+
+  .positioning-priority-table thead th:first-child,
+  .lineup-setter-current-plan-table thead th:first-child {
+    z-index: 12;
+    background: #dff0ef !important;
+  }
+
+  .positioning-priority-table th:nth-child(2),
+  .positioning-priority-table td:nth-child(2) {
+    width: 58px !important;
+    min-width: 58px !important;
+  }
+
+  .positioning-priority-table input,
+  .positioning-priority-table select {
+    width: 54px !important;
+    min-width: 54px !important;
+    max-width: 54px !important;
+    text-align: center;
+  }
+
+  .allowed-position-table select {
+    width: 96px !important;
+    min-width: 96px !important;
+    max-width: 96px !important;
+    font-size: 11px !important;
+    padding: 4px 5px !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .lineup-setter-availability,
+  .checkbox-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(92px, 1fr)) !important;
+    gap: 8px 10px !important;
+  }
+
+  .lineup-setter-availability label,
+  .checkbox-grid label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-height: 28px !important;
+    margin: 0 !important;
+    font-size: 12px !important;
+    white-space: nowrap;
+  }
+
+  .lineup-setter-availability input[type='checkbox'],
+  .checkbox-grid input[type='checkbox'] {
+    width: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    flex: 0 0 auto !important;
+  }
+}
