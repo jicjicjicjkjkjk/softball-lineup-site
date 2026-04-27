@@ -1228,3 +1228,28 @@
     background: #dff0ef !important;
   }
 }
+
+
+/* Fix batting column bleeding through sticky header on mobile portrait */
+@media (max-width: 900px) {
+  .lineup-print-table thead th {
+    background: #dff0ef !important;
+    z-index: 80 !important;
+  }
+
+  .lineup-print-table th:nth-child(3) {
+    z-index: 95 !important;
+    background: #dff0ef !important;
+  }
+
+  .lineup-print-table td:nth-child(3) {
+    z-index: 20 !important;
+    background: #fff !important;
+  }
+
+  .lineup-print-table .batting-cell {
+    position: relative;
+    z-index: 1;
+    background: #fff;
+  }
+}
