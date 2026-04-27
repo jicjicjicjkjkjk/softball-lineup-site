@@ -23,6 +23,29 @@ export function printCoachSummary({
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#039;')
 
+  const pct = (numerator, denominator) => {
+    const num = Number(numerator || 0)
+    const den = Number(denominator || 0)
+    if (!num || !den) return ''
+    return `${Number(((num / den) * 100).toFixed(1))}%`
+  }
+
+  const priorityPositions = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
+
+  const priorityTargetByPlayer = Object.fromEntries(
+    (trackingPriorityRows || []).map((row) => [pk(row.playerId), row])
+  )
+
+  const positionTotals = Object.fromEntries(
+    priorityPositions.map((pos) => [
+      pos,
+      activePlayers.reduce((sum, player) => {
+        const id = pk(player.id)
+        return sum + Number(currentBatchTotals?.[id]?.[pos] || 0)
+      }, 0),
+    ])
+  )
+
   const lineupPages = orderedPlanGames
     .map((game) => {
       const lineup = optimizerPreviewByGame[pk(game.id)] || lineupsByGame[pk(game.id)]
@@ -128,39 +151,31 @@ export function printCoachSummary({
     })
     .join('')
 
-  const pct = (numerator, denominator) => {
-    const num = Number(numerator || 0)
-    const den = Number(denominator || 0)
-    if (!num || !den) return ''
-    return Number(((num / den) * 100).toFixed(1))
-  }
-
-  const priorityTargetByPlayer = Object.fromEntries(
-    (trackingPriorityRows || []).map((row) => [pk(row.playerId), row])
-  )
-
-  const priorityPositions = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
-
-  const priorityPlayerRowsHtml = activePlayers
+  const combinedPriorityRows = activePlayers
     .map((player) => {
       const id = pk(player.id)
       const totals = currentBatchTotals?.[id] || {}
       const target = priorityTargetByPlayer[id] || {}
       const fieldTotal = Number(totals.fieldTotal || 0)
 
-      return `
-        <tr>
-          <td class="name">${htmlEscape(player.name)}</td>
-          <td>${n(fieldTotal)}</td>
-          ${priorityPositions
-            .map((pos) => {
-              const targetKey = `targ${pos}`
-              const totalValue = totals[pos] || 0
-              return `<td>${htmlEscape(target[targetKey] || '')}</td><td>${pct(totalValue, fieldTotal)}</td>`
-            })
-            .join('')}
-        </tr>
-      `
+      return priorityPositions
+        .map((pos) => {
+          const targetKey = `targ${pos}`
+          const totalValue = Number(totals[pos] || 0)
+
+          return `
+            <tr>
+              <td class="name">${htmlEscape(player.name)}</td>
+              <td>${pos}</td>
+              <td>${htmlEscape(target[targetKey] || '')}</td>
+              <td>${pct(totalValue, fieldTotal)}</td>
+              <td>${pct(totalValue, positionTotals[pos])}</td>
+              <td>${n(totalValue)}</td>
+              <td>${n(fieldTotal)}</td>
+            </tr>
+          `
+        })
+        .join('')
     })
     .join('')
 
@@ -183,7 +198,8 @@ export function printCoachSummary({
           .name { text-align: left; width: 110px; }
           .plan-page, .priority-page { page-break-before: always; }
           .plan-table th, .plan-table td { font-size: 9.5px; padding: 4px 3px; }
-          .priority-print-table th, .priority-print-table td { font-size: 8.5px; padding: 3px 2px; }
+          .priority-print-table th, .priority-print-table td { font-size: 9px; padding: 4px 3px; }
+          .priority-print-table .name { width: 95px; }
         </style>
       </head>
       <body>
@@ -208,11 +224,16 @@ export function printCoachSummary({
           <table class="priority-print-table">
             <thead>
               <tr>
-                <th>Player</th><th>Fld</th>
-                ${priorityPositions.map((pos) => `<th>${pos} TGT</th><th>${pos} ACT</th>`).join('')}
+                <th>Player</th>
+                <th>Pos</th>
+                <th>Target %</th>
+                <th>Player Actual %</th>
+                <th>Share of Position %</th>
+                <th>Pos Inn</th>
+                <th>Fld Inn</th>
               </tr>
             </thead>
-            <tbody>${priorityPlayerRowsHtml}</tbody>
+            <tbody>${combinedPriorityRows}</tbody>
           </table>
         </section>
       </body>
