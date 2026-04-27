@@ -275,8 +275,22 @@ return `
   `
 
   const printWindow = window.open('', '_blank')
-  printWindow.document.write(html)
-  printWindow.document.close()
+
+if (!printWindow) {
+  alert('Pop-up blocked. Please allow pop-ups for this site, then try Print again.')
+  return
+}
+
+printWindow.document.open()
+printWindow.document.write(html)
+printWindow.document.close()
+
+printWindow.onload = () => {
   printWindow.focus()
   printWindow.print()
 }
+
+setTimeout(() => {
+  printWindow.focus()
+  printWindow.print()
+}, 500)}
