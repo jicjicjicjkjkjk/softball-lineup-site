@@ -12,6 +12,11 @@ function displayNumber(val) {
   return Math.round(safeNumber(val))
 }
 
+function displayRunningTotal(val) {
+  const n = safeNumber(val)
+  return Number.isInteger(n) ? n : Number(n.toFixed(2))
+}
+
 function getFitColor(fit) {
   if (fit === 'primary' || fit === 'A') return '#dcfce7'
   if (fit === 'secondary' || fit === 'B' || fit === 'C') return '#fef9c3'
@@ -203,8 +208,8 @@ export default function TrackingTable({
               <td>{displayNumber(row.OF)}</td>
 
               {!hideSitOutRunningTotal && (
-                <td>{displayNumber(row.sitOutRunningTotal)}</td>
-              )}
+  <td>{displayRunningTotal(row.sitOutRunningTotal)}</td>
+)}
             </tr>
           ))}
         </tbody>
