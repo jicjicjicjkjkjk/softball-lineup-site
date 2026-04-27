@@ -88,7 +88,10 @@ export default function TrackingTable({
         Out: safeNumber(t.Out),
         targetOuts: targetOuts ?? '',
         gap,
-        sitOutRunningTotal: safeNumber(sitOutRunningByPlayer[id]),
+        sitOutRunningTotal:
+  sitOutRunningByPlayer[id] !== undefined
+    ? safeNumber(sitOutRunningByPlayer[id])
+    : safeNumber(t.sitOutRunningTotal),
         P: safeNumber(t.P),
         C: safeNumber(t.C),
         '1B': safeNumber(t['1B']),
