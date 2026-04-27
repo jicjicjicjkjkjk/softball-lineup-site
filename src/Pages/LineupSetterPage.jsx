@@ -419,12 +419,24 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             const id = pk(player.id)
 
             const cells = Array.from({ length: Number(lineup.innings || 0) })
-              .map((_, i) => {
-                const value = lineup.cells?.[id]?.[i + 1]
-                return `<td>${value === 'Out' ? 'OUT' : value || '-'}</td>`
-              })
-              .join('')
+  .map((_, i) => {
+    const value = lineup.cells?.[id]?.[i + 1]
 
+    let fitClass = ''
+    if (value && value !== 'Out') {
+      const fit =
+        fitByPlayer?.[id]?.[value] ||
+        (['LF', 'CF', 'RF'].includes(value) ? fitByPlayer?.[id]?.OF : '') ||
+        ''
+
+      if (fit === 'primary' || fit === 'A') fitClass = ' primary'
+      else if (fit === 'secondary' || fit === 'B' || fit === 'C') fitClass = ' secondary'
+      else fitClass = ' not-allowed'
+    }
+
+    return `<td class="${fitClass.trim()}">${value === 'Out' ? 'OUT' : value || '-'}</td>`
+  })
+  .join('')
             return `
               <tr>
                 <td>${lineup.battingOrder?.[id] || ''}</td>
@@ -499,6 +511,9 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             table { width: 100%; border-collapse: collapse; table-layout: fixed; }
             th, td { border: 1px solid #111; padding: 5px; text-align: center; font-size: 11px; }
             th { background: #e6f4f4; font-weight: 800; }
+            td.primary { background: #dcfce7; }
+            td.secondary { background: #fef9c3; }
+            td.not-allowed { background: #fee2e2; }
             .name { text-align: left; width: 110px; }
             .plan-page { page-break-before: always; }
             .plan-table th, .plan-table td { font-size: 9.5px; padding: 4px 3px; }
