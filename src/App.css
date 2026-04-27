@@ -707,20 +707,33 @@ th {
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
-    height: auto !important;
-    min-height: 0 !important;
     overflow: visible !important;
   }
 
-  .app-shell,
-  .sidebar,
-  .main-content > *:not(.print-only),
-  .stack > *:not(.print-only) {
+  .sidebar {
     display: none !important;
   }
 
-  .print-only.show-print {
+  .app-shell {
     display: block !important;
+    min-height: 0 !important;
+  }
+
+  .main-content {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .main-content .stack > * {
+    display: none !important;
+  }
+
+  .main-content .stack > .print-only.show-print {
+    display: block !important;
+  }
+
+  .print-only.show-print {
     width: 100% !important;
     background: #fff !important;
     margin: 0 !important;
@@ -734,26 +747,17 @@ th {
   .print-game {
     page-break-after: always !important;
     break-after: page !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
     margin: 0 !important;
     padding: 0 !important;
-  }
-
-  .print-game:last-of-type {
-    page-break-after: always !important;
-    break-after: page !important;
   }
 
   .print-title {
     display: flex !important;
     gap: 10px !important;
     flex-wrap: wrap !important;
-    align-items: center !important;
     font-size: 15px !important;
     font-weight: 800 !important;
     margin: 0 0 8px 0 !important;
-    color: #1f2f46 !important;
   }
 
   .coach-lineup-table,
@@ -763,7 +767,6 @@ th {
     border-collapse: collapse !important;
     table-layout: fixed !important;
     font-size: 10px !important;
-    background: #fff !important;
   }
 
   .coach-lineup-table th,
@@ -775,8 +778,8 @@ th {
     line-height: 1.05 !important;
     text-align: center !important;
     vertical-align: middle !important;
-    color: #1f2f46 !important;
     background: #fff !important;
+    color: #1f2f46 !important;
   }
 
   .coach-lineup-table th,
@@ -802,8 +805,6 @@ th {
   }
 
   .coach-plan-page {
-    page-break-before: auto !important;
-    break-before: auto !important;
     margin: 0 !important;
     padding: 0 !important;
   }
