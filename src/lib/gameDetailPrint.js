@@ -25,11 +25,14 @@ export function printGameDetail({
 
   const innings = Number(selectedLineup?.innings || 0)
 
+  // -----------------------
+  // PAGE 1 (GRID)
+  // -----------------------
   const inningHeaders = Array.from({ length: innings })
     .map((_, i) => `<th>${i + 1}</th>`)
     .join('')
 
-  const coachRows = printPlayers
+  const playerRows = printPlayers
     .map((player) => {
       const id = pk(player.id)
 
@@ -52,97 +55,38 @@ export function printGameDetail({
     })
     .join('')
 
-  const opponentCardRows = printPlayers
-    .map((player) => {
+  // -----------------------
+  // PAGE 2 (LINEUP CARD)
+  // -----------------------
+  const lineupCardRows = printPlayers
+    .map((player, idx) => {
       const id = pk(player.id)
-      const firstInningPosition = selectedLineup?.cells?.[id]?.[1] || ''
-      const displayPosition = firstInningPosition === 'Out' ? 'Sub' : firstInningPosition || ''
+      const fullName = `${player.name || ''} ${player.last_name || ''}`.trim()
 
       return `
         <tr>
-          <td>${htmlEscape(selectedLineup?.battingOrder?.[id] || '')}</td>
+          <td>${idx + 1}</td>
           <td>${htmlEscape(player.jersey_number || '')}</td>
-          <td class="name">${htmlEscape(player.name)}</td>
-          <td>${htmlEscape(displayPosition)}</td>
+          <td>${htmlEscape(fullName)}</td>
           <td></td>
         </tr>
       `
     })
     .join('')
 
-  const title = `${formatDateShort(selectedGame?.date) || 'No Date'} vs ${
-    selectedGame?.opponent || 'Opponent'
-  }`
-
   const html = `
     <html>
       <head>
         <title>Game Lineup</title>
         <style>
-          @page { size: letter portrait; margin: 0.35in; }
+          @page { size: letter portrait; margin: 0.4in; }
 
-          body {
-            font-family: Arial, sans-serif;
-            color: #1f2f46;
-          }
+          body { font-family: Arial, sans-serif; color: #1f2f46; }
 
-          .page {
-            page-break-after: always;
-          }
+          h1 { font-size: 18px; margin: 0 0 8px; }
+          h2 { font-size: 16px; margin: 0 0 8px; }
 
-          .page:last-child {
-            page-break-after: auto;
-          }
-
-          .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 10px;
-          }
-
-          .team-block {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-          }
-
-          .logo {
-            width: 52px;
-            height: 52px;
-            object-fit: contain;
-          }
-
-          h1 {
-            font-size: 18px;
-            margin: 0 0 3px;
-          }
-
-          .subtitle {
-            font-size: 12px;
-            font-weight: 700;
-          }
-
-          .meta-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-            margin: 10px 0;
-          }
-
-          .meta-box {
-            border: 1px solid #111;
-            padding: 5px;
-            min-height: 30px;
-            font-size: 11px;
-          }
-
-          .meta-label {
-            font-weight: 800;
-            display: block;
-            margin-bottom: 2px;
-          }
+          .page { page-break-after: always; }
 
           table {
             width: 100%;
@@ -150,8 +94,7 @@ export function printGameDetail({
             table-layout: fixed;
           }
 
-          th,
-          td {
+          th, td {
             border: 1px solid #111;
             padding: 5px;
             text-align: center;
@@ -165,65 +108,51 @@ export function printGameDetail({
 
           .name {
             text-align: left;
-            width: 140px;
-          }
-
-          .coach-table th:nth-child(1),
-          .coach-table td:nth-child(1) {
-            width: 34px;
-          }
-
-          .coach-table th:nth-child(2),
-          .coach-table td:nth-child(2) {
             width: 120px;
           }
 
-          .coach-table th:nth-child(3),
-          .coach-table td:nth-child(3) {
-            width: 34px;
-          }
-
-          .card-table th:nth-child(1),
-          .card-table td:nth-child(1) {
-            width: 44px;
-          }
-
-          .card-table th:nth-child(2),
-          .card-table td:nth-child(2) {
-            width: 44px;
-          }
-
-          .card-table th:nth-child(4),
-          .card-table td:nth-child(4) {
-            width: 70px;
-          }
-
-          .card-table th:nth-child(5),
-          .card-table td:nth-child(5) {
-            width: 140px;
-          }
-
-          .notes {
+          /* LINEUP CARD */
+          .lineup-card {
             margin-top: 10px;
-            font-size: 10px;
-            color: #334155;
+          }
+
+          .lineup-card th {
+            background: #000;
+            color: white;
+          }
+
+          .header-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+          }
+
+          .signature {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+          }
+
+          .sig-line {
+            border-top: 1px solid #000;
+            width: 200px;
+            text-align: center;
+            padding-top: 4px;
           }
         </style>
       </head>
 
       <body>
-        <section class="page">
-          <div class="header">
-            <div class="team-block">
-              <img class="logo" src="/thunder-logo.png" />
-              <div>
-                <h1>${htmlEscape(title)}</h1>
-                <div class="subtitle">Coach Defensive Lineup</div>
-              </div>
-            </div>
-          </div>
 
-          <table class="coach-table">
+        <!-- PAGE 1 -->
+        <div class="page">
+          <h1>${htmlEscape(formatDateShort(selectedGame?.date) || 'No Date')} vs ${htmlEscape(
+    selectedGame?.opponent || 'Opponent'
+  )}</h1>
+
+          <table>
             <thead>
               <tr>
                 <th>Bat</th>
@@ -232,57 +161,46 @@ export function printGameDetail({
                 ${inningHeaders}
               </tr>
             </thead>
-            <tbody>${coachRows}</tbody>
+            <tbody>${playerRows}</tbody>
           </table>
-        </section>
+        </div>
 
-        <section class="page">
-          <div class="header">
-            <div class="team-block">
-              <img class="logo" src="/thunder-logo.png" />
-              <div>
-                <h1>Arlington Heights Thunder 12U Teal</h1>
-                <div class="subtitle">Official Lineup Card</div>
-              </div>
-            </div>
+        <!-- PAGE 2 -->
+        <div class="page">
+          <h2>Official Lineup Card</h2>
+
+          <div class="header-row">
+            <div><strong>Team:</strong> Thunder</div>
+            <div><strong>Date:</strong> ${htmlEscape(
+              formatDateShort(selectedGame?.date) || ''
+            )}</div>
           </div>
 
-          <div class="meta-grid">
-            <div class="meta-box">
-              <span class="meta-label">Date</span>
-              ${htmlEscape(formatDateShort(selectedGame?.date) || '')}
-            </div>
-            <div class="meta-box">
-              <span class="meta-label">Opponent</span>
-              ${htmlEscape(selectedGame?.opponent || '')}
-            </div>
-            <div class="meta-box">
-              <span class="meta-label">Game Time</span>
-            </div>
-            <div class="meta-box">
-              <span class="meta-label">Field</span>
-            </div>
+          <div class="header-row">
+            <div><strong>Opponent:</strong> ${htmlEscape(selectedGame?.opponent || '')}</div>
+            <div><strong>Game Time:</strong> __________</div>
           </div>
 
-          <table class="card-table">
+          <table class="lineup-card">
             <thead>
               <tr>
                 <th>Bat</th>
                 <th>#</th>
-                <th>Player</th>
-                <th>Pos</th>
-                <th>Sub/Re-entry/Notes</th>
+                <th>Name (First + Last)</th>
+                <th>Position</th>
               </tr>
             </thead>
-            <tbody>${opponentCardRows}</tbody>
+            <tbody>
+              ${lineupCardRows}
+            </tbody>
           </table>
 
-          <div class="notes">
-            Coach signature: ___________________________
-            &nbsp;&nbsp;&nbsp;
-            Plate umpire: ___________________________
+          <div class="signature">
+            <div class="sig-line">Coach Signature</div>
+            <div class="sig-line">Umpire</div>
           </div>
-        </section>
+        </div>
+
       </body>
     </html>
   `
