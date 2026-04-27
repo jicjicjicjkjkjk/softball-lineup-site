@@ -196,7 +196,6 @@ export default function TrackingTable({
                 {item.label}
               </th>
             ))}
-            )}
           </tr>
         </thead>
 
