@@ -862,10 +862,24 @@ useEffect(() => {
     [optimizerFocusGame, lineupLockedByGame]
   )
 
-  const optimizerFocusLineup = useMemo(
-    () => optimizerPreviewByGame[pk(optimizerFocusGameId)] || null,
-    [optimizerPreviewByGame, optimizerFocusGameId]
+  const optimizerFocusLineup = useMemo(() => {
+  if (!optimizerFocusGameId) return null
+
+  const game = games.find((g) => pk(g.id) === pk(optimizerFocusGameId))
+
+  return (
+    optimizerPreviewByGame[pk(optimizerFocusGameId)] ||
+    lineupsByGame[pk(optimizerFocusGameId)] ||
+    (game
+      ? blankLineup(
+          players.map((p) => p.id),
+          Number(game.innings || 6),
+          activePlayerIds()
+        )
+      : null)
   )
+}, [optimizerPreviewByGame, lineupsByGame, optimizerFocusGameId, games, players])
+  
 
 const optimizerImportableGames = useMemo(() => {
   return optimizerFocusGame ? getImportableGamesForGame(optimizerFocusGame.id) : []
