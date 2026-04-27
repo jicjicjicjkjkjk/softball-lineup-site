@@ -34,21 +34,6 @@ function compareGamesAscLocal(a, b, pk) {
   return String(pk(a?.id)).localeCompare(String(pk(b?.id)))
 }
 
-function countPlayerOuts(lineup, playerId) {
-  const innings = Number(lineup?.innings || 0)
-  let total = 0
-
-  for (let inning = 1; inning <= innings; inning += 1) {
-    if (lineup?.cells?.[playerId]?.[inning] === 'Out') {
-      total += 1
-    }
-  }
-
-  return total
-}
-
-
-
 function nextMatrixSort(current, key) {
   if (current.key !== key) return { key, direction: 'asc' }
   return {
@@ -408,12 +393,14 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             <h3 style={{ margin: 0 }}>Games in Current Plan</h3>
             <button
   onClick={() => {
-  setPrintMode('lineupSetter')
+    setPrintMode('lineupSetter')
 
-  setTimeout(() => {
-    window.print()
-  }, 100)
-}}
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print()
+      })
+    })
+  }}
 >
   Print Coach Summary
 </button>
@@ -1057,8 +1044,10 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         </div>
             </div>
 
-            <div className={`print-only ${printMode === 'lineupSetter' ? 'show-print' : ''}`}>
-        {orderedPlanGames.map((game) => {
+            <div className={`print-only coach-summary-print ${printMode === 'lineupSetter' ? 'show-print' : ''}`}>
+  <div className="coach-summary-heading">Coach Lineup Summary</div>
+
+  {orderedPlanGames.map((game) => {
           const lineup =
             optimizerPreviewByGame[pk(game.id)] ||
             lineupsByGame[pk(game.id)]
