@@ -1321,3 +1321,135 @@ th {
     flex: 0 0 auto !important;
   }
 }
+
+/* Mobile + landscape table fixes */
+
+.tracking-scroll,
+.table-scroll {
+  max-height: 72vh;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lineup-print-table thead th,
+.tracking-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.lineup-print-table thead th:nth-child(1),
+.lineup-print-table thead th:nth-child(2),
+.lineup-print-table thead th:nth-child(3) {
+  z-index: 30;
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .tracking-scroll,
+  .table-scroll {
+    max-height: 68vh;
+    overflow: auto !important;
+  }
+
+  .lineup-print-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .lineup-print-table thead th:nth-child(1),
+  .lineup-print-table thead th:nth-child(2),
+  .lineup-print-table thead th:nth-child(3) {
+    z-index: 30;
+  }
+}
+
+/* Widen Positioning Priority mobile columns so numbers are readable */
+@media (max-width: 900px) {
+  .tracking-table.priority-groups .col-player {
+    width: 110px;
+    min-width: 110px;
+    max-width: 110px;
+  }
+
+  .tracking-table.priority-groups .sticky-col-2 {
+    left: 110px;
+  }
+
+  .tracking-table.priority-groups .col-small {
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+  }
+
+  .tracking-table.priority-groups input,
+  .tracking-table.priority-groups select {
+    min-width: 48px;
+    width: 48px;
+    text-align: center;
+  }
+}
+
+
+
+/* FINAL OVERRIDES — mobile readability */
+
+@media (max-width: 700px) {
+  .tracking-table.priority-groups .col-player,
+  .tracking-table .col-player {
+    width: 105px !important;
+    min-width: 105px !important;
+    max-width: 105px !important;
+  }
+
+  .tracking-table.priority-groups .sticky-col-2,
+  .tracking-table .sticky-col-2 {
+    left: 105px !important;
+  }
+
+  .tracking-table.priority-groups .col-small,
+  .tracking-table .col-small {
+    width: 58px !important;
+    min-width: 58px !important;
+    max-width: 58px !important;
+    padding: 6px 6px !important;
+  }
+
+  .positioning-priority-table input,
+  .positioning-priority-table select,
+  .tracking-table.priority-groups input,
+  .tracking-table.priority-groups select {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    padding: 5px 4px !important;
+    font-size: 12px !important;
+    text-align: center !important;
+  }
+}
+
+/* Better sticky header support in mobile landscape */
+@media (max-width: 900px) and (orientation: landscape) {
+  .table-scroll,
+  .tracking-scroll {
+    max-height: 62vh !important;
+    overflow: auto !important;
+    position: relative;
+  }
+
+  .lineup-print-table thead th,
+  .tracking-table thead th,
+  .positioning-priority-table thead th,
+  .lineup-setter-current-plan-table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    background: #dff0ef !important;
+  }
+
+  .lineup-print-table thead th:nth-child(1),
+  .lineup-print-table thead th:nth-child(2),
+  .lineup-print-table thead th:nth-child(3) {
+    z-index: 60 !important;
+  }
+}
