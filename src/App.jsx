@@ -1006,6 +1006,11 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     [filteredTrackingGamesWithLineups, lineupsByGame, activePlayers]
   )
 
+  const trackingComputedSitRows = useMemo(
+    () => buildCumulativeSitOutRows(sitByPlayer),
+    [sitByPlayer]
+  )
+  
   const trackingTotals = useMemo(() => {
     return computeTotals(filteredTrackingLineups, players)
   }, [filteredTrackingLineups, players])
@@ -2486,7 +2491,7 @@ function toggleSavedAllBattingLock(gameId) {
   <TrackingPage
     trackingLockedLineups={filteredTrackingLineups}
     trackingTotals={trackingTotals}
-    trackingSitByPlayer={sitByPlayer}
+    trackingSitByPlayer={trackingComputedSitRows}
     trackingSitSummary={sitSummary}
     activePlayers={activePlayers}
     trackingSort={trackingSort}
