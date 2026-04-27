@@ -78,6 +78,7 @@ export default function TrackingTable({
   enableFitColors = false,
   planSitOutSummary = null,
   runningTotalLabel = 'Sit Out Running Total',
+  extraRunningTotals = [],
 }) {
   const sitOutRunningByPlayer = Object.fromEntries(
     (sitOutRows || []).map((row) => {
@@ -110,10 +111,16 @@ export default function TrackingTable({
         Out: safeNumber(t.Out),
         targetOuts: targetOuts ?? '',
         gap,
-        sitOutRunningTotal:
-  sitOutRunningByPlayer[id] !== undefined
-    ? safeNumber(sitOutRunningByPlayer[id])
-    : safeNumber(t.sitOutRunningTotal),
+                sitOutRunningTotal:
+          sitOutRunningByPlayer[id] !== undefined
+            ? safeNumber(sitOutRunningByPlayer[id])
+            : safeNumber(t.sitOutRunningTotal),
+        extraRunningTotals: Object.fromEntries(
+          (extraRunningTotals || []).map((item) => [
+            item.key,
+            safeNumber(item.totals?.[id]?.sitOutRunningTotal),
+          ])
+        ),
         P: safeNumber(t.P),
         C: safeNumber(t.C),
         '1B': safeNumber(t['1B']),
@@ -178,10 +185,17 @@ export default function TrackingTable({
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'IF'))}>IF</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'OF'))}>OF</th>
 
-            {!hideSitOutRunningTotal && (
+                        {!hideSitOutRunningTotal && (
               <th onClick={() => setSortConfig(nextSort(sortConfig, 'sitOutRunningTotal'))}>
                 {runningTotalLabel}
               </th>
+            )}
+
+            {(extraRunningTotals || []).map((item) => (
+              <th key={item.key}>
+                {item.label}
+              </th>
+            ))}
             )}
           </tr>
         </thead>
@@ -232,9 +246,15 @@ export default function TrackingTable({
               <td>{displayNumber(row.IF)}</td>
               <td>{displayNumber(row.OF)}</td>
 
-              {!hideSitOutRunningTotal && (
-  <td>{displayRunningTotal(row.sitOutRunningTotal)}</td>
-)}
+                            {!hideSitOutRunningTotal && (
+                <td>{displayRunningTotal(row.sitOutRunningTotal)}</td>
+              )}
+
+              {(extraRunningTotals || []).map((item) => (
+                <td key={`${row.playerId}-${item.key}`}>
+                  {displayRunningTotal(row.extraRunningTotals?.[item.key])}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>
