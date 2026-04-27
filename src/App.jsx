@@ -111,22 +111,29 @@ export default function App() {
 
   const [trackingPlayerId, setTrackingPlayerId] = useState('')
 
+const defaultTrackingFilters = {
+  seasons: [],
+  gameTypes: [],
+  lineupStates: [],
+  dateFrom: '',
+  dateTo: '',
+}
+
 const [trackingFilters, setTrackingFilters] = useState(() => {
   try {
     const saved = sessionStorage.getItem('softball-lineup-tracking-filters')
-    if (saved) {
-      return JSON.parse(saved)
+    const parsed = saved ? JSON.parse(saved) : {}
+
+    return {
+      ...defaultTrackingFilters,
+      ...(parsed && typeof parsed === 'object' ? parsed : {}),
+      seasons: Array.isArray(parsed?.seasons) ? parsed.seasons : [],
+      gameTypes: Array.isArray(parsed?.gameTypes) ? parsed.gameTypes : [],
+      lineupStates: Array.isArray(parsed?.lineupStates) ? parsed.lineupStates : [],
     }
   } catch (error) {
     console.error('Failed to load tracking filters from sessionStorage', error)
-  }
-
-  return {
-    seasons: [],
-    gameTypes: [],
-    lineupStates: [],
-    dateFrom: '',
-    dateTo: '',
+    return defaultTrackingFilters
   }
 })
   
