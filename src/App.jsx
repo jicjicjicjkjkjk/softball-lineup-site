@@ -848,18 +848,26 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     return merged
   }, [lineupsByGame, optimizerPreviewByGame])
 
-  const currentPlanSitOutRows = useMemo(
-    () =>
-      buildCumulativeSitOutRows(
-        buildPlayerSitOuts(
-          optimizerBatchGames,
-          currentPlanLineupsByGame,
-          activePlayers,
-          pk
-        )
-      ),
-    [optimizerBatchGames, currentPlanLineupsByGame, activePlayers]
-  )
+    const currentPlanSitOutRows = useMemo(() => {
+    const allGamesInPlan = [
+      ...lineupSetterFilteredGamesWithLineups,
+      ...optimizerBatchGames,
+    ]
+
+    return buildCumulativeSitOutRows(
+      buildPlayerSitOuts(
+        allGamesInPlan,
+        currentPlanLineupsByGame,
+        activePlayers,
+        pk
+      )
+    )
+  }, [
+    lineupSetterFilteredGamesWithLineups,
+    optimizerBatchGames,
+    currentPlanLineupsByGame,
+    activePlayers,
+  ])
   
     const currentBatchTotals = useMemo(
     () =>
@@ -1551,10 +1559,12 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     orderedGames.forEach((game) => {
       const gameId = pk(game.id)
 
-      if (lineupLockedByGame[gameId]) {
-        const lockedLineup = lineupsByGame[gameId]
+            if (lineupLockedByGame[gameId]) {
+        const lockedLineup = currentPlanLineupsByGame[gameId]
+
         if (lockedLineup) {
           next[gameId] = lockedLineup
+
           rollingTotals = addTotals(
             rollingTotals,
             computeTotals([lockedLineup], players),
@@ -1569,13 +1579,14 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
             planAssignedOuts[id] = Number(planAssignedOuts[id] || 0) + outCount
           })
         }
+
         return
       }
 
       const source =
-        optimizerPreviewByGame[gameId] ||
-        lineupsByGame[gameId] ||
+        currentPlanLineupsByGame[gameId] ||
         blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
+      
 
       const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
       if (!availableIds.length) return
