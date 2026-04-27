@@ -838,17 +838,27 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     [lineupSetterSitByPlayer]
   )
 
+    const currentPlanLineupsByGame = useMemo(() => {
+    const merged = { ...lineupsByGame }
+
+    Object.entries(optimizerPreviewByGame || {}).forEach(([gameId, lineup]) => {
+      if (lineup) merged[pk(gameId)] = lineup
+    })
+
+    return merged
+  }, [lineupsByGame, optimizerPreviewByGame])
+
   const currentPlanSitOutRows = useMemo(
     () =>
       buildCumulativeSitOutRows(
         buildPlayerSitOuts(
           optimizerBatchGames,
-          optimizerPreviewByGame,
+          currentPlanLineupsByGame,
           activePlayers,
           pk
         )
       ),
-    [optimizerBatchGames, optimizerPreviewByGame, activePlayers]
+    [optimizerBatchGames, currentPlanLineupsByGame, activePlayers]
   )
   
   const currentBatchTotals = useMemo(
