@@ -472,31 +472,48 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
       .join('')
 
     const currentPlanRows = activePlayers
-      .map((player) => {
-        const id = pk(player.id)
-        const totals = currentBatchTotals?.[id] || {}
+  .map((player) => {
+    const id = pk(player.id)
+    const totals = currentBatchTotals?.[id] || {}
 
-        return `
-          <tr>
-            <td class="name">${player.name}</td>
-            <td>${n(totals.games)}</td>
-            <td>${n(totals.fieldTotal)}</td>
-            <td>${n(totals.Out)}</td>
-            <td>${n(totals.P)}</td>
-            <td>${n(totals.C)}</td>
-            <td>${n(totals['1B'])}</td>
-            <td>${n(totals['2B'])}</td>
-            <td>${n(totals['3B'])}</td>
-            <td>${n(totals.SS)}</td>
-            <td>${n(totals.LF)}</td>
-            <td>${n(totals.CF)}</td>
-            <td>${n(totals.RF)}</td>
-            <td>${n(totals.IF)}</td>
-            <td>${n(totals.OF)}</td>
-          </tr>
-        `
-      })
-      .join('')
+    const getFitClass = (pos) => {
+      const fit =
+        fitByPlayer?.[id]?.[pos] ||
+        (['LF', 'CF', 'RF'].includes(pos) ? fitByPlayer?.[id]?.OF : '') ||
+        ''
+
+      if (fit === 'primary' || fit === 'A') return 'primary'
+      if (fit === 'secondary' || fit === 'B' || fit === 'C') return 'secondary'
+      return 'not-allowed'
+    }
+
+    const td = (value, pos) => {
+      const v = n(value)
+      if (!pos || v === 0) return `<td>${v}</td>`
+      return `<td class="${getFitClass(pos)}">${v}</td>`
+    }
+
+    return `
+      <tr>
+        <td class="name">${player.name}</td>
+        <td>${n(totals.games)}</td>
+        <td>${n(totals.fieldTotal)}</td>
+        <td>${n(totals.Out)}</td>
+        ${td(totals.P, 'P')}
+        ${td(totals.C, 'C')}
+        ${td(totals['1B'], '1B')}
+        ${td(totals['2B'], '2B')}
+        ${td(totals['3B'], '3B')}
+        ${td(totals.SS, 'SS')}
+        ${td(totals.LF, 'LF')}
+        ${td(totals.CF, 'CF')}
+        ${td(totals.RF, 'RF')}
+        ${td(totals.IF, 'IF')}
+        ${td(totals.OF, 'OF')}
+      </tr>
+    `
+  })
+  .join('')
 
     const html = `
       <html>
