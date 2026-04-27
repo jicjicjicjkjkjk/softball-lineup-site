@@ -1610,7 +1610,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     setOptimizerPreviewByGame((current) => ({ ...current, ...next }))
   }
 
-  function runOptimizeCurrent() {
+    function runOptimizeCurrent() {
     if (!optimizerFocusGameId) return
 
     if (lineupLockedByGame[pk(optimizerFocusGameId)]) {
@@ -1618,21 +1618,24 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       return
     }
 
-        const otherPreviewLineups = optimizerBatchGames
-      .filter((batchGame) => pk(batchGame.id) !== pk(optimizerFocusGameId))
+    const game = games.find((g) => pk(g.id) === pk(optimizerFocusGameId))
+    if (!game) return
+
+    const gameId = pk(game.id)
+
+    const otherPreviewLineups = optimizerBatchGames
+      .filter((batchGame) => pk(batchGame.id) !== gameId)
       .map((batchGame) => currentPlanLineupsByGame[pk(batchGame.id)])
       .filter(Boolean)
-  
 
     const totalsBeforeThisGame = addTotals(
-  lineupSetterFilteredTotals,
-  computeTotals(otherPreviewLineups, players),
-  players
-)
+      lineupSetterFilteredTotals,
+      computeTotals(otherPreviewLineups, players),
+      players
+    )
 
     const source =
-      optimizerPreviewByGame[pk(game.id)] ||
-      lineupsByGame[pk(game.id)] ||
+      currentPlanLineupsByGame[gameId] ||
       blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
 
     const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
@@ -1653,8 +1656,8 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         batchCurrentOuts[id] = Number(batchCurrentOuts[id] || 0) + outCount
       })
     })
-      
-        const rebuilt = buildOptimizedLineup({
+
+    const rebuilt = buildOptimizedLineup({
       game: { ...game, innings: Number(source?.innings || game.innings || 6) },
       players,
       availablePlayerIds: availableIds,
@@ -1664,12 +1667,12 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       fitMap: fitByPlayer,
       planSitOutTargets: optimizerPlanSitOutTargets,
       batchCurrentOuts,
-      existingPlanLineups: otherPreviewLineups.filter(Boolean),
+      existingPlanLineups: otherPreviewLineups,
     })
 
     setOptimizerPreviewByGame((current) => ({
       ...current,
-      [pk(game.id)]: rebuilt,
+      [gameId]: rebuilt,
     }))
 
     persistLineup(game.id, rebuilt)
