@@ -13,6 +13,9 @@ export function printGameDetail({
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#039;')
 
+  const fullName = (player) =>
+    [player.name, player.last_name].filter(Boolean).join(' ').trim()
+
   const availableIds = new Set((selectedLineup?.availablePlayerIds || []).map(pk))
 
   const printPlayers = [...(activePlayers || [])]
@@ -59,18 +62,18 @@ export function printGameDetail({
       const id = pk(player.id)
 
       const firstPosition =
-  Array.from({ length: Number(selectedLineup?.innings || 0) })
-    .map((_, i) => selectedLineup?.cells?.[id]?.[i + 1])
-    .find((value) => value && value !== 'Out') || ''
+        Array.from({ length: Number(selectedLineup?.innings || 0) })
+          .map((_, i) => selectedLineup?.cells?.[id]?.[i + 1])
+          .find((value) => value && value !== 'Out') || ''
 
-return `
-  <tr>
-    <td>${htmlEscape(selectedLineup?.battingOrder?.[id] || '')}</td>
-    <td>${htmlEscape(player.jersey_number || '')}</td>
-    <td class="lineup-name">${htmlEscape(fullName(player))}</td>
-    <td>${htmlEscape(firstPosition)}</td>
-  </tr>
-`
+      return `
+        <tr>
+          <td>${htmlEscape(selectedLineup?.battingOrder?.[id] || '')}</td>
+          <td>${htmlEscape(player.jersey_number || '')}</td>
+          <td class="lineup-name">${htmlEscape(fullName(player))}</td>
+          <td>${htmlEscape(firstPosition)}</td>
+        </tr>
+      `
     })
     .join('')
 
@@ -79,14 +82,12 @@ return `
       <head>
         <title>Game Lineup</title>
         <style>
-          @page {
-            size: letter portrait;
-            margin: 0.35in;
-          }
+          @page { size: letter portrait; margin: 0.35in; }
 
           html, body {
             margin: 0;
             padding: 0;
+            background: #fff;
           }
 
           body {
@@ -102,7 +103,6 @@ return `
             page-break-after: auto;
           }
 
-          /* HEADER */
           .brand-header {
             display: flex;
             align-items: center;
@@ -133,7 +133,6 @@ return `
             margin: 0 0 10px;
           }
 
-          /* TABLE */
           table {
             width: 100%;
             border-collapse: collapse;
@@ -156,7 +155,6 @@ return `
             text-align: left;
           }
 
-          /* LINEUP CARD */
           .lineup-card-title {
             font-size: 20px;
             font-weight: 900;
@@ -182,17 +180,25 @@ return `
             padding: 5px;
           }
 
-          .first {
-            text-align: left;
-            width: 130px;
+          .lineup-card-table th:nth-child(1),
+          .lineup-card-table td:nth-child(1) {
+            width: 45px;
           }
 
-          .last {
-            text-align: left;
-            width: 140px;
+          .lineup-card-table th:nth-child(2),
+          .lineup-card-table td:nth-child(2) {
+            width: 45px;
           }
 
-          /* SIGNATURE */
+          .lineup-name {
+            text-align: left;
+          }
+
+          .lineup-card-table th:nth-child(4),
+          .lineup-card-table td:nth-child(4) {
+            width: 85px;
+          }
+
           .signature-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -210,7 +216,6 @@ return `
       </head>
 
       <body>
-        <!-- PAGE 1 -->
         <section class="print-page">
           <div class="brand-header">
             <img src="/thunder-logo.png" class="logo-img" />
@@ -235,7 +240,6 @@ return `
           </table>
         </section>
 
-        <!-- PAGE 2 -->
         <section class="print-page">
           <div class="brand-header">
             <img src="/thunder-logo.png" class="logo-img" />
@@ -257,8 +261,7 @@ return `
               <tr>
                 <th>Bat</th>
                 <th>#</th>
-                <th>First Name</th>
-                <th>Last Name</th>
+                <th>Name</th>
                 <th>Position</th>
               </tr>
             </thead>
@@ -274,23 +277,30 @@ return `
     </html>
   `
 
-  const printWindow = window.open('', '_blank')
+  const iframe = document.createElement('iframe')
 
-if (!printWindow) {
-  alert('Pop-up blocked. Please allow pop-ups for this site, then try Print again.')
-  return
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = '0'
+
+  document.body.appendChild(iframe)
+
+  const iframeWindow = iframe.contentWindow
+  const iframeDocument = iframeWindow.document
+
+  iframeDocument.open()
+  iframeDocument.write(html)
+  iframeDocument.close()
+
+  setTimeout(() => {
+    iframeWindow.focus()
+    iframeWindow.print()
+
+    setTimeout(() => {
+      document.body.removeChild(iframe)
+    }, 1000)
+  }, 500)
 }
-
-printWindow.document.open()
-printWindow.document.write(html)
-printWindow.document.close()
-
-printWindow.onload = () => {
-  printWindow.focus()
-  printWindow.print()
-}
-
-setTimeout(() => {
-  printWindow.focus()
-  printWindow.print()
-}, 500)}
