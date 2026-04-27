@@ -49,6 +49,15 @@ textarea {
   color: var(--text);
 }
 
+/* 🔽 ADD THIS RIGHT BELOW */
+.main-content .card input,
+.main-content .card select {
+  min-height: 32px;
+  padding: 6px 8px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
 button {
   min-height: 42px;
   border: 0;
@@ -58,6 +67,14 @@ button {
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* 🔽 ADD THIS RIGHT BELOW — DO NOT REMOVE ANYTHING ABOVE */
+.main-content .card button {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 10px;
 }
 
 button:hover {
@@ -74,6 +91,22 @@ label {
   margin-bottom: 8px;
   font-size: 13px;
   font-weight: 700;
+}
+
+/* 🔽 ADD BELOW */
+.main-content .card label {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.main-content .card h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.main-content .card h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
 }
 
 h1,
