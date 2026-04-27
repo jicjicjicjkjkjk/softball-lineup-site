@@ -404,14 +404,7 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
       <div className="card">
         <h2>Lineup Setter</h2>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 24,
-            alignItems: 'start',
-          }}
-        >
+        <div className="lineup-setter-top-grid">
           <div>
             <h3 style={{ marginTop: 0 }}>Add Existing Game to Plan</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12 }}>
