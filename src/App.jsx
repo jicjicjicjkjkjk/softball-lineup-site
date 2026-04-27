@@ -1618,12 +1618,11 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       return
     }
 
-    const game = games.find((g) => pk(g.id) === pk(optimizerFocusGameId))
-    if (!game) return
-
-    const otherPreviewLineups = Object.entries(optimizerPreviewByGame)
-      .filter(([gameId]) => pk(gameId) !== pk(optimizerFocusGameId))
-      .map(([, lineup]) => lineup)
+        const otherPreviewLineups = optimizerBatchGames
+      .filter((batchGame) => pk(batchGame.id) !== pk(optimizerFocusGameId))
+      .map((batchGame) => currentPlanLineupsByGame[pk(batchGame.id)])
+      .filter(Boolean)
+  
 
     const totalsBeforeThisGame = addTotals(
   lineupSetterFilteredTotals,
