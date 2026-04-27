@@ -1038,3 +1038,149 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================
+   MOBILE LINEUP GRID MODE
+   ========================= */
+
+@media (max-width: 900px) {
+  .lineup-print-table {
+    table-layout: fixed !important;
+  }
+
+  .lineup-print-table th,
+  .lineup-print-table td {
+    font-size: 12px !important;
+    padding: 4px !important;
+  }
+
+  /* Freeze only # and Player, not Batting */
+  .lineup-print-table th:nth-child(1),
+  .lineup-print-table td:nth-child(1) {
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    left: 0 !important;
+  }
+
+  .lineup-print-table th:nth-child(2),
+  .lineup-print-table td:nth-child(2) {
+    width: 92px !important;
+    min-width: 92px !important;
+    max-width: 92px !important;
+    left: 42px !important;
+    text-align: left !important;
+  }
+
+  /* Let Batting scroll away */
+  .lineup-print-table th:nth-child(3),
+  .lineup-print-table td:nth-child(3) {
+    position: static !important;
+    width: 82px !important;
+    min-width: 82px !important;
+    max-width: 82px !important;
+  }
+
+  .lineup-print-table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    background: #dff0ef !important;
+  }
+
+  .lineup-print-table thead th:nth-child(1),
+  .lineup-print-table thead th:nth-child(2) {
+    z-index: 40 !important;
+  }
+
+  .inning-header {
+    min-width: 76px !important;
+    height: auto !important;
+    gap: 3px !important;
+  }
+
+  .mini-diamond-wrap {
+    display: none !important;
+  }
+
+  .inning-number {
+    font-size: 13px !important;
+    font-weight: 800 !important;
+  }
+
+  .inning-number::before {
+    content: "Inn ";
+  }
+
+  .inning-lock-wrap {
+    font-size: 10px !important;
+    gap: 1px !important;
+  }
+
+  .inning-lock {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .lineup-print-table select {
+    width: 74px !important;
+    min-width: 74px !important;
+    max-width: 74px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    font-size: 12px !important;
+  }
+
+  .lineup-print-table input[type='number'] {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .lineup-print-table th,
+  .lineup-print-table td {
+    font-size: 11px !important;
+    padding: 3px !important;
+  }
+
+  .lineup-print-table th:nth-child(1),
+  .lineup-print-table td:nth-child(1) {
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+  }
+
+  .lineup-print-table th:nth-child(2),
+  .lineup-print-table td:nth-child(2) {
+    width: 78px !important;
+    min-width: 78px !important;
+    max-width: 78px !important;
+    left: 36px !important;
+  }
+
+  .lineup-print-table th:nth-child(3),
+  .lineup-print-table td:nth-child(3) {
+    width: 68px !important;
+    min-width: 68px !important;
+    max-width: 68px !important;
+  }
+
+  .inning-header {
+    min-width: 68px !important;
+  }
+
+  .lineup-print-table select {
+    width: 66px !important;
+    min-width: 66px !important;
+    max-width: 66px !important;
+  }
+
+  .table-scroll {
+    max-height: none !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+  }
+}
