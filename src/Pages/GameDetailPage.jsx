@@ -44,7 +44,12 @@ export default function GameDetailPage({
   gameTypeOptions = [],
   pk,
 }) {
-  function handlePrint() {
+    function handlePrint() {
+    if (!selectedGame || !selectedLineup) {
+      alert('No lineup is available to print yet.')
+      return
+    }
+
     printGameDetail({
       selectedGame,
       selectedLineup,
@@ -52,6 +57,11 @@ export default function GameDetailPage({
       formatDateShort,
       pk,
     })
+  }
+
+  async function handleToggleLock() {
+    if (!selectedGame) return
+    await toggleLineupLocked(selectedGame.id, !selectedLocked)
   }
 
   if (!selectedGame) {
@@ -154,19 +164,15 @@ export default function GameDetailPage({
               <h3>Grid</h3>
 
               <div className="game-detail-actions">
-                <button onClick={handlePrint}>Print</button>
+                <button type="button" onClick={handlePrint}>Print</button>
 
                 <button onClick={() => addSavedInning(selectedGame.id)}>
                   Add Inning
                 </button>
 
-                <button
-                  onClick={() =>
-                    toggleLineupLocked(selectedGame.id, !selectedLocked)
-                  }
-                >
-                  {selectedLocked ? 'Unlock' : 'Lock'}
-                </button>
+                <button type="button" onClick={handleToggleLock}>
+  {selectedLocked ? 'Unlock' : 'Lock'}
+</button>
 
                 <button
                   onClick={() => {
