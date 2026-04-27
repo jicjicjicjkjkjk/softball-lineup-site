@@ -824,35 +824,24 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     [lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers]
   )
 
-  const lineupSetterComputedSitRows = useMemo(() => {
-    const avgByGame = (lineupSetterSitSummary || []).map((g) => {
-      const value = Number(g?.avgSit)
-      return Number.isNaN(value) ? null : value
-    })
-
+    const lineupSetterComputedSitRows = useMemo(() => {
     return (lineupSetterSitByPlayer || []).map((row) => {
       let runningTotal = 0
 
-      const deltaPerGame = (row.perGame || []).map((value, index) => {
-        if (value === 'x' || value === '' || value === null || value === undefined) return 'x'
+      const running = (row.perGame || []).map((value) => {
+        if (value === 'x' || value === '' || value === null || value === undefined) {
+          return 'x'
+        }
 
         const playerOuts = Number(value)
-        const avgSit = avgByGame[index]
+        if (Number.isNaN(playerOuts)) return 'x'
 
-        if (Number.isNaN(playerOuts) || avgSit === null || Number.isNaN(avgSit)) return 'x'
-
-        return Number((avgSit - playerOuts).toFixed(2))
-      })
-
-      const running = deltaPerGame.map((value) => {
-        if (value === 'x') return 'x'
-        runningTotal = Number((runningTotal + Number(value)).toFixed(2))
+        runningTotal += playerOuts
         return runningTotal
       })
 
       return {
         ...row,
-        deltaPerGame,
         running,
         sitOutRunningTotal:
           running.length && running[running.length - 1] !== 'x'
@@ -860,7 +849,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
             : 0,
       }
     })
-  }, [lineupSetterSitByPlayer, lineupSetterSitSummary])
+  }, [lineupSetterSitByPlayer])
   
   const currentBatchTotals = useMemo(
   () =>
@@ -928,35 +917,24 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     ]
   )
 
-  const lineupSetterFutureComputedSitRows = useMemo(() => {
-    const avgByGame = (lineupSetterFutureSitSummary || []).map((g) => {
-      const value = Number(g?.avgSit)
-      return Number.isNaN(value) ? null : value
-    })
-
+    const lineupSetterFutureComputedSitRows = useMemo(() => {
     return (lineupSetterFutureSitByPlayer || []).map((row) => {
       let runningTotal = 0
 
-      const deltaPerGame = (row.perGame || []).map((value, index) => {
-        if (value === 'x' || value === '' || value === null || value === undefined) return 'x'
+      const running = (row.perGame || []).map((value) => {
+        if (value === 'x' || value === '' || value === null || value === undefined) {
+          return 'x'
+        }
 
         const playerOuts = Number(value)
-        const avgSit = avgByGame[index]
+        if (Number.isNaN(playerOuts)) return 'x'
 
-        if (Number.isNaN(playerOuts) || avgSit === null || Number.isNaN(avgSit)) return 'x'
-
-        return Number((avgSit - playerOuts).toFixed(2))
-      })
-
-      const running = deltaPerGame.map((value) => {
-        if (value === 'x') return 'x'
-        runningTotal = Number((runningTotal + Number(value)).toFixed(2))
+        runningTotal += playerOuts
         return runningTotal
       })
 
       return {
         ...row,
-        deltaPerGame,
         running,
         sitOutRunningTotal:
           running.length && running[running.length - 1] !== 'x'
@@ -964,7 +942,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
             : 0,
       }
     })
-  }, [lineupSetterFutureSitByPlayer, lineupSetterFutureSitSummary])
+  }, [lineupSetterFutureSitByPlayer])
   
   const lockedLineupsOnly = useMemo(() => {
     return Object.entries(lineupsByGame)
@@ -1757,8 +1735,13 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
 
 function togglePreviewBattingLock(gameId, playerId) {
   updatePreview(gameId, (lineup) => {
+    const id = pk(playerId)
+
     if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
-    lineup.lockedBattingOrder[pk(playerId)] = !lineup.lockedBattingOrder[pk(playerId)]
+    if (!lineup.battingOrder) lineup.battingOrder = {}
+
+    lineup.lockedBattingOrder[id] = !(lineup.lockedBattingOrder[id] === true)
+
     return lineup
   })
 }
@@ -1914,9 +1897,11 @@ lineup.lockedInnings = nextLockedInnings
 
 function toggleSavedBattingLock(gameId, playerId) {
   updateSavedLineup(gameId, (lineup) => {
-    if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
-
     const id = pk(playerId)
+
+    if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
+    if (!lineup.battingOrder) lineup.battingOrder = {}
+
     lineup.lockedBattingOrder[id] = !(lineup.lockedBattingOrder[id] === true)
 
     autoSave(gameId, lineup)
