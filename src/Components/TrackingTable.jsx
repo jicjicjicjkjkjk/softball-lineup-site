@@ -43,7 +43,7 @@ function getFitColor(fit) {
     return '#fee2e2'
   }
 
-  return ''
+    return '#fee2e2'
 }
 
 function positionFit(fitByPlayer, playerId, position) {
