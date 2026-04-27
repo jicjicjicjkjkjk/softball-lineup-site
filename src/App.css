@@ -578,12 +578,6 @@ th {
   text-align: center;
 }
 
-/* print content hidden on screen */
-
-.print-only {
-  display: none;
-}
-
 /* responsive */
 
 @media (max-width: 900px) {
@@ -665,8 +659,36 @@ th {
   min-width: 0;
 }
 
+/* Sticky player column in lineup grids */
+
+.lineup-print-table th:first-child,
+.lineup-print-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  background: #fff;
+}
+
+.lineup-print-table thead th:first-child {
+  z-index: 8;
+  background: #e6f4f4;
+}
+
+.lineup-print-table th:nth-child(2),
+.lineup-print-table td:nth-child(2) {
+  position: sticky;
+  left: 86px;
+  z-index: 6;
+  background: #fff;
+}
+
+.lineup-print-table thead th:nth-child(2) {
+  z-index: 8;
+  background: #e6f4f4;
+}
+
 /* =========================
-   CLEAN WORKING PRINT
+   CLEAN COACH SUMMARY PRINT
    ========================= */
 
 .print-only {
@@ -674,49 +696,121 @@ th {
 }
 
 @media print {
+  @page {
+    size: letter portrait;
+    margin: 0.35in;
+  }
+
+  html,
+  body,
+  #root {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    background: #fff !important;
+    overflow: visible !important;
+  }
+
   body * {
-    visibility: hidden;
+    visibility: hidden !important;
   }
 
-  .print-only,
-  .print-only * {
-    visibility: visible;
+  .print-only.show-print,
+  .print-only.show-print * {
+    visibility: visible !important;
   }
 
-  .print-only {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    background: #fff;
-    padding: 10px;
+  .print-only.show-print {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
   }
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-  }
-
-  th,
-  td {
-    border: 1px solid #000;
-    padding: 4px;
-    text-align: center;
-  }
-
-  .print-title {
-    font-size: 16px;
-    font-weight: bold;
-    margin-bottom: 8px;
+  .app-shell,
+  .main-content,
+  .stack,
+  .card,
+  .table-scroll,
+  .tracking-scroll {
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    background: #fff !important;
   }
 
   .print-game {
+    margin: 0 !important;
+    padding: 0 !important;
+    break-after: page;
     page-break-after: always;
   }
 
   .print-game:last-child {
+    break-after: auto;
     page-break-after: auto;
+  }
+
+  .print-title {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    margin: 0 0 8px 0 !important;
+    color: #1f2f46 !important;
+  }
+
+  .coach-lineup-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    font-size: 10.5px !important;
+    background: #fff !important;
+  }
+
+  .coach-lineup-table th,
+  .coach-lineup-table td {
+    border: 1.25px solid #111 !important;
+    padding: 3px 4px !important;
+    line-height: 1.05 !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    color: #1f2f46 !important;
+    background: #fff !important;
+  }
+
+  .coach-lineup-table th {
+    background: #e6f4f4 !important;
+    font-weight: 800 !important;
+  }
+
+  .coach-lineup-table th:nth-child(1),
+  .coach-lineup-table td:nth-child(1) {
+    width: 42px !important;
+  }
+
+  .coach-lineup-table th:nth-child(2),
+  .coach-lineup-table td:nth-child(2) {
+    width: 92px !important;
+  }
+
+  .coach-lineup-table th:nth-child(3),
+  .coach-lineup-table td:nth-child(3) {
+    width: 36px !important;
   }
 }
