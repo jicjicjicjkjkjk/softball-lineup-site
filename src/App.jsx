@@ -607,6 +607,8 @@ function isCompleteLineup(lineup) {
 
 const validGameIds = new Set(loadedGames.map((game) => pk(game.id)))
 
+if (stateRes.error) throw stateRes.error
+
 const savedBatchIds = Array.isArray(stateRes.data?.batch_game_ids)
   ? stateRes.data.batch_game_ids.map(pk).filter((id) => validGameIds.has(id))
   : []
@@ -703,6 +705,7 @@ useEffect(() => {
 
 useEffect(() => {
   if (!games.length) return
+  if (!lineupSetterStateLoaded) return
 
   const latestGame = [...games].sort((a, b) => compareGamesAsc(a, b, pk)).at(-1)
   if (!latestGame) return
@@ -715,10 +718,17 @@ useEffect(() => {
     setOptimizerExistingGameId(pk(latestGame.id))
   }
 
-  if (!optimizerFocusGameId) {
+  if (!optimizerFocusGameId && !optimizerBatchGameIds.length) {
     setOptimizerFocusGameId(pk(latestGame.id))
   }
-}, [games, selectedGameId, optimizerExistingGameId, optimizerFocusGameId])
+}, [
+  games,
+  selectedGameId,
+  optimizerExistingGameId,
+  optimizerFocusGameId,
+  optimizerBatchGameIds,
+  lineupSetterStateLoaded,
+])
   
   const selectedGame = useMemo(
     () => games.find((game) => pk(game.id) === pk(selectedGameId)) || null,
