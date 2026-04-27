@@ -1,1 +1,122 @@
+/* tracking tables */
 
+.tracking-card {
+  overflow: hidden;
+}
+
+.tracking-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+  background: #fff;
+}
+
+.tracking-table th,
+.tracking-table td {
+  border: 1px solid #d7dee3;
+  padding: 8px;
+  vertical-align: middle;
+  white-space: nowrap;
+  text-align: center;
+  background: #fff;
+}
+
+.tracking-table thead th {
+  background: #e6f4f4;
+  font-weight: 700;
+}
+
+.tracking-table .col-player {
+  width: 86px;
+  min-width: 86px;
+  max-width: 86px;
+  text-align: left;
+}
+
+.tracking-table .col-small {
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
+  padding: 6px 4px;
+}
+
+.tracking-table .col-game {
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+}
+
+.tracking-table .col-date {
+  width: 92px;
+  min-width: 92px;
+  max-width: 92px;
+}
+
+.tracking-table .col-opponent {
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+  white-space: normal;
+  text-align: left;
+}
+
+.tracking-table .sticky-col-1,
+.tracking-table .sticky-col-2,
+.tracking-table .sticky-col-3 {
+  position: sticky;
+  background: #fff;
+  z-index: 3;
+}
+
+.tracking-table thead .sticky-col-1,
+.tracking-table thead .sticky-col-2,
+.tracking-table thead .sticky-col-3 {
+  background: #e6f4f4;
+  z-index: 4;
+}
+
+.tracking-table .sticky-col-1 {
+  left: 0;
+}
+
+.tracking-table .sticky-col-2 {
+  left: 86px;
+}
+
+.tracking-table .sticky-col-3 {
+  left: 266px;
+}
+
+/* priority grouped tables */
+
+.tracking-table.priority-groups {
+  border-collapse: collapse;
+}
+
+.tracking-table.priority-groups thead th,
+.tracking-table.priority-groups tbody td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.tracking-table.priority-groups .group-start {
+  border-left: 2px solid #7f95a3 !important;
+}
+
+.tracking-table.priority-groups .group-end {
+  border-right: 2px solid #7f95a3 !important;
+}
+
+.tracking-table.priority-groups thead tr:first-child th.group-box {
+  border-top: 2px solid #7f95a3 !important;
+  border-left: 2px solid #7f95a3 !important;
+  border-right: 2px solid #7f95a3 !important;
+  border-bottom: 1px solid #7f95a3 !important;
+  background: #dceff0 !important;
+}
+
+.tracking-table.priority-groups thead tr:nth-child(2) th.group-start,
+.tracking-table.priority-groups thead tr:nth-child(2) th.group-end {
+  border-bottom: 2px solid #7f95a3 !important;
+}
