@@ -159,16 +159,15 @@ export default function LineupGrid({
                   />
 
                   {showLocks && (
-                    <button
-  type="button"
-  disabled={lockedLineup}
-  onClick={() => onBattingLockToggle?.(id)}
-  className="batting-lock-button"
-  title="Lock batting order spot"
->
-  ✓
-</button>
-                  )}
+  <label className="checkbox-item grid-lock-label grid-cell-lock-only" title="Lock batting order spot">
+    <input
+      type="checkbox"
+      checked={battingLocked}
+      disabled={lockedLineup}
+      onChange={() => onBattingLockToggle?.(id)}
+    />
+  </label>
+)}
                 </div>
               </td>
 
