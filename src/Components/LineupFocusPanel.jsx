@@ -135,9 +135,9 @@ export default function LineupFocusPanel(props) {
                   }
                 }}
               >
-                <option value="standard">Standard — current logic</option>
-                <option value="tournament">Tournament — strongest primary lineup</option>
-                <option value="friendly">Friendly — development weighted</option>
+                <option value="standard">Balanced Competitive &amp; Development</option>
+                <option value="friendly">Friendly - Development Focused</option>
+                <option value="tournament">Tournament - Competitive</option>
               </select>
             </div>
 
