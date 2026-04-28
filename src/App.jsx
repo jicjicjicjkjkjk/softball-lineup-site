@@ -80,6 +80,7 @@ export default function App() {
   const [optimizerBatchGameIds, setOptimizerBatchGameIds] = useState([])
   const [optimizerPreviewByGame, setOptimizerPreviewByGame] = useState({})
   const [optimizerPlanSitOutTargets, setOptimizerPlanSitOutTargets] = useState({})
+  const [optimizerMode, setOptimizerMode] = useState('standard')
   const [lineupSetterStateLoaded, setLineupSetterStateLoaded] = useState(false)
   
   const [newGameDate, setNewGameDate] = useState('')
@@ -1723,9 +1724,10 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
       if (!availableIds.length) return
 
-            const optimized = buildOptimizedLineup({
+        const optimized = buildOptimizedLineup({
         game: { ...game, innings: Number(source?.innings || game.innings || 6) },
         players,
+        optimizerMode,
         availablePlayerIds: availableIds,
         sourceLineup: source,
         totalsBefore: rollingTotals,
@@ -1800,9 +1802,10 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       })
     })
 
-    const rebuilt = buildOptimizedLineup({
+      const rebuilt = buildOptimizedLineup({
       game: { ...game, innings: Number(source?.innings || game.innings || 6) },
       players,
+      optimizerMode,
       availablePlayerIds: availableIds,
       sourceLineup: source,
       totalsBefore: totalsBeforeThisGame,
@@ -2629,6 +2632,8 @@ function toggleSavedAllBattingLock(gameId) {
     pk={pk}
     optimizerPlanSitOutTargets={optimizerPlanSitOutTargets}
     setOptimizerPlanSitOutTargets={setOptimizerPlanSitOutTargets}
+    optimizerMode={optimizerMode}
+    setOptimizerMode={setOptimizerMode}
     inningStatus={inningStatus}
     trackingPriorityRows={trackingPriorityRows}
     optimizerImportSourceGameId={optimizerImportSourceGameId}
