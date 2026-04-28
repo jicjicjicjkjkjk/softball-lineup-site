@@ -2599,7 +2599,6 @@ function toggleSavedAllBattingLock(gameId) {
             lineupsByGame={lineupsByGame}
             pk={pk}
           />
-          />
         )}
 
                         {page === 'game-detail' && (
