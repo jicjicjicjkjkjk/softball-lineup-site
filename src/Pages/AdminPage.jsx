@@ -28,7 +28,7 @@ function blankProfileForm() {
     min_positions_per_player: 2,
     min_positions_mode: 'nice',
     min_innings_between_sit_outs: 2,
-    everyone_sits_before_repeat: true,
+    sit_all_before_second: true,
   }
 }
 
@@ -177,8 +177,8 @@ export default function AdminPage({
         min_innings_between_sit_outs: Number(
           profileForm.min_innings_between_sit_outs || 0
         ),
-        everyone_sits_before_repeat:
-          profileForm.everyone_sits_before_repeat === true,
+        sit_all_before_second:
+          profileForm.sit_all_before_second === true,
       })
       .select()
       .single()
@@ -256,7 +256,7 @@ export default function AdminPage({
       min_positions_per_player: source.min_positions_per_player,
       min_positions_mode: source.min_positions_mode,
       min_innings_between_sit_outs: source.min_innings_between_sit_outs,
-      everyone_sits_before_repeat: source.everyone_sits_before_repeat,
+      sit_all_before_second: source.sit_all_before_second,
     })
 
     const sourceRules = optimizerProfileRules?.[sourceProfileId] || {}
@@ -676,10 +676,10 @@ export default function AdminPage({
               <div>
                 <label>Everyone Sits First</label>
                 <select
-                  value={selectedProfile.everyone_sits_before_repeat ? 'yes' : 'no'}
+                  value={selectedProfile.sit_all_before_second ? 'yes' : 'no'}
                   onChange={(e) =>
                     updateOptimizerProfile(selectedProfile.id, {
-                      everyone_sits_before_repeat: e.target.value === 'yes',
+                      sit_all_before_second: e.target.value === 'yes',
                     })
                   }
                 >
