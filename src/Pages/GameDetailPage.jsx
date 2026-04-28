@@ -46,7 +46,9 @@ export default function GameDetailPage({
   gameTypeOptions = [],
   pk,
 }) {
-    function handlePrint() {
+  const [showMobileLineupCard, setShowMobileLineupCard] = useState(false)
+
+  function handlePrint() {
     if (!selectedGame || !selectedLineup) {
       alert('No lineup is available to print yet.')
       return
@@ -168,9 +170,16 @@ export default function GameDetailPage({
               <div className="game-detail-actions">
                 <button type="button" onClick={handlePrint}>Print</button>
 
-                <button onClick={() => addSavedInning(selectedGame.id)}>
-                  Add Inning
-                </button>
+<button
+  type="button"
+  onClick={() => setShowMobileLineupCard(true)}
+>
+  Lineup Card
+</button>
+
+<button onClick={() => addSavedInning(selectedGame.id)}>
+  Add Inning
+</button>
 
                 <button
   type="button"
@@ -228,6 +237,16 @@ export default function GameDetailPage({
           </>
         )}
       </div>
+          {showMobileLineupCard && (
+        <MobileLineupCard
+          title="Game Lineup Card"
+          game={selectedGame}
+          lineup={selectedLineup}
+          players={activePlayers}
+          pk={pk}
+          onClose={() => setShowMobileLineupCard(false)}
+        />
+      )}
     </div>
   )
 }
