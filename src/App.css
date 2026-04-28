@@ -1506,3 +1506,24 @@
     font-size: 13px;
   }
 }
+
+/* Optimizer mode selector */
+
+.optimizer-mode-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) 1fr;
+  gap: 14px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+
+.optimizer-mode-row select {
+  width: 100%;
+}
+
+@media (max-width: 700px) {
+  .optimizer-mode-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
