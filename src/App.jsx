@@ -942,6 +942,18 @@ const gameDetailImportableGames = useMemo(() => {
   return selectedGame ? getImportableGamesForGame(selectedGame.id) : []
 }, [selectedGame, games, lineupsByGame])
 
+const activeOptimizerProfile = useMemo(() => {
+  return (
+    optimizerProfiles.find((profile) => profile.profile_key === optimizerMode) ||
+    optimizerProfiles.find((profile) => profile.is_default) ||
+    null
+  )
+}, [optimizerProfiles, optimizerMode])
+
+const activeOptimizerProfileRules = useMemo(() => {
+  if (!activeOptimizerProfile?.id) return {}
+  return optimizerProfileRules?.[activeOptimizerProfile.id] || {}
+}, [activeOptimizerProfile, optimizerProfileRules])
   
   const lineupSetterFilteredGames = useMemo(() => {
   return orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters))
@@ -1799,6 +1811,8 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         game: { ...game, innings: Number(source?.innings || game.innings || 6) },
         players,
         optimizerMode,
+        optimizerProfile: activeOptimizerProfile,
+        optimizerProfileRules: activeOptimizerProfileRules,
         availablePlayerIds: availableIds,
         sourceLineup: source,
         totalsBefore: rollingTotals,
@@ -1877,6 +1891,8 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       game: { ...game, innings: Number(source?.innings || game.innings || 6) },
       players,
       optimizerMode,
+      optimizerProfile: activeOptimizerProfile,
+      optimizerProfileRules: activeOptimizerProfileRules,
       availablePlayerIds: availableIds,
       sourceLineup: source,
       totalsBefore: totalsBeforeThisGame,
