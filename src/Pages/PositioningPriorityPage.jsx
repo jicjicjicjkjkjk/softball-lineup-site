@@ -16,6 +16,23 @@ export default function PositioningPriorityPage({
   updateFitLocal,
   persistFitTier,
 }) {
+  const missingPrimaryPriorityWarnings = activePriorityRows.flatMap((row) => {
+  const playerFit = fitByPlayer?.[row.playerId] || {}
+
+  return PRIORITY_POSITIONS.filter((position) => {
+    const hasPrimaryAllowed =
+      position === 'OF'
+        ? ['LF', 'CF', 'RF'].some((ofPos) => playerFit[ofPos] === 'primary')
+        : playerFit[position] === 'primary'
+
+    const isBlank =
+      row[position] === '' ||
+      row[position] === null ||
+      row[position] === undefined
+
+    return hasPrimaryAllowed && isBlank
+  }).map((position) => `${row.name}: ${position}`)
+})
   function printPositioningPriority() {
     const priorityRows = activePriorityRows
       .map((row) => {
@@ -228,7 +245,21 @@ export default function PositioningPriorityPage({
     <div className="stack">
       <div className="card">
         <div className="table-scroll">
-          <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+  {missingPrimaryPriorityWarnings.length > 0 && (
+    <div
+      className="summary-box"
+      style={{
+        marginBottom: 12,
+        background: '#dcfce7',
+        borderColor: '#16a34a',
+      }}
+    >
+      <strong>Missing priority targets:</strong>{' '}
+      {missingPrimaryPriorityWarnings.join(', ')}
+    </div>
+  )}
+
+  <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <div>
               <h2 style={{ marginBottom: 4 }}>Positioning Priority</h2>
               <p className="small-note" style={{ marginBottom: 0 }}>
@@ -259,19 +290,44 @@ export default function PositioningPriorityPage({
                 <tr key={row.playerId}>
                   <td className="player-col">{row.name}</td>
                   <td>{row.jersey_number}</td>
-                  {PRIORITY_POSITIONS.map((position) => (
-                    <td key={position}>
-                      <input
-                        className="input-center"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={row[position]}
-                        onChange={(e) => updatePriorityLocal(row.playerId, position, e.target.value)}
-                        onBlur={(e) => persistPriority(row.playerId, position, e.target.value)}
-                      />
-                    </td>
-                  ))}
+                  {PRIORITY_POSITIONS.map((position) => {
+  const playerFit = fitByPlayer?.[row.playerId] || {}
+
+  const hasPrimaryAllowed =
+    position === 'OF'
+      ? ['LF', 'CF', 'RF'].some((ofPos) => playerFit[ofPos] === 'primary')
+      : playerFit[position] === 'primary'
+
+  const isBlank =
+    row[position] === '' ||
+    row[position] === null ||
+    row[position] === undefined
+
+  const highlight = hasPrimaryAllowed && isBlank
+
+  return (
+    <td key={position}>
+      <input
+        className="input-center"
+        type="number"
+        min="0"
+        max="100"
+        value={row[position]}
+        onChange={(e) => updatePriorityLocal(row.playerId, position, e.target.value)}
+        onBlur={(e) => persistPriority(row.playerId, position, e.target.value)}
+        style={{
+          background: highlight ? '#dcfce7' : undefined,
+          borderColor: highlight ? '#16a34a' : undefined,
+        }}
+        title={
+          highlight
+            ? 'Primary allowed position should have a priority value'
+            : ''
+        }
+      />
+    </td>
+  )
+})}
                   <td>{row.subtotal}</td>
                 </tr>
               ))}
