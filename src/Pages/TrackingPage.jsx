@@ -404,6 +404,25 @@ const filterSummary = useMemo(() => {
       </select>
     </div>
 
+    {/* Game Status */}
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 600 }}>Game Status</div>
+      <select
+        multiple
+        value={trackingFilters.gameStatuses || []}
+        onChange={(e) =>
+          setTrackingFilters((f) => ({
+            ...f,
+            gameStatuses: Array.from(e.target.selectedOptions, (o) => o.value),
+          }))
+        }
+      >
+        <option value="Planned">Planned</option>
+        <option value="Complete">Complete</option>
+        <option value="Cancelled">Cancelled</option>
+      </select>
+    </div>
+    
     {/* Lineup State */}
     <div>
       <div style={{ fontSize: 12, fontWeight: 600 }}>Lineup State</div>
@@ -457,10 +476,11 @@ const filterSummary = useMemo(() => {
       <button
         type="button"
         onClick={() =>
-          setTrackingFilters({
+            setTrackingFilters({
             seasons: [],
             gameTypes: [],
-            lineupStates: [],
+            gameStatuses: [],
+            lineupStates: ['Locked'],
             dateFrom: '',
             dateTo: '',
           })
