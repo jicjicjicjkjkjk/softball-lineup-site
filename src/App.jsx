@@ -84,6 +84,8 @@ export default function App() {
   const [optimizerPreviewByGame, setOptimizerPreviewByGame] = useState({})
   const [optimizerPlanSitOutTargets, setOptimizerPlanSitOutTargets] = useState({})
   const [optimizerMode, setOptimizerMode] = useState('standard')
+  const [optimizerProfiles, setOptimizerProfiles] = useState([])
+  const [optimizerProfileRules, setOptimizerProfileRules] = useState({})
   const [lineupSetterStateLoaded, setLineupSetterStateLoaded] = useState(false)
   
   const [newGameDate, setNewGameDate] = useState('')
@@ -595,10 +597,50 @@ function isCompleteLineup(lineup) {
       })
       setAttendanceByEvent(byEvent)
 
-      await loadAppOptions()
+            await loadAppOptions()
 
-            const stateRes = await supabase
-  .from('lineup_setter_state')
+      const profilesRes = await supabase
+        .from('optimizer_profiles')
+        .select('*')
+        .eq('team_id', TEAM_ID)
+        .order('profile_name', { ascending: true })
+
+      if (profilesRes.error) throw profilesRes.error
+
+      const loadedProfiles = profilesRes.data || []
+      setOptimizerProfiles(loadedProfiles)
+
+      const profileIds = loadedProfiles.map((profile) => profile.id)
+
+      let loadedRulesByProfile = {}
+
+      if (profileIds.length) {
+        const rulesRes = await supabase
+          .from('optimizer_profile_position_rules')
+          .select('*')
+          .in('profile_id', profileIds)
+
+        if (rulesRes.error) throw rulesRes.error
+
+        ;(rulesRes.data || []).forEach((rule) => {
+          if (!loadedRulesByProfile[rule.profile_id]) {
+            loadedRulesByProfile[rule.profile_id] = {}
+          }
+
+          loadedRulesByProfile[rule.profile_id][rule.position] = rule
+        })
+      }
+
+      setOptimizerProfileRules(loadedRulesByProfile)
+
+      const defaultProfile = loadedProfiles.find((profile) => profile.is_default)
+
+      if (defaultProfile?.profile_key && !optimizerMode) {
+        setOptimizerMode(defaultProfile.profile_key)
+      }
+
+      const stateRes = await supabase
+        .from('lineup_setter_state')
   .select('batch_game_ids, focus_game_id')
   .eq('team_id', TEAM_ID)
   .maybeSingle()
@@ -2666,6 +2708,8 @@ function toggleSavedAllBattingLock(gameId) {
     setOptimizerPlanSitOutTargets={setOptimizerPlanSitOutTargets}
     optimizerMode={optimizerMode}
     setOptimizerMode={setOptimizerMode}
+    optimizerProfiles={optimizerProfiles}
+    optimizerProfileRules={optimizerProfileRules}
     inningStatus={inningStatus}
     trackingPriorityRows={trackingPriorityRows}
     optimizerImportSourceGameId={optimizerImportSourceGameId}
