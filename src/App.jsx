@@ -120,7 +120,7 @@ const defaultTrackingFilters = {
   seasons: [],
   gameTypes: [],
   gameStatuses: [],
-  lineupStates: ['Locked'],
+  lineupStates: ['Locked', 'Saved'],
   dateFrom: '',
   dateTo: '',
 }
@@ -139,7 +139,7 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
             lineupStates:
         Array.isArray(parsed?.lineupStates) && parsed.lineupStates.length
           ? parsed.lineupStates
-          : ['Locked'],
+          : ['Locked', 'Saved']
     }
   } catch (error) {
     console.error('Failed to load tracking filters from sessionStorage', error)
