@@ -41,6 +41,8 @@ export default function LineupFocusPanel(props) {
     visibleIds = [],
     gameTypeOptions = [],
     seasonOptions = [],
+    optimizerMode = 'standard',
+    setOptimizerMode,
   } = props
 
   if (!optimizerFocusGame) return null
@@ -114,6 +116,35 @@ export default function LineupFocusPanel(props) {
                   : ''}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+            {optimizerFocusLineup && (
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Optimizer Mode</h3>
+
+          <div className="optimizer-mode-row">
+            <div>
+              <label>Mode for Next Optimize Run</label>
+              <select
+                value={optimizerMode}
+                onChange={(e) => {
+                  if (typeof setOptimizerMode === 'function') {
+                    setOptimizerMode(e.target.value)
+                  }
+                }}
+              >
+                <option value="standard">Standard — current logic</option>
+                <option value="tournament">Tournament — strongest primary lineup</option>
+                <option value="friendly">Friendly — development weighted</option>
+              </select>
+            </div>
+
+            <div className="small-note">
+              This controls what happens when you press Optimize Current or Optimize All in Plan.
+              Standard keeps today’s logic.
+            </div>
           </div>
         </div>
       )}
