@@ -682,6 +682,12 @@ useEffect(() => {
   }, [])
 
   useEffect(() => {
+  if (!loading && games.length) {
+    setTrackingFilters((current) => ({ ...current }))
+  }
+}, [loading, games])
+  
+  useEffect(() => {
     if (!newGameSeason && defaultSeasonOption) {
       setNewGameSeason(defaultSeasonOption.value || defaultSeasonOption.label || '')
     }
