@@ -1629,6 +1629,22 @@
   }
 }
 
+.batting-lock-button {
+  width: 38px;
+  min-width: 38px;
+  padding: 4px 6px;
+}
+
+.grid-cell-lock-only {
+  justify-content: center;
+  gap: 0;
+}
+
+.position-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
 /* =========================
    FINAL PRIORITY TRACKING TABLE FIXES
