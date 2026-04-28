@@ -1769,6 +1769,21 @@
     table-layout: fixed !important;
   }
 
+   .game-list-table input[type='date'] {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.game-list-table td {
+  overflow: hidden;
+}
+
+.game-list-table th:nth-child(2),
+.game-list-table td:nth-child(2) {
+  text-align: center !important;
+}
+   
   .games-table th:nth-child(1),
   .games-table td:nth-child(1),
   .game-list-table th:nth-child(1),
@@ -2129,4 +2144,69 @@
     z-index: 90 !important;
     background: #dff0ef !important;
   }
+}
+
+
+/* =====================================================
+   FINAL OVERRIDE — PRIORITY TABLE (NO FLOAT BUG)
+   ===================================================== */
+
+.priority-combined-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+/* HEADER BASE */
+.priority-combined-table thead th {
+  background: #dff0ef !important;
+  position: sticky !important;
+}
+
+/* Row 1 (Position labels) */
+.priority-combined-table thead tr:nth-child(1) th {
+  top: 0 !important;
+  z-index: 50 !important;
+}
+
+/* Row 2 (TGT / Act) */
+.priority-combined-table thead tr:nth-child(2) th {
+  top: 44px !important;
+  z-index: 55 !important;
+}
+
+/* Player + Field headers (rowspan=2) */
+.priority-combined-table thead th.sticky-col-1,
+.priority-combined-table thead th.sticky-col-2 {
+  top: 0 !important;
+  z-index: 120 !important;
+}
+
+/* LEFT COLUMNS */
+.priority-combined-table td.sticky-col-1 {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 80 !important;
+  background: #fff !important;
+}
+
+.priority-combined-table td.sticky-col-2 {
+  position: sticky !important;
+  left: 110px !important;
+  z-index: 81 !important;
+  background: #fff !important;
+}
+
+/* HEADER + COLUMN INTERSECTION FIX (THIS FIXES YOUR BUG) */
+.priority-combined-table thead th.sticky-col-1 {
+  left: 0 !important;
+}
+
+.priority-combined-table thead th.sticky-col-2 {
+  left: 110px !important;
+}
+
+/* Prevent weird floating blocks */
+.priority-combined-table th,
+.priority-combined-table td {
+  box-sizing: border-box !important;
 }
