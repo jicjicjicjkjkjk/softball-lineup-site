@@ -1,7 +1,9 @@
 // FILE: src/Pages/GameDetailPage.jsx
 
+import { useState } from 'react'
 import { formatDateShort } from '../lib/appHelpers'
 import { printGameDetail } from '../lib/gameDetailPrint'
+import MobileLineupCard from '../Components/MobileLineupCard'
 
 function compareGamesDescLocal(a, b, pk) {
   const aDate = a?.date || ''
