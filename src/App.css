@@ -1310,3 +1310,53 @@
   min-width: 58px !important;
   max-width: 58px !important;
 }
+
+
+/* =========================
+   FINAL MOBILE TABLE CLEANUP
+   ========================= */
+
+@media (max-width: 900px) {
+  .tracking-scroll,
+  .table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+
+  .tracking-table,
+  .lineup-print-table,
+  .lineup-setter-current-plan-table,
+  .positioning-priority-table {
+    min-width: max-content !important;
+  }
+
+  .tracking-table thead th,
+  .lineup-print-table thead th,
+  .lineup-setter-current-plan-table thead th,
+  .positioning-priority-table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+    background: #dff0ef !important;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .tracking-scroll,
+  .table-scroll {
+    max-height: 68vh !important;
+    overflow: auto !important;
+  }
+
+  .lineup-print-table {
+    min-width: 1050px !important;
+  }
+
+  .lineup-print-table th,
+  .lineup-print-table td {
+    white-space: nowrap !important;
+  }
+}
