@@ -290,3 +290,93 @@ export function buildPositionByPlayer(games, lineupsByGame, playerId, pk) {
     })
     .filter(Boolean)
 }
+
+export function buildAvailabilityAdjustedPriorityRows(games, lineupsByGame, players, priorityByPlayer, pk) {
+  const positionKeys = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
+  const positionTotalsWhenAvailable = Object.fromEntries(positionKeys.map((pos) => [pos, {}]))
+  const playerPositionCounts = {}
+
+  ;(players || []).forEach((player) => {
+    const id = pk(player.id)
+    playerPositionCounts[id] = {
+      playerId: id,
+      name: player.name,
+      fieldTotal: 0,
+      targP: priorityByPlayer?.[id]?.P?.priority_pct || '',
+      targC: priorityByPlayer?.[id]?.C?.priority_pct || '',
+      targ1B: priorityByPlayer?.[id]?.['1B']?.priority_pct || '',
+      targ2B: priorityByPlayer?.[id]?.['2B']?.priority_pct || '',
+      targ3B: priorityByPlayer?.[id]?.['3B']?.priority_pct || '',
+      targSS: priorityByPlayer?.[id]?.SS?.priority_pct || '',
+      targOF: priorityByPlayer?.[id]?.OF?.priority_pct || '',
+      P: 0, C: 0, '1B': 0, '2B': 0, '3B': 0, SS: 0, OF: 0,
+    }
+    positionKeys.forEach((pos) => {
+      positionTotalsWhenAvailable[pos][id] = 0
+    })
+  })
+
+  ;(games || []).forEach((game) => {
+    const lineup = lineupsByGame?.[pk(game.id)]
+    if (!lineup) return
+
+    const availableIds = (lineup.availablePlayerIds || []).map(pk)
+
+    for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+      const inningCounts = { P: 0, C: 0, '1B': 0, '2B': 0, '3B': 0, SS: 0, OF: 0 }
+
+      availableIds.forEach((id) => {
+        const value = lineup.cells?.[id]?.[inning] || ''
+        if (!playerPositionCounts[id]) return
+
+        if (['P', 'C', '1B', '2B', '3B', 'SS'].includes(value)) {
+          inningCounts[value] += 1
+          playerPositionCounts[id][value] += 1
+          playerPositionCounts[id].fieldTotal += 1
+        }
+
+        if (['LF', 'CF', 'RF'].includes(value)) {
+          inningCounts.OF += 1
+          playerPositionCounts[id].OF += 1
+          playerPositionCounts[id].fieldTotal += 1
+        }
+      })
+
+      availableIds.forEach((id) => {
+        positionKeys.forEach((pos) => {
+          positionTotalsWhenAvailable[pos][id] += inningCounts[pos]
+        })
+      })
+    }
+  })
+
+  function pct(numer, denom) {
+    if (!numer || !denom) return ''
+    return Number(((numer / denom) * 100).toFixed(1))
+  }
+
+  return (players || []).map((player) => {
+    const id = pk(player.id)
+    const row = playerPositionCounts[id] || {}
+
+    return {
+      playerId: id,
+      name: player.name,
+      fieldTotal: row.fieldTotal || 0,
+      targP: row.targP || '',
+      targC: row.targC || '',
+      targ1B: row.targ1B || '',
+      targ2B: row.targ2B || '',
+      targ3B: row.targ3B || '',
+      targSS: row.targSS || '',
+      targOF: row.targOF || '',
+      actP: pct(row.P, positionTotalsWhenAvailable.P[id]),
+      actC: pct(row.C, positionTotalsWhenAvailable.C[id]),
+      act1B: pct(row['1B'], positionTotalsWhenAvailable['1B'][id]),
+      act2B: pct(row['2B'], positionTotalsWhenAvailable['2B'][id]),
+      act3B: pct(row['3B'], positionTotalsWhenAvailable['3B'][id]),
+      actSS: pct(row.SS, positionTotalsWhenAvailable.SS[id]),
+      actOF: pct(row.OF, positionTotalsWhenAvailable.OF[id]),
+    }
+  })
+}
