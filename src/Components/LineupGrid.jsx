@@ -160,14 +160,14 @@ export default function LineupGrid({
 
                   {showLocks && (
                     <button
-                      type="button"
-                      disabled={lockedLineup}
-                      onClick={() => onBattingLockToggle?.(id)}
-                      className="batting-lock-button"
-                      title="Lock batting order spot"
-                    >
-                      {battingLocked ? '🔒 Bat' : '🔓 Bat'}
-                    </button>
+  type="button"
+  disabled={lockedLineup}
+  onClick={() => onBattingLockToggle?.(id)}
+  className="batting-lock-button"
+  title="Lock batting order spot"
+>
+  ✓
+</button>
                   )}
                 </div>
               </td>
@@ -225,15 +225,14 @@ export default function LineupGrid({
                             {option || '--'}
                           </option>
                         ))}
-                      </select>
-
-                      {showLocks && (
-                        <label className="checkbox-item grid-lock-label">
-                          <input
-                            type="checkbox"
-                            checked={cellLocked}
-                            disabled={lockedLineup || rowLocked}
-                            onChange={() => onCellLockToggle?.(id, inning)}
+                      </<label className="checkbox-item grid-lock-label grid-cell-lock-only" title="Lock this cell">
+  <input
+    type="checkbox"
+    checked={cellLocked}
+    disabled={lockedLineup || rowLocked}
+    onChange={() => onCellLockToggle?.(id, inning)}
+  />
+</label>ange={() => onCellLockToggle?.(id, inning)}
                           />
                           Lock
                         </label>
