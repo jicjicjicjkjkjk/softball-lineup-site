@@ -188,6 +188,7 @@ export default function TrackingPage({
   setTrackingFilters,
   seasonOptions,
   gameTypeOptions,
+  statusOptions = [],
   TrackingTable,
   battingRows,
   sitSummary,
@@ -227,8 +228,12 @@ const filterSummary = useMemo(() => {
     parts.push(`Season: ${trackingFilters.seasons.join(', ')}`)
   }
 
-  if (trackingFilters?.gameTypes?.length) {
+    if (trackingFilters?.gameTypes?.length) {
     parts.push(`Type: ${trackingFilters.gameTypes.join(', ')}`)
+  }
+
+  if (trackingFilters?.gameStatuses?.length) {
+    parts.push(`Status: ${trackingFilters.gameStatuses.join(', ')}`)
   }
 
   if (trackingFilters?.lineupStates?.length) {
@@ -417,9 +422,11 @@ const filterSummary = useMemo(() => {
           }))
         }
       >
-        <option value="Planned">Planned</option>
-        <option value="Complete">Complete</option>
-        <option value="Cancelled">Cancelled</option>
+                {statusOptions.map((opt) => (
+          <option key={opt.value || opt.label} value={opt.value || opt.label}>
+            {opt.label || opt.value}
+          </option>
+        ))}
       </select>
     </div>
     
