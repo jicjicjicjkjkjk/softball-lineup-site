@@ -87,6 +87,7 @@ export default function LineupSetterPage({
   setTrackingFilters,
   seasonOptions = [],
   gameTypeOptions = [],
+  statusOptions = [],
   lineupLockedByGame,
   optimizerExistingGameId,
   setOptimizerExistingGameId,
@@ -163,8 +164,11 @@ useEffect(() => {
       trackingFilters?.seasons?.length
         ? `Season: ${trackingFilters.seasons.join(', ')}`
         : null,
-      trackingFilters?.gameTypes?.length
+            trackingFilters?.gameTypes?.length
         ? `Type: ${trackingFilters.gameTypes.join(', ')}`
+        : null,
+      trackingFilters?.gameStatuses?.length
+        ? `Status: ${trackingFilters.gameStatuses.join(', ')}`
         : null,
       trackingFilters?.lineupStates?.length
         ? `State: ${trackingFilters.lineupStates.join(', ')}`
@@ -728,9 +732,11 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
                 }))
               }
             >
-              <option value="Planned">Planned</option>
-              <option value="Complete">Complete</option>
-              <option value="Cancelled">Cancelled</option>
+                            {statusOptions.map((opt) => (
+                <option key={opt.value || opt.label} value={opt.value || opt.label}>
+                  {opt.label || opt.value}
+                </option>
+              ))}
             </select>
           </div>
           
