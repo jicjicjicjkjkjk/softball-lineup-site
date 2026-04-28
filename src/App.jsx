@@ -1,3 +1,5 @@
+// FILE: src/app.jsx
+
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase'
 import {
@@ -2552,6 +2554,9 @@ function toggleSavedAllBattingLock(gameId) {
             seasonOptions={seasonOptions}
             gameTypeOptions={gameTypeOptions}
             statusOptions={statusOptions}
+            lineupsByGame={lineupsByGame}
+            pk={pk}
+          />
           />
         )}
 
