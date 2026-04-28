@@ -118,7 +118,8 @@ export default function App() {
 const defaultTrackingFilters = {
   seasons: [],
   gameTypes: [],
-  lineupStates: [],
+  gameStatuses: [],
+  lineupStates: ['Locked'],
   dateFrom: '',
   dateTo: '',
 }
@@ -128,12 +129,15 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
     const saved = sessionStorage.getItem('softball-lineup-tracking-filters')
     const parsed = saved ? JSON.parse(saved) : {}
 
-    return {
+        return {
       ...defaultTrackingFilters,
       ...(parsed && typeof parsed === 'object' ? parsed : {}),
       seasons: Array.isArray(parsed?.seasons) ? parsed.seasons : [],
       gameTypes: Array.isArray(parsed?.gameTypes) ? parsed.gameTypes : [],
-      lineupStates: Array.isArray(parsed?.lineupStates) ? parsed.lineupStates : [],
+      gameStatuses: Array.isArray(parsed?.gameStatuses) ? parsed.gameStatuses : [],
+      lineupStates: Array.isArray(parsed?.lineupStates)
+        ? parsed.lineupStates
+        : ['Locked'],
     }
   } catch (error) {
     console.error('Failed to load tracking filters from sessionStorage', error)
@@ -396,6 +400,7 @@ function isCompleteLineup(lineup) {
   function gameMatchesFilters(game, filters) {
   const seasons = filters?.seasons || []
   const gameTypes = filters?.gameTypes || []
+  const gameStatuses = filters?.gameStatuses || []
   const lineupStates = filters?.lineupStates || []
   const dateFrom = filters?.dateFrom || ''
   const dateTo = filters?.dateTo || ''
@@ -404,13 +409,14 @@ function isCompleteLineup(lineup) {
 
   const seasonMatch = !seasons.length || seasons.includes(game.season || '')
   const typeMatch = !gameTypes.length || gameTypes.includes(game.game_type || '')
+  const statusMatch = !gameStatuses.length || gameStatuses.includes(game.status || '')
   const lineupStateMatch =
     !lineupStates.length || lineupStates.includes(getGameLineupState(game))
 
   const fromMatch = !dateFrom || (gameDate && gameDate >= dateFrom)
   const toMatch = !dateTo || (gameDate && gameDate <= dateTo)
 
-  return seasonMatch && typeMatch && lineupStateMatch && fromMatch && toMatch
+  return seasonMatch && typeMatch && statusMatch && lineupStateMatch && fromMatch && toMatch
 }
   
   async function persistLineup(gameId, lineup, nextLocked = null) {
@@ -668,9 +674,8 @@ useEffect(() => {
       { onConflict: 'team_id' }
     )
 
-    if (error) {
-      console.error('Failed to save lineup setter state', error)
-      setAppError(`Failed to save Lineup Setter state: ${error.message}`)
+        if (error) {
+      console.warn('Failed to save lineup setter state', error)
     }
   }
 
