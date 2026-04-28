@@ -1704,3 +1704,146 @@
     background: #dff0ef !important;
   }
 }
+
+
+/* =========================
+   MOBILE CLEANUP PASS
+   ========================= */
+
+@media (max-width: 900px) {
+  /* Hide per-cell word Lock, keep checkbox only */
+  .lineup-print-table td label {
+    font-size: 0 !important;
+  }
+
+  .lineup-print-table td label input[type='checkbox'] {
+    font-size: initial !important;
+  }
+
+  /* Keep Lock word in header */
+  .lineup-print-table thead th {
+    font-size: 14px !important;
+  }
+
+  /* Make batting lock button compact until LineupGrid gets checkbox refactor */
+  .lineup-print-table .batting-lock-button,
+  .lineup-print-table button {
+    white-space: nowrap;
+  }
+
+  /* New game fields should not overlap */
+  .lineup-setter-new-game-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .lineup-setter-new-game-fields > div {
+    min-width: 0 !important;
+  }
+
+  .lineup-setter-new-game-fields input,
+  .lineup-setter-new-game-fields select {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Game list date/order overlap fix */
+  .games-table,
+  .game-list-table {
+    table-layout: fixed !important;
+  }
+
+  .games-table th:nth-child(1),
+  .games-table td:nth-child(1),
+  .game-list-table th:nth-child(1),
+  .game-list-table td:nth-child(1) {
+    width: 155px !important;
+    min-width: 155px !important;
+  }
+
+  .games-table th:nth-child(2),
+  .games-table td:nth-child(2),
+  .game-list-table th:nth-child(2),
+  .game-list-table td:nth-child(2) {
+    width: 78px !important;
+    min-width: 78px !important;
+  }
+
+  /* Tracking tables: freeze left columns + header */
+  .tracking-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+
+  .tracking-table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    background: #dff0ef !important;
+    z-index: 50 !important;
+  }
+
+  .tracking-table .sticky-col-1 {
+    position: sticky !important;
+    left: 0 !important;
+    background: #fff !important;
+    z-index: 45 !important;
+  }
+
+  .tracking-table .sticky-col-2 {
+    position: sticky !important;
+    left: 105px !important;
+    background: #fff !important;
+    z-index: 45 !important;
+  }
+
+  .tracking-table thead .sticky-col-1,
+  .tracking-table thead .sticky-col-2 {
+    background: #dff0ef !important;
+    z-index: 80 !important;
+  }
+
+  .tracking-table .col-player {
+    width: 105px !important;
+    min-width: 105px !important;
+    max-width: 105px !important;
+  }
+
+  .tracking-table .col-avg {
+    width: 64px !important;
+    min-width: 64px !important;
+    max-width: 64px !important;
+  }
+
+  .tracking-table .col-metric {
+    width: 125px !important;
+    min-width: 125px !important;
+    max-width: 125px !important;
+  }
+
+  /* Priority table: top 2 rows sticky */
+  .priority-combined-table thead tr:first-child th {
+    top: 0 !important;
+  }
+
+  .priority-combined-table thead tr:nth-child(2) th {
+    top: 42px !important;
+    background: #dff0ef !important;
+    border-bottom: 3px solid #78909c !important;
+  }
+
+  .priority-combined-table th:nth-child(1),
+  .priority-combined-table td:nth-child(1) {
+    left: 0 !important;
+    width: 115px !important;
+    min-width: 115px !important;
+    max-width: 115px !important;
+  }
+
+  .priority-combined-table th:nth-child(2),
+  .priority-combined-table td:nth-child(2) {
+    left: 115px !important;
+    width: 64px !important;
+    min-width: 64px !important;
+    max-width: 64px !important;
+  }
+}
