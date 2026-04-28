@@ -9,6 +9,18 @@ export const SEASON_BUCKETS = ['In Season', 'Out of Season']
 export const PRACTICE_TYPES = ['Pitchers/Catchers', 'Team Practice', 'Indoor Work', 'Outdoor Practice']
 export const SETTING_TYPES = ['Indoor', 'Outdoor']
 
+const POSITION_IMPORTANCE = {
+  P: 9,
+  C: 8,
+  SS: 7,
+  '3B': 6,
+  '1B': 5,
+  CF: 4,
+  '2B': 3,
+  LF: 2,
+  RF: 1,
+}
+
 export function pk(id) {
   return String(id)
 }
@@ -679,42 +691,39 @@ function scorePlayerForPosition({
   const fit = fitTier(fitMap, playerId, position)
   const target = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
   const bucket = positionBucket(position)
+  const importance = POSITION_IMPORTANCE[position] || 1
 
   const disallowed = fit === 'E' || fit === 'no'
   const primaryFit = fit === 'A' || fit === 'primary'
   const secondaryFit = fit === 'B' || fit === 'secondary'
 
   if (disallowed) {
-    return {
-      playerId,
-      position,
-      totalScore: -1000000,
-    }
+    return { playerId, position, totalScore: -100000000 }
   }
 
-  let fitScore =
-    primaryFit ? 10000 :
-    secondaryFit ? 3000 :
-    fit === 'C' ? 500 :
-    fit === 'D' ? -500 :
-    -10000
+  let fitScore = 0
 
   if (optimizerMode === 'tournament') {
     fitScore =
-      primaryFit ? 100000 :
-      secondaryFit ? 10000 :
-      fit === 'C' ? -10000 :
-      fit === 'D' ? -25000 :
-      -1000000
-  }
-
-  if (optimizerMode === 'friendly') {
+      primaryFit ? 100000 * importance :
+      secondaryFit ? 12000 * importance :
+      fit === 'C' ? -25000 * importance :
+      fit === 'D' ? -50000 * importance :
+      -100000000
+  } else if (optimizerMode === 'friendly') {
     fitScore =
-      primaryFit ? 8000 :
-      secondaryFit ? 5000 :
-      fit === 'C' ? 2500 :
-      fit === 'D' ? 500 :
-      -1000000
+      primaryFit ? 7000 :
+      secondaryFit ? 6000 :
+      fit === 'C' ? 4500 :
+      fit === 'D' ? 2000 :
+      -100000000
+  } else {
+    fitScore =
+      primaryFit ? 12000 :
+      secondaryFit ? 4500 :
+      fit === 'C' ? 1200 :
+      fit === 'D' ? -1500 :
+      -100000000
   }
 
   const targetPool = (candidateIds || [])
@@ -726,56 +735,47 @@ function scorePlayerForPosition({
     .filter((row) => row.target > 0)
 
   const targetTotal = targetPool.reduce((sum, row) => sum + row.target, 0)
-
   const currentPlayerCount = Number(planPositionCounts?.[playerId]?.[bucket] || 0)
   const currentPositionTotal = totalPlanPositionCount(planPositionCounts, position)
 
   let allocationScore = 0
 
-  if (optimizerMode !== 'tournament') {
-    if (targetTotal > 0 && target > 0) {
-      const expectedAfterThisAssignment =
-        (currentPositionTotal + 1) * (target / targetTotal)
+  if (targetTotal > 0 && target > 0) {
+    const expectedAfterThisAssignment =
+      (currentPositionTotal + 1) * (target / targetTotal)
 
-      const projectedPlayerCount = currentPlayerCount + 1
-      const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
+    const projectedPlayerCount = currentPlayerCount + 1
+    const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
 
-      allocationScore = 5000 - distanceFromTarget * 2500
-    } else if (targetTotal > 0 && target <= 0) {
-      allocationScore = -5000
-    }
-  }
-
-  if (optimizerMode === 'tournament' && target > 0) {
-    allocationScore = target * 100
+    allocationScore = optimizerMode === 'tournament'
+      ? target * 500 * importance
+      : 5000 - distanceFromTarget * 2500
+  } else if (targetTotal > 0 && target <= 0) {
+    allocationScore = optimizerMode === 'tournament' ? -25000 * importance : -5000
   }
 
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
+  const previousSamePositionCount = Object.entries(lineup?.cells?.[playerId] || {}).filter(
+    ([inningNumber, value]) => Number(inningNumber) < inning && value === position
+  ).length
 
-const previousSamePositionCount = getPlayerFieldPositionsInGame(
-  lineup,
-  playerId,
-  inning - 1
-).has(position)
-  ? Object.values(lineup?.cells?.[playerId] || {}).filter(
-      (value, index) => Number(index) < inning && value === position
-    ).length
-  : 0
+  let rotationScore = prevValue === position ? 100 : 0
 
-let continuityBonus = prevValue === position ? 100 : 0
-
-if (optimizerMode === 'friendly') {
-  continuityBonus = prevValue === position ? -1200 : 0
-
-  if (previousSamePositionCount > 0) {
-    continuityBonus -= previousSamePositionCount * 2500
+  if (optimizerMode === 'friendly') {
+    rotationScore = 0
+    if (prevValue === position) rotationScore -= 3000
+    rotationScore -= previousSamePositionCount * 4500
+    rotationScore -= currentPlayerCount * 2500
   }
-}
+
+  if (optimizerMode === 'standard') {
+    rotationScore -= previousSamePositionCount * 900
+  }
 
   return {
     playerId,
     position,
-    totalScore: fitScore + allocationScore + continuityBonus,
+    totalScore: fitScore + allocationScore + rotationScore,
   }
 }
 
@@ -822,9 +822,13 @@ function assignPositionsForInning({
       .sort((a, b) => b.totalScore - a.totalScore)
   })
 
-  const orderedPositions = [...openPositions].sort(
-    (a, b) => candidatesByPosition[a].length - candidatesByPosition[b].length
-  )
+    const orderedPositions = [...openPositions].sort((a, b) => {
+    if (optimizerMode === 'tournament') {
+      return (POSITION_IMPORTANCE[b] || 0) - (POSITION_IMPORTANCE[a] || 0)
+    }
+
+    return candidatesByPosition[a].length - candidatesByPosition[b].length
+  })
 
   let bestScore = -Infinity
   let bestAssignment = {}
@@ -1129,7 +1133,10 @@ Object.entries(assigned).forEach(([playerId, position]) => {
     })
   }
   
-  enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap })
+    if (optimizerMode !== 'tournament') {
+    enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap })
+  }
+
   return lineup
 }
 
