@@ -276,31 +276,29 @@ export function printGameDetail({
       </body>
     </html>
   `
+  const printWindow = window.open('', '_blank')
 
-  const iframe = document.createElement('iframe')
+  if (!printWindow) {
+    alert('Print was blocked. Please allow pop-ups for this site, then try again.')
+    return
+  }
 
-  iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
-  iframe.style.border = '0'
+  printWindow.document.open()
+  printWindow.document.write(html)
+  printWindow.document.close()
 
-  document.body.appendChild(iframe)
-
-  const iframeWindow = iframe.contentWindow
-  const iframeDocument = iframeWindow.document
-
-  iframeDocument.open()
-  iframeDocument.write(html)
-  iframeDocument.close()
+  printWindow.onload = () => {
+    printWindow.focus()
+  }
 
   setTimeout(() => {
-    iframeWindow.focus()
-    iframeWindow.print()
+    printWindow.focus()
 
-    setTimeout(() => {
-      document.body.removeChild(iframe)
-    }, 1000)
-  }, 500)
+    try {
+      printWindow.print()
+    } catch (error) {
+      console.error('Print failed', error)
+    }
+  }, 250)
 }
+  
