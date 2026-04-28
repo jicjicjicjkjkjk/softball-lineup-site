@@ -751,7 +751,26 @@ function scorePlayerForPosition({
   }
 
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
-  const continuityBonus = prevValue === position && optimizerMode !== 'tournament' ? 100 : 0
+
+const previousSamePositionCount = getPlayerFieldPositionsInGame(
+  lineup,
+  playerId,
+  inning - 1
+).has(position)
+  ? Object.values(lineup?.cells?.[playerId] || {}).filter(
+      (value, index) => Number(index) < inning && value === position
+    ).length
+  : 0
+
+let continuityBonus = prevValue === position ? 100 : 0
+
+if (optimizerMode === 'friendly') {
+  continuityBonus = prevValue === position ? -1200 : 0
+
+  if (previousSamePositionCount > 0) {
+    continuityBonus -= previousSamePositionCount * 2500
+  }
+}
 
   return {
     playerId,
