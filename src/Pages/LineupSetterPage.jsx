@@ -96,6 +96,8 @@ export default function LineupSetterPage({
   setOptimizerPlanSitOutTargets,
   optimizerMode = 'standard',
   setOptimizerMode,
+  optimizerProfiles = [],
+  optimizerProfileRules = {},
   games,
   addExistingGameToBatch,
   runOptimizeCurrent,
@@ -617,6 +619,8 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         seasonOptions={seasonOptions}
         optimizerMode={optimizerMode}
         setOptimizerMode={setOptimizerMode}
+        optimizerProfiles={optimizerProfiles}
+        optimizerProfileRules={optimizerProfileRules}
         trackingPriorityByPositionRows={trackingPriorityByPositionRows}
       />
       <TrackingFilters
