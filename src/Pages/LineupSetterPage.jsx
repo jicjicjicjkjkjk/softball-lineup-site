@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { formatDateShort } from '../lib/appHelpers'
 import LineupFocusPanel from '../Components/LineupFocusPanel'
 import { printCoachSummary } from '../lib/coachPrint'
+import TrackingFilters from '../Components/TrackingFilters'
 
 function renderOptionLabel(option) {
   if (!option) return ''
@@ -676,192 +677,13 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         seasonOptions={seasonOptions}
         trackingPriorityByPositionRows={trackingPriorityByPositionRows}
       />
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Filters</h3>
-
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>Season</div>
-            <select
-              multiple
-              value={trackingFilters.seasons}
-              onChange={(e) =>
-                setTrackingFilters((f) => ({
-                  ...f,
-                  seasons: Array.from(e.target.selectedOptions, (o) => o.value),
-                }))
-              }
-            >
-              {seasonOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>Game Type</div>
-            <select
-              multiple
-              value={trackingFilters.gameTypes}
-              onChange={(e) =>
-                setTrackingFilters((f) => ({
-                  ...f,
-                  gameTypes: Array.from(e.target.selectedOptions, (o) => o.value),
-                }))
-              }
-            >
-              {gameTypeOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-                    <div>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>Game Status</div>
-            <select
-              multiple
-              value={trackingFilters.gameStatuses || []}
-              onChange={(e) =>
-                setTrackingFilters((f) => ({
-                  ...f,
-                  gameStatuses: Array.from(e.target.selectedOptions, (o) => o.value),
-                }))
-              }
-            >
-                            {statusOptions.map((opt) => (
-                <option key={opt.value || opt.label} value={opt.value || opt.label}>
-                  {opt.label || opt.value}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>Lineup State</div>
-            <select
-              multiple
-              value={trackingFilters.lineupStates}
-              onChange={(e) =>
-                setTrackingFilters((f) => ({
-                  ...f,
-                  lineupStates: Array.from(e.target.selectedOptions, (o) => o.value),
-                }))
-              }
-            >
-              <option value="Locked">Locked</option>
-              <option value="Saved">Saved</option>
-              <option value="Empty">Empty</option>
-            </select>
-          </div>
-
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>Date From</div>
-            <input
-              type="date"
-              value={trackingFilters.dateFrom || ''}
-              onChange={(e) =>
-                setTrackingFilters((f) => ({
-                  ...f,
-                  dateFrom: e.target.value,
-                }))
-              }
-            />
-          </div>
-
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>Date To</div>
-            <input
-              type="date"
-              value={trackingFilters.dateTo || ''}
-              onChange={(e) =>
-                setTrackingFilters((f) => ({
-                  ...f,
-                  dateTo: e.target.value,
-                }))
-              }
-            />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={() =>
-                  setTrackingFilters({
-                  seasons: [],
-                  gameTypes: [],
-                  gameStatuses: [],
-                  lineupStates: ['Locked'],
-                  dateFrom: '',
-                  dateTo: '',
-                })
-              }
-            >
-              Clear Filters
-            </button>
-          </div>
-        </div>
-      </div>
-
-            <div className="card">
-        <h3 style={{ margin: 0 }}>Filtered Games Before Current Plan</h3>
-        <p className="small-note" style={{ margin: '6px 0 0' }}>
-          Universe: Filtered by: {filterSummary} ({filteredLineups.length} games)
-        </p>
-      </div>
-
-          <TrackingTable
-  title="Current Plan"
-  totals={currentPlanTotalsWithRunning}
-  sitOutRows={currentPlanSitOutRows}
-  players={activePlayers}
-  sortConfig={trackingSort}
-  setSortConfig={setTrackingSort}
-  sitOutTargets={optimizerPlanSitOutTargets}
-  showSitOutTargets={true}
-  editableSitOutTargets={true}
-  setSitOutTargets={setOptimizerPlanSitOutTargets}
-  fitByPlayer={fitByPlayer}
-  enableFitColors={true}
-  forceNotAllowedRed={true}
-  planSitOutSummary={{
-    totalNeeded,
-    totalAssigned,
-  }}
-    runningTotalLabel="Current Plan Sit Out Running Total"
-  extraRunningTotals={[
-    {
-      key: 'filteredSitOutRunningTotal',
-      label: 'Filtered Sit Out Running Total',
-      totals: filteredGamesBeforeTotalsWithRunning,
-    },
-    {
-      key: 'updatedSitOutRunningTotal',
-      label: 'Updated Sit Out Running Total',
-      totals: filteredPlusPlanTotalsWithRunning,
-    },
-  ]}
+      <TrackingFilters
+  trackingFilters={trackingFilters}
+  setTrackingFilters={setTrackingFilters}
+  seasonOptions={seasonOptions}
+  gameTypeOptions={gameTypeOptions}
+  statusOptions={statusOptions}
 />
-
-
-            {/* Filtered Games + Current Plan table hidden intentionally. */}
-
-                        <div className="card">
-        <h3 style={{ marginTop: 0 }}>Priority Tracking View</h3>
-        <label>Use this data universe for the two priority tables below</label>
-        <select
-          value={priorityUniverse}
-          onChange={(e) => setPriorityUniverse(e.target.value)}
-        >
-          <option value="currentPlan">Current Plan</option>
-          <option value="filtered">Filtered Games Before Current Plan</option>
-          <option value="filteredPlusPlan">Filtered Games + Current Plan</option>
-        </select>
-      </div>
-
                   <div className="card tracking-card">
         <h3>Tracking by Positioning by Priority</h3>
 
