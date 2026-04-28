@@ -9,7 +9,7 @@ export const SEASON_BUCKETS = ['In Season', 'Out of Season']
 export const PRACTICE_TYPES = ['Pitchers/Catchers', 'Team Practice', 'Indoor Work', 'Outdoor Practice']
 export const SETTING_TYPES = ['Indoor', 'Outdoor']
 
-const POSITION_IMPORTANCE = {
+const DEFAULT_POSITION_IMPORTANCE = {
   P: 9,
   C: 8,
   SS: 7,
@@ -19,6 +19,64 @@ const POSITION_IMPORTANCE = {
   '2B': 3,
   LF: 2,
   RF: 1,
+}
+
+function getPositionRule(profileRules, position) {
+  return profileRules?.[position] || null
+}
+
+function getRuleNumber(rule, keys, fallback) {
+  for (const key of keys) {
+    if (rule?.[key] !== undefined && rule?.[key] !== null && rule?.[key] !== '') {
+      const n = Number(rule[key])
+      return Number.isNaN(n) ? fallback : n
+    }
+  }
+  return fallback
+}
+
+function getRuleBool(rule, keys, fallback) {
+  for (const key of keys) {
+    if (rule?.[key] !== undefined && rule?.[key] !== null) {
+      return rule[key] === true
+    }
+  }
+  return fallback
+}
+
+function positionImportance(profileRules, position) {
+  const rule = getPositionRule(profileRules, position)
+  return getRuleNumber(rule, ['importance', 'importance_score', 'hierarchy', 'fill_importance'], DEFAULT_POSITION_IMPORTANCE[position] || 1)
+}
+
+function positionFillRank(profileRules, position) {
+  const rule = getPositionRule(profileRules, position)
+  return getRuleNumber(rule, ['fill_rank', 'fill_order', 'rank'], 99)
+}
+
+function fitAllowedByRule(rule, fit) {
+  const primaryFit = fit === 'A' || fit === 'primary'
+  const secondaryFit = fit === 'B' || fit === 'secondary'
+  const developmentFit = fit === 'C' || fit === 'D'
+  const disallowed = fit === 'E' || fit === 'no'
+
+  if (primaryFit) {
+    return getRuleBool(rule, ['allow_primary'], true)
+  }
+
+  if (secondaryFit) {
+    return getRuleBool(rule, ['allow_secondary', 'allow_non_primary'], true)
+  }
+
+  if (developmentFit) {
+    return getRuleBool(rule, ['allow_development', 'allow_c_d'], true)
+  }
+
+  if (disallowed) {
+    return getRuleBool(rule, ['allow_disallowed', 'allow_not_allowed', 'allow_no'], false)
+  }
+
+  return true
 }
 
 export function pk(id) {
@@ -687,17 +745,21 @@ function scorePlayerForPosition({
   planPositionCounts,
   candidateIds,
   optimizerMode = 'standard',
+  optimizerProfile = null,
+  optimizerProfileRules = {},
 }) {
   const fit = fitTier(fitMap, playerId, position)
   const target = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
   const bucket = positionBucket(position)
-  const importance = POSITION_IMPORTANCE[position] || 1
+  const rule = getPositionRule(optimizerProfileRules, position)
+  const importance = positionImportance(optimizerProfileRules, position)
 
   const disallowed = fit === 'E' || fit === 'no'
   const primaryFit = fit === 'A' || fit === 'primary'
   const secondaryFit = fit === 'B' || fit === 'secondary'
+  const developmentFit = fit === 'C' || fit === 'D'
 
-  if (disallowed) {
+  if (!fitAllowedByRule(rule, fit)) {
     return { playerId, position, totalScore: -100000000 }
   }
 
@@ -707,27 +769,27 @@ function scorePlayerForPosition({
     fitScore =
       primaryFit ? 100000 * importance :
       secondaryFit ? 12000 * importance :
-      fit === 'C' ? -25000 * importance :
-      fit === 'D' ? -50000 * importance :
+      developmentFit ? -25000 * importance :
+      disallowed ? -75000 * importance :
       -100000000
   } else if (optimizerMode === 'friendly') {
     fitScore =
       primaryFit ? 7000 :
       secondaryFit ? 6000 :
-      fit === 'C' ? 4500 :
-      fit === 'D' ? 2000 :
+      developmentFit ? 3500 :
+      disallowed ? -50000 :
       -100000000
   } else {
     fitScore =
       primaryFit ? 12000 :
       secondaryFit ? 4500 :
-      fit === 'C' ? 1200 :
-      fit === 'D' ? -1500 :
+      developmentFit ? 800 :
+      disallowed ? -75000 :
       -100000000
   }
 
   const targetPool = (candidateIds || [])
-    .filter((id) => !isDisallowedFit(fitTier(fitMap, id, position)))
+    .filter((id) => fitAllowedByRule(rule, fitTier(fitMap, id, position)))
     .map((id) => ({
       id,
       target: Number(getPriorityTarget(priorityMap, id, position) || 0),
@@ -759,6 +821,9 @@ function scorePlayerForPosition({
     ([inningNumber, value]) => Number(inningNumber) < inning && value === position
   ).length
 
+  const minPositions = Number(optimizerProfile?.min_positions_per_player || 0)
+  const minPositionsMode = optimizerProfile?.min_positions_mode || 'nice'
+
   let rotationScore = prevValue === position ? 100 : 0
 
   if (optimizerMode === 'friendly') {
@@ -770,6 +835,10 @@ function scorePlayerForPosition({
 
   if (optimizerMode === 'standard') {
     rotationScore -= previousSamePositionCount * 900
+  }
+
+  if (optimizerMode === 'tournament' && minPositions > 1 && minPositionsMode !== 'off') {
+    rotationScore -= previousSamePositionCount * 250
   }
 
   return {
@@ -788,6 +857,8 @@ function assignPositionsForInning({
   fitMap,
   planPositionCounts,
   optimizerMode = 'standard',
+  optimizerProfile = null,
+  optimizerProfileRules = {},
 }) {
   const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
   const lockedInfo = getLockedAssignmentsForInning(lineup, inning, players)
@@ -807,24 +878,29 @@ function assignPositionsForInning({
   openPositions.forEach((position) => {
     candidatesByPosition[position] = candidateIds
       .map((id) =>
-        scorePlayerForPosition({
-  playerId: id,
-  position,
-  priorityMap,
-  fitMap,
-  lineup,
-  inning,
-  planPositionCounts,
-  candidateIds,
-  optimizerMode,
-})
+                scorePlayerForPosition({
+          playerId: id,
+          position,
+          priorityMap,
+          fitMap,
+          lineup,
+          inning,
+          planPositionCounts,
+          candidateIds,
+          optimizerMode,
+          optimizerProfile,
+          optimizerProfileRules,
+        })
       )
       .sort((a, b) => b.totalScore - a.totalScore)
   })
 
     const orderedPositions = [...openPositions].sort((a, b) => {
     if (optimizerMode === 'tournament') {
-      return (POSITION_IMPORTANCE[b] || 0) - (POSITION_IMPORTANCE[a] || 0)
+            return (
+        positionFillRank(optimizerProfileRules, a) - positionFillRank(optimizerProfileRules, b) ||
+        positionImportance(optimizerProfileRules, b) - positionImportance(optimizerProfileRules, a)
+      )
     }
 
     return candidatesByPosition[a].length - candidatesByPosition[b].length
@@ -992,6 +1068,8 @@ export function buildOptimizedLineup({
   planSitOutTargets = {},
   batchCurrentOuts = {},
   optimizerMode = 'standard',
+  optimizerProfile = null,
+  optimizerProfileRules = {},
 }) {
   const safeAvailable = (availablePlayerIds || []).map(pk)
 
@@ -1072,6 +1150,8 @@ const planPositionCounts = initializePlanPositionCounts(players)
   fitMap,
   planPositionCounts,
   optimizerMode,
+  optimizerProfile,
+  optimizerProfileRules,
 })
 
     Object.entries(assigned).forEach(([playerId, position]) => {
