@@ -2769,11 +2769,14 @@ function toggleSavedAllBattingLock(gameId) {
 
         {page === 'admin' && (
           <AdminPage
-            appOptions={appOptions}
-            loadAppOptions={loadAppOptions}
-            addAppOption={addAppOption}
-            updateAppOption={updateAppOption}
-          />
+  appOptions={appOptions}
+  loadAppOptions={loadAppOptions}
+  addAppOption={addAppOption}
+  updateAppOption={updateAppOption}
+  optimizerProfiles={optimizerProfiles}
+  optimizerProfileRules={optimizerProfileRules}
+  reloadAllData={loadAll}
+/>
         )}
       </main>
     </div>
