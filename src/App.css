@@ -1527,3 +1527,180 @@
     gap: 8px;
   }
 }
+
+/* =========================
+   FINAL MOBILE GRID FIXES
+   ========================= */
+
+@media (max-width: 900px) {
+  /* Grid scroll container */
+  .table-scroll {
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+
+  /* Top row always sticks */
+  .lineup-print-table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    background: #dff0ef !important;
+    z-index: 40 !important;
+  }
+
+  /* Only # and Player are frozen on the left */
+  .lineup-print-table th:nth-child(1),
+  .lineup-print-table td:nth-child(1) {
+    position: sticky !important;
+    left: 0 !important;
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+    background: #fff !important;
+    z-index: 35 !important;
+  }
+
+  .lineup-print-table th:nth-child(2),
+  .lineup-print-table td:nth-child(2) {
+    position: sticky !important;
+    left: 46px !important;
+    width: 118px !important;
+    min-width: 118px !important;
+    max-width: 118px !important;
+    background: #fff !important;
+    z-index: 35 !important;
+    text-align: left !important;
+  }
+
+  .lineup-print-table thead th:nth-child(1),
+  .lineup-print-table thead th:nth-child(2) {
+    background: #dff0ef !important;
+    z-index: 70 !important;
+  }
+
+  /* Batting and row-lock columns should NOT float left */
+  .lineup-print-table th:nth-child(3),
+  .lineup-print-table td:nth-child(3),
+  .lineup-print-table th:nth-child(4),
+  .lineup-print-table td:nth-child(4) {
+    left: auto !important;
+    position: static !important;
+    z-index: auto !important;
+  }
+
+  /* But their headers still stay in the top sticky row */
+  .lineup-print-table thead th:nth-child(3),
+  .lineup-print-table thead th:nth-child(4) {
+    position: sticky !important;
+    top: 0 !important;
+    background: #dff0ef !important;
+    z-index: 45 !important;
+  }
+
+  /* Compact inning cells: position + checkbox on one row */
+  .lineup-print-table td:nth-child(n + 5) {
+    white-space: nowrap !important;
+  }
+
+  .lineup-print-table td:nth-child(n + 5) select {
+    display: inline-block !important;
+    width: 92px !important;
+    min-width: 92px !important;
+    max-width: 92px !important;
+    margin-right: 6px !important;
+    vertical-align: middle !important;
+  }
+
+  .lineup-print-table td:nth-child(n + 5) label {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    vertical-align: middle !important;
+    font-size: 0 !important;
+  }
+
+  .lineup-print-table td:nth-child(n + 5) label input[type='checkbox'] {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    margin: 0 !important;
+  }
+}
+
+
+/* =========================
+   FINAL PRIORITY TRACKING TABLE FIXES
+   ========================= */
+
+@media (max-width: 900px) {
+  .tracking-scroll {
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+
+  .priority-combined-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    table-layout: fixed !important;
+    min-width: 1320px !important;
+  }
+
+  .priority-combined-table thead th {
+    background: #dff0ef !important;
+    position: sticky !important;
+    z-index: 50 !important;
+  }
+
+  .priority-combined-table thead tr:first-child th {
+    top: 0 !important;
+  }
+
+  .priority-combined-table thead tr:nth-child(2) th {
+    top: 42px !important;
+    border-bottom: 3px solid #78909c !important;
+  }
+
+  /* Freeze Player column */
+  .priority-combined-table th:nth-child(1),
+  .priority-combined-table td:nth-child(1) {
+    position: sticky !important;
+    left: 0 !important;
+    width: 118px !important;
+    min-width: 118px !important;
+    max-width: 118px !important;
+    background: #fff !important;
+    z-index: 45 !important;
+    text-align: left !important;
+  }
+
+  /* Freeze Field column */
+  .priority-combined-table th:nth-child(2),
+  .priority-combined-table td:nth-child(2) {
+    position: sticky !important;
+    left: 118px !important;
+    width: 64px !important;
+    min-width: 64px !important;
+    max-width: 64px !important;
+    background: #fff !important;
+    z-index: 45 !important;
+    text-align: center !important;
+  }
+
+  .priority-combined-table thead th:nth-child(1),
+  .priority-combined-table thead th:nth-child(2) {
+    background: #dff0ef !important;
+    z-index: 90 !important;
+  }
+
+  .priority-combined-table .priority-pos-heading {
+    background: #dff0ef !important;
+    border-bottom: 1px solid #78909c !important;
+  }
+
+  .priority-combined-table .priority-wrap-header {
+    background: #dff0ef !important;
+  }
+}
