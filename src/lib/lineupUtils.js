@@ -439,13 +439,35 @@ function violatesSitSpacing(lineup, playerId, inning, innings) {
   return prev < 2 || next < 2
 }
 
+export function clearUnlockedLineupCells(lineup, players) {
+  const next = clone(lineup)
+
+  ;(players || []).forEach((player) => {
+    const id = pk(player.id)
+
+    for (let inning = 1; inning <= Number(next.innings || 0); inning += 1) {
+      if (lockedValue(next, id, inning)) continue
+
+      const current = next?.cells?.[id]?.[inning] || ''
+      if (current !== 'Injury') {
+        next.cells[id][inning] = ''
+      }
+    }
+  })
+
+  return next
+}
+
 function clearUnlockedCells(lineup, players) {
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
+
     for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
-      if (!lockedValue(lineup, id, inning)) {
-        const current = lineup?.cells?.[id]?.[inning] || ''
-        if (current !== 'Injury') lineup.cells[id][inning] = ''
+      if (lockedValue(lineup, id, inning)) continue
+
+      const current = lineup?.cells?.[id]?.[inning] || ''
+      if (current !== 'Injury') {
+        lineup.cells[id][inning] = ''
       }
     }
   })
