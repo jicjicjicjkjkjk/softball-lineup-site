@@ -683,31 +683,37 @@ function scorePlayerForPosition({
   const disallowed = fit === 'E' || fit === 'no'
   const primaryFit = fit === 'A' || fit === 'primary'
   const secondaryFit = fit === 'B' || fit === 'secondary'
-  const cFit = fit === 'C'
-  const dFit = fit === 'D'
+
+  if (disallowed) {
+    return {
+      playerId,
+      position,
+      totalScore: -1000000,
+    }
+  }
 
   let fitScore =
     primaryFit ? 10000 :
     secondaryFit ? 3000 :
-    cFit ? 500 :
-    dFit ? -500 :
-    -1000000
+    fit === 'C' ? 500 :
+    fit === 'D' ? -500 :
+    -10000
 
   if (optimizerMode === 'tournament') {
     fitScore =
-      primaryFit ? 18000 :
-      secondaryFit ? 1500 :
-      cFit ? -4000 :
-      dFit ? -9000 :
+      primaryFit ? 100000 :
+      secondaryFit ? 10000 :
+      fit === 'C' ? -10000 :
+      fit === 'D' ? -25000 :
       -1000000
   }
 
   if (optimizerMode === 'friendly') {
     fitScore =
-      primaryFit ? 9000 :
-      secondaryFit ? 4500 :
-      cFit ? 1800 :
-      dFit ? -1500 :
+      primaryFit ? 8000 :
+      secondaryFit ? 5000 :
+      fit === 'C' ? 2500 :
+      fit === 'D' ? 500 :
       -1000000
   }
 
@@ -726,48 +732,31 @@ function scorePlayerForPosition({
 
   let allocationScore = 0
 
-  if (targetTotal > 0 && target > 0) {
-    let effectiveTarget = target
-    let effectiveTotal = targetTotal
+  if (optimizerMode !== 'tournament') {
+    if (targetTotal > 0 && target > 0) {
+      const expectedAfterThisAssignment =
+        (currentPositionTotal + 1) * (target / targetTotal)
 
-    if (optimizerMode === 'friendly') {
-      effectiveTarget = Math.max(1, 100 - target)
-      effectiveTotal = targetPool.reduce(
-        (sum, row) => sum + Math.max(1, 100 - row.target),
-        0
-      )
+      const projectedPlayerCount = currentPlayerCount + 1
+      const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
+
+      allocationScore = 5000 - distanceFromTarget * 2500
+    } else if (targetTotal > 0 && target <= 0) {
+      allocationScore = -5000
     }
+  }
 
-    const expectedAfterThisAssignment =
-      (currentPositionTotal + 1) * (effectiveTarget / effectiveTotal)
-
-    const projectedPlayerCount = currentPlayerCount + 1
-    const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
-
-    allocationScore = 5000 - distanceFromTarget * 2500
-
-    if (optimizerMode === 'tournament') {
-      allocationScore += target * 60
-    }
-
-    if (optimizerMode === 'friendly') {
-      allocationScore += Math.max(0, 100 - target) * 35
-    }
-  } else if (targetTotal > 0 && target <= 0) {
-    allocationScore = optimizerMode === 'friendly' ? -1500 : -5000
+  if (optimizerMode === 'tournament' && target > 0) {
+    allocationScore = target * 100
   }
 
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
-  const continuityBonus = prevValue === position ? 100 : 0
+  const continuityBonus = prevValue === position && optimizerMode !== 'tournament' ? 100 : 0
 
   return {
     playerId,
     position,
-    totalScore:
-      fitScore +
-      allocationScore +
-      continuityBonus -
-      (disallowed ? 1000000 : 0),
+    totalScore: fitScore + allocationScore + continuityBonus,
   }
 }
 
