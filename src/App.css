@@ -2026,40 +2026,56 @@
   }
 }
 
+/* Priority table: freeze first 2 columns + first 2 header rows cleanly */
+.priority-combined-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
 
-/* Fix priority table sticky two-row header layering */
-.tracking-table.priority-combined-table thead tr:first-child th {
+/* Top header row: P/C/1B/etc */
+.priority-combined-table thead tr:first-child th {
+  position: sticky !important;
   top: 0 !important;
   height: 44px !important;
-  z-index: 140 !important;
+  z-index: 60 !important;
   background: #dff0ef !important;
 }
 
-.tracking-table.priority-combined-table thead tr:nth-child(2) th {
+/* Second header row: TGT / Act */
+.priority-combined-table thead tr:nth-child(2) th {
+  position: sticky !important;
   top: 44px !important;
   height: 44px !important;
-  z-index: 135 !important;
+  z-index: 55 !important;
   background: #dff0ef !important;
 }
 
-.tracking-table.priority-combined-table thead th[rowspan='2'] {
+/* First two frozen columns */
+.priority-combined-table .sticky-col-1 {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 70 !important;
+  background: #fff !important;
+}
+
+.priority-combined-table .sticky-col-2 {
+  position: sticky !important;
+  left: 110px !important;
+  z-index: 70 !important;
+  background: #fff !important;
+}
+
+/* Player + Field header cells cover both rows and must sit above everything */
+.priority-combined-table thead .sticky-col-1,
+.priority-combined-table thead .sticky-col-2 {
   top: 0 !important;
   height: 88px !important;
-  z-index: 170 !important;
+  z-index: 120 !important;
   background: #dff0ef !important;
 }
 
-.tracking-table.priority-combined-table thead .sticky-col-1 {
-  left: 0 !important;
-  z-index: 190 !important;
-}
-
-.tracking-table.priority-combined-table thead .sticky-col-2 {
-  left: 110px !important;
-  z-index: 185 !important;
-}
-
-/* Stop second header row from visually sliding over Player/Field */
-.tracking-table.priority-combined-table thead tr:nth-child(2) th:first-child {
-  border-left: 0 !important;
+/* Body frozen columns stay white */
+.priority-combined-table tbody .sticky-col-1,
+.priority-combined-table tbody .sticky-col-2 {
+  background: #fff !important;
 }
