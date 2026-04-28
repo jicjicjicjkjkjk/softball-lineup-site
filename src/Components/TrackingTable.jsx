@@ -201,11 +201,13 @@ export default function TrackingTable({
               </th>
             )}
 
-            {(extraRunningTotals || []).map((item) => (
+                        {(extraRunningTotals || []).map((item) => (
               <th key={item.key} onClick={() => setSortConfig(nextSort(sortConfig, item.key))}>
                 {item.label}
               </th>
             ))}
+
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'outPct'))}>% Out</th>
           </tr>
         </thead>
 
@@ -260,11 +262,13 @@ export default function TrackingTable({
                 <td>{displayRunningTotal(row.sitOutRunningTotal)}</td>
               )}
 
-              {(extraRunningTotals || []).map((item) => (
+                            {(extraRunningTotals || []).map((item) => (
                 <td key={`${row.playerId}-${item.key}`}>
                   {displayRunningTotal(row.extraRunningTotals?.[item.key])}
                 </td>
               ))}
+
+              <td>{row.outPct === '' ? '' : `${Math.round(row.outPct)}%`}</td>
             </tr>
           ))}
         </tbody>
