@@ -1257,3 +1257,89 @@
     max-width: 110px !important;
   }
 }
+
+
+/* FINAL FIX: mobile lineup grid layout */
+@media (max-width: 900px) {
+  .lineup-print-table {
+    min-width: 980px !important;
+    table-layout: fixed !important;
+  }
+
+  .lineup-print-table th,
+  .lineup-print-table td {
+    padding: 4px 5px !important;
+    font-size: 12px !important;
+  }
+
+  /* Freeze only # + Player */
+  .lineup-print-table th:nth-child(1),
+  .lineup-print-table td:nth-child(1) {
+    position: sticky !important;
+    left: 0 !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    z-index: 60 !important;
+    background: #fff !important;
+  }
+
+  .lineup-print-table th:nth-child(2),
+  .lineup-print-table td:nth-child(2) {
+    position: sticky !important;
+    left: 42px !important;
+    width: 92px !important;
+    min-width: 92px !important;
+    max-width: 92px !important;
+    z-index: 60 !important;
+    background: #fff !important;
+    text-align: left !important;
+  }
+
+  .lineup-print-table thead th:nth-child(1),
+  .lineup-print-table thead th:nth-child(2) {
+    z-index: 90 !important;
+    background: #dff0ef !important;
+  }
+
+  /* Batting + Lock are NOT sticky */
+  .lineup-print-table th:nth-child(3),
+  .lineup-print-table td:nth-child(3),
+  .lineup-print-table th:nth-child(4),
+  .lineup-print-table td:nth-child(4) {
+    position: static !important;
+    left: auto !important;
+    z-index: 1 !important;
+    background: #fff !important;
+  }
+
+  .lineup-print-table th:nth-child(3),
+  .lineup-print-table td:nth-child(3) {
+    width: 104px !important;
+    min-width: 104px !important;
+    max-width: 104px !important;
+  }
+
+  .lineup-print-table th:nth-child(4),
+  .lineup-print-table td:nth-child(4) {
+    width: 74px !important;
+    min-width: 74px !important;
+    max-width: 74px !important;
+  }
+
+  .lineup-print-table select {
+    width: 76px !important;
+    min-width: 76px !important;
+    max-width: 76px !important;
+  }
+
+  .lineup-print-table input[type='number'] {
+    width: 64px !important;
+    min-width: 64px !important;
+    max-width: 64px !important;
+  }
+
+  .lineup-print-table .inning-header {
+    min-width: 90px !important;
+  }
+}
