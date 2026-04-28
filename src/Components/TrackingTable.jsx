@@ -43,21 +43,19 @@ function getFitColor(fit) {
     return '#fee2e2'
   }
 
-    return '#fee2e2'
+  return ''
 }
 
 function positionFit(fitByPlayer, playerId, position) {
   if (!fitByPlayer) return ''
 
-  if (position === 'LF' || position === 'RF') {
-    return fitByPlayer?.[pk(playerId)]?.[position] || fitByPlayer?.[pk(playerId)]?.OF || ''
+  const id = pk(playerId)
+
+  if (['LF', 'CF', 'RF'].includes(position)) {
+    return fitByPlayer?.[id]?.[position] || fitByPlayer?.[id]?.OF || ''
   }
 
-  if (position === 'CF') {
-    return fitByPlayer?.[pk(playerId)]?.CF || fitByPlayer?.[pk(playerId)]?.OF || ''
-  }
-
-  return fitByPlayer?.[pk(playerId)]?.[position] || ''
+  return fitByPlayer?.[id]?.[position] || ''
 }
 
 export default function TrackingTable({
@@ -95,7 +93,6 @@ export default function TrackingTable({
     (players || []).map((player) => {
       const id = pk(player.id)
       const t = totals?.[id] || {}
-
       const targetOuts = sitOutTargets?.[id]
 
       const gap =
@@ -116,17 +113,17 @@ export default function TrackingTable({
             ? safeNumber(sitOutRunningByPlayer[id])
             : safeNumber(t.sitOutRunningTotal),
         ...Object.fromEntries(
-  (extraRunningTotals || []).map((item) => [
-    item.key,
-    safeNumber(item.totals?.[id]?.sitOutRunningTotal),
-  ])
-),
-extraRunningTotals: Object.fromEntries(
-  (extraRunningTotals || []).map((item) => [
-    item.key,
-    safeNumber(item.totals?.[id]?.sitOutRunningTotal),
-  ])
-),
+          (extraRunningTotals || []).map((item) => [
+            item.key,
+            safeNumber(item.totals?.[id]?.sitOutRunningTotal),
+          ])
+        ),
+        extraRunningTotals: Object.fromEntries(
+          (extraRunningTotals || []).map((item) => [
+            item.key,
+            safeNumber(item.totals?.[id]?.sitOutRunningTotal),
+          ])
+        ),
         P: safeNumber(t.P),
         C: safeNumber(t.C),
         '1B': safeNumber(t['1B']),
@@ -191,20 +188,17 @@ extraRunningTotals: Object.fromEntries(
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'IF'))}>IF</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'OF'))}>OF</th>
 
-                        {!hideSitOutRunningTotal && (
+            {!hideSitOutRunningTotal && (
               <th onClick={() => setSortConfig(nextSort(sortConfig, 'sitOutRunningTotal'))}>
                 {runningTotalLabel}
               </th>
             )}
 
             {(extraRunningTotals || []).map((item) => (
-  <th
-    key={item.key}
-    onClick={() => setSortConfig(nextSort(sortConfig, item.key))}
-  >
-    {item.label}
-  </th>
-))}
+              <th key={item.key} onClick={() => setSortConfig(nextSort(sortConfig, item.key))}>
+                {item.label}
+              </th>
+            ))}
           </tr>
         </thead>
 
@@ -254,7 +248,7 @@ extraRunningTotals: Object.fromEntries(
               <td>{displayNumber(row.IF)}</td>
               <td>{displayNumber(row.OF)}</td>
 
-                            {!hideSitOutRunningTotal && (
+              {!hideSitOutRunningTotal && (
                 <td>{displayRunningTotal(row.sitOutRunningTotal)}</td>
               )}
 
