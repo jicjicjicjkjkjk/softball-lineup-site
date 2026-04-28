@@ -94,6 +94,8 @@ export default function LineupSetterPage({
   setOptimizerExistingGameId,
   optimizerPlanSitOutTargets = {},
   setOptimizerPlanSitOutTargets,
+  optimizerMode = 'standard',
+  setOptimizerMode,
   games,
   addExistingGameToBatch,
   optimizerNewDate,
@@ -425,7 +427,29 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
       <div className="card">
         <h2>Lineup Setter</h2>
 
-        <div className="lineup-setter-top-grid">
+<div className="optimizer-mode-row">
+  <div>
+    <label>Optimizer Mode</label>
+    <select
+      value={optimizerMode}
+      onChange={(e) => {
+        if (typeof setOptimizerMode === 'function') {
+          setOptimizerMode(e.target.value)
+        }
+      }}
+    >
+      <option value="standard">Standard — current logic</option>
+      <option value="tournament">Tournament — strongest primary lineup</option>
+      <option value="friendly">Friendly — development weighted</option>
+    </select>
+  </div>
+
+  <div className="small-note">
+    Standard keeps today’s optimizer behavior. Tournament and Friendly are controlled modes for future tuning.
+  </div>
+</div>
+
+<div className="lineup-setter-top-grid">
           <div>
             <h3 style={{ marginTop: 0 }}>Add Existing Game to Plan</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12 }}>
