@@ -1863,3 +1863,21 @@
     max-width: 64px !important;
   }
 }
+
+
+.batting-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+}
+
+.batting-order-input {
+  width: 56px !important;
+  min-width: 56px !important;
+}
+
+.batting-cell .grid-cell-lock-only {
+  margin: 0;
+  min-width: 24px;
+}
