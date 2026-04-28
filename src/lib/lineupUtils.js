@@ -652,19 +652,40 @@ function scorePlayerForPosition({
   inning,
   planPositionCounts,
   candidateIds,
+  optimizerMode = 'standard',
 }) {
   const fit = fitTier(fitMap, playerId, position)
   const target = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
   const bucket = positionBucket(position)
 
   const disallowed = fit === 'E' || fit === 'no'
+  const primaryFit = fit === 'A' || fit === 'primary'
+  const secondaryFit = fit === 'B' || fit === 'secondary'
+  const developmentFit = fit === 'C' || fit === 'D'
 
-  const fitScore =
-    fit === 'A' || fit === 'primary' ? 10000 :
-    fit === 'B' || fit === 'secondary' ? 3000 :
+    let fitScore =
+    primaryFit ? 10000 :
+    secondaryFit ? 3000 :
     fit === 'C' ? 500 :
     fit === 'D' ? -500 :
     -1000000
+
+  if (optimizerMode === 'tournament') {
+    fitScore =
+      primaryFit ? 15000 :
+      secondaryFit ? 1000 :
+      developmentFit ? -5000 :
+      -1000000
+  }
+
+  if (optimizerMode === 'friendly') {
+    fitScore =
+      primaryFit ? 9000 :
+      secondaryFit ? 4500 :
+      fit === 'C' ? 1500 :
+      fit === 'D' ? -1000 :
+      -1000000
+  }
 
   const targetPool = (candidateIds || [])
     .filter((id) => !isDisallowedFit(fitTier(fitMap, id, position)))
@@ -681,9 +702,19 @@ function scorePlayerForPosition({
 
   let allocationScore = 0
 
-  if (targetTotal > 0 && target > 0) {
+    if (targetTotal > 0 && target > 0) {
+    const effectiveTarget =
+      optimizerMode === 'friendly'
+        ? Math.max(1, 100 - target)
+        : target
+
+    const effectiveTotal =
+      optimizerMode === 'friendly'
+        ? targetPool.reduce((sum, row) => sum + Math.max(1, 100 - row.target), 0)
+        : targetTotal
+
     const expectedAfterThisAssignment =
-      (currentPositionTotal + 1) * (target / targetTotal)
+      (currentPositionTotal + 1) * (effectiveTarget / effectiveTotal)
 
     const projectedPlayerCount = currentPlayerCount + 1
     const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
@@ -715,6 +746,7 @@ function assignPositionsForInning({
   priorityMap,
   fitMap,
   planPositionCounts,
+  optimizerMode = 'standard',
 }) {
   const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
   const lockedInfo = getLockedAssignmentsForInning(lineup, inning, players)
@@ -743,6 +775,7 @@ function assignPositionsForInning({
   inning,
   planPositionCounts,
   candidateIds,
+  optimizerMode,
 })
       )
       .sort((a, b) => b.totalScore - a.totalScore)
@@ -913,6 +946,7 @@ export function buildOptimizedLineup({
   fitMap,
   planSitOutTargets = {},
   batchCurrentOuts = {},
+  optimizerMode = 'standard',
 }) {
   const safeAvailable = (availablePlayerIds || []).map(pk)
 
@@ -992,6 +1026,7 @@ const planPositionCounts = initializePlanPositionCounts(players)
   priorityMap,
   fitMap,
   planPositionCounts,
+  optimizerMode,
 })
 
     Object.entries(assigned).forEach(([playerId, position]) => {
