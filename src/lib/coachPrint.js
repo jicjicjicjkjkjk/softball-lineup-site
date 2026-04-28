@@ -15,6 +15,12 @@ export function printCoachSummary({
 }) {
   const n = (value) => Math.round(Number(value || 0))
 
+  const displayPct = (value) => {
+    if (value === '' || value === null || value === undefined) return ''
+    const num = Number(value)
+    return Number.isNaN(num) ? '' : Math.round(num)
+  }
+
   const htmlEscape = (value) =>
     String(value ?? '')
       .replaceAll('&', '&amp;')
@@ -27,7 +33,7 @@ export function printCoachSummary({
     const num = Number(numerator || 0)
     const den = Number(denominator || 0)
     if (!num || !den) return ''
-    return `${Number(((num / den) * 100).toFixed(1))}%`
+    return Math.round((num / den) * 100)
   }
 
   const priorityPositions = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
@@ -158,25 +164,42 @@ export function printCoachSummary({
       const target = priorityTargetByPlayer[id] || {}
       const fieldTotal = Number(totals.fieldTotal || 0)
 
-      return priorityPositions
-        .map((pos) => {
-          const targetKey = `targ${pos}`
-          const totalValue = Number(totals[pos] || 0)
+      return `
+        <tr>
+          <td class="name">${htmlEscape(player.name)}</td>
+          <td>${n(fieldTotal)}</td>
 
-          return `
-            <tr>
-              <td class="name">${htmlEscape(player.name)}</td>
-              <td>${pos}</td>
-              <td>${htmlEscape(target[targetKey] || '')}</td>
-              <td>${pct(totalValue, fieldTotal)}</td>
-              <td>${pct(totalValue, positionTotals[pos])}</td>
-              <td>${n(totalValue)}</td>
-              <td>${n(fieldTotal)}</td>
-            </tr>
-          `
-        })
-        .join('')
+          ${priorityPositions
+            .map((pos) => {
+              const targetKey = `targ${pos}`
+              const totalValue = Number(totals[pos] || 0)
+              const playerActual = pct(totalValue, fieldTotal)
+              const positionActual = pct(totalValue, positionTotals[pos])
+
+              return `
+                <td>${displayPct(target[targetKey])}</td>
+                <td>${displayPct(playerActual)}</td>
+                <td>${displayPct(positionActual)}</td>
+              `
+            })
+            .join('')}
+        </tr>
+      `
     })
+    .join('')
+
+  const priorityHeaderGroups = priorityPositions
+    .map((pos) => `<th colspan="3">${pos}</th>`)
+    .join('')
+
+  const prioritySubHeaders = priorityPositions
+    .map(
+      () => `
+        <th>TGT %</th>
+        <th>Act % Ply</th>
+        <th>Act % Pos</th>
+      `
+    )
     .join('')
 
   const html = `
@@ -195,11 +218,18 @@ export function printCoachSummary({
           td.primary { background: #dcfce7; }
           td.secondary { background: #fef9c3; }
           td.not-allowed { background: #fee2e2; }
-          .name { text-align: left; width: 110px; }
+          .name { text-align: left; width: 95px; }
           .plan-page, .priority-page { page-break-before: always; }
           .plan-table th, .plan-table td { font-size: 9.5px; padding: 4px 3px; }
-          .priority-print-table th, .priority-print-table td { font-size: 9px; padding: 4px 3px; }
-          .priority-print-table .name { width: 95px; }
+          .priority-print-table th, .priority-print-table td {
+            font-size: 7.5px;
+            padding: 3px 2px;
+            line-height: 1.05;
+          }
+          .priority-print-table .name { width: 82px; }
+          .priority-print-table th {
+            white-space: normal;
+          }
         </style>
       </head>
       <body>
@@ -224,13 +254,12 @@ export function printCoachSummary({
           <table class="priority-print-table">
             <thead>
               <tr>
-                <th>Player</th>
-                <th>Pos</th>
-                <th>Target %</th>
-                <th>Player Actual %</th>
-                <th>Share of Position %</th>
-                <th>Pos Inn</th>
-                <th>Fld Inn</th>
+                <th rowspan="2">Player</th>
+                <th rowspan="2">Field</th>
+                ${priorityHeaderGroups}
+              </tr>
+              <tr>
+                ${prioritySubHeaders}
               </tr>
             </thead>
             <tbody>${combinedPriorityRows}</tbody>
