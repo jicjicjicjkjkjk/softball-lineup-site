@@ -2,7 +2,39 @@
 @import './styles/tables.css';
 @import './styles/tracking.css';
 
-/* lineup setter new-game layout */
+/* =========================
+   APP LAYOUT SAFETY
+   ========================= */
+
+.card,
+.main-content {
+  min-width: 0;
+}
+
+.table-scroll,
+.tracking-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+.table-scroll > table,
+.table-scroll .lineup-print-table {
+  min-width: max-content;
+}
+
+/* =========================
+   LINEUP SETTER LAYOUT
+   ========================= */
+
+.lineup-setter-top-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
 
 .lineup-setter-new-game {
   display: grid;
@@ -27,9 +59,69 @@
   white-space: nowrap;
 }
 
-/* lineup grid */
+/* =========================
+   GAME DETAIL
+   ========================= */
+
+.game-detail-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.game-detail-fields > div {
+  min-width: 0;
+}
+
+.game-detail-fields input,
+.game-detail-fields select {
+  width: 100%;
+  min-width: 0;
+}
+
+.game-detail-availability {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(90px, 1fr));
+  gap: 10px 24px;
+  align-items: center;
+}
+
+.game-detail-availability label,
+.game-detail-availability-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.game-detail-availability input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+}
+
+.game-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.game-detail-actions button {
+  padding: 8px 14px;
+  font-size: 14px;
+  line-height: 1.1;
+  min-height: 36px;
+  border-radius: 10px;
+}
+
+/* =========================
+   LINEUP GRID
+   ========================= */
 
 .lineup-print-table {
+  width: max-content;
+  min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -37,8 +129,14 @@
 .lineup-print-table thead th {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 20;
   background: #e6f4f4;
+}
+
+.lineup-print-table th,
+.lineup-print-table td {
+  padding: 4px 5px;
+  font-size: 12px;
 }
 
 .lineup-print-table select {
@@ -58,10 +156,55 @@
   font-size: 12px;
 }
 
-.lineup-print-table th,
-.lineup-print-table td {
-  padding: 4px 5px;
-  font-size: 12px;
+/* sticky #, player, batting columns on desktop/tablet */
+.lineup-print-table th:nth-child(1),
+.lineup-print-table td:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  width: 54px;
+  min-width: 54px;
+  max-width: 54px;
+  background: #fff;
+}
+
+.lineup-print-table th:nth-child(2),
+.lineup-print-table td:nth-child(2) {
+  position: sticky;
+  left: 54px;
+  z-index: 6;
+  width: 76px;
+  min-width: 76px;
+  max-width: 76px;
+  background: #fff;
+}
+
+.lineup-print-table th:nth-child(3),
+.lineup-print-table td:nth-child(3) {
+  position: sticky;
+  left: 130px;
+  z-index: 6;
+  width: 92px;
+  min-width: 92px;
+  max-width: 92px;
+  background: #fff;
+}
+
+.lineup-print-table thead th:nth-child(1),
+.lineup-print-table thead th:nth-child(2),
+.lineup-print-table thead th:nth-child(3) {
+  z-index: 30;
+  background: #e6f4f4;
+}
+
+.lineup-print-table td:nth-child(3) {
+  text-align: left;
+}
+
+.batting-cell {
+  position: relative;
+  z-index: 1;
+  background: #fff;
 }
 
 .inning-header {
@@ -70,6 +213,11 @@
   align-items: center;
   gap: 2px;
   min-width: 56px;
+}
+
+.inning-number {
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .inning-remove {
@@ -98,17 +246,14 @@
   margin: 0;
 }
 
-.inning-number {
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .row-locked {
   opacity: 0.7;
   background: #f8fafc;
 }
 
-/* mini diamond */
+/* =========================
+   MINI DIAMOND
+   ========================= */
 
 .mini-diamond-wrap {
   position: relative;
@@ -154,7 +299,71 @@
   text-align: center;
 }
 
-/* responsive */
+/* =========================
+   PRIORITY COMBINED TABLE
+   Tracking + Lineup Setter
+   ========================= */
+
+.priority-combined-table {
+  table-layout: fixed !important;
+  min-width: 1320px !important;
+}
+
+.priority-combined-table th,
+.priority-combined-table td {
+  white-space: normal !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.priority-combined-table .col-player {
+  width: 110px !important;
+  min-width: 110px !important;
+  max-width: 110px !important;
+  text-align: left !important;
+}
+
+.priority-combined-table .sticky-col-2 {
+  left: 110px !important;
+}
+
+.priority-combined-table .col-small {
+  width: 68px !important;
+  min-width: 68px !important;
+  max-width: 68px !important;
+}
+
+.priority-combined-table .priority-wrap-header {
+  width: 68px !important;
+  min-width: 68px !important;
+  max-width: 68px !important;
+  font-size: 10px !important;
+  line-height: 1.05 !important;
+  white-space: normal !important;
+  padding: 4px 2px !important;
+  overflow-wrap: anywhere !important;
+}
+
+.priority-combined-table .priority-pos-heading {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  border-left: 2px solid #78909c !important;
+  border-right: 2px solid #78909c !important;
+}
+
+.priority-combined-table .group-start {
+  border-left: 2px solid #78909c !important;
+}
+
+.priority-combined-table .group-end {
+  border-right: 2px solid #78909c !important;
+}
+
+/* =========================
+   MOBILE/TABLET GENERAL
+   ========================= */
 
 @media (max-width: 900px) {
   .app-shell {
@@ -167,11 +376,26 @@
   }
 
   .main-content {
-    padding: 12px;
+    padding: 8px;
+  }
+
+  .stack {
+    gap: 10px;
   }
 
   .card {
-    padding: 14px;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .card h2 {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .card h3 {
+    font-size: 15px;
+    margin-bottom: 6px;
   }
 
   .four-col,
@@ -180,114 +404,525 @@
     grid-template-columns: 1fr;
   }
 
-  table {
-    min-width: 720px;
-    font-size: 14px;
-  }
-
   .checkbox-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .row-between,
+  .wrap-row,
+  .button-row {
+    gap: 6px;
+  }
+
+  .main-content .card button {
+    min-height: 30px;
+    padding: 5px 9px;
+    font-size: 12px;
+    border-radius: 9px;
+    white-space: nowrap;
+  }
+
+  .main-content .card input,
+  .main-content .card select,
+  .main-content .card textarea {
+    min-height: 30px;
+    padding: 5px 8px;
+    font-size: 12px;
+    border-radius: 9px;
+  }
+
+  .main-content .card label {
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
+
+  .small-note {
+    font-size: 11px;
+  }
+
+  .table-scroll,
+  .tracking-scroll {
+    max-height: 72vh;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding-bottom: 4px;
+    background: #fff;
+  }
+
+  .tracking-table,
+  .lineup-print-table,
+  .lineup-setter-current-plan-table,
+  .positioning-priority-table {
+    min-width: max-content !important;
+  }
+
+  .tracking-table thead th,
+  .lineup-print-table thead th,
+  .lineup-setter-current-plan-table thead th,
+  .positioning-priority-table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+    background: #dff0ef !important;
+  }
+
+  .tracking-table.priority-groups .col-player {
+    width: 110px;
+    min-width: 110px;
+    max-width: 110px;
+  }
+
+  .tracking-table.priority-groups .sticky-col-2 {
+    left: 110px;
+  }
+
+  .tracking-table.priority-groups .col-small {
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+  }
+
+  .tracking-table.priority-groups input,
+  .tracking-table.priority-groups select {
+    min-width: 48px;
+    width: 48px;
+    text-align: center;
+  }
 }
 
-@media (max-width: 640px) {
+/* =========================
+   MOBILE LINEUP GRID MODE
+   ========================= */
+
+@media (max-width: 900px) {
+  .lineup-print-table {
+    table-layout: fixed !important;
+  }
+
+  .lineup-print-table th,
+  .lineup-print-table td {
+    font-size: 12px !important;
+    padding: 4px !important;
+  }
+
+  /* Freeze only # and Player on mobile, let Batting scroll */
+  .lineup-print-table th:nth-child(1),
+  .lineup-print-table td:nth-child(1) {
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    left: 0 !important;
+  }
+
+  .lineup-print-table th:nth-child(2),
+  .lineup-print-table td:nth-child(2) {
+    width: 92px !important;
+    min-width: 92px !important;
+    max-width: 92px !important;
+    left: 42px !important;
+    text-align: left !important;
+  }
+
+  .lineup-print-table th:nth-child(3),
+  .lineup-print-table td:nth-child(3) {
+    position: static !important;
+    width: 82px !important;
+    min-width: 82px !important;
+    max-width: 82px !important;
+  }
+
+  .lineup-print-table thead th:nth-child(1),
+  .lineup-print-table thead th:nth-child(2) {
+    z-index: 80 !important;
+  }
+
+  .lineup-print-table th:nth-child(3) {
+    z-index: 95 !important;
+    background: #dff0ef !important;
+  }
+
+  .lineup-print-table td:nth-child(3) {
+    z-index: 20 !important;
+    background: #fff !important;
+  }
+
+  .inning-header {
+    min-width: 76px !important;
+    height: auto !important;
+    gap: 3px !important;
+  }
+
+  .mini-diamond-wrap {
+    display: none !important;
+  }
+
+  .inning-number {
+    font-size: 13px !important;
+    font-weight: 800 !important;
+  }
+
+  .inning-number::before {
+    content: "Inn ";
+  }
+
+  .inning-lock-wrap {
+    font-size: 10px !important;
+    gap: 1px !important;
+  }
+
+  .inning-lock {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .lineup-print-table select {
+    width: 74px !important;
+    min-width: 74px !important;
+    max-width: 74px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    font-size: 12px !important;
+  }
+
+  .lineup-print-table input[type='number'] {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+  }
+}
+
+/* =========================
+   SMALL MOBILE
+   ========================= */
+
+@media (max-width: 700px) {
+  .main-content {
+    padding: 6px;
+  }
+
+  .card {
+    padding: 8px;
+    border-radius: 12px;
+  }
+
+  .card h2 {
+    font-size: 17px;
+  }
+
+  .card h3 {
+    font-size: 14px;
+  }
+
+  .sidebar {
+    padding: 10px;
+  }
+
+  .sidebar h1 {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .nav-stack {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .nav-button {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 32px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
   .checkbox-grid {
     grid-template-columns: 1fr;
   }
 
-  .main-content {
-    padding: 10px;
+  .main-content .card button {
+    min-height: 28px;
+    padding: 4px 8px;
+    font-size: 11px;
   }
 
-  .card {
-    padding: 12px;
+  .main-content .card input,
+  .main-content .card select,
+  .main-content .card textarea {
+    min-height: 28px;
+    font-size: 11px;
   }
-}
 
+  th,
+  td {
+    padding: 6px 7px;
+  }
 
-/* FILE: src/App.css */
-/* Horizontal scrolling fix for Game Detail / Lineup Setter grids */
+  .tracking-table th,
+  .tracking-table td {
+    padding: 5px 4px;
+    font-size: 11px;
+  }
 
-.table-scroll {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto !important;
-  overflow-y: visible;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y;
-}
+  .tracking-table.priority-groups .col-player,
+  .tracking-table .col-player {
+    width: 105px !important;
+    min-width: 105px !important;
+    max-width: 105px !important;
+  }
 
-.table-scroll > table,
-.table-scroll .lineup-print-table {
-  min-width: max-content;
-}
+  .tracking-table.priority-groups .sticky-col-2,
+  .tracking-table .sticky-col-2 {
+    left: 105px !important;
+  }
 
-.lineup-print-table {
-  width: max-content;
-  min-width: 100%;
-}
+  .tracking-table.priority-groups .col-small,
+  .tracking-table .col-small {
+    width: 58px !important;
+    min-width: 58px !important;
+    max-width: 58px !important;
+    padding: 6px 6px !important;
+  }
 
-.card {
-  min-width: 0;
-}
+  .positioning-priority-table,
+  .lineup-setter-current-plan-table {
+    min-width: 980px !important;
+    table-layout: fixed !important;
+  }
 
-.main-content {
-  min-width: 0;
-}
+  .positioning-priority-table th,
+  .positioning-priority-table td,
+  .lineup-setter-current-plan-table th,
+  .lineup-setter-current-plan-table td {
+    font-size: 12px !important;
+    padding: 7px 8px !important;
+    white-space: nowrap;
+  }
 
-/* Sticky number + player columns in lineup grids */
+  .positioning-priority-table th:first-child,
+  .positioning-priority-table td:first-child,
+  .lineup-setter-current-plan-table th:first-child,
+  .lineup-setter-current-plan-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 60;
+    width: 105px !important;
+    min-width: 105px !important;
+    max-width: 105px !important;
+    background: #fff !important;
+    text-align: left !important;
+  }
 
-.lineup-print-table {
-  border-collapse: separate;
-  border-spacing: 0;
-}
+  .positioning-priority-table thead th:first-child,
+  .lineup-setter-current-plan-table thead th:first-child {
+    z-index: 80;
+    background: #dff0ef !important;
+  }
 
-.lineup-print-table th:nth-child(1),
-.lineup-print-table td:nth-child(1) {
-  position: sticky;
-  left: 0;
-  z-index: 6;
-  width: 54px;
-  min-width: 54px;
-  max-width: 54px;
-  background: #fff;
-}
+  .positioning-priority-table input,
+  .positioning-priority-table select,
+  .tracking-table.priority-groups input,
+  .tracking-table.priority-groups select {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    padding: 5px 4px !important;
+    font-size: 12px !important;
+    text-align: center !important;
+  }
 
-.lineup-print-table th:nth-child(2),
-.lineup-print-table td:nth-child(2) {
-  position: sticky;
-  left: 54px;
-  z-index: 6;
-  width: 76px;
-  min-width: 76px;
-  max-width: 76px;
-  background: #fff;
-}
+  .allowed-position-table select {
+    width: 96px !important;
+    min-width: 96px !important;
+    max-width: 96px !important;
+    font-size: 11px !important;
+    padding: 4px 5px !important;
+  }
 
-.lineup-print-table th:nth-child(3),
-.lineup-print-table td:nth-child(3) {
-  position: sticky;
-  left: 130px;
-  z-index: 6;
-  width: 92px;
-  min-width: 92px;
-  max-width: 92px;
-  background: #fff;
-}
+  .game-detail-fields {
+    grid-template-columns: 1fr;
+  }
 
-.lineup-print-table thead th:nth-child(1),
-.lineup-print-table thead th:nth-child(2),
-.lineup-print-table thead th:nth-child(3) {
-  z-index: 9;
-  background: #e6f4f4;
-}
+  .game-detail-availability {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: 8px 16px;
+  }
 
-.lineup-print-table td:nth-child(3) {
-  text-align: left;
+  .game-detail-actions {
+    justify-content: flex-start;
+  }
+
+  .game-detail-actions button {
+    padding: 7px 11px;
+    font-size: 13px;
+    min-height: 34px;
+  }
+
+  .lineup-setter-top-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .lineup-setter-top-grid select,
+  .lineup-setter-top-grid input {
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .lineup-setter-top-grid button {
+    width: 100%;
+  }
+
+  .lineup-setter-new-game-fields {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .lineup-setter-new-game-action button {
+    width: 100%;
+  }
+
+  .lineup-setter-current-plan-table {
+    min-width: 760px;
+    table-layout: fixed;
+  }
+
+  .lineup-setter-current-plan-table th,
+  .lineup-setter-current-plan-table td {
+    font-size: 11px;
+    padding: 5px 4px;
+  }
+
+  .lineup-setter-current-plan-table th:nth-child(1),
+  .lineup-setter-current-plan-table td:nth-child(1) {
+    width: 72px;
+  }
+
+  .lineup-setter-current-plan-table th:nth-child(4),
+  .lineup-setter-current-plan-table td:nth-child(4) {
+    width: 130px;
+    white-space: normal;
+  }
+
+  .lineup-setter-availability,
+  .checkbox-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(92px, 1fr)) !important;
+    gap: 8px 10px !important;
+  }
+
+  .lineup-setter-availability label,
+  .checkbox-grid label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-height: 28px !important;
+    margin: 0 !important;
+    font-size: 12px !important;
+    white-space: nowrap;
+  }
+
+  .lineup-setter-availability input[type='checkbox'],
+  .checkbox-grid input[type='checkbox'] {
+    width: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    flex: 0 0 auto !important;
+  }
 }
 
 /* =========================
-   CLEAN COACH SUMMARY PRINT
+   LANDSCAPE TABLE MODE
+   ========================= */
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .tracking-scroll,
+  .table-scroll {
+    max-height: 68vh !important;
+    overflow: auto !important;
+  }
+
+  .card input[type='date'] {
+    width: 135px !important;
+    min-width: 135px !important;
+    max-width: 135px !important;
+  }
+
+  .card .filters-row {
+    gap: 10px !important;
+  }
+
+  .lineup-print-table {
+    min-width: 1050px !important;
+  }
+
+  .lineup-print-table th,
+  .lineup-print-table td {
+    font-size: 11px !important;
+    padding: 3px !important;
+    white-space: nowrap !important;
+  }
+
+  .lineup-print-table th:nth-child(1),
+  .lineup-print-table td:nth-child(1) {
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+  }
+
+  .lineup-print-table th:nth-child(2),
+  .lineup-print-table td:nth-child(2) {
+    width: 78px !important;
+    min-width: 78px !important;
+    max-width: 78px !important;
+    left: 36px !important;
+  }
+
+  .lineup-print-table th:nth-child(3),
+  .lineup-print-table td:nth-child(3) {
+    width: 68px !important;
+    min-width: 68px !important;
+    max-width: 68px !important;
+  }
+
+  .lineup-print-table thead th {
+    height: 46px !important;
+    padding: 6px 8px !important;
+    vertical-align: middle !important;
+    background: #dff0ef !important;
+  }
+
+  .lineup-print-table .inning-header {
+    min-width: 120px !important;
+    height: auto !important;
+    gap: 0 !important;
+  }
+
+  .lineup-print-table .inning-header > button,
+  .lineup-print-table .inning-header .mini-diamond-wrap,
+  .lineup-print-table .inning-header .inning-lock-wrap {
+    display: none !important;
+  }
+
+  .lineup-print-table .inning-number {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+  }
+
+  .lineup-print-table .inning-number::before {
+    content: "Inn ";
+  }
+
+  .lineup-print-table select {
+    width: 66px !important;
+    min-width: 66px !important;
+    max-width: 66px !important;
+  }
+}
+
+/* =========================
+   PRINT — COACH SUMMARY
    ========================= */
 
 .print-only {
@@ -328,11 +963,9 @@
     display: none !important;
   }
 
-  .main-content .stack > .print-only.show-print {
-    display: block !important;
-  }
-
+  .main-content .stack > .print-only.show-print,
   .print-only.show-print {
+    display: block !important;
     width: 100% !important;
     background: #fff !important;
     margin: 0 !important;
@@ -403,7 +1036,7 @@
     width: 30px !important;
   }
 
-    .print-plan-page,
+  .print-plan-page,
   .coach-plan-page {
     page-break-before: always !important;
     break-before: page !important;
@@ -432,985 +1065,4 @@
     width: 82px !important;
     text-align: left !important;
   }
-}
-
-
-/* =========================
-   DUGOUT CONTROL PANEL MODE
-   Game Detail + Lineup Setter
-   ========================= */
-
-@media (max-width: 900px) {
-  .main-content {
-    padding: 8px;
-  }
-
-  .stack {
-    gap: 10px;
-  }
-
-  .card {
-    padding: 10px;
-    border-radius: 14px;
-  }
-
-  .card h2 {
-    font-size: 18px;
-    margin-bottom: 8px;
-  }
-
-  .card h3 {
-    font-size: 15px;
-    margin-bottom: 6px;
-  }
-
-  .row-between,
-  .wrap-row,
-  .button-row {
-    gap: 6px;
-  }
-
-  .main-content .card button {
-    min-height: 30px;
-    padding: 5px 9px;
-    font-size: 12px;
-    border-radius: 9px;
-    white-space: nowrap;
-  }
-
-  .main-content .card input,
-  .main-content .card select,
-  .main-content .card textarea {
-    min-height: 30px;
-    padding: 5px 8px;
-    font-size: 12px;
-    border-radius: 9px;
-  }
-
-  .main-content .card label {
-    font-size: 11px;
-    margin-bottom: 3px;
-  }
-
-  .small-note {
-    font-size: 11px;
-  }
-
-  .table-scroll,
-  .tracking-scroll {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding-bottom: 4px;
-    background: #fff;
-  }
-
-  .lineup-print-table th,
-  .lineup-print-table td {
-    padding: 3px 4px;
-    font-size: 11px;
-  }
-
-  .lineup-print-table select {
-    min-width: 58px;
-    height: 28px;
-    min-height: 28px;
-    font-size: 11px;
-    padding: 2px 3px;
-  }
-
-  .lineup-print-table input[type='number'] {
-    width: 44px;
-    min-width: 44px;
-    height: 28px;
-    min-height: 28px;
-    font-size: 11px;
-  }
-
-  .inning-header {
-    min-width: 46px;
-    gap: 1px;
-  }
-
-  .inning-number {
-    font-size: 11px;
-  }
-
-  .inning-remove {
-    width: 18px;
-    height: 18px;
-    font-size: 11px;
-  }
-
-  .inning-lock-wrap {
-    font-size: 10px;
-  }
-
-  .inning-lock {
-    width: 14px;
-    height: 14px;
-  }
-}
-
-@media (max-width: 640px) {
-  .sidebar {
-    padding: 10px;
-  }
-
-  .sidebar h1 {
-    font-size: 18px;
-    margin-bottom: 8px;
-  }
-
-  .nav-stack {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-
-  .nav-button {
-    flex: 0 0 auto;
-    width: auto;
-    min-height: 32px;
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-
-  .main-content {
-    padding: 6px;
-  }
-
-  .card {
-    padding: 8px;
-    border-radius: 12px;
-  }
-
-  .card h2 {
-    font-size: 17px;
-  }
-
-  .card h3 {
-    font-size: 14px;
-  }
-
-  .main-content .card button {
-    min-height: 28px;
-    padding: 4px 8px;
-    font-size: 11px;
-  }
-
-  .main-content .card input,
-  .main-content .card select,
-  .main-content .card textarea {
-    min-height: 28px;
-    font-size: 11px;
-  }
-
-  table {
-    font-size: 12px;
-  }
-
-  th,
-  td {
-    padding: 6px 7px;
-  }
-
-  .tracking-table th,
-  .tracking-table td {
-    padding: 5px 4px;
-    font-size: 11px;
-  }
-
-  .tracking-table .col-player {
-    width: 74px;
-    min-width: 74px;
-    max-width: 74px;
-  }
-
-  .tracking-table .sticky-col-2 {
-    left: 74px;
-  }
-
-  .tracking-table .col-small {
-    width: 36px;
-    min-width: 36px;
-    max-width: 36px;
-  }
-
-  .lineup-print-table th,
-  .lineup-print-table td {
-    padding: 2px 3px;
-    font-size: 10.5px;
-  }
-
-  .lineup-print-table select {
-    min-width: 52px;
-    height: 26px;
-    min-height: 26px;
-    font-size: 10.5px;
-  }
-}
-
-
-/* Game Detail mobile/tablet cleanup */
-.game-detail-availability {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(90px, 1fr));
-  gap: 10px 24px;
-  align-items: center;
-}
-
-.game-detail-availability label,
-.game-detail-availability-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.game-detail-availability input[type='checkbox'] {
-  width: 22px;
-  height: 22px;
-  flex: 0 0 auto;
-}
-
-.game-detail-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.game-detail-actions button {
-  padding: 8px 14px;
-  font-size: 14px;
-  line-height: 1.1;
-  min-height: 36px;
-  border-radius: 10px;
-}
-
-@media (max-width: 700px) {
-  .game-detail-availability {
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
-    gap: 8px 16px;
-  }
-
-  .game-detail-actions {
-    justify-content: flex-start;
-  }
-
-  .game-detail-actions button {
-    padding: 7px 11px;
-    font-size: 13px;
-    min-height: 34px;
-  }
-}
-
-
-.lineup-setter-top-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-@media (max-width: 700px) {
-  .lineup-setter-top-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .lineup-setter-top-grid select,
-  .lineup-setter-top-grid input {
-    min-width: 0;
-    font-size: 13px;
-  }
-
-  .lineup-setter-top-grid button {
-    width: 100%;
-  }
-
-  .lineup-setter-new-game-fields {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-  }
-
-  .lineup-setter-new-game-action button {
-    width: 100%;
-  }
-}
-@media (max-width: 700px) {
-  .lineup-setter-current-plan-table {
-    min-width: 760px;
-    table-layout: fixed;
-  }
-
-  .lineup-setter-current-plan-table th,
-  .lineup-setter-current-plan-table td {
-    font-size: 11px;
-    padding: 5px 4px;
-  }
-
-  .lineup-setter-current-plan-table th:nth-child(1),
-  .lineup-setter-current-plan-table td:nth-child(1) {
-    width: 72px;
-  }
-
-  .lineup-setter-current-plan-table th:nth-child(4),
-  .lineup-setter-current-plan-table td:nth-child(4) {
-    width: 130px;
-    white-space: normal;
-  }
-}
-
-
-/* Mobile table usability: freeze first column + top row */
-
-@media (max-width: 700px) {
-  .table-scroll {
-    max-height: 72vh;
-    overflow: auto !important;
-  }
-
-  .positioning-priority-table,
-  .lineup-setter-current-plan-table {
-    min-width: 980px !important;
-    table-layout: fixed !important;
-  }
-
-  .positioning-priority-table th,
-  .positioning-priority-table td,
-  .lineup-setter-current-plan-table th,
-  .lineup-setter-current-plan-table td {
-    font-size: 12px !important;
-    padding: 7px 8px !important;
-    white-space: nowrap;
-  }
-
-  .positioning-priority-table thead th,
-  .lineup-setter-current-plan-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 8;
-  }
-
-  .positioning-priority-table th:first-child,
-  .positioning-priority-table td:first-child,
-  .lineup-setter-current-plan-table th:first-child,
-  .lineup-setter-current-plan-table td:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 9;
-    width: 105px !important;
-    min-width: 105px !important;
-    max-width: 105px !important;
-    background: #fff !important;
-    text-align: left !important;
-  }
-
-  .positioning-priority-table thead th:first-child,
-  .lineup-setter-current-plan-table thead th:first-child {
-    z-index: 12;
-    background: #dff0ef !important;
-  }
-
-  .positioning-priority-table th:nth-child(2),
-  .positioning-priority-table td:nth-child(2) {
-    width: 58px !important;
-    min-width: 58px !important;
-  }
-
-  .positioning-priority-table input,
-  .positioning-priority-table select {
-    width: 54px !important;
-    min-width: 54px !important;
-    max-width: 54px !important;
-    text-align: center;
-  }
-
-  .allowed-position-table select {
-    width: 96px !important;
-    min-width: 96px !important;
-    max-width: 96px !important;
-    font-size: 11px !important;
-    padding: 4px 5px !important;
-  }
-}
-
-@media (max-width: 700px) {
-  .lineup-setter-availability,
-  .checkbox-grid {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(92px, 1fr)) !important;
-    gap: 8px 10px !important;
-  }
-
-  .lineup-setter-availability label,
-  .checkbox-grid label {
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    min-height: 28px !important;
-    margin: 0 !important;
-    font-size: 12px !important;
-    white-space: nowrap;
-  }
-
-  .lineup-setter-availability input[type='checkbox'],
-  .checkbox-grid input[type='checkbox'] {
-    width: 18px !important;
-    height: 18px !important;
-    min-height: 18px !important;
-    flex: 0 0 auto !important;
-  }
-}
-
-/* Mobile + landscape table fixes */
-
-.tracking-scroll,
-.table-scroll {
-  max-height: 72vh;
-  overflow: auto !important;
-  -webkit-overflow-scrolling: touch;
-}
-
-.lineup-print-table thead th,
-.tracking-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-
-.lineup-print-table thead th:nth-child(1),
-.lineup-print-table thead th:nth-child(2),
-.lineup-print-table thead th:nth-child(3) {
-  z-index: 30;
-}
-
-@media (max-width: 900px) and (orientation: landscape) {
-  .table-scroll {
-    max-height: none !important;
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-  }
-
-  .tracking-scroll {
-    max-height: 68vh;
-    overflow: auto !important;
-  }
-
-  .lineup-print-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-  }
-
-  .lineup-print-table thead th:nth-child(1),
-  .lineup-print-table thead th:nth-child(2),
-  .lineup-print-table thead th:nth-child(3) {
-    z-index: 30;
-  }
-}
-
-/* Widen Positioning Priority mobile columns so numbers are readable */
-@media (max-width: 900px) {
-  .tracking-table.priority-groups .col-player {
-    width: 110px;
-    min-width: 110px;
-    max-width: 110px;
-  }
-
-  .tracking-table.priority-groups .sticky-col-2 {
-    left: 110px;
-  }
-
-  .tracking-table.priority-groups .col-small {
-    width: 60px;
-    min-width: 60px;
-    max-width: 60px;
-  }
-
-  .tracking-table.priority-groups input,
-  .tracking-table.priority-groups select {
-    min-width: 48px;
-    width: 48px;
-    text-align: center;
-  }
-}
-
-
-
-/* FINAL OVERRIDES — mobile readability */
-
-@media (max-width: 700px) {
-  .tracking-table.priority-groups .col-player,
-  .tracking-table .col-player {
-    width: 105px !important;
-    min-width: 105px !important;
-    max-width: 105px !important;
-  }
-
-  .tracking-table.priority-groups .sticky-col-2,
-  .tracking-table .sticky-col-2 {
-    left: 105px !important;
-  }
-
-  .tracking-table.priority-groups .col-small,
-  .tracking-table .col-small {
-    width: 58px !important;
-    min-width: 58px !important;
-    max-width: 58px !important;
-    padding: 6px 6px !important;
-  }
-
-  .positioning-priority-table input,
-  .positioning-priority-table select,
-  .tracking-table.priority-groups input,
-  .tracking-table.priority-groups select {
-    width: 52px !important;
-    min-width: 52px !important;
-    max-width: 52px !important;
-    padding: 5px 4px !important;
-    font-size: 12px !important;
-    text-align: center !important;
-  }
-}
-
-/* Better sticky header support in mobile landscape */
-@media (max-width: 900px) and (orientation: landscape) {
-  .table-scroll,
-  .tracking-scroll {
-    max-height: 62vh !important;
-    overflow: auto !important;
-    position: relative;
-  }
-
-  .lineup-print-table thead th,
-  .tracking-table thead th,
-  .positioning-priority-table thead th,
-  .lineup-setter-current-plan-table thead th {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 40 !important;
-    background: #dff0ef !important;
-  }
-
-  .lineup-print-table thead th:nth-child(1),
-  .lineup-print-table thead th:nth-child(2),
-  .lineup-print-table thead th:nth-child(3) {
-    z-index: 60 !important;
-  }
-}
-
-
-/* Shrink filter date boxes so they stay in the row */
-@media (max-width: 900px) and (orientation: landscape) {
-  .card input[type='date'] {
-    width: 135px !important;
-    min-width: 135px !important;
-    max-width: 135px !important;
-  }
-
-  .card .filters-row {
-    gap: 10px !important;
-  }
-}
-
-/* Game Detail: keep Date/Opponent boxes uniform and prevent overlap */
-.game-detail-fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
-}
-
-.game-detail-fields > div {
-  min-width: 0;
-}
-
-.game-detail-fields input,
-.game-detail-fields select {
-  width: 100%;
-  min-width: 0;
-}
-
-@media (max-width: 700px) {
-  .game-detail-fields {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-/* =========================
-   MOBILE LINEUP GRID MODE
-   ========================= */
-
-@media (max-width: 900px) {
-  .lineup-print-table {
-    table-layout: fixed !important;
-  }
-
-  .lineup-print-table th,
-  .lineup-print-table td {
-    font-size: 12px !important;
-    padding: 4px !important;
-  }
-
-  /* Freeze only # and Player, not Batting */
-  .lineup-print-table th:nth-child(1),
-  .lineup-print-table td:nth-child(1) {
-    width: 42px !important;
-    min-width: 42px !important;
-    max-width: 42px !important;
-    left: 0 !important;
-  }
-
-  .lineup-print-table th:nth-child(2),
-  .lineup-print-table td:nth-child(2) {
-    width: 92px !important;
-    min-width: 92px !important;
-    max-width: 92px !important;
-    left: 42px !important;
-    text-align: left !important;
-  }
-
-  /* Let Batting scroll away */
-  .lineup-print-table th:nth-child(3),
-  .lineup-print-table td:nth-child(3) {
-    position: static !important;
-    width: 82px !important;
-    min-width: 82px !important;
-    max-width: 82px !important;
-  }
-
-  .lineup-print-table thead th {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 20 !important;
-    background: #dff0ef !important;
-  }
-
-  .lineup-print-table thead th:nth-child(1),
-  .lineup-print-table thead th:nth-child(2) {
-    z-index: 40 !important;
-  }
-
-  .inning-header {
-    min-width: 76px !important;
-    height: auto !important;
-    gap: 3px !important;
-  }
-
-  .mini-diamond-wrap {
-    display: none !important;
-  }
-
-  .inning-number {
-    font-size: 13px !important;
-    font-weight: 800 !important;
-  }
-
-  .inning-number::before {
-    content: "Inn ";
-  }
-
-  .inning-lock-wrap {
-    font-size: 10px !important;
-    gap: 1px !important;
-  }
-
-  .inning-lock {
-    width: 14px !important;
-    height: 14px !important;
-  }
-
-  .lineup-print-table select {
-    width: 74px !important;
-    min-width: 74px !important;
-    max-width: 74px !important;
-    height: 30px !important;
-    min-height: 30px !important;
-    font-size: 12px !important;
-  }
-
-  .lineup-print-table input[type='number'] {
-    width: 52px !important;
-    min-width: 52px !important;
-    max-width: 52px !important;
-  }
-}
-
-@media (max-width: 900px) and (orientation: landscape) {
-  .lineup-print-table th,
-  .lineup-print-table td {
-    font-size: 11px !important;
-    padding: 3px !important;
-  }
-
-  .lineup-print-table th:nth-child(1),
-  .lineup-print-table td:nth-child(1) {
-    width: 36px !important;
-    min-width: 36px !important;
-    max-width: 36px !important;
-  }
-
-  .lineup-print-table th:nth-child(2),
-  .lineup-print-table td:nth-child(2) {
-    width: 78px !important;
-    min-width: 78px !important;
-    max-width: 78px !important;
-    left: 36px !important;
-  }
-
-  .lineup-print-table th:nth-child(3),
-  .lineup-print-table td:nth-child(3) {
-    width: 68px !important;
-    min-width: 68px !important;
-    max-width: 68px !important;
-  }
-
-  .inning-header {
-    min-width: 68px !important;
-  }
-
-  .lineup-print-table select {
-    width: 66px !important;
-    min-width: 66px !important;
-    max-width: 66px !important;
-  }
-
-  .table-scroll {
-    max-height: none !important;
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-  }
-}
-
-
-/* Mobile landscape: make the lineup header compact + sticky */
-@media (max-width: 900px) and (orientation: landscape) {
-  .lineup-print-table thead th {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 40 !important;
-    height: 46px !important;
-    padding: 6px 8px !important;
-    vertical-align: middle !important;
-    background: #dff0ef !important;
-  }
-
-  .lineup-print-table .inning-header {
-    min-width: 120px !important;
-    height: auto !important;
-    gap: 0 !important;
-  }
-
-  .lineup-print-table .inning-header > button,
-  .lineup-print-table .inning-header .mini-diamond-wrap,
-  .lineup-print-table .inning-header .inning-lock-wrap {
-    display: none !important;
-  }
-
-  .lineup-print-table .inning-number {
-    font-size: 16px !important;
-    font-weight: 800 !important;
-  }
-
-  .lineup-print-table .inning-number::before {
-    content: "Inn ";
-  }
-
-  .lineup-print-table th:nth-child(1),
-  .lineup-print-table th:nth-child(2),
-  .lineup-print-table th:nth-child(3),
-  .lineup-print-table th:nth-child(4) {
-    top: 0 !important;
-    z-index: 70 !important;
-    background: #dff0ef !important;
-  }
-}
-
-
-/* Fix batting column bleeding through sticky header on mobile portrait */
-@media (max-width: 900px) {
-  .lineup-print-table thead th {
-    background: #dff0ef !important;
-    z-index: 80 !important;
-  }
-
-  .lineup-print-table th:nth-child(3) {
-    z-index: 95 !important;
-    background: #dff0ef !important;
-  }
-
-  .lineup-print-table td:nth-child(3) {
-    z-index: 20 !important;
-    background: #fff !important;
-  }
-
-  .lineup-print-table .batting-cell {
-    position: relative;
-    z-index: 1;
-    background: #fff;
-  }
-}
-
-/* Priority table: readable headers + rounded values */
-.priority-combined-table th {
-  white-space: normal !important;
-  line-height: 1.05;
-  overflow-wrap: break-word;
-}
-
-.priority-combined-table .col-small {
-  width: 54px !important;
-  min-width: 54px !important;
-  max-width: 54px !important;
-}
-
-
-.priority-combined-table .priority-wrap-header {
-  white-space: normal !important;
-  line-height: 1.05 !important;
-  font-size: 11px !important;
-  padding: 4px 3px !important;
-  min-width: 54px !important;
-  width: 54px !important;
-  max-width: 54px !important;
-}
-
-.priority-combined-table .priority-pos-heading {
-  text-align: center !important;
-  white-space: nowrap !important;
-}
-
-/* FINAL priority combined table cleanup */
-.priority-combined-table {
-  table-layout: fixed !important;
-}
-
-.priority-combined-table th,
-.priority-combined-table td {
-  white-space: normal !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-}
-
-.priority-combined-table .priority-wrap-header {
-  width: 58px !important;
-  min-width: 58px !important;
-  max-width: 58px !important;
-  font-size: 10px !important;
-  line-height: 1.05 !important;
-  padding: 4px 2px !important;
-  overflow-wrap: anywhere !important;
-}
-
-.priority-combined-table .col-small {
-  width: 58px !important;
-  min-width: 58px !important;
-  max-width: 58px !important;
-}
-
-
-/* =========================
-   FINAL MOBILE TABLE CLEANUP
-   ========================= */
-
-@media (max-width: 900px) {
-  .tracking-scroll,
-  .table-scroll {
-    width: 100%;
-    max-width: 100%;
-    overflow: auto !important;
-    -webkit-overflow-scrolling: touch;
-    position: relative;
-  }
-
-  .tracking-table,
-  .lineup-print-table,
-  .lineup-setter-current-plan-table,
-  .positioning-priority-table {
-    min-width: max-content !important;
-  }
-
-  .tracking-table thead th,
-  .lineup-print-table thead th,
-  .lineup-setter-current-plan-table thead th,
-  .positioning-priority-table thead th {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 50 !important;
-    background: #dff0ef !important;
-  }
-}
-
-@media (max-width: 900px) and (orientation: landscape) {
-  .tracking-scroll,
-  .table-scroll {
-    max-height: 68vh !important;
-    overflow: auto !important;
-  }
-
-  .lineup-print-table {
-    min-width: 1050px !important;
-  }
-
-  .lineup-print-table th,
-  .lineup-print-table td {
-    white-space: nowrap !important;
-  }
-}
-
-
-/* Priority tracking table cleanup */
-
-.priority-combined-table {
-  table-layout: fixed !important;
-  min-width: 1320px !important;
-}
-
-.priority-combined-table th,
-.priority-combined-table td {
-  text-align: center !important;
-  vertical-align: middle !important;
-}
-
-.priority-combined-table .col-player {
-  width: 110px !important;
-  min-width: 110px !important;
-  max-width: 110px !important;
-  text-align: left !important;
-}
-
-.priority-combined-table .sticky-col-2 {
-  left: 110px !important;
-}
-
-.priority-combined-table .col-small {
-  width: 68px !important;
-  min-width: 68px !important;
-  max-width: 68px !important;
-}
-
-.priority-combined-table .priority-wrap-header {
-  font-size: 10px !important;
-  line-height: 1.05 !important;
-  white-space: normal !important;
-  padding: 4px 2px !important;
-}
-
-.priority-combined-table .priority-pos-heading {
-  font-size: 14px !important;
-  font-weight: 800 !important;
-  text-align: center !important;
-  border-left: 2px solid #78909c !important;
-  border-right: 2px solid #78909c !important;
-}
-
-.priority-combined-table .group-start {
-  border-left: 2px solid #78909c !important;
-}
-
-.priority-combined-table .group-end {
-  border-right: 2px solid #78909c !important;
 }
