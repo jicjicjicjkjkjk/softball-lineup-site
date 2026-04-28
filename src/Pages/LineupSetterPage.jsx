@@ -579,28 +579,6 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
           </table>
         </div>
       </div>
-
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Optimizer Mode</h3>
-
-        <div className="optimizer-mode-row">
-          <div>
-            <label>Mode</label>
-            <select
-              value={optimizerMode}
-              onChange={(e) => setOptimizerMode?.(e.target.value)}
-            >
-              <option value="standard">Standard — current logic</option>
-              <option value="tournament">Tournament — strongest primary lineup</option>
-              <option value="friendly">Friendly — development weighted</option>
-            </select>
-          </div>
-
-          <div className="small-note">
-            Standard keeps today’s optimizer behavior. Tournament and Friendly are controlled modes for future tuning.
-          </div>
-        </div>
-      </div>
       
       <LineupFocusPanel
         optimizerFocusGame={optimizerFocusGame}
