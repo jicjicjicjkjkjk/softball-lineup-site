@@ -27,7 +27,7 @@ function blankProfileForm() {
     is_default: false,
     min_positions_per_player: 2,
     min_positions_mode: 'nice',
-    min_innings_between_sit_outs: 2,
+    min_innings_between_sitouts: 2,
     sit_all_before_second: true,
   }
 }
@@ -174,8 +174,8 @@ export default function AdminPage({
         is_default: profileForm.is_default === true,
         min_positions_per_player: Number(profileForm.min_positions_per_player || 0),
         min_positions_mode: profileForm.min_positions_mode || 'nice',
-        min_innings_between_sit_outs: Number(
-          profileForm.min_innings_between_sit_outs || 0
+        min_innings_between_sitouts: Number(
+          profileForm.min_innings_between_sitouts || 0
         ),
         sit_all_before_second:
           profileForm.sit_all_before_second === true,
@@ -255,7 +255,7 @@ export default function AdminPage({
     await updateOptimizerProfile(selectedProfile.id, {
       min_positions_per_player: source.min_positions_per_player,
       min_positions_mode: source.min_positions_mode,
-      min_innings_between_sit_outs: source.min_innings_between_sit_outs,
+      min_innings_between_sitouts: source.min_innings_between_sitouts,
       sit_all_before_second: source.sit_all_before_second,
     })
 
@@ -552,11 +552,11 @@ export default function AdminPage({
             <label>Sit Gap</label>
             <input
               type="number"
-              value={profileForm.min_innings_between_sit_outs}
+              value={profileForm.min_innings_between_sitouts}
               onChange={(e) =>
                 setProfileForm((s) => ({
                   ...s,
-                  min_innings_between_sit_outs: e.target.value,
+                  min_innings_between_sitouts: e.target.value,
                 }))
               }
             />
@@ -664,10 +664,10 @@ export default function AdminPage({
                 <label>Sit Gap</label>
                 <input
                   type="number"
-                  value={selectedProfile.min_innings_between_sit_outs ?? 2}
+                  value={selectedProfile.min_innings_between_sitouts ?? 2}
                   onChange={(e) =>
                     updateOptimizerProfile(selectedProfile.id, {
-                      min_innings_between_sit_outs: Number(e.target.value || 0),
+                      min_innings_between_sitouts: Number(e.target.value || 0),
                     })
                   }
                 />
