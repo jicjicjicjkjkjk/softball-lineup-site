@@ -121,7 +121,7 @@ const defaultTrackingFilters = {
   seasons: [],
   gameTypes: [],
   gameStatuses: [],
-  lineupStates: ['Locked', 'Saved'],
+  lineupStates: ['Locked'],
   dateFrom: '',
   dateTo: '',
 }
@@ -156,7 +156,7 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
   ) {
     setTrackingFilters((current) => ({
       ...current,
-      lineupStates: ['Locked', 'Saved'],
+      lineupStates: ['Locked'],
     }))
   }
 }, [])
