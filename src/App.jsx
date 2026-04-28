@@ -2436,11 +2436,26 @@ function toggleSavedAllBattingLock(gameId) {
       <Sidebar page={page} setPage={setPage} />
 
       <main className="main-content">
-        {appError && page !== 'games' && (
-          <div className="card" style={{ marginBottom: 16 }}>
-            <p style={{ color: '#b91c1c', margin: 0 }}>Error: {appError}</p>
-          </div>
-        )}
+        {appError && (
+  <div
+    className="card"
+    style={{
+      marginBottom: 16,
+      borderColor: '#fecaca',
+      background: '#fff7f7',
+    }}
+  >
+    <div className="row-between wrap-row">
+      <p style={{ color: '#b91c1c', margin: 0 }}>
+        <strong>Error:</strong> {appError}
+      </p>
+
+      <button type="button" onClick={() => setAppError('')}>
+        Dismiss
+      </button>
+    </div>
+  </div>
+)}
 
         {page === 'players' && (
           <PlayersPage
