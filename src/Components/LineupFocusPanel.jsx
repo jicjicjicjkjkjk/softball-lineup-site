@@ -43,6 +43,7 @@ export default function LineupFocusPanel(props) {
     seasonOptions = [],
     optimizerMode = 'standard',
     setOptimizerMode,
+    optimizerProfiles = [],
   } = props
 
   if (!optimizerFocusGame) return null
@@ -127,7 +128,7 @@ export default function LineupFocusPanel(props) {
           <div className="optimizer-mode-row">
             <div>
               <label>Mode for Next Optimize Run</label>
-              <select
+                            <select
                 value={optimizerMode}
                 onChange={(e) => {
                   if (typeof setOptimizerMode === 'function') {
@@ -135,9 +136,19 @@ export default function LineupFocusPanel(props) {
                   }
                 }}
               >
-                <option value="standard">Balanced Competitive &amp; Development</option>
-                <option value="friendly">Friendly - Development Focused</option>
-                <option value="tournament">Tournament - Competitive</option>
+                {optimizerProfiles.length ? (
+                  optimizerProfiles.map((profile) => (
+                    <option key={profile.id} value={profile.profile_key}>
+                      {profile.profile_name}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="standard">Balanced Competitive &amp; Development</option>
+                    <option value="friendly">Friendly - Development Focused</option>
+                    <option value="tournament">Tournament - Competitive</option>
+                  </>
+                )}
               </select>
             </div>
 
