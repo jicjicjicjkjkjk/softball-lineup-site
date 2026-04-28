@@ -2025,3 +2025,41 @@
     min-width: 84px !important;
   }
 }
+
+
+/* Fix priority table sticky two-row header layering */
+.tracking-table.priority-combined-table thead tr:first-child th {
+  top: 0 !important;
+  height: 44px !important;
+  z-index: 140 !important;
+  background: #dff0ef !important;
+}
+
+.tracking-table.priority-combined-table thead tr:nth-child(2) th {
+  top: 44px !important;
+  height: 44px !important;
+  z-index: 135 !important;
+  background: #dff0ef !important;
+}
+
+.tracking-table.priority-combined-table thead th[rowspan='2'] {
+  top: 0 !important;
+  height: 88px !important;
+  z-index: 170 !important;
+  background: #dff0ef !important;
+}
+
+.tracking-table.priority-combined-table thead .sticky-col-1 {
+  left: 0 !important;
+  z-index: 190 !important;
+}
+
+.tracking-table.priority-combined-table thead .sticky-col-2 {
+  left: 110px !important;
+  z-index: 185 !important;
+}
+
+/* Stop second header row from visually sliding over Player/Field */
+.tracking-table.priority-combined-table thead tr:nth-child(2) th:first-child {
+  border-left: 0 !important;
+}
