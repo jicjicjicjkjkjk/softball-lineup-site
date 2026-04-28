@@ -250,18 +250,36 @@ const filteredPlusPlanTotalsWithRunning = addRunningTotalsToTotals(
     direction: 'asc',
   })
 
-    const [priorityUniverse, setPriorityUniverse] = useState('currentPlan')
+    const [lineupSetterUniverse, setLineupSetterUniverse] = useState('currentPlan')
 
-  const priorityUniverseTotals = useMemo(() => {
-    if (priorityUniverse === 'filtered') return filteredGamesBeforeTotalsWithRunning
-    if (priorityUniverse === 'filteredPlusPlan') return filteredPlusPlanTotalsWithRunning
-    return currentPlanTotalsWithRunning
-  }, [
-    priorityUniverse,
-    filteredGamesBeforeTotalsWithRunning,
-    filteredPlusPlanTotalsWithRunning,
-    currentPlanTotalsWithRunning,
-  ])
+  const selectedUniverseTotals = useMemo(() => {
+  if (lineupSetterUniverse === 'filtered') return filteredGamesBeforeTotalsWithRunning
+  if (lineupSetterUniverse === 'filteredPlusPlan') return filteredPlusPlanTotalsWithRunning
+  return currentPlanTotalsWithRunning
+}, [
+  lineupSetterUniverse,
+  filteredGamesBeforeTotalsWithRunning,
+  filteredPlusPlanTotalsWithRunning,
+  currentPlanTotalsWithRunning,
+])
+
+const selectedUniverseSitOutRows = useMemo(() => {
+  if (lineupSetterUniverse === 'filtered') return ytdBeforeSitOutRows
+  if (lineupSetterUniverse === 'filteredPlusPlan') return ytdAfterSitOutRows
+  return currentPlanSitOutRows
+}, [
+  lineupSetterUniverse,
+  ytdBeforeSitOutRows,
+  ytdAfterSitOutRows,
+  currentPlanSitOutRows,
+])
+
+const selectedUniverseTitle =
+  lineupSetterUniverse === 'filtered'
+    ? 'Filtered Games Before Current Plan'
+    : lineupSetterUniverse === 'filteredPlusPlan'
+    ? 'Filtered Games + Current Plan'
+    : 'Current Plan'
 
   const priorityTargetByPlayer = useMemo(() => {
     const next = {}
@@ -276,7 +294,7 @@ const filteredPlusPlanTotalsWithRunning = addRunningTotalsToTotals(
   const basePriorityPlayerRows = useMemo(() => {
     return activePlayers.map((player) => {
       const playerId = pk(player.id)
-      const totals = priorityUniverseTotals?.[playerId] || {}
+      const totals = selectedUniverseTotals?.[playerId] || {}
       const target = priorityTargetByPlayer[playerId] || {}
       const fieldTotal = Math.max(Number(totals.fieldTotal || 0), 1)
 
@@ -307,36 +325,36 @@ const filteredPlusPlanTotalsWithRunning = addRunningTotalsToTotals(
         actOF: actPct(totals.OF),
       }
     })
-  }, [activePlayers, priorityUniverseTotals, priorityTargetByPlayer, pk])
+  }, [activePlayers, selectedUniverseTotals, priorityTargetByPlayer, pk])
 
   const basePriorityPositionRows = useMemo(() => {
     const positionTotals = {
       P: activePlayers.reduce(
-        (sum, player) => sum + Number(priorityUniverseTotals?.[pk(player.id)]?.P || 0),
+        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.P || 0),
         0
       ),
       C: activePlayers.reduce(
-        (sum, player) => sum + Number(priorityUniverseTotals?.[pk(player.id)]?.C || 0),
+        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.C || 0),
         0
       ),
       '1B': activePlayers.reduce(
-        (sum, player) => sum + Number(priorityUniverseTotals?.[pk(player.id)]?.['1B'] || 0),
+        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.['1B'] || 0),
         0
       ),
       '2B': activePlayers.reduce(
-        (sum, player) => sum + Number(priorityUniverseTotals?.[pk(player.id)]?.['2B'] || 0),
+        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.['2B'] || 0),
         0
       ),
       '3B': activePlayers.reduce(
-        (sum, player) => sum + Number(priorityUniverseTotals?.[pk(player.id)]?.['3B'] || 0),
+        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.['3B'] || 0),
         0
       ),
       SS: activePlayers.reduce(
-        (sum, player) => sum + Number(priorityUniverseTotals?.[pk(player.id)]?.SS || 0),
+        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.SS || 0),
         0
       ),
       OF: activePlayers.reduce(
-        (sum, player) => sum + Number(priorityUniverseTotals?.[pk(player.id)]?.OF || 0),
+        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.OF || 0),
         0
       ),
     }
@@ -350,7 +368,7 @@ const filteredPlusPlanTotalsWithRunning = addRunningTotalsToTotals(
 
     return activePlayers.map((player) => {
       const playerId = pk(player.id)
-      const totals = priorityUniverseTotals?.[playerId] || {}
+      const totals = selectedUniverseTotals?.[playerId] || {}
       const target = priorityTargetByPlayer[playerId] || {}
 
       return {
@@ -375,7 +393,7 @@ const filteredPlusPlanTotalsWithRunning = addRunningTotalsToTotals(
         actOF: actPctByPosition(totals.OF, 'OF'),
       }
     })
-  }, [activePlayers, priorityUniverseTotals, priorityTargetByPlayer, pk])
+  }, [activePlayers, selectedUniverseTotals, priorityTargetByPlayer, pk])
 
     const sortedCombinedPriorityRows = useMemo(() => {
     const byPosition = Object.fromEntries(
@@ -708,7 +726,62 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   gameTypeOptions={gameTypeOptions}
   statusOptions={statusOptions}
 />
-                  <div className="card tracking-card">
+
+      <div className="card">
+  <h3 style={{ marginTop: 0 }}>Tracking View</h3>
+  <label>Use this data universe for the table below and priority tracking</label>
+  <select
+    value={lineupSetterUniverse}
+    onChange={(e) => setLineupSetterUniverse(e.target.value)}
+  >
+    <option value="currentPlan">Current Plan</option>
+    <option value="filtered">Filtered Games Before Current Plan</option>
+    <option value="filteredPlusPlan">Filtered Games + Current Plan</option>
+  </select>
+</div>
+
+<TrackingTable
+  title={selectedUniverseTitle}
+  totals={selectedUniverseTotals}
+  sitOutRows={selectedUniverseSitOutRows}
+  players={activePlayers}
+  sortConfig={trackingSort}
+  setSortConfig={setTrackingSort}
+  sitOutTargets={optimizerPlanSitOutTargets}
+  showSitOutTargets={lineupSetterUniverse === 'currentPlan'}
+  editableSitOutTargets={lineupSetterUniverse === 'currentPlan'}
+  setSitOutTargets={setOptimizerPlanSitOutTargets}
+  fitByPlayer={fitByPlayer}
+  enableFitColors={true}
+  forceNotAllowedRed={true}
+  planSitOutSummary={
+    lineupSetterUniverse === 'currentPlan'
+      ? {
+          totalNeeded,
+          totalAssigned,
+        }
+      : null
+  }
+  runningTotalLabel={`${selectedUniverseTitle} Sit Out Running Total`}
+  extraRunningTotals={
+    lineupSetterUniverse === 'currentPlan'
+      ? [
+          {
+            key: 'filteredSitOutRunningTotal',
+            label: 'Filtered Sit Out Running Total',
+            totals: filteredGamesBeforeTotalsWithRunning,
+          },
+          {
+            key: 'updatedSitOutRunningTotal',
+            label: 'Updated Sit Out Running Total',
+            totals: filteredPlusPlanTotalsWithRunning,
+          },
+        ]
+      : []
+  }
+/>
+      
+      <div className="card tracking-card">
         <h3>Tracking by Positioning by Priority</h3>
 
         <div className="tracking-scroll">
