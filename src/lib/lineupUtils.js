@@ -661,20 +661,22 @@ function scorePlayerForPosition({
   const disallowed = fit === 'E' || fit === 'no'
   const primaryFit = fit === 'A' || fit === 'primary'
   const secondaryFit = fit === 'B' || fit === 'secondary'
-  const developmentFit = fit === 'C' || fit === 'D'
+  const cFit = fit === 'C'
+  const dFit = fit === 'D'
 
-    let fitScore =
+  let fitScore =
     primaryFit ? 10000 :
     secondaryFit ? 3000 :
-    fit === 'C' ? 500 :
-    fit === 'D' ? -500 :
+    cFit ? 500 :
+    dFit ? -500 :
     -1000000
 
   if (optimizerMode === 'tournament') {
     fitScore =
-      primaryFit ? 15000 :
-      secondaryFit ? 1000 :
-      developmentFit ? -5000 :
+      primaryFit ? 18000 :
+      secondaryFit ? 1500 :
+      cFit ? -4000 :
+      dFit ? -9000 :
       -1000000
   }
 
@@ -682,8 +684,8 @@ function scorePlayerForPosition({
     fitScore =
       primaryFit ? 9000 :
       secondaryFit ? 4500 :
-      fit === 'C' ? 1500 :
-      fit === 'D' ? -1000 :
+      cFit ? 1800 :
+      dFit ? -1500 :
       -1000000
   }
 
@@ -702,16 +704,17 @@ function scorePlayerForPosition({
 
   let allocationScore = 0
 
-    if (targetTotal > 0 && target > 0) {
-    const effectiveTarget =
-      optimizerMode === 'friendly'
-        ? Math.max(1, 100 - target)
-        : target
+  if (targetTotal > 0 && target > 0) {
+    let effectiveTarget = target
+    let effectiveTotal = targetTotal
 
-    const effectiveTotal =
-      optimizerMode === 'friendly'
-        ? targetPool.reduce((sum, row) => sum + Math.max(1, 100 - row.target), 0)
-        : targetTotal
+    if (optimizerMode === 'friendly') {
+      effectiveTarget = Math.max(1, 100 - target)
+      effectiveTotal = targetPool.reduce(
+        (sum, row) => sum + Math.max(1, 100 - row.target),
+        0
+      )
+    }
 
     const expectedAfterThisAssignment =
       (currentPositionTotal + 1) * (effectiveTarget / effectiveTotal)
@@ -720,8 +723,16 @@ function scorePlayerForPosition({
     const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
 
     allocationScore = 5000 - distanceFromTarget * 2500
+
+    if (optimizerMode === 'tournament') {
+      allocationScore += target * 60
+    }
+
+    if (optimizerMode === 'friendly') {
+      allocationScore += Math.max(0, 100 - target) * 35
+    }
   } else if (targetTotal > 0 && target <= 0) {
-    allocationScore = -5000
+    allocationScore = optimizerMode === 'friendly' ? -1500 : -5000
   }
 
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
