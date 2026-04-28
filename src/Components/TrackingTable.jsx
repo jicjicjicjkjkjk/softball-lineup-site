@@ -95,17 +95,23 @@ export default function TrackingTable({
       const t = totals?.[id] || {}
       const targetOuts = sitOutTargets?.[id]
 
+
       const gap =
         targetOuts === '' || targetOuts == null
-          ? ''
-          : safeNumber(targetOuts) - safeNumber(t.Out)
+        ? ''
+       : safeNumber(targetOuts) - safeNumber(t.Out)
 
+      const playerInnings = safeNumber(t.fieldTotal) + safeNumber(t.Out)
+      const outPct = playerInnings ? (safeNumber(t.Out) / playerInnings) * 100 : ''
+
+      
       return {
         playerId: id,
         name: player.name,
         games: safeNumber(t.games),
         fieldTotal: safeNumber(t.fieldTotal),
         Out: safeNumber(t.Out),
+        outPct,
         targetOuts: targetOuts ?? '',
         gap,
         sitOutRunningTotal:
@@ -168,6 +174,7 @@ export default function TrackingTable({
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'games'))}>Games</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'fieldTotal'))}>Fld</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'Out'))}>Out</th>
+            <th onClick={() => setSortConfig(nextSort(sortConfig, 'outPct'))}>% Out</th>
 
             {showSitOutTargets && (
               <>
@@ -209,6 +216,7 @@ export default function TrackingTable({
               <td>{displayNumber(row.games)}</td>
               <td>{displayNumber(row.fieldTotal)}</td>
               <td>{displayNumber(row.Out)}</td>
+              <td>{row.outPct === '' ? '' : `${Math.round(row.outPct)}%`}</td>
 
               {showSitOutTargets && (
                 <>
