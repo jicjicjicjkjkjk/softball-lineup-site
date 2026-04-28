@@ -1896,3 +1896,47 @@
   text-align: center !important;
   vertical-align: middle !important;
 }
+
+
+/* =====================================================
+   TRUE FINAL FIX — Priority tracking frozen corner wins
+   ===================================================== */
+
+.tracking-scroll {
+  isolation: isolate;
+}
+
+/* Normal scrolling header cells stay underneath frozen corner */
+.priority-combined-table thead tr:first-child th:not(.sticky-col-1):not(.sticky-col-2) {
+  z-index: 20 !important;
+}
+
+.priority-combined-table thead tr:nth-child(2) th:not(.sticky-col-1):not(.sticky-col-2) {
+  z-index: 21 !important;
+}
+
+/* Frozen body columns */
+.priority-combined-table tbody td.sticky-col-1 {
+  z-index: 80 !important;
+}
+
+.priority-combined-table tbody td.sticky-col-2 {
+  z-index: 81 !important;
+}
+
+/* Frozen top-left headers MUST beat all scrolling header cells */
+.priority-combined-table thead th.sticky-col-1 {
+  z-index: 999 !important;
+  background: #dff0ef !important;
+}
+
+.priority-combined-table thead th.sticky-col-2 {
+  z-index: 1000 !important;
+  background: #dff0ef !important;
+}
+
+/* Make sure the frozen header cells visually cover anything passing behind */
+.priority-combined-table thead th.sticky-col-1,
+.priority-combined-table thead th.sticky-col-2 {
+  box-shadow: 2px 0 0 #d6dee8 !important;
+}
