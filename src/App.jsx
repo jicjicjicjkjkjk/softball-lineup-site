@@ -12,6 +12,7 @@ import {
   addTotals,
   buildOptimizedLineup,
   inningStatus,
+  clearUnlockedLineupCells,
 } from './lib/lineupUtils'
 
 import GamesPage from './Pages/GamesPage'
@@ -246,36 +247,9 @@ function importLineupToSaved(targetGameId, sourceGameId) {
 }
 
 function clearLineupContents(lineup) {
-  const next = JSON.parse(JSON.stringify(lineup))
-
-  Object.keys(next.cells || {}).forEach((playerId) => {
-    for (let inning = 1; inning <= Number(next.innings || 0); inning += 1) {
-      next.cells[playerId][inning] = ''
-
-      if (!next.lockedCells[playerId]) next.lockedCells[playerId] = {}
-      next.lockedCells[playerId][inning] = false
-    }
-  })
-
-  Object.keys(next.battingOrder || {}).forEach((playerId) => {
-    next.battingOrder[playerId] = ''
-  })
-
-  Object.keys(next.lockedRows || {}).forEach((playerId) => {
-    next.lockedRows[playerId] = false
-  })
-
-  Object.keys(next.lockedBattingOrder || {}).forEach((playerId) => {
-    next.lockedBattingOrder[playerId] = false
-  })
-
-  Object.keys(next.lockedInnings || {}).forEach((inning) => {
-    next.lockedInnings[inning] = false
-  })
-
-  return next
+  return clearUnlockedLineupCells(lineup, players)
 }
-
+  
 async function clearPreviewLineup(gameId) {
   if (!gameId) return
 
@@ -1540,14 +1514,48 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     const cleaned = String(value ?? '').trim()
 
     if (!cleaned) {
-      const del = await supabase
-        .from('player_position_preferences')
-        .delete()
-        .eq('player_id', playerId)
-        .eq('position', position)
+  const del = await supabase
+    .from('player_position_preferences')
+    .delete()
+    .eq('player_id', playerId)
+    .eq('position', position)
 
-      if (del.error) setAppError(del.error.message)
-    } else {
+  if (del.error) setAppError(del.error.message)
+
+  if (position === 'OF') {
+    await Promise.all(
+      ['LF', 'CF', 'RF'].map((ofPos) =>
+        supabase.from('player_allowed_positions').upsert(
+          { player_id: playerId, position: ofPos, fit_tier: 'secondary' },
+          { onConflict: 'player_id,position' }
+        )
+      )
+    )
+
+    setFitByPlayer((current) => ({
+      ...current,
+      [pk(playerId)]: {
+        ...(current[pk(playerId)] || {}),
+        LF: 'secondary',
+        CF: 'secondary',
+        RF: 'secondary',
+      },
+    }))
+  } else {
+    await supabase.from('player_allowed_positions').upsert(
+      { player_id: playerId, position, fit_tier: 'secondary' },
+      { onConflict: 'player_id,position' }
+    )
+
+    setFitByPlayer((current) => ({
+      ...current,
+      [pk(playerId)]: {
+        ...(current[pk(playerId)] || {}),
+        [position]: 'secondary',
+      },
+    }))
+  }
+} else {
       const up = await supabase
         .from('player_position_preferences')
         .upsert(
