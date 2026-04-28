@@ -1343,3 +1343,45 @@
     min-width: 90px !important;
   }
 }
+
+/* =========================
+   MOBILE GRID COMPACT CELL LOCK
+   Keeps position + per-inning lock on one row
+   ========================= */
+
+@media (max-width: 900px) {
+  .lineup-print-table td {
+    vertical-align: middle !important;
+  }
+
+  .lineup-print-table td select {
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin-right: 6px !important;
+  }
+
+  .lineup-print-table td label {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    vertical-align: middle !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .lineup-print-table td label input[type='checkbox'] {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    margin: 0 !important;
+  }
+
+  .lineup-print-table td label:has(input[type='checkbox']) {
+    font-size: 12px !important;
+  }
+
+  .lineup-print-table td select + label {
+    margin-left: 4px !important;
+  }
+}
