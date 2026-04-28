@@ -1067,7 +1067,6 @@
   }
 }
 
-
 /* =========================
    FINAL: Priority table border fix
    ========================= */
@@ -1156,7 +1155,6 @@
     max-width: 78px !important;
   }
 }
-
 
 /* =========================
    FINAL MOBILE GRID OVERRIDE
@@ -1257,7 +1255,6 @@
     max-width: 110px !important;
   }
 }
-
 
 /* FINAL FIX: mobile lineup grid layout */
 @media (max-width: 900px) {
@@ -1385,7 +1382,6 @@
     margin-left: 4px !important;
   }
 }
-
 
 /* =========================
    MOBILE LINEUP CARD
@@ -1647,82 +1643,6 @@
 }
 
 /* =========================
-   FINAL PRIORITY TRACKING TABLE FIXES
-   ========================= */
-
-@media (max-width: 900px) {
-  .tracking-scroll {
-    overflow: auto !important;
-    -webkit-overflow-scrolling: touch;
-    position: relative;
-  }
-
-  .priority-combined-table {
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
-    table-layout: fixed !important;
-    min-width: 1320px !important;
-  }
-
-  .priority-combined-table thead th {
-    background: #dff0ef !important;
-    position: sticky !important;
-    z-index: 50 !important;
-  }
-
-  .priority-combined-table thead tr:first-child th {
-    top: 0 !important;
-  }
-
-  .priority-combined-table thead tr:nth-child(2) th {
-    top: 42px !important;
-    border-bottom: 3px solid #78909c !important;
-  }
-
-  /* Freeze Player column */
-  .priority-combined-table th:nth-child(1),
-  .priority-combined-table td:nth-child(1) {
-    position: sticky !important;
-    left: 0 !important;
-    width: 118px !important;
-    min-width: 118px !important;
-    max-width: 118px !important;
-    background: #fff !important;
-    z-index: 45 !important;
-    text-align: left !important;
-  }
-
-  /* Freeze Field column */
-  .priority-combined-table th:nth-child(2),
-  .priority-combined-table td:nth-child(2) {
-    position: sticky !important;
-    left: 118px !important;
-    width: 64px !important;
-    min-width: 64px !important;
-    max-width: 64px !important;
-    background: #fff !important;
-    z-index: 45 !important;
-    text-align: center !important;
-  }
-
-  .priority-combined-table thead th:nth-child(1),
-  .priority-combined-table thead th:nth-child(2) {
-    background: #dff0ef !important;
-    z-index: 90 !important;
-  }
-
-  .priority-combined-table .priority-pos-heading {
-    background: #dff0ef !important;
-    border-bottom: 1px solid #78909c !important;
-  }
-
-  .priority-combined-table .priority-wrap-header {
-    background: #dff0ef !important;
-  }
-}
-
-
-/* =========================
    MOBILE CLEANUP PASS
    ========================= */
 
@@ -1845,40 +1765,12 @@
     max-width: 64px !important;
   }
 
-  .tracking-table .col-metric {
+   .tracking-table .col-metric {
     width: 125px !important;
     min-width: 125px !important;
     max-width: 125px !important;
   }
-
-  /* Priority table: top 2 rows sticky */
-  .priority-combined-table thead tr:first-child th {
-    top: 0 !important;
-  }
-
-  .priority-combined-table thead tr:nth-child(2) th {
-    top: 42px !important;
-    background: #dff0ef !important;
-    border-bottom: 3px solid #78909c !important;
-  }
-
-  .priority-combined-table th:nth-child(1),
-  .priority-combined-table td:nth-child(1) {
-    left: 0 !important;
-    width: 115px !important;
-    min-width: 115px !important;
-    max-width: 115px !important;
-  }
-
-  .priority-combined-table th:nth-child(2),
-  .priority-combined-table td:nth-child(2) {
-    left: 115px !important;
-    width: 64px !important;
-    min-width: 64px !important;
-    max-width: 64px !important;
-  }
 }
-
 
 .batting-cell {
   display: flex;
@@ -1897,316 +1789,110 @@
   min-width: 24px;
 }
 
-
 /* =====================================================
-   FINAL TRACKING MOBILE TABLE FIXES
-   Priority table + Positioning-by-player table
+   FINAL OVERRIDE — PRIORITY TABLE STICKY FIX
+   Freeze first 2 columns + first 2 header rows cleanly
    ===================================================== */
 
-/* --- Priority table: clean 2-row sticky header --- */
-
-.tracking-table.priority-combined-table thead th {
-  background: #dff0ef !important;
-}
-
-.tracking-table.priority-combined-table thead tr:first-child th {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 90 !important;
-  height: 42px !important;
-  vertical-align: middle !important;
-}
-
-.tracking-table.priority-combined-table thead tr:nth-child(2) th {
-  position: sticky !important;
-  top: 42px !important;
-  z-index: 88 !important;
-  height: 42px !important;
-  vertical-align: middle !important;
-}
-
-/* Player + Field headers span both rows, so they stay at top */
-.tracking-table.priority-combined-table thead th[rowspan='2'] {
-  top: 0 !important;
-  height: 84px !important;
-  z-index: 110 !important;
-}
-
-/* Freeze Player column */
-.tracking-table.priority-combined-table .sticky-col-1 {
-  position: sticky !important;
-  left: 0 !important;
-  z-index: 70 !important;
-  background: #fff !important;
-}
-
-/* Freeze Field column */
-.tracking-table.priority-combined-table .sticky-col-2 {
-  position: sticky !important;
-  left: 110px !important;
-  z-index: 69 !important;
-  background: #fff !important;
-}
-
-/* Frozen header cells need higher z-index + green background */
-.tracking-table.priority-combined-table thead .sticky-col-1,
-.tracking-table.priority-combined-table thead .sticky-col-2 {
-  z-index: 120 !important;
-  background: #dff0ef !important;
-}
-
-/* Prevent floating/misaligned mini header boxes */
-.tracking-table.priority-combined-table th {
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-}
-
-.tracking-table.priority-combined-table .priority-wrap-header {
-  white-space: normal !important;
-  line-height: 1.05 !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-}
-
-/* --- Positioning by Player Per Game table --- */
-
-/* Only freeze Game # column, not opponent/date */
-.positioning-table .sticky-col-1 {
-  position: sticky !important;
-  left: 0 !important;
-  z-index: 60 !important;
-  background: #fff !important;
-}
-
-/* Undo frozen opponent/date columns on this table */
-.positioning-table .sticky-col-2,
-.positioning-table .sticky-col-3 {
-  position: static !important;
-  left: auto !important;
-  z-index: auto !important;
-}
-
-/* Header row should stay green and sticky */
-.positioning-table thead th {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 80 !important;
-  background: #dff0ef !important;
-}
-
-/* Game # header must sit above body cells */
-.positioning-table thead .sticky-col-1 {
-  z-index: 100 !important;
-  background: #dff0ef !important;
-}
-
-/* Make the first column compact */
-.positioning-table .col-game {
-  width: 72px !important;
-  min-width: 72px !important;
-  max-width: 72px !important;
-}
-
-/* Make opponent/date readable and avoid weird skinny blank columns */
-.positioning-table .col-opponent {
-  width: 260px !important;
-  min-width: 260px !important;
-}
-
-.positioning-table .col-date {
-  width: 90px !important;
-  min-width: 90px !important;
-}
-
-/* Mobile tightening */
-@media (max-width: 700px) {
-  .tracking-table.priority-combined-table .sticky-col-2 {
-    left: 105px !important;
-  }
-
-  .positioning-table .col-game {
-    width: 64px !important;
-    min-width: 64px !important;
-    max-width: 64px !important;
-  }
-
-  .positioning-table .col-opponent {
-    width: 230px !important;
-    min-width: 230px !important;
-  }
-
-  .positioning-table .col-date {
-    width: 84px !important;
-    min-width: 84px !important;
-  }
-}
-
-/* Priority table: freeze first 2 columns + first 2 header rows cleanly */
 .priority-combined-table {
   border-collapse: separate !important;
   border-spacing: 0 !important;
+  table-layout: fixed !important;
+  min-width: 1320px !important;
 }
 
+.priority-combined-table th,
+.priority-combined-table td {
+  box-sizing: border-box !important;
+}
+
+/* Regular header cells */
 .priority-combined-table thead th {
+  position: sticky !important;
   background: #dff0ef !important;
 }
 
-/* First header row: position groups */
+/* Header row 1 */
 .priority-combined-table thead tr:first-child th {
-  position: sticky !important;
   top: 0 !important;
   height: 44px !important;
-  z-index: 50 !important;
+  z-index: 40 !important;
 }
 
-/* Second header row: TGT / Act */
+/* Header row 2 */
 .priority-combined-table thead tr:nth-child(2) th {
-  position: sticky !important;
   top: 44px !important;
   height: 44px !important;
-  z-index: 55 !important;
+  z-index: 45 !important;
+  border-bottom: 3px solid #78909c !important;
 }
 
-/* Player header spans 2 rows */
-.priority-combined-table thead th.sticky-col-1 {
+/* Frozen Player column body */
+.priority-combined-table tbody td.sticky-col-1 {
   position: sticky !important;
   left: 0 !important;
+  width: 110px !important;
+  min-width: 110px !important;
+  max-width: 110px !important;
+  z-index: 70 !important;
+  background: #fff !important;
+  text-align: left !important;
+}
+
+/* Frozen Field column body */
+.priority-combined-table tbody td.sticky-col-2 {
+  position: sticky !important;
+  left: 110px !important;
+  width: 68px !important;
+  min-width: 68px !important;
+  max-width: 68px !important;
+  z-index: 71 !important;
+  background: #fff !important;
+  text-align: center !important;
+}
+
+/* Frozen Player header — must sit above normal header row */
+.priority-combined-table thead th.sticky-col-1 {
+  position: sticky !important;
   top: 0 !important;
-  z-index: 200 !important;
+  left: 0 !important;
   width: 110px !important;
   min-width: 110px !important;
   max-width: 110px !important;
   height: 88px !important;
+  z-index: 200 !important;
   background: #dff0ef !important;
 }
 
-/* Field header spans 2 rows */
+/* Frozen Field header — must sit above normal header row */
 .priority-combined-table thead th.sticky-col-2 {
   position: sticky !important;
-  left: 110px !important;
   top: 0 !important;
-  z-index: 201 !important;
+  left: 110px !important;
   width: 68px !important;
   min-width: 68px !important;
   max-width: 68px !important;
   height: 88px !important;
+  z-index: 201 !important;
   background: #dff0ef !important;
 }
 
-/* Body first 2 columns */
-.priority-combined-table tbody td.sticky-col-1 {
-  position: sticky !important;
-  left: 0 !important;
-  z-index: 80 !important;
-  background: #fff !important;
+/* Position group borders */
+.priority-combined-table .priority-pos-heading,
+.priority-combined-table .group-start {
+  border-left: 3px solid #78909c !important;
 }
 
-.priority-combined-table tbody td.sticky-col-2 {
-  position: sticky !important;
-  left: 110px !important;
-  z-index: 81 !important;
-  background: #fff !important;
+.priority-combined-table .priority-pos-heading,
+.priority-combined-table .group-end {
+  border-right: 3px solid #78909c !important;
 }
 
-/* Desktop/tablet lineup grid: freeze only # and Player, not Batting */
-@media (min-width: 901px) {
-  .lineup-print-table th:nth-child(1),
-  .lineup-print-table td:nth-child(1) {
-    position: sticky !important;
-    left: 0 !important;
-    z-index: 30 !important;
-    width: 54px !important;
-    min-width: 54px !important;
-    max-width: 54px !important;
-    background: #fff !important;
-  }
-
-  .lineup-print-table th:nth-child(2),
-  .lineup-print-table td:nth-child(2) {
-    position: sticky !important;
-    left: 54px !important;
-    z-index: 30 !important;
-    width: 110px !important;
-    min-width: 110px !important;
-    max-width: 110px !important;
-    background: #fff !important;
-  }
-
-  .lineup-print-table th:nth-child(3),
-  .lineup-print-table td:nth-child(3) {
-    position: static !important;
-    left: auto !important;
-    z-index: auto !important;
-  }
-
-  .lineup-print-table thead th:nth-child(1),
-  .lineup-print-table thead th:nth-child(2) {
-    z-index: 90 !important;
-    background: #dff0ef !important;
-  }
-}
-
-
-/* =====================================================
-   FINAL OVERRIDE — PRIORITY TABLE (NO FLOAT BUG)
-   ===================================================== */
-
-.priority-combined-table {
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-}
-
-/* HEADER BASE */
-.priority-combined-table thead th {
-  background: #dff0ef !important;
-  position: sticky !important;
-}
-
-/* Row 1 (Position labels) */
-.priority-combined-table thead tr:nth-child(1) th {
-  top: 0 !important;
-  z-index: 50 !important;
-}
-
-/* Row 2 (TGT / Act) */
-.priority-combined-table thead tr:nth-child(2) th {
-  top: 44px !important;
-  z-index: 55 !important;
-}
-
-/* Player + Field headers (rowspan=2) */
-.priority-combined-table thead th.sticky-col-1,
-.priority-combined-table thead th.sticky-col-2 {
-  top: 0 !important;
-  z-index: 120 !important;
-}
-
-/* LEFT COLUMNS */
-.priority-combined-table td.sticky-col-1 {
-  position: sticky !important;
-  left: 0 !important;
-  z-index: 80 !important;
-  background: #fff !important;
-}
-
-.priority-combined-table td.sticky-col-2 {
-  position: sticky !important;
-  left: 110px !important;
-  z-index: 81 !important;
-  background: #fff !important;
-}
-
-/* HEADER + COLUMN INTERSECTION FIX (THIS FIXES YOUR BUG) */
-.priority-combined-table thead th.sticky-col-1 {
-  left: 0 !important;
-}
-
-.priority-combined-table thead th.sticky-col-2 {
-  left: 110px !important;
-}
-
-/* Prevent weird floating blocks */
-.priority-combined-table th,
-.priority-combined-table td {
-  box-sizing: border-box !important;
+.priority-combined-table .priority-wrap-header {
+  font-size: 10px !important;
+  line-height: 1.05 !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  text-align: center !important;
+  vertical-align: middle !important;
 }
