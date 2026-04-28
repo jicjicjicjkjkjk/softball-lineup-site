@@ -1360,3 +1360,57 @@
     white-space: nowrap !important;
   }
 }
+
+
+/* Priority tracking table cleanup */
+
+.priority-combined-table {
+  table-layout: fixed !important;
+  min-width: 1320px !important;
+}
+
+.priority-combined-table th,
+.priority-combined-table td {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.priority-combined-table .col-player {
+  width: 110px !important;
+  min-width: 110px !important;
+  max-width: 110px !important;
+  text-align: left !important;
+}
+
+.priority-combined-table .sticky-col-2 {
+  left: 110px !important;
+}
+
+.priority-combined-table .col-small {
+  width: 68px !important;
+  min-width: 68px !important;
+  max-width: 68px !important;
+}
+
+.priority-combined-table .priority-wrap-header {
+  font-size: 10px !important;
+  line-height: 1.05 !important;
+  white-space: normal !important;
+  padding: 4px 2px !important;
+}
+
+.priority-combined-table .priority-pos-heading {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  border-left: 2px solid #78909c !important;
+  border-right: 2px solid #78909c !important;
+}
+
+.priority-combined-table .group-start {
+  border-left: 2px solid #78909c !important;
+}
+
+.priority-combined-table .group-end {
+  border-right: 2px solid #78909c !important;
+}
