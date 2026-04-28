@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { formatDateShort } from '../lib/appHelpers'
 import LineupImportPanel from './LineupImportPanel'
 import LineupAvailability from './LineupAvailability'
+import MobileLineupCard from './MobileLineupCard'
 
 export default function LineupFocusPanel(props) {
+  const [showMobileLineupCard, setShowMobileLineupCard] = useState(false)
   const {
     optimizerFocusGame,
     optimizerFocusLineup,
@@ -122,6 +125,13 @@ export default function LineupFocusPanel(props) {
 
             <div className="button-row">
               <button
+  type="button"
+  onClick={() => setShowMobileLineupCard(true)}
+  disabled={!optimizerFocusGame || !optimizerFocusLineup}
+>
+  Lineup Card
+</button>
+              <button
                 onClick={runOptimizeCurrent}
                 disabled={!optimizerFocusGame || optimizerFocusLocked}
               >
@@ -196,6 +206,16 @@ export default function LineupFocusPanel(props) {
             />
           </div>
         </div>
+      )}
+          {showMobileLineupCard && (
+        <MobileLineupCard
+          title="Current Plan Lineup Card"
+          game={optimizerFocusGame}
+          lineup={optimizerFocusLineup}
+          players={activePlayers}
+          pk={pk}
+          onClose={() => setShowMobileLineupCard(false)}
+        />
       )}
     </>
   )
