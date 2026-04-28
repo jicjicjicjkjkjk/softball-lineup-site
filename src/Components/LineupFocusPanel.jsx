@@ -142,9 +142,27 @@ export default function LineupFocusPanel(props) {
             </div>
 
             <div className="small-note">
-              This controls what happens when you press Optimize Current or Optimize All in Plan.
-              Standard keeps today’s logic.
-            </div>
+  {optimizerMode === 'standard' && (
+    <>
+      <strong>Balanced Competitive & Development:</strong> Mixes strong lineups with fair
+      distribution of positions and sit-outs. Best overall default.
+    </>
+  )}
+
+  {optimizerMode === 'tournament' && (
+    <>
+      <strong>Tournament - Competitive:</strong> Prioritizes strongest defensive lineup,
+      keeping players in their best positions as much as possible.
+    </>
+  )}
+
+  {optimizerMode === 'friendly' && (
+    <>
+      <strong>Friendly - Development Focused:</strong> Increases position rotation and
+      gives more players opportunities at different spots while still avoiding poor fits.
+    </>
+  )}
+</div>
           </div>
         </div>
       )}
