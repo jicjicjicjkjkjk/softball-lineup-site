@@ -221,22 +221,22 @@ export default function LineupGrid({
                         className="position-select"
                       >
                         {GRID_OPTIONS.map((option) => (
-                          <option key={option || 'blank'} value={option}>
-                            {option || '--'}
-                          </option>
-                        ))}
-                      </<label className="checkbox-item grid-lock-label grid-cell-lock-only" title="Lock this cell">
-  <input
-    type="checkbox"
-    checked={cellLocked}
-    disabled={lockedLineup || rowLocked}
-    onChange={() => onCellLockToggle?.(id, inning)}
-  />
-</label>ange={() => onCellLockToggle?.(id, inning)}
-                          />
-                          Lock
-                        </label>
-                      )}
+  <option key={option || 'blank'} value={option}>
+    {option || '--'}
+  </option>
+))}
+</select>
+
+{showLocks && (
+  <label className="checkbox-item grid-lock-label grid-cell-lock-only" title="Lock this cell">
+    <input
+      type="checkbox"
+      checked={cellLocked}
+      disabled={lockedLineup || rowLocked}
+      onChange={() => onCellLockToggle?.(id, inning)}
+    />
+  </label>
+)}
                     </div>
                   </td>
                 )
