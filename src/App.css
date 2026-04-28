@@ -1066,3 +1066,93 @@
     text-align: left !important;
   }
 }
+
+
+/* =========================
+   FINAL: Priority table border fix
+   ========================= */
+
+.priority-combined-table thead tr:nth-child(2) th {
+  border-bottom: 3px solid #78909c !important;
+}
+
+.priority-combined-table .priority-wrap-header {
+  border-bottom: 3px solid #78909c !important;
+}
+
+.priority-combined-table .group-start,
+.priority-combined-table .priority-pos-heading {
+  border-left: 3px solid #78909c !important;
+}
+
+.priority-combined-table .group-end,
+.priority-combined-table .priority-pos-heading {
+  border-right: 3px solid #78909c !important;
+}
+
+/* =========================
+   FINAL: Mobile lineup grid navigation
+   Makes grid wider + easier to pan/zoom
+   ========================= */
+
+@media (max-width: 900px) {
+  .table-scroll {
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+  }
+
+  .lineup-print-table {
+    min-width: 1220px !important;
+    width: max-content !important;
+  }
+
+  .lineup-print-table th,
+  .lineup-print-table td {
+    white-space: nowrap !important;
+  }
+
+  .lineup-print-table th:nth-child(1),
+  .lineup-print-table td:nth-child(1) {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    left: 0 !important;
+  }
+
+  .lineup-print-table th:nth-child(2),
+  .lineup-print-table td:nth-child(2) {
+    width: 130px !important;
+    min-width: 130px !important;
+    max-width: 130px !important;
+    left: 56px !important;
+  }
+
+  .lineup-print-table th:nth-child(3),
+  .lineup-print-table td:nth-child(3) {
+    position: static !important;
+    width: 110px !important;
+    min-width: 110px !important;
+    max-width: 110px !important;
+  }
+
+  .lineup-print-table th:nth-child(4),
+  .lineup-print-table td:nth-child(4) {
+    position: static !important;
+    width: 90px !important;
+    min-width: 90px !important;
+    max-width: 90px !important;
+  }
+
+  .lineup-print-table select {
+    width: 92px !important;
+    min-width: 92px !important;
+    max-width: 92px !important;
+  }
+
+  .lineup-print-table input[type='number'] {
+    width: 78px !important;
+    min-width: 78px !important;
+    max-width: 78px !important;
+  }
+}
