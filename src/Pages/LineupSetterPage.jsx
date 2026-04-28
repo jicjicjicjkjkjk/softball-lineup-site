@@ -98,15 +98,6 @@ export default function LineupSetterPage({
   setOptimizerMode,
   games,
   addExistingGameToBatch,
-  optimizerNewDate,
-  setOptimizerNewDate,
-  optimizerNewOpponent,
-  setOptimizerNewOpponent,
-  optimizerNewType,
-  setOptimizerNewType,
-  optimizerNewSeason,
-  setOptimizerNewSeason,
-  addGameFromOptimizer,
   runOptimizeCurrent,
   optimizerFocusGameId,
   runOptimizeAll,
@@ -474,77 +465,6 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
             </div>
           </div>
 
-          <div>
-            <h3 style={{ marginTop: 0 }}>Create New Game and Add to Plan</h3>
-
-            <div className="lineup-setter-new-game">
-              <div
-                className="lineup-setter-new-game-fields"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 12,
-                }}
-              >
-                <div>
-                  <label>Game Date</label>
-                  <input
-                    type="date"
-                    value={optimizerNewDate}
-                    onChange={(e) => setOptimizerNewDate(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label>Opponent</label>
-                  <input
-                    value={optimizerNewOpponent}
-                    onChange={(e) => setOptimizerNewOpponent(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label>Game Type</label>
-                  <select
-                    value={optimizerNewType}
-                    onChange={(e) => setOptimizerNewType(e.target.value)}
-                  >
-                    <option value="">Select type</option>
-                    {gameTypeOptions.map((option) => (
-                      <option
-                        key={renderOptionValue(option)}
-                        value={renderOptionValue(option)}
-                      >
-                        {renderOptionLabel(option)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label>Season</label>
-                  <select
-                    value={optimizerNewSeason}
-                    onChange={(e) => setOptimizerNewSeason(e.target.value)}
-                  >
-                    <option value="">Select season</option>
-                    {seasonOptions.map((option) => (
-                      <option
-                        key={renderOptionValue(option)}
-                        value={renderOptionValue(option)}
-                      >
-                        {renderOptionLabel(option)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="lineup-setter-new-game-action" style={{ marginTop: 12 }}>
-                <button onClick={addGameFromOptimizer}>Add New Game</button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -660,6 +580,28 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         </div>
       </div>
 
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Optimizer Mode</h3>
+
+        <div className="optimizer-mode-row">
+          <div>
+            <label>Mode</label>
+            <select
+              value={optimizerMode}
+              onChange={(e) => setOptimizerMode?.(e.target.value)}
+            >
+              <option value="standard">Standard — current logic</option>
+              <option value="tournament">Tournament — strongest primary lineup</option>
+              <option value="friendly">Friendly — development weighted</option>
+            </select>
+          </div>
+
+          <div className="small-note">
+            Standard keeps today’s optimizer behavior. Tournament and Friendly are controlled modes for future tuning.
+          </div>
+        </div>
+      </div>
+      
       <LineupFocusPanel
         optimizerFocusGame={optimizerFocusGame}
         optimizerFocusLineup={optimizerFocusLineup}
