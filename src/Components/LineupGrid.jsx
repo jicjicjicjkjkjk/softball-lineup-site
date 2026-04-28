@@ -199,13 +199,25 @@ export default function LineupGrid({
                   if (status.duplicate.includes(value)) {
                     background = '#fee2e2'
                   } else {
-                    const tier = fitTier(fitMap, id, value)
-                    background =
-                      tier === 'primary' || tier === 'A'
-                        ? '#d1fae5'
-                        : tier === 'secondary' || tier === 'B' || tier === 'C'
-                        ? '#fef9c3'
-                        : '#fee2e2'
+                    const tierRaw = fitTier(fitMap, id, value)
+
+// Normalize tier (this is the missing piece)
+const tier = String(tierRaw || '').toLowerCase()
+
+const isPrimary =
+  tier === 'primary' || tier === 'a'
+
+const isSecondary =
+  tier === 'secondary' ||
+  tier === 'non-primary' ||
+  tier === 'b' ||
+  tier === 'c'
+
+background = isPrimary
+  ? '#d1fae5'   // green
+  : isSecondary
+  ? '#fef9c3'   // yellow
+  : '#fee2e2'   // red
                   }
                 }
 
