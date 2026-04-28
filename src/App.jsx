@@ -135,9 +135,10 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
       seasons: Array.isArray(parsed?.seasons) ? parsed.seasons : [],
       gameTypes: Array.isArray(parsed?.gameTypes) ? parsed.gameTypes : [],
       gameStatuses: Array.isArray(parsed?.gameStatuses) ? parsed.gameStatuses : [],
-      lineupStates: Array.isArray(parsed?.lineupStates)
-        ? parsed.lineupStates
-        : ['Locked'],
+            lineupStates:
+        Array.isArray(parsed?.lineupStates) && parsed.lineupStates.length
+          ? parsed.lineupStates
+          : ['Locked'],
     }
   } catch (error) {
     console.error('Failed to load tracking filters from sessionStorage', error)
@@ -2573,6 +2574,7 @@ function toggleSavedAllBattingLock(gameId) {
     setOptimizerNewSeason={setOptimizerNewSeason}
     gameTypeOptions={gameTypeOptions}
     seasonOptions={seasonOptions}
+    statusOptions={statusOptions}
     trackingFilters={trackingFilters}
     setTrackingFilters={setTrackingFilters}
     addGameFromOptimizer={addGameFromOptimizer}
@@ -2637,6 +2639,7 @@ function toggleSavedAllBattingLock(gameId) {
     setTrackingFilters={setTrackingFilters}
     seasonOptions={seasonOptions}
     gameTypeOptions={gameTypeOptions}
+    statusOptions={statusOptions}
     TrackingTable={TrackingTable}
     battingRows={battingRows}
     sitSummary={sitSummary}
