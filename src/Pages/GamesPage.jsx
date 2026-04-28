@@ -37,6 +37,8 @@ export default function GamesPage({
   seasonOptions = [],
   gameTypeOptions = [],
   statusOptions = [],
+  lineupsByGame = {},
+  pk,
 }) {
   // ✅ DEFAULT SORT (highest game_order first)
   useEffect(() => {
@@ -243,8 +245,8 @@ export default function GamesPage({
                     </select>
                   </td>
 
-                  <td className="center-cell">
-                    {game.innings ?? 6}
+                                    <td className="center-cell">
+                    {lineupsByGame?.[pk(game.id)]?.innings || game.innings || 6}
                   </td>
 
                   <td>
