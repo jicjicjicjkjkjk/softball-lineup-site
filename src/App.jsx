@@ -20,6 +20,7 @@ import {
 import GamesPage from './Pages/GamesPage'
 import TrackingTable from './Components/TrackingTable'
 import AttendancePage from './Pages/AttendancePage'
+import PlayersPage from './PlayersPage'
 import {
   nextSort,
   sortRows,
@@ -2548,26 +2549,7 @@ function toggleSavedAllBattingLock(gameId) {
   </div>
 )}
 
-        {page === 'players' && (
-          <PlayersPage
-            newPlayerName={newPlayerName}
-            setNewPlayerName={setNewPlayerName}
-            newPlayerLastName={newPlayerLastName}
-            setNewPlayerLastName={setNewPlayerLastName}
-            newPlayerNumber={newPlayerNumber}
-            newPlayerActive={newPlayerActive}
-            setNewPlayerActive={setNewPlayerActive}
-            addPlayer={addPlayer}
-            sortedPlayers={sortedPlayers}
-            playerSort={playerSort}
-            setPlayerSort={setPlayerSort}
-            nextSort={nextSort}
-            updatePlayerLocal={updatePlayerLocal}
-            upsertPlayer={upsertPlayer}
-            deletePlayer={deletePlayer}
-          />
-        )}
-
+      
         {page === 'positioning-priority' && (
           <PositioningPriorityPage
             activePriorityRows={activePriorityRows}
@@ -2778,14 +2760,32 @@ function toggleSavedAllBattingLock(gameId) {
         )}
 
         {page === 'admin' && (
-          <AdminPage
-            appOptions={appOptions}
-            loadAppOptions={loadAppOptions}
-            addAppOption={addAppOption}
-            updateAppOption={updateAppOption}
-            reloadAllData={loadAll}
-          />
-        )}
+  <AdminPage
+    appOptions={appOptions}
+    loadAppOptions={loadAppOptions}
+    addAppOption={addAppOption}
+    updateAppOption={updateAppOption}
+    reloadAllData={loadAll}
+    players={players}
+    sortedPlayers={sortedPlayers}
+    playerSort={playerSort}
+    setPlayerSort={setPlayerSort}
+    nextSort={nextSort}
+    updatePlayerLocal={updatePlayerLocal}
+    upsertPlayer={upsertPlayer}
+    deletePlayer={deletePlayer}
+    addPlayer={addPlayer}
+    newPlayerName={newPlayerName}
+    setNewPlayerName={setNewPlayerName}
+    newPlayerLastName={newPlayerLastName}
+    setNewPlayerLastName={setNewPlayerLastName}
+    newPlayerNumber={newPlayerNumber}
+    newPlayerActive={newPlayerActive}
+    setNewPlayerActive={setNewPlayerActive}
+  />
+)}
+
+        
       </main>
     </div>
   )
