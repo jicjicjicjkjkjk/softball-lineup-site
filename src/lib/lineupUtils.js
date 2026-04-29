@@ -54,6 +54,11 @@ function positionFillRank(profileRules, position) {
   return getRuleNumber(rule, ['fill_rank', 'fill_order', 'rank'], 99)
 }
 
+function consecutiveMode(profileRules, position) {
+  const rule = getPositionRule(profileRules, position)
+  return rule?.consecutive_mode || (['P', 'C'].includes(position) ? 'must_2' : 'prefer')
+}
+
 function fitAllowedByRule(rule, fit) {
   const primaryFit = fit === 'A' || fit === 'primary'
   const secondaryFit = fit === 'B' || fit === 'secondary'
@@ -824,7 +829,21 @@ function scorePlayerForPosition({
   const minPositions = Number(optimizerProfile?.min_positions_per_player || 0)
   const minPositionsMode = optimizerProfile?.min_positions_mode || 'nice'
 
-  let rotationScore = prevValue === position ? 100 : 0
+    const samePositionMode = consecutiveMode(optimizerProfileRules, position)
+
+  let rotationScore = prevValue === position ? 1200 : 0
+
+  if (samePositionMode === 'prefer' && prevValue === position) {
+    rotationScore += 1800
+  }
+
+  if (samePositionMode === 'must_2' && prevValue === position) {
+    rotationScore += 12000
+  }
+
+  if (samePositionMode === 'must_2' && inning > 1 && prevValue && prevValue !== position) {
+    rotationScore -= 3500
+  }
 
   if (optimizerMode === 'friendly') {
     rotationScore = 0
@@ -1057,6 +1076,56 @@ function enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap }) {
   return lineup
 }
 
+function enforceConsecutivePositionRules({ lineup, players, fitMap, optimizerProfileRules }) {
+  const innings = Number(lineup?.innings || 0)
+  if (!innings) return lineup
+
+  function playerAt(position, inning) {
+    return (players || [])
+      .map((player) => pk(player.id))
+      .find((id) => lineup?.cells?.[id]?.[inning] === position)
+  }
+
+  function canSwap(playerA, playerB, inning) {
+    const aPos = lineup?.cells?.[playerA]?.[inning] || ''
+    const bPos = lineup?.cells?.[playerB]?.[inning] || ''
+
+    if (!FIELD_POSITIONS.includes(aPos) || !FIELD_POSITIONS.includes(bPos)) return false
+    if (lockedValue(lineup, playerA, inning)) return false
+    if (lockedValue(lineup, playerB, inning)) return false
+    if (isDisallowedFit(fitTier(fitMap, playerA, bPos))) return false
+    if (isDisallowedFit(fitTier(fitMap, playerB, aPos))) return false
+
+    return true
+  }
+
+  ;['P', 'C'].forEach((position) => {
+    if (consecutiveMode(optimizerProfileRules, position) !== 'must_2') return
+
+    for (let inning = 1; inning <= innings; inning += 1) {
+      const playerId = playerAt(position, inning)
+      if (!playerId) continue
+
+      const prevSame = inning > 1 && lineup?.cells?.[playerId]?.[inning - 1] === position
+      const nextSame = inning < innings && lineup?.cells?.[playerId]?.[inning + 1] === position
+
+      if (prevSame || nextSame) continue
+
+      const preferredNeighbor = inning < innings ? inning + 1 : inning - 1
+      const otherId = playerAt(lineup?.cells?.[playerId]?.[preferredNeighbor], inning)
+
+      if (!otherId) continue
+      if (!canSwap(playerId, otherId, preferredNeighbor)) continue
+
+      const currentOtherPos = lineup.cells[playerId][preferredNeighbor]
+      lineup.cells[playerId][preferredNeighbor] = position
+      lineup.cells[otherId][preferredNeighbor] = currentOtherPos
+    }
+  })
+
+  return lineup
+}
+
 export function buildOptimizedLineup({
   game,
   players,
@@ -1213,7 +1282,14 @@ Object.entries(assigned).forEach(([playerId, position]) => {
     })
   }
   
-    if (optimizerMode !== 'tournament') {
+      enforceConsecutivePositionRules({
+    lineup,
+    players,
+    fitMap,
+    optimizerProfileRules,
+  })
+
+  if (optimizerMode !== 'tournament') {
     enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap })
   }
 
