@@ -3,9 +3,9 @@ const NAV_ITEMS = [
   { key: 'game-detail', label: 'Game Detail' },
   { key: 'lineup-setter', label: 'Lineup Setter' },
   { key: 'tracking', label: 'Tracking' },
-  { key: 'players', label: 'Players' },
   { key: 'positioning-priority', label: 'Positioning Priority' },
   { key: 'attendance', label: 'Attendance' },
+  { key: 'optimizer-inputs', label: 'Optimizer Inputs' },
   { key: 'admin', label: 'Admin' },
 ]
 
