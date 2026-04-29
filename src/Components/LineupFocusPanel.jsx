@@ -44,6 +44,8 @@ export default function LineupFocusPanel(props) {
     optimizerMode = 'standard',
     setOptimizerMode,
     optimizerProfiles = [],
+    selectedOptimizerProfile = null,
+    optimizerModeDescription = '',
   } = props
 
   if (!optimizerFocusGame) return null
@@ -152,28 +154,12 @@ export default function LineupFocusPanel(props) {
               </select>
             </div>
 
-            <div className="small-note">
-  {optimizerMode === 'standard' && (
-    <>
-      <strong>Balanced Competitive & Development:</strong> Mixes strong lineups with fair
-      distribution of positions and sit-outs. Best overall default.
-    </>
-  )}
-
-  {optimizerMode === 'tournament' && (
-    <>
-      <strong>Tournament - Competitive:</strong> Prioritizes strongest defensive lineup,
-      keeping players in their best positions as much as possible.
-    </>
-  )}
-
-  {optimizerMode === 'friendly' && (
-    <>
-      <strong>Friendly - Development Focused:</strong> Increases position rotation and
-      gives more players opportunities at different spots while still avoiding poor fits.
-    </>
-  )}
-</div>
+                        <div className="small-note">
+              <strong>
+                {selectedOptimizerProfile?.profile_name || 'Selected Strategy'}:
+              </strong>{' '}
+              {optimizerModeDescription || 'No description has been added yet.'}
+            </div>
           </div>
         </div>
       )}
