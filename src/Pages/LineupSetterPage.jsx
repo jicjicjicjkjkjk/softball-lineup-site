@@ -432,6 +432,16 @@ const totalNeeded = currentPlanLineupsOrdered.reduce((sum, lineup) => {
 const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   .filter((v) => v !== '' && v != null)
   .reduce((sum, v) => sum + Number(v || 0), 0)
+
+const selectedOptimizerProfile =
+  optimizerProfiles.find((profile) => profile.profile_key === optimizerMode) ||
+  optimizerProfiles.find((profile) => profile.id === optimizerMode) ||
+  optimizerProfiles.find((profile) => profile.is_default) ||
+  null
+
+const optimizerModeDescription =
+  selectedOptimizerProfile?.description ||
+  'No description has been added for this optimizer mode yet.'
   
   return (
     <div className="stack">
@@ -586,6 +596,8 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
         optimizerFocusGame={optimizerFocusGame}
         optimizerFocusLineup={optimizerFocusLineup}
         optimizerFocusLocked={optimizerFocusLocked}
+        selectedOptimizerProfile={selectedOptimizerProfile}
+        optimizerModeDescription={optimizerModeDescription}
         optimizerImportSourceGameId={optimizerImportSourceGameId}
         setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
         optimizerImportableGames={optimizerImportableGames}
