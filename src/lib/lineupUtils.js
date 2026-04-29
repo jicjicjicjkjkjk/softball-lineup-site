@@ -1072,10 +1072,10 @@ function enforceConsecutivePositionRules({ lineup, players, fitMap, optimizerPro
   const innings = Number(lineup?.innings || 0)
   if (!innings) return lineup
 
+  const playerIds = (players || []).map((player) => pk(player.id))
+
   function playerAt(position, inning) {
-    return (players || [])
-      .map((player) => pk(player.id))
-      .find((id) => lineup?.cells?.[id]?.[inning] === position)
+    return playerIds.find((id) => lineup?.cells?.[id]?.[inning] === position)
   }
 
   function canSwapAtInning(playerA, playerB, inning) {
@@ -1103,22 +1103,21 @@ function enforceConsecutivePositionRules({ lineup, players, fitMap, optimizerPro
 
       if (prevSame || nextSame) continue
 
-      const neighborOptions = [inning + 1, inning - 1].filter(
-        (neighbor) => neighbor >= 1 && neighbor <= innings
+      const neighborInnings = [inning + 1, inning - 1].filter(
+        (n) => n >= 1 && n <= innings
       )
 
-      for (const neighbor of neighborOptions) {
-        const currentNeighborHolder = playerAt(position, neighbor)
-        if (!currentNeighborHolder || currentNeighborHolder === playerId) continue
+      for (const neighbor of neighborInnings) {
+        const currentHolderAtNeighbor = playerAt(position, neighbor)
+        if (!currentHolderAtNeighbor) continue
+        if (currentHolderAtNeighbor === playerId) break
 
-        if (!canSwapAtInning(playerId, currentNeighborHolder, neighbor)) continue
-
-        const playerNeighborPos = lineup.cells[playerId][neighbor]
-
-        lineup.cells[playerId][neighbor] = position
-        lineup.cells[currentNeighborHolder][neighbor] = playerNeighborPos
-
-        break
+        if (canSwapAtInning(playerId, currentHolderAtNeighbor, neighbor)) {
+          const playerNeighborPos = lineup.cells[playerId][neighbor]
+          lineup.cells[playerId][neighbor] = position
+          lineup.cells[currentHolderAtNeighbor][neighbor] = playerNeighborPos
+          break
+        }
       }
     }
   })
