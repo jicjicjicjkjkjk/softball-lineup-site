@@ -50,9 +50,23 @@ export default function AdminPage({
   loadAppOptions,
   addAppOption,
   updateAppOption,
-  optimizerProfiles = [],
-  optimizerProfileRules = {},
   reloadAllData,
+
+  sortedPlayers,
+  playerSort,
+  setPlayerSort,
+  nextSort,
+  updatePlayerLocal,
+  upsertPlayer,
+  deletePlayer,
+  addPlayer,
+  newPlayerName,
+  setNewPlayerName,
+  newPlayerLastName,
+  setNewPlayerLastName,
+  newPlayerNumber,
+  newPlayerActive,
+  setNewPlayerActive,
 }) {
   const [seasonForm, setSeasonForm] = useState(blankForm('season'))
   const [gameTypeForm, setGameTypeForm] = useState(blankForm('game_type'))
