@@ -5,21 +5,20 @@ import { TEAM_ID } from '../lib/constants'
 const POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
 
 const FILL_ORDER_OPTIONS = [
-  { value: 1, label: '1 - Fill First' },
-  { value: 2, label: '2 - Very Early' },
-  { value: 3, label: '3 - Early' },
-  { value: 4, label: '4 - Middle' },
-  { value: 5, label: '5 - Later' },
-  { value: 6, label: '6 - Last' },
-  { value: 99, label: 'Ignore / No Priority' },
+  { value: 1, label: 'Core positions first' },
+  { value: 2, label: 'High priority' },
+  { value: 3, label: 'Normal priority' },
+  { value: 4, label: 'Lower priority' },
+  { value: 5, label: 'Fill late' },
+  { value: 99, label: 'Only if needed' },
 ]
 
 const IMPORTANCE_OPTIONS = [
-  { value: 10, label: 'Very High - protect strongly' },
-  { value: 7, label: 'High' },
-  { value: 5, label: 'Medium' },
-  { value: 3, label: 'Low' },
-  { value: 1, label: 'Very Low' },
+  { value: 10, label: 'Critical - highest pos priority' },
+  { value: 7, label: 'Important' },
+  { value: 5, label: 'Normal' },
+  { value: 3, label: 'Flexible' },
+  { value: 1, label: 'Least important' },
 ]
 
 function normalizeValue(text = '') {
@@ -32,6 +31,7 @@ function normalizeValue(text = '') {
 function blankProfileForm() {
   return {
     profile_name: '',
+    description: '',
     is_default: false,
     min_positions_per_player: 2,
     min_positions_mode: 'nice',
@@ -166,10 +166,11 @@ export default function OptimizerInputsPage({
 
     const inserted = await supabase
       .from('optimizer_profiles')
-      .insert({
+      .insert({        
         team_id: TEAM_ID,
         profile_name: profileName,
         profile_key: normalizeValue(profileName),
+        description: profileForm.description || '',
         is_default: profileForm.is_default === true,
         min_positions_per_player: Number(profileForm.min_positions_per_player || 0),
         min_positions_mode: profileForm.min_positions_mode || 'nice',
@@ -241,6 +242,7 @@ export default function OptimizerInputsPage({
       .update({
         profile_name: draftProfile.profile_name || '',
         profile_key: normalizeValue(draftProfile.profile_name || ''),
+        description: draftProfile.description || '',
         is_default: draftProfile.is_default === true,
         min_positions_per_player: Number(draftProfile.min_positions_per_player || 0),
         min_positions_mode: draftProfile.min_positions_mode || 'nice',
@@ -410,7 +412,7 @@ export default function OptimizerInputsPage({
           </div>
 
           <div className="grid-2">
-            <div>
+                        <div>
               <label>Strategy Name</label>
               <div className="small-note">Example: Balanced, Development, Tournament Strongest.</div>
               <input
@@ -419,6 +421,18 @@ export default function OptimizerInputsPage({
                   setProfileForm((s) => ({ ...s, profile_name: e.target.value }))
                 }
                 placeholder="Balanced"
+              />
+            </div>
+
+            <div>
+              <label>Strategy Description</label>
+              <div className="small-note">Shown on Lineup Setter when this mode is selected.</div>
+              <input
+                value={profileForm.description}
+                onChange={(e) =>
+                  setProfileForm((s) => ({ ...s, description: e.target.value }))
+                }
+                placeholder="Balanced lineups with fair positions and sit-outs."
               />
             </div>
 
@@ -561,12 +575,22 @@ export default function OptimizerInputsPage({
                 </div>
 
                 <div className="grid-2" style={{ marginTop: 18 }}>
-                  <div>
+                                    <div>
                     <label>Strategy Name</label>
                     <div className="small-note">If changed, this is what appears in optimizer strategy dropdowns.</div>
                     <input
                       value={draftProfile.profile_name || ''}
                       onChange={(e) => updateDraftProfile('profile_name', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label>Strategy Description</label>
+                    <div className="small-note">Shown on Lineup Setter beside the mode dropdown.</div>
+                    <input
+                      value={draftProfile.description || ''}
+                      onChange={(e) => updateDraftProfile('description', e.target.value)}
+                      placeholder="Explain when/why to use this strategy."
                     />
                   </div>
 
@@ -676,20 +700,20 @@ export default function OptimizerInputsPage({
             <div className="card">
               <h3 style={{ marginTop: 0 }}>Position Rules</h3>
               <div className="small-note" style={{ marginBottom: 12 }}>
-                If a player is marked Primary / Non-Primary / No on the Positioning Priority page,
-                these columns tell the solver whether that player can be used at that position.
+                Fill Order groups positions by when they should be solved. Multiple positions can share the same group.
+                Importance tells the optimizer how much to protect that position if choices are limited.
               </div>
 
               <div style={{ overflowX: 'auto' }}>
-                <table className="table-center" style={{ minWidth: 900 }}>
+                  <table className="table-center" style={{ minWidth: 760, fontSize: 14 }}>
                   <thead>
-                    <tr>
-                      <th>Position</th>
-                      <th>Fill Order</th>
-                      <th>Importance</th>
+                                        <tr>
+                      <th>Pos</th>
+                      <th>When to Fill</th>
+                      <th>How Much to Protect</th>
                       <th>Primary</th>
                       <th>Non-Primary</th>
-                      <th>No</th>
+                      <th>Avoid</th>
                     </tr>
                   </thead>
 
