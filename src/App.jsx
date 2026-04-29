@@ -40,6 +40,7 @@ import TrackingPage from './Pages/TrackingPage'
 import LineupGrid from './Components/LineupGrid'
 import Sidebar from './Components/Sidebar'
 import AdminPage from './Pages/AdminPage'
+import OptimizerInputsPage from './Pages/OptimizerInputsPage'
 import {
   TEAM_ID,
   ATTENDANCE_SEASON_OPTIONS,
@@ -2767,16 +2768,23 @@ function toggleSavedAllBattingLock(gameId) {
         
                 {page === 'attendance' && renderAttendancePage()}
 
+                {page === 'optimizer-inputs' && (
+          <OptimizerInputsPage
+            optimizerProfiles={optimizerProfiles}
+            optimizerProfileRules={optimizerProfileRules}
+            reloadAllData={loadAll}
+            setAppError={setAppError}
+          />
+        )}
+
         {page === 'admin' && (
           <AdminPage
-  appOptions={appOptions}
-  loadAppOptions={loadAppOptions}
-  addAppOption={addAppOption}
-  updateAppOption={updateAppOption}
-  optimizerProfiles={optimizerProfiles}
-  optimizerProfileRules={optimizerProfileRules}
-  reloadAllData={loadAll}
-/>
+            appOptions={appOptions}
+            loadAppOptions={loadAppOptions}
+            addAppOption={addAppOption}
+            updateAppOption={updateAppOption}
+            reloadAllData={loadAll}
+          />
         )}
       </main>
     </div>
