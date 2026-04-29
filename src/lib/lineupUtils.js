@@ -747,7 +747,6 @@ function scorePlayerForPosition({
   inning,
   planPositionCounts,
   candidateIds,
-  optimizerMode = 'standard',
   optimizerProfile = null,
   optimizerProfileRules = {},
 }) {
@@ -843,7 +842,6 @@ function assignPositionsForInning({
   priorityMap,
   fitMap,
   planPositionCounts,
-  optimizerMode = 'standard',
   optimizerProfile = null,
   optimizerProfileRules = {},
 }) {
@@ -874,7 +872,6 @@ function assignPositionsForInning({
           inning,
           planPositionCounts,
           candidateIds,
-          optimizerMode,
           optimizerProfile,
           optimizerProfileRules,
         })
@@ -1131,7 +1128,6 @@ export function buildOptimizedLineup({
   fitMap,
   planSitOutTargets = {},
   batchCurrentOuts = {},
-  optimizerMode = 'standard',
   optimizerProfile = null,
   optimizerProfileRules = {},
 }) {
@@ -1214,7 +1210,6 @@ const planPositionCounts = initializePlanPositionCounts(players)
   priorityMap,
   fitMap,
   planPositionCounts,
-  optimizerMode,
   optimizerProfile,
   optimizerProfileRules,
 })
