@@ -458,6 +458,27 @@ export default function AdminPage({
       return (
     <div className="stack">
       <div className="card">
+  <h2>Player Management</h2>
+
+  <PlayersPage
+    newPlayerName={newPlayerName}
+    setNewPlayerName={setNewPlayerName}
+    newPlayerLastName={newPlayerLastName}
+    setNewPlayerLastName={setNewPlayerLastName}
+    newPlayerNumber={newPlayerNumber}
+    newPlayerActive={newPlayerActive}
+    setNewPlayerActive={setNewPlayerActive}
+    addPlayer={addPlayer}
+    sortedPlayers={sortedPlayers}
+    playerSort={playerSort}
+    setPlayerSort={setPlayerSort}
+    nextSort={nextSort}
+    updatePlayerLocal={updatePlayerLocal}
+    upsertPlayer={upsertPlayer}
+    deletePlayer={deletePlayer}
+  />
+</div>
+      <div className="card">
         <h2>Coach Dashboard</h2>
         <div className="small-note">
           Set lineup rules, fairness rules, and position preferences.
