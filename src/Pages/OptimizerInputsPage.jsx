@@ -439,6 +439,108 @@ export default function OptimizerInputsPage({
       </div>
     )
   }
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+}
+
+function printOptimizerSummary() {
+  const profile = draftProfile || profileForm
+  const rules = POSITIONS.map((position) => normalizeRule(draftRules[position], position))
+
+  const ruleRows = rules
+    .map(
+      (rule) => `
+        <tr>
+          <td>${escapeHtml(rule.position)}</td>
+          <td>${escapeHtml(rule.fill_rank)}</td>
+          <td>${escapeHtml(rule.importance)}</td>
+          <td>${escapeHtml(rule.consecutive_mode)}</td>
+          <td>${rule.allow_primary ? 'Yes' : 'No'}</td>
+          <td>${rule.allow_secondary || rule.allow_development ? 'Yes' : 'No'}</td>
+          <td>${
+            rule.allow_primary === false &&
+            rule.allow_secondary === false &&
+            rule.allow_development === false
+              ? 'Yes'
+              : 'No'
+          }</td>
+        </tr>
+      `
+    )
+    .join('')
+
+  const html = `
+    <html>
+      <head>
+        <title>Optimizer Inputs Summary</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 24px; color: #111827; }
+          h1, h2, h3 { margin-bottom: 8px; }
+          .section { margin-bottom: 24px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 12px; text-align: left; }
+          th { background: #f3f4f6; }
+          .small { color: #4b5563; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <h1>Optimizer Inputs Summary</h1>
+        <p class="small">Use this PDF to review and tune optimizer strategy settings.</p>
+
+        <div class="section">
+          <h2>Strategy Settings</h2>
+          <table>
+            <tbody>
+              <tr><th>Strategy Name</th><td>${escapeHtml(profile.profile_name)}</td></tr>
+              <tr><th>Description</th><td>${escapeHtml(profile.description)}</td></tr>
+              <tr><th>Default Strategy</th><td>${profile.is_default ? 'Yes' : 'No'}</td></tr>
+              <tr><th>Everyone Sits Once First</th><td>${profile.sit_all_before_second ? 'Yes' : 'No'}</td></tr>
+              <tr><th>Sit Gap</th><td>${escapeHtml(profile.min_innings_between_sitouts)}</td></tr>
+              <tr><th>Minimum Positions per Player</th><td>${escapeHtml(profile.min_positions_per_player)}</td></tr>
+              <tr><th>Position Variety Mode</th><td>${escapeHtml(profile.min_positions_mode)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h2>Position Rules</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Position</th>
+                <th>When to Fill</th>
+                <th>Protect</th>
+                <th>Consecutive</th>
+                <th>Primary</th>
+                <th>Non-Primary</th>
+                <th>Avoid</th>
+              </tr>
+            </thead>
+            <tbody>${ruleRows}</tbody>
+          </table>
+        </div>
+      </body>
+    </html>
+  `
+
+  const printWindow = window.open('', '_blank')
+  if (!printWindow) {
+    alert('Please allow pop-ups so the print/PDF summary can open.')
+    return
+  }
+
+  printWindow.document.open()
+  printWindow.document.write(html)
+  printWindow.document.close()
+  printWindow.focus()
+  printWindow.print()
+}
   
   function renderStrategyFields(source, updateFn) {
     return (
@@ -603,12 +705,16 @@ export default function OptimizerInputsPage({
 
                   <div className="row-between wrap-row" style={{ marginTop: 12 }}>
                     <button onClick={saveStrategyChanges} disabled={!dirty || saving}>
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
+  {saving ? 'Saving...' : 'Save Changes'}
+</button>
 
-                    <button type="button" onClick={deleteStrategy} disabled={saving}>
-                      Delete Strategy
-                    </button>
+<button type="button" onClick={printOptimizerSummary}>
+  Print / Save PDF Summary
+</button>
+
+<button type="button" onClick={deleteStrategy} disabled={saving}>
+  Delete Strategy
+</button>
                   </div>
                 </div>
 
