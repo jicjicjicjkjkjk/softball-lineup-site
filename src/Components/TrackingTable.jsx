@@ -174,7 +174,7 @@ export default function TrackingTable({
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'games'))}>Games</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'fieldTotal'))}>Fld</th>
             <th onClick={() => setSortConfig(nextSort(sortConfig, 'Out'))}>Out</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'outPct'))}>% Out</th>
+            
 
             {showSitOutTargets && (
               <>
@@ -207,7 +207,7 @@ export default function TrackingTable({
               </th>
             ))}
 
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'outPct'))}>% Out</th>
+            
           </tr>
         </thead>
 
