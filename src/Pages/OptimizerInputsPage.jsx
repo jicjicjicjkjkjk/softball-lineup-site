@@ -85,7 +85,7 @@ export default function OptimizerInputsPage({
 }) {
   const [mode, setMode] = useState('edit')
   const [profileForm, setProfileForm] = useState(blankProfileForm())
-  const [selectedProfileId, setSelectedProfileId] = useState(optimizerProfiles?.[0]?.id || '')
+  const [selectedProfileId, setSelectedProfileId] = useState('')
   const [copySourceId, setCopySourceId] = useState('')
   const [draftProfile, setDraftProfile] = useState(null)
   const [draftRules, setDraftRules] = useState({})
@@ -93,10 +93,20 @@ export default function OptimizerInputsPage({
   const [saving, setSaving] = useState(false)
   const [positionSort, setPositionSort] = useState({ key: 'position', direction: 'asc' })
 
-  const selectedProfile =
-    optimizerProfiles.find((profile) => profile.id === selectedProfileId) ||
-    optimizerProfiles[0] ||
-    null
+  const sortedProfiles = useMemo(() => {
+  return [...optimizerProfiles].sort((a, b) =>
+    String(b.profile_name || '').localeCompare(String(a.profile_name || ''))
+  )
+}, [optimizerProfiles])
+
+const defaultProfile =
+  optimizerProfiles.find((profile) => profile.is_default) ||
+  sortedProfiles[0] ||
+  null
+
+const selectedProfile =
+  optimizerProfiles.find((profile) => profile.id === selectedProfileId) ||
+  defaultProfile
 
   const otherProfiles = useMemo(
     () => optimizerProfiles.filter((profile) => profile.id !== selectedProfile?.id),
@@ -123,6 +133,13 @@ export default function OptimizerInputsPage({
     setDirty(false)
   }, [selectedProfileId, optimizerProfiles, optimizerProfileRules])
 
+  useEffect(() => {
+  if (selectedProfileId) return
+  if (defaultProfile?.id) {
+    setSelectedProfileId(defaultProfile.id)
+  }
+}, [selectedProfileId, defaultProfile])
+  
   const sortedRules = useMemo(() => {
     return POSITIONS.map((position) => ({
       ...normalizeRule(draftRules[position], position),
@@ -680,7 +697,7 @@ function printOptimizerSummary() {
               onChange={(e) => setSelectedProfileId(e.target.value)}
             >
               <option value="">Select strategy</option>
-              {optimizerProfiles.map((profile) => (
+              {sortedProfiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
                   {profile.profile_name}
                   {profile.is_default ? ' (Default)' : ''}
