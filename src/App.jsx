@@ -20,7 +20,6 @@ import {
 import GamesPage from './Pages/GamesPage'
 import TrackingTable from './Components/TrackingTable'
 import AttendancePage from './Pages/AttendancePage'
-import PlayersPage from './PlayersPage'
 import {
   nextSort,
   sortRows,
