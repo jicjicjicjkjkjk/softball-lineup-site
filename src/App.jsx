@@ -2779,6 +2779,7 @@ function toggleSavedAllBattingLock(gameId) {
     newPlayerLastName={newPlayerLastName}
     setNewPlayerLastName={setNewPlayerLastName}
     newPlayerNumber={newPlayerNumber}
+    setNewPlayerNumber={setNewPlayerNumber}
     newPlayerActive={newPlayerActive}
     setNewPlayerActive={setNewPlayerActive}
   />
