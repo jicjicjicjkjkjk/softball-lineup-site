@@ -497,8 +497,7 @@ export default function OptimizerInputsPage({
           <div>
             <h2 style={{ marginBottom: 8 }}>Optimizer Inputs</h2>
             <div className="small-note">
-              The solver works in this order: locks, availability, sit-outs, position order,
-              player fit, importance, then position variety.
+              Explanation of the order of operations and constraints included below.
             </div>
           </div>
 
@@ -745,8 +744,100 @@ export default function OptimizerInputsPage({
               </button>
             </div>
           )}
-        </>
+                </>
       )}
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Optimizer Logic Reference</h3>
+        <div className="small-note" style={{ marginBottom: 12 }}>
+          Current optimizer logic mapped to the website inputs and pages.
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table className="table-center" style={{ minWidth: 900, fontSize: 13 }}>
+            <thead>
+              <tr>
+                <th>Step</th>
+                <th>Rule / Constraint</th>
+                <th>Where You Control It</th>
+                <th>How the Website Uses It</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>Respect locks first</td>
+                <td>Game grid locks, row locks, cell locks, inning locks</td>
+                <td>Locked values are not cleared or moved when optimizing.</td>
+              </tr>
+
+              <tr>
+                <td>2</td>
+                <td>Respect availability and injuries</td>
+                <td>Availability checkboxes and Injury value in the grid</td>
+                <td>Unavailable players are excluded. Injury removes a player from that inning’s eligible count.</td>
+              </tr>
+
+              <tr>
+                <td>3</td>
+                <td>Choose required sit-outs</td>
+                <td>Automatic based on available players and innings</td>
+                <td>The optimizer calculates how many players must sit each inning based on players available minus 9 fielding spots.</td>
+              </tr>
+
+              <tr>
+                <td>4</td>
+                <td>Apply sit-out rules</td>
+                <td>Everyone Sits Once First, Sit Gap, and Tracking table manual sit-out targets</td>
+                <td>Balances sit-outs, avoids repeat sit-outs when selected, respects sit spacing, and uses manual targets when entered.</td>
+              </tr>
+
+              <tr>
+                <td>5</td>
+                <td>Fill positions in order</td>
+                <td>Position Rules table → When to Fill</td>
+                <td>Controls which positions should be solved earlier. This should apply to all strategies.</td>
+              </tr>
+
+              <tr>
+                <td>6</td>
+                <td>Score players by fit</td>
+                <td>Positioning Priority / Allowed Positions table plus Position Rules fit columns</td>
+                <td>Primary, Non-Primary, and Avoid determine which player fit levels are allowed at each position.</td>
+              </tr>
+
+              <tr>
+                <td>7</td>
+                <td>Apply Protect weighting</td>
+                <td>Position Rules table → Protect</td>
+                <td>Higher Protect values make the optimizer care more about using better-fit players at that position.</td>
+              </tr>
+
+              <tr>
+                <td>8</td>
+                <td>Prefer consecutive positioning</td>
+                <td>Position Rules table → Consecutive</td>
+                <td>Encourages players to stay at the same position in back-to-back innings when selected.</td>
+              </tr>
+
+              <tr>
+                <td>9</td>
+                <td>Enforce consecutive minimum</td>
+                <td>Position Rules table → Consecutive = Must 2+ if possible</td>
+                <td>Should apply to any position marked Must 2+ if possible, not only pitcher and catcher.</td>
+              </tr>
+
+              <tr>
+                <td>10</td>
+                <td>Apply position variety</td>
+                <td>Minimum Positions per Player and Position Variety Mode</td>
+                <td>Tries to give each player the selected number of different positions, depending on whether the mode is Off, Nice, or Must.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }
