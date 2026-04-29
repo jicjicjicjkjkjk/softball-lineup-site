@@ -1,5 +1,3 @@
-// FILE: src/Components/TrackingTable.jsx
-
 import { pk } from '../lib/lineupUtils'
 import { nextSort, sortRows } from '../lib/appHelpers'
 
@@ -21,27 +19,8 @@ function getFitColor(fit) {
   const normalized = String(fit || '').toLowerCase().trim()
 
   if (normalized === 'primary' || normalized === 'a') return '#dcfce7'
-
-  if (
-    normalized === 'secondary' ||
-    normalized === 'non-primary' ||
-    normalized === 'nonprimary' ||
-    normalized === 'b' ||
-    normalized === 'c'
-  ) {
-    return '#fef9c3'
-  }
-
-  if (
-    normalized === 'no' ||
-    normalized === 'not_allowed' ||
-    normalized === 'not-allowed' ||
-    normalized === 'not allowed' ||
-    normalized === 'd' ||
-    normalized === 'e'
-  ) {
-    return '#fee2e2'
-  }
+  if (['secondary', 'non-primary', 'nonprimary', 'b', 'c'].includes(normalized)) return '#fef9c3'
+  if (['no', 'not_allowed', 'not-allowed', 'not allowed', 'd', 'e'].includes(normalized)) return '#fee2e2'
 
   return ''
 }
@@ -95,35 +74,23 @@ export default function TrackingTable({
       const t = totals?.[id] || {}
       const targetOuts = sitOutTargets?.[id]
 
-
       const gap =
         targetOuts === '' || targetOuts == null
-        ? ''
-       : safeNumber(targetOuts) - safeNumber(t.Out)
+          ? ''
+          : safeNumber(targetOuts) - safeNumber(t.Out)
 
-      const playerInnings = safeNumber(t.fieldTotal) + safeNumber(t.Out)
-      const outPct = playerInnings ? (safeNumber(t.Out) / playerInnings) * 100 : ''
-
-      
       return {
         playerId: id,
         name: player.name,
         games: safeNumber(t.games),
         fieldTotal: safeNumber(t.fieldTotal),
         Out: safeNumber(t.Out),
-        outPct,
         targetOuts: targetOuts ?? '',
         gap,
         sitOutRunningTotal:
           sitOutRunningByPlayer[id] !== undefined
             ? safeNumber(sitOutRunningByPlayer[id])
             : safeNumber(t.sitOutRunningTotal),
-        ...Object.fromEntries(
-          (extraRunningTotals || []).map((item) => [
-            item.key,
-            safeNumber(item.totals?.[id]?.sitOutRunningTotal),
-          ])
-        ),
         extraRunningTotals: Object.fromEntries(
           (extraRunningTotals || []).map((item) => [
             item.key,
@@ -145,6 +112,10 @@ export default function TrackingTable({
     }),
     sortConfig
   )
+
+  function header(label, key) {
+    return <th onClick={() => setSortConfig(nextSort(sortConfig, key))}>{label}</th>
+  }
 
   function posCell(row, position) {
     const value = displayNumber(row[position])
@@ -170,44 +141,37 @@ export default function TrackingTable({
       <table className={center ? 'table-center' : ''}>
         <thead>
           <tr>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'name'))}>Player</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'games'))}>Games</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'fieldTotal'))}>Fld</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'Out'))}>Out</th>
-            
+            {header('Player', 'name')}
+            {header('Games', 'games')}
+            {header('Fld', 'fieldTotal')}
+            {header('Out', 'Out')}
 
             {showSitOutTargets && (
               <>
-                <th onClick={() => setSortConfig(nextSort(sortConfig, 'targetOuts'))}>Target</th>
-                <th onClick={() => setSortConfig(nextSort(sortConfig, 'gap'))}>Gap</th>
+                {header('Target', 'targetOuts')}
+                {header('Gap', 'gap')}
               </>
             )}
 
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'P'))}>P</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'C'))}>C</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, '1B'))}>1B</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, '2B'))}>2B</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, '3B'))}>3B</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'SS'))}>SS</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'LF'))}>LF</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'CF'))}>CF</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'RF'))}>RF</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'IF'))}>IF</th>
-            <th onClick={() => setSortConfig(nextSort(sortConfig, 'OF'))}>OF</th>
+            {header('P', 'P')}
+            {header('C', 'C')}
+            {header('1B', '1B')}
+            {header('2B', '2B')}
+            {header('3B', '3B')}
+            {header('SS', 'SS')}
+            {header('LF', 'LF')}
+            {header('CF', 'CF')}
+            {header('RF', 'RF')}
+            {header('IF', 'IF')}
+            {header('OF', 'OF')}
 
-            {!hideSitOutRunningTotal && (
-              <th onClick={() => setSortConfig(nextSort(sortConfig, 'sitOutRunningTotal'))}>
-                {runningTotalLabel}
-              </th>
-            )}
+            {!hideSitOutRunningTotal && header(runningTotalLabel, 'sitOutRunningTotal')}
 
-                        {(extraRunningTotals || []).map((item) => (
+            {(extraRunningTotals || []).map((item) => (
               <th key={item.key} onClick={() => setSortConfig(nextSort(sortConfig, item.key))}>
                 {item.label}
               </th>
             ))}
-
-            
           </tr>
         </thead>
 
@@ -218,7 +182,6 @@ export default function TrackingTable({
               <td>{displayNumber(row.games)}</td>
               <td>{displayNumber(row.fieldTotal)}</td>
               <td>{displayNumber(row.Out)}</td>
-              <td>{row.outPct === '' ? '' : `${Math.round(row.outPct)}%`}</td>
 
               {showSitOutTargets && (
                 <>
@@ -231,8 +194,7 @@ export default function TrackingTable({
                         onChange={(e) =>
                           setSitOutTargets?.((prev) => ({
                             ...prev,
-                            [row.playerId]:
-                              e.target.value === '' ? '' : Number(e.target.value),
+                            [row.playerId]: e.target.value === '' ? '' : Number(e.target.value),
                           }))
                         }
                         style={{ width: 60, textAlign: 'center' }}
@@ -262,13 +224,11 @@ export default function TrackingTable({
                 <td>{displayRunningTotal(row.sitOutRunningTotal)}</td>
               )}
 
-                            {(extraRunningTotals || []).map((item) => (
+              {(extraRunningTotals || []).map((item) => (
                 <td key={`${row.playerId}-${item.key}`}>
                   {displayRunningTotal(row.extraRunningTotals?.[item.key])}
                 </td>
               ))}
-
-              <td>{row.outPct === '' ? '' : `${Math.round(row.outPct)}%`}</td>
             </tr>
           ))}
         </tbody>
@@ -282,8 +242,7 @@ export default function TrackingTable({
           <br />
           <strong>Remaining:</strong>{' '}
           {displayNumber(
-            safeNumber(planSitOutSummary.totalNeeded) -
-              safeNumber(planSitOutSummary.totalAssigned)
+            safeNumber(planSitOutSummary.totalNeeded) - safeNumber(planSitOutSummary.totalAssigned)
           )}
         </div>
       )}
