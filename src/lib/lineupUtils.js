@@ -1216,7 +1216,7 @@ const planPositionCounts = initializePlanPositionCounts(players)
   })
 
   for (let inning = 1; inning <= lineup.innings; inning += 1) {
-    const sitOutIds = chooseSitOutsForInning({
+        const sitOutIds = chooseSitOutsForInning({
       lineup,
       inning,
       innings: lineup.innings,
@@ -1224,6 +1224,7 @@ const planPositionCounts = initializePlanPositionCounts(players)
       totalsBefore: rollingTotals,
       planSitOutTargets,
       cumulativePlanOutCounts,
+      optimizerProfile,
     })
 
     sitOutIds.forEach((id) => {
