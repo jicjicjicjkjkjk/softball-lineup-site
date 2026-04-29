@@ -5,27 +5,27 @@ import { TEAM_ID } from '../lib/constants'
 const POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
 
 const FILL_ORDER_OPTIONS = [
-  { value: 1, label: 'Core positions first' },
-  { value: 2, label: 'High priority' },
-  { value: 3, label: 'Normal priority' },
-  { value: 4, label: 'Lower priority' },
-  { value: 5, label: 'Fill late' },
+  { value: 1, label: '1 - Core first' },
+  { value: 2, label: '2 - High priority' },
+  { value: 3, label: '3 - Normal' },
+  { value: 4, label: '4 - Lower priority' },
+  { value: 5, label: '5 - Fill late' },
   { value: 99, label: 'Only if needed' },
 ]
 
 const IMPORTANCE_OPTIONS = [
-  { value: 10, label: 'Critical - highest pos priority' },
+  { value: 10, label: 'Critical' },
   { value: 7, label: 'Important' },
   { value: 5, label: 'Normal' },
   { value: 3, label: 'Flexible' },
   { value: 1, label: 'Least important' },
 ]
 
+const MIN_POSITION_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+const SIT_GAP_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7]
+
 function normalizeValue(text = '') {
-  return String(text || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '_')
+  return String(text || '').trim().toLowerCase().replace(/\s+/g, '_')
 }
 
 function blankProfileForm() {
@@ -44,7 +44,7 @@ function blankRule(position) {
   return {
     position,
     fill_rank: 99,
-    importance: 1,    
+    importance: 1,
     allow_primary: true,
     allow_secondary: true,
     allow_development: true,
@@ -64,6 +64,11 @@ function normalizeRule(rule, position) {
   }
 }
 
+function SortArrow({ active, direction }) {
+  if (!active) return <span style={{ opacity: 0.35 }}> ↕</span>
+  return <span>{direction === 'asc' ? ' ↑' : ' ↓'}</span>
+}
+
 export default function OptimizerInputsPage({
   optimizerProfiles = [],
   optimizerProfileRules = {},
@@ -72,14 +77,13 @@ export default function OptimizerInputsPage({
 }) {
   const [mode, setMode] = useState('edit')
   const [profileForm, setProfileForm] = useState(blankProfileForm())
-  const [selectedProfileId, setSelectedProfileId] = useState(
-    optimizerProfiles?.[0]?.id || ''
-  )
+  const [selectedProfileId, setSelectedProfileId] = useState(optimizerProfiles?.[0]?.id || '')
   const [copySourceId, setCopySourceId] = useState('')
   const [draftProfile, setDraftProfile] = useState(null)
   const [draftRules, setDraftRules] = useState({})
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [positionSort, setPositionSort] = useState({ key: 'position', direction: 'asc' })
 
   const selectedProfile =
     optimizerProfiles.find((profile) => profile.id === selectedProfileId) ||
@@ -111,6 +115,35 @@ export default function OptimizerInputsPage({
     setDirty(false)
   }, [selectedProfileId, optimizerProfiles, optimizerProfileRules])
 
+  const sortedRules = useMemo(() => {
+    return POSITIONS.map((position) => ({
+      ...normalizeRule(draftRules[position], position),
+      position,
+    })).sort((a, b) => {
+      const key = positionSort.key
+      const direction = positionSort.direction
+
+      let aVal = a[key]
+      let bVal = b[key]
+
+      if (key === 'position') {
+        aVal = POSITIONS.indexOf(a.position)
+        bVal = POSITIONS.indexOf(b.position)
+      }
+
+      if (aVal < bVal) return direction === 'asc' ? -1 : 1
+      if (aVal > bVal) return direction === 'asc' ? 1 : -1
+      return POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position)
+    })
+  }, [draftRules, positionSort])
+
+  function setSort(key) {
+    setPositionSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }))
+  }
+
   async function refreshAll() {
     if (typeof reloadAllData === 'function') await reloadAllData()
   }
@@ -122,10 +155,7 @@ export default function OptimizerInputsPage({
   }
 
   function updateDraftProfile(field, value) {
-    setDraftProfile((current) => ({
-      ...current,
-      [field]: value,
-    }))
+    setDraftProfile((current) => ({ ...current, [field]: value }))
     setDirty(true)
   }
 
@@ -166,7 +196,7 @@ export default function OptimizerInputsPage({
 
     const inserted = await supabase
       .from('optimizer_profiles')
-      .insert({        
+      .insert({
         team_id: TEAM_ID,
         profile_name: profileName,
         profile_key: normalizeValue(profileName),
@@ -174,9 +204,7 @@ export default function OptimizerInputsPage({
         is_default: profileForm.is_default === true,
         min_positions_per_player: Number(profileForm.min_positions_per_player || 0),
         min_positions_mode: profileForm.min_positions_mode || 'nice',
-        min_innings_between_sitouts: Number(
-          profileForm.min_innings_between_sitouts || 0
-        ),
+        min_innings_between_sitouts: Number(profileForm.min_innings_between_sitouts || 0),
         sit_all_before_second: profileForm.sit_all_before_second === true,
       })
       .select()
@@ -246,9 +274,7 @@ export default function OptimizerInputsPage({
         is_default: draftProfile.is_default === true,
         min_positions_per_player: Number(draftProfile.min_positions_per_player || 0),
         min_positions_mode: draftProfile.min_positions_mode || 'nice',
-        min_innings_between_sitouts: Number(
-          draftProfile.min_innings_between_sitouts || 0
-        ),
+        min_innings_between_sitouts: Number(draftProfile.min_innings_between_sitouts || 0),
         sit_all_before_second: draftProfile.sit_all_before_second === true,
       })
       .eq('id', draftProfile.id)
@@ -294,13 +320,11 @@ export default function OptimizerInputsPage({
     const confirmed = window.confirm(
       `Delete "${selectedProfile.profile_name}"? This cannot be undone.`
     )
-
     if (!confirmed) return
 
     const confirmedAgain = window.confirm(
       'Are you absolutely sure? This will delete the strategy and its position rules.'
     )
-
     if (!confirmedAgain) return
 
     setSaving(true)
@@ -342,7 +366,7 @@ export default function OptimizerInputsPage({
     if (!source) return
 
     const confirmed = window.confirm(
-      `Copy all optimizer inputs from "${source.profile_name}" into "${selectedProfile.profile_name}"? This will overwrite the current local draft. You still must click Save Changes after copying.`
+      `Copy all optimizer inputs from "${source.profile_name}" into "${selectedProfile.profile_name}"? This updates your local draft only. You still must click Save Changes.`
     )
 
     if (!confirmed) return
@@ -356,6 +380,7 @@ export default function OptimizerInputsPage({
 
     setDraftProfile((current) => ({
       ...current,
+      description: source.description || '',
       min_positions_per_player: source.min_positions_per_player,
       min_positions_mode: source.min_positions_mode,
       min_innings_between_sitouts: source.min_innings_between_sitouts,
@@ -367,6 +392,92 @@ export default function OptimizerInputsPage({
     setDirty(true)
   }
 
+  function renderStrategyFields(source, updateFn) {
+    return (
+      <div className="grid-2" style={{ marginTop: 18 }}>
+        <div>
+          <label>1. Strategy Name</label>
+          <input
+            value={source.profile_name || ''}
+            onChange={(e) => updateFn('profile_name', e.target.value)}
+            placeholder="Balanced"
+          />
+        </div>
+
+        <div>
+          <label>2. Strategy Description</label>
+          <input
+            value={source.description || ''}
+            onChange={(e) => updateFn('description', e.target.value)}
+            placeholder="Balanced lineups with fair positions and sit-outs."
+          />
+        </div>
+
+        <div>
+          <label>3. Default Strategy</label>
+          <select
+            value={source.is_default ? 'yes' : 'no'}
+            onChange={(e) => updateFn('is_default', e.target.value === 'yes')}
+          >
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+
+        <div>
+          <label>4. Everyone Sits Once First</label>
+          <select
+            value={source.sit_all_before_second ? 'yes' : 'no'}
+            onChange={(e) => updateFn('sit_all_before_second', e.target.value === 'yes')}
+          >
+            <option value="yes">Yes - balance sit-outs first</option>
+            <option value="no">No - allow repeat sit-outs</option>
+          </select>
+        </div>
+
+        <div>
+          <label>5. Sit Gap</label>
+          <select
+            value={Number(source.min_innings_between_sitouts ?? 2)}
+            onChange={(e) => updateFn('min_innings_between_sitouts', Number(e.target.value))}
+          >
+            {SIT_GAP_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n} inning{n === 1 ? '' : 's'}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label>6. Minimum Positions per Player</label>
+          <select
+            value={Number(source.min_positions_per_player ?? 2)}
+            onChange={(e) => updateFn('min_positions_per_player', Number(e.target.value))}
+          >
+            {MIN_POSITION_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n} position{n === 1 ? '' : 's'}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label>7. Position Variety Mode</label>
+          <select
+            value={source.min_positions_mode || 'nice'}
+            onChange={(e) => updateFn('min_positions_mode', e.target.value)}
+          >
+            <option value="off">Off - ignore position variety</option>
+            <option value="nice">Nice - try when possible</option>
+            <option value="must">Must - enforce harder</option>
+          </select>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="stack">
       <div className="card">
@@ -374,7 +485,8 @@ export default function OptimizerInputsPage({
           <div>
             <h2 style={{ marginBottom: 8 }}>Optimizer Inputs</h2>
             <div className="small-note">
-              These are the if/then rules the solver uses when building lineups.
+              The solver works in this order: locks, availability, sit-outs, position order,
+              player fit, importance, then position variety.
             </div>
           </div>
 
@@ -384,21 +496,11 @@ export default function OptimizerInputsPage({
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>What do you want to do?</h3>
-
         <div className="row-between wrap-row" style={{ gap: 12, justifyContent: 'flex-start' }}>
-          <button
-            type="button"
-            onClick={() => setMode('create')}
-            style={{ opacity: mode === 'create' ? 1 : 0.75 }}
-          >
+          <button type="button" onClick={() => setMode('create')}>
             Add / Create Strategy
           </button>
-
-          <button
-            type="button"
-            onClick={() => setMode('edit')}
-            style={{ opacity: mode === 'edit' ? 1 : 0.75 }}
-          >
+          <button type="button" onClick={() => setMode('edit')}>
             Edit Existing Strategy
           </button>
         </div>
@@ -407,119 +509,12 @@ export default function OptimizerInputsPage({
       {mode === 'create' && (
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Add / Create Strategy</h3>
-          <div className="small-note" style={{ marginBottom: 16 }}>
-            Create a new solver strategy first. After it is created, edit its detailed position rules below.
-          </div>
 
-          <div className="grid-2">
-                        <div>
-              <label>Strategy Name</label>
-              <div className="small-note">Example: Balanced, Development, Tournament Strongest.</div>
-              <input
-                value={profileForm.profile_name}
-                onChange={(e) =>
-                  setProfileForm((s) => ({ ...s, profile_name: e.target.value }))
-                }
-                placeholder="Balanced"
-              />
-            </div>
+          {renderStrategyFields(profileForm, (field, value) =>
+            setProfileForm((s) => ({ ...s, [field]: value }))
+          )}
 
-            <div>
-              <label>Strategy Description</label>
-              <div className="small-note">Shown on Lineup Setter when this mode is selected.</div>
-              <input
-                value={profileForm.description}
-                onChange={(e) =>
-                  setProfileForm((s) => ({ ...s, description: e.target.value }))
-                }
-                placeholder="Balanced lineups with fair positions and sit-outs."
-              />
-            </div>
-
-            <div>
-              <label>Default Strategy</label>
-              <div className="small-note">If yes, this becomes the automatic strategy.</div>
-              <select
-                value={profileForm.is_default ? 'yes' : 'no'}
-                onChange={(e) =>
-                  setProfileForm((s) => ({
-                    ...s,
-                    is_default: e.target.value === 'yes',
-                  }))
-                }
-              >
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-              </select>
-            </div>
-
-            <div>
-              <label>Minimum Positions per Player</label>
-              <div className="small-note">If possible, try to give each player this many different positions.</div>
-              <input
-                type="number"
-                value={profileForm.min_positions_per_player}
-                onChange={(e) =>
-                  setProfileForm((s) => ({
-                    ...s,
-                    min_positions_per_player: e.target.value,
-                  }))
-                }
-              />
-            </div>
-
-            <div>
-              <label>Position Rule Mode</label>
-              <div className="small-note">If Nice, try to honor it. If Must, enforce it harder.</div>
-              <select
-                value={profileForm.min_positions_mode}
-                onChange={(e) =>
-                  setProfileForm((s) => ({
-                    ...s,
-                    min_positions_mode: e.target.value,
-                  }))
-                }
-              >
-                <option value="off">Off</option>
-                <option value="nice">Nice</option>
-                <option value="must">Must</option>
-              </select>
-            </div>
-
-            <div>
-              <label>Sit Gap</label>
-              <div className="small-note">If possible, keep this many innings between sit-outs for the same player.</div>
-              <input
-                type="number"
-                value={profileForm.min_innings_between_sitouts}
-                onChange={(e) =>
-                  setProfileForm((s) => ({
-                    ...s,
-                    min_innings_between_sitouts: e.target.value,
-                  }))
-                }
-              />
-            </div>
-
-            <div>
-              <label>Everyone Sits Once First</label>
-              <div className="small-note">If yes, do not give a second sit-out until everyone has sat once.</div>
-              <select
-                value={profileForm.sit_all_before_second ? 'yes' : 'no'}
-                onChange={(e) =>
-                  setProfileForm((s) => ({
-                    ...s,
-                    sit_all_before_second: e.target.value === 'yes',
-                  }))
-                }
-              >
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-              </select>
-            </div>
-          </div>
-
-          <button onClick={createStrategy} disabled={saving}>
+          <button onClick={createStrategy} disabled={saving} style={{ marginTop: 16 }}>
             {saving ? 'Creating...' : 'Create Strategy'}
           </button>
         </div>
@@ -531,10 +526,6 @@ export default function OptimizerInputsPage({
             <h3 style={{ marginTop: 0 }}>Edit Existing Strategy</h3>
 
             <label>Select Strategy</label>
-            <div className="small-note">
-              Choose which solver strategy you want to edit.
-            </div>
-
             <select
               value={selectedProfile?.id || ''}
               onChange={(e) => setSelectedProfileId(e.target.value)}
@@ -560,7 +551,7 @@ export default function OptimizerInputsPage({
                 >
                   <strong>{dirty ? 'Unsaved changes' : 'No unsaved changes'}</strong>
                   <div className="small-note">
-                    Changes on this page are local until you click Save Changes.
+                    Changes are local until you click Save Changes.
                   </div>
 
                   <div className="row-between wrap-row" style={{ marginTop: 12 }}>
@@ -574,109 +565,10 @@ export default function OptimizerInputsPage({
                   </div>
                 </div>
 
-                <div className="grid-2" style={{ marginTop: 18 }}>
-                                    <div>
-                    <label>Strategy Name</label>
-                    <div className="small-note">If changed, this is what appears in optimizer strategy dropdowns.</div>
-                    <input
-                      value={draftProfile.profile_name || ''}
-                      onChange={(e) => updateDraftProfile('profile_name', e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label>Strategy Description</label>
-                    <div className="small-note">Shown on Lineup Setter beside the mode dropdown.</div>
-                    <input
-                      value={draftProfile.description || ''}
-                      onChange={(e) => updateDraftProfile('description', e.target.value)}
-                      placeholder="Explain when/why to use this strategy."
-                    />
-                  </div>
-
-                  <div>
-                    <label>Default Strategy</label>
-                    <div className="small-note">If yes, this strategy is used unless another is selected.</div>
-                    <select
-                      value={draftProfile.is_default ? 'yes' : 'no'}
-                      onChange={(e) =>
-                        updateDraftProfile('is_default', e.target.value === 'yes')
-                      }
-                    >
-                      <option value="no">No</option>
-                      <option value="yes">Yes</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label>Minimum Positions per Player</label>
-                    <div className="small-note">If possible, each player gets this many different defensive spots.</div>
-                    <input
-                      type="number"
-                      value={draftProfile.min_positions_per_player ?? 0}
-                      onChange={(e) =>
-                        updateDraftProfile(
-                          'min_positions_per_player',
-                          Number(e.target.value || 0)
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label>Position Rule Mode</label>
-                    <div className="small-note">If Nice, flexible. If Must, force position variety harder.</div>
-                    <select
-                      value={draftProfile.min_positions_mode || 'nice'}
-                      onChange={(e) =>
-                        updateDraftProfile('min_positions_mode', e.target.value)
-                      }
-                    >
-                      <option value="off">Off</option>
-                      <option value="nice">Nice</option>
-                      <option value="must">Must</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label>Sit Gap</label>
-                    <div className="small-note">If possible, leave this many innings between sit-outs.</div>
-                    <input
-                      type="number"
-                      value={draftProfile.min_innings_between_sitouts ?? 2}
-                      onChange={(e) =>
-                        updateDraftProfile(
-                          'min_innings_between_sitouts',
-                          Number(e.target.value || 0)
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label>Everyone Sits Once First</label>
-                    <div className="small-note">If yes, balance sit-outs before repeat sit-outs.</div>
-                    <select
-                      value={draftProfile.sit_all_before_second ? 'yes' : 'no'}
-                      onChange={(e) =>
-                        updateDraftProfile(
-                          'sit_all_before_second',
-                          e.target.value === 'yes'
-                        )
-                      }
-                    >
-                      <option value="yes">Yes</option>
-                      <option value="no">No</option>
-                    </select>
-                  </div>
-                </div>
+                {renderStrategyFields(draftProfile, updateDraftProfile)}
 
                 <div style={{ marginTop: 18 }}>
                   <label>Copy From Another Strategy</label>
-                  <div className="small-note">
-                    Choose a source strategy, then click Copy Settings. This updates your local draft only.
-                  </div>
-
                   <div className="row-between wrap-row" style={{ gap: 12 }}>
                     <select value={copySourceId} onChange={(e) => setCopySourceId(e.target.value)}>
                       <option value="">Choose strategy to copy from</option>
@@ -700,17 +592,25 @@ export default function OptimizerInputsPage({
             <div className="card">
               <h3 style={{ marginTop: 0 }}>Position Rules</h3>
               <div className="small-note" style={{ marginBottom: 12 }}>
-                Fill Order groups positions by when they should be solved. Multiple positions can share the same group.
-                Importance tells the optimizer how much to protect that position if choices are limited.
+                Click column headers to sort. Multiple positions can share the same fill order.
               </div>
 
               <div style={{ overflowX: 'auto' }}>
-                  <table className="table-center" style={{ minWidth: 760, fontSize: 14 }}>
+                <table className="table-center" style={{ minWidth: 720, fontSize: 13 }}>
                   <thead>
-                                        <tr>
-                      <th>Pos</th>
-                      <th>When to Fill</th>
-                      <th>How Much to Protect</th>
+                    <tr>
+                      <th onClick={() => setSort('position')} style={{ cursor: 'pointer' }}>
+                        Pos
+                        <SortArrow active={positionSort.key === 'position'} direction={positionSort.direction} />
+                      </th>
+                      <th onClick={() => setSort('fill_rank')} style={{ cursor: 'pointer' }}>
+                        When to Fill
+                        <SortArrow active={positionSort.key === 'fill_rank'} direction={positionSort.direction} />
+                      </th>
+                      <th onClick={() => setSort('importance')} style={{ cursor: 'pointer' }}>
+                        Protect
+                        <SortArrow active={positionSort.key === 'importance'} direction={positionSort.direction} />
+                      </th>
                       <th>Primary</th>
                       <th>Non-Primary</th>
                       <th>Avoid</th>
@@ -718,14 +618,12 @@ export default function OptimizerInputsPage({
                   </thead>
 
                   <tbody>
-                    {POSITIONS.map((position) => {
-                      const rule = normalizeRule(draftRules[position], position)
+                    {sortedRules.map((rule) => {
+                      const position = rule.position
 
                       return (
                         <tr key={position}>
-                          <td>
-                            <strong>{position}</strong>
-                          </td>
+                          <td><strong>{position}</strong></td>
 
                           <td>
                             <select
@@ -781,7 +679,7 @@ export default function OptimizerInputsPage({
                             />
                           </td>
 
-                                                    <td>
+                          <td>
                             <input
                               type="checkbox"
                               checked={
