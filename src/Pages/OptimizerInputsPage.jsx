@@ -603,8 +603,14 @@ export default function OptimizerInputsPage({
           {draftProfile && (
             <div className="card">
               <h3 style={{ marginTop: 0 }}>Position Rules</h3>
-              <div className="small-note" style={{ marginBottom: 12 }}>
-                Click column headers to sort. Multiple positions can share the same fill order.
+                            <div className="small-note" style={{ marginBottom: 12, lineHeight: 1.5 }}>
+                <strong>When to Fill:</strong> which positions get solved first. P/C/SS usually go earlier.
+                <br />
+                <strong>Protect:</strong> how strongly the optimizer saves better-fit players for that position.
+                <br />
+                <strong>Consecutive:</strong> whether the optimizer should keep a player at that position for back-to-back innings.
+                <br />
+                <strong>Primary / Non-Primary / Avoid:</strong> controls which player fit levels are allowed at that position.
               </div>
 
               <div style={{ overflowX: 'auto' }}>
