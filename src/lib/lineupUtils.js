@@ -819,8 +819,18 @@ function scorePlayerForPosition({
   }
 
   if (samePositionMode === 'must_2' && inning > 1 && prevValue && prevValue !== position) {
-    rotationScore -= 3500
+  rotationScore -= 20000
+}
+
+if (samePositionMode === 'must_2' && inning > 1 && prevValue !== position) {
+  const previousPositionPlayer = Object.keys(lineup?.cells || {}).find(
+    (id) => lineup?.cells?.[id]?.[inning - 1] === position
+  )
+
+  if (previousPositionPlayer && previousPositionPlayer !== playerId) {
+    rotationScore -= 30000
   }
+}
 
   if (minPositionsMode !== 'off' && minPositions > 1) {
     rotationScore -= previousSamePositionCount * 900
