@@ -508,10 +508,14 @@ function nextLockedOutDistance(lineup, playerId, inning, innings) {
   return 999
 }
 
-function violatesSitSpacing(lineup, playerId, inning, innings) {
+function violatesSitSpacing(lineup, playerId, inning, innings, minGap = 2) {
+  const gap = Number(minGap || 0)
+  if (gap <= 0) return false
+
   const prev = previousOutDistance(lineup, playerId, inning)
   const next = nextLockedOutDistance(lineup, playerId, inning, innings)
-  return prev < 2 || next < 2
+
+  return prev <= gap || next <= gap
 }
 
 export function clearUnlockedLineupCells(lineup, players) {
@@ -622,6 +626,7 @@ function chooseSitOutsForInning({
   totalsBefore,
   planSitOutTargets,
   cumulativePlanOutCounts,
+  optimizerProfile = null,
 }) {
   const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
   const lockedInfo = getLockedAssignmentsForInning(lineup, inning, players)
@@ -638,6 +643,8 @@ function chooseSitOutsForInning({
   if (!unlockedEligibleIds.length) return []
 
   const currentGameOutCounts = getGameOutCounts(lineup, players)
+  const minGap = Number(optimizerProfile?.min_innings_between_sitouts ?? 2)
+  const sitAllBeforeSecond = optimizerProfile?.sit_all_before_second !== false
 
   const ranked = unlockedEligibleIds.map((id) => {
     const rawTarget = planSitOutTargets?.[id]
@@ -651,7 +658,7 @@ function chooseSitOutsForInning({
     const targetNeed = explicitTarget == null ? 0 : explicitTarget - currentPlanOuts
     const mustSit = explicitTarget != null && targetNeed > 0
     const atOrOverTarget = explicitTarget != null && currentPlanOuts >= explicitTarget
-    const spacingBad = violatesSitSpacing(lineup, id, inning, innings)
+    const spacingBad = violatesSitSpacing(lineup, id, inning, innings, minGap)
 
     return {
       id,
@@ -679,50 +686,42 @@ function chooseSitOutsForInning({
 
   const chosen = []
 
-  function canAddCandidate(candidate) {
+  function wouldStayFair(candidate) {
+    if (!sitAllBeforeSecond) return true
     if (candidate.atOrOverTarget) return false
 
-    const gameCounts = {}
-    const planCounts = {}
+    const projected = {}
 
     ranked.forEach((row) => {
-      gameCounts[row.id] = row.currentGameOuts
-      planCounts[row.id] = Number(cumulativePlanOutCounts?.[row.id] || 0)
+      projected[row.id] = Number(cumulativePlanOutCounts?.[row.id] || 0)
     })
 
     chosen.forEach((id) => {
-      gameCounts[id] = Number(gameCounts[id] || 0) + 1
-      planCounts[id] = Number(planCounts[id] || 0) + 1
+      projected[id] = Number(projected[id] || 0) + 1
     })
 
-    gameCounts[candidate.id] = Number(gameCounts[candidate.id] || 0) + 1
-    planCounts[candidate.id] = Number(planCounts[candidate.id] || 0) + 1
+    projected[candidate.id] = Number(projected[candidate.id] || 0) + 1
 
-    const gameValues = unlockedEligibleIds.map((id) => Number(gameCounts[id] || 0))
-    if (Math.max(...gameValues) - Math.min(...gameValues) > 1) return false
-
-    const planValues = unlockedEligibleIds.map((id) => Number(planCounts[id] || 0))
-    if (Math.max(...planValues) - Math.min(...planValues) > 1) return false
-
-    return true
+    const values = unlockedEligibleIds.map((id) => Number(projected[id] || 0))
+    return Math.max(...values) - Math.min(...values) <= 1
   }
 
-  // 1. Hit user-entered targets first, but do not exceed them.
   for (const candidate of ranked) {
     if (chosen.length >= additionalOutsNeeded) break
     if (!candidate.mustSit) continue
     if (candidate.spacingBad) continue
+    if (candidate.atOrOverTarget) continue
     chosen.push(candidate.id)
   }
 
-  // 2. Fill remaining fairly, avoiding players already at target.
   for (const candidate of ranked) {
     if (chosen.length >= additionalOutsNeeded) break
     if (chosen.includes(candidate.id)) continue
-    if (canAddCandidate(candidate)) chosen.push(candidate.id)
+    if (candidate.spacingBad) continue
+    if (!wouldStayFair(candidate)) continue
+    chosen.push(candidate.id)
   }
 
-  // 3. Emergency fill, still avoid explicit targets already met.
   for (const candidate of ranked) {
     if (chosen.length >= additionalOutsNeeded) break
     if (chosen.includes(candidate.id)) continue
@@ -730,7 +729,6 @@ function chooseSitOutsForInning({
     chosen.push(candidate.id)
   }
 
-  // 4. Absolute fallback only if locks make everything impossible.
   for (const candidate of ranked) {
     if (chosen.length >= additionalOutsNeeded) break
     if (chosen.includes(candidate.id)) continue
