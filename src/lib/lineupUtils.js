@@ -766,31 +766,13 @@ function scorePlayerForPosition({
     return { playerId, position, totalScore: -100000000 }
   }
 
-  let fitScore = 0
-
-  if (optimizerMode === 'tournament') {
-    fitScore =
-      primaryFit ? 100000 * importance :
-      secondaryFit ? 12000 * importance :
-      developmentFit ? -25000 * importance :
-      disallowed ? -75000 * importance :
-      -100000000
-  } else if (optimizerMode === 'friendly') {
-    fitScore =
-      primaryFit ? 7000 :
-      secondaryFit ? 6000 :
-      developmentFit ? 3500 :
-      disallowed ? -50000 :
-      -100000000
-  } else {
-    fitScore =
-      primaryFit ? 12000 :
-      secondaryFit ? 4500 :
-      developmentFit ? 800 :
-      disallowed ? -75000 :
-      -100000000
-  }
-
+    const fitScore =
+    primaryFit ? 12000 * importance :
+    secondaryFit ? 4500 * importance :
+    developmentFit ? 800 * importance :
+    disallowed ? -75000 * importance :
+    -100000000
+  
   const targetPool = (candidateIds || [])
     .filter((id) => fitAllowedByRule(rule, fitTier(fitMap, id, position)))
     .map((id) => ({
@@ -812,11 +794,9 @@ function scorePlayerForPosition({
     const projectedPlayerCount = currentPlayerCount + 1
     const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
 
-    allocationScore = optimizerMode === 'tournament'
-      ? target * 500 * importance
-      : 5000 - distanceFromTarget * 2500
+        allocationScore = 5000 - distanceFromTarget * 2500 + target * 100 * importance
   } else if (targetTotal > 0 && target <= 0) {
-    allocationScore = optimizerMode === 'tournament' ? -25000 * importance : -5000
+    allocationScore = -5000 * importance
   }
 
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
@@ -829,10 +809,10 @@ function scorePlayerForPosition({
 
     const samePositionMode = consecutiveMode(optimizerProfileRules, position)
 
-  let rotationScore = prevValue === position ? 1200 : 0
+    let rotationScore = 0
 
   if (samePositionMode === 'prefer' && prevValue === position) {
-    rotationScore += 1800
+    rotationScore += 3000
   }
 
   if (samePositionMode === 'must_2' && prevValue === position) {
@@ -843,19 +823,9 @@ function scorePlayerForPosition({
     rotationScore -= 3500
   }
 
-  if (optimizerMode === 'friendly') {
-    rotationScore = 0
-    if (prevValue === position) rotationScore -= 3000
-    rotationScore -= previousSamePositionCount * 4500
-    rotationScore -= currentPlayerCount * 2500
-  }
-
-  if (optimizerMode === 'standard') {
+  if (minPositionsMode !== 'off' && minPositions > 1) {
     rotationScore -= previousSamePositionCount * 900
-  }
-
-  if (optimizerMode === 'tournament' && minPositions > 1 && minPositionsMode !== 'off') {
-    rotationScore -= previousSamePositionCount * 250
+    rotationScore -= currentPlayerCount * 600
   }
 
   return {
@@ -1008,11 +978,16 @@ function isRowFullyLockedForGame(lineup, playerId) {
   return innings > 0
 }
 
-function enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap }) {
+function enforceMinimumPositions({ lineup, players, fitMap, priorityMap, optimizerProfile }) {
   const availableIds = new Set((lineup?.availablePlayerIds || []).map(pk))
   const innings = Number(lineup?.innings || 0)
 
-  if (!innings) return lineup
+    if (!innings) return lineup
+
+  const minPositions = Number(optimizerProfile?.min_positions_per_player || 1)
+  const mode = optimizerProfile?.min_positions_mode || 'nice'
+
+  if (mode === 'off' || minPositions <= 1) return lineup
 
   function getFieldInnings(playerId) {
     const out = []
@@ -1059,8 +1034,8 @@ function enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap }) {
     const fieldInnings = getFieldInnings(playerId)
     const uniquePositions = getUniqueFieldPositions(playerId)
 
-    if (fieldInnings.length < 2) return
-    if (uniquePositions.size >= 2) return
+    if (fieldInnings.length < minPositions) return
+    if (uniquePositions.size >= minPositions) return
 
     const unlockedFieldInnings = fieldInnings.filter(
       ({ inning }) => !lockedValue(lineup, playerId, inning)
@@ -1088,7 +1063,7 @@ function enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap }) {
         lineup.cells[otherId][inning] = currentPos
 
         const updated = getUniqueFieldPositions(playerId)
-        if (updated.size >= 2) return
+         if (updated.size >= minPositions) return
       }
     }
   })
@@ -1310,9 +1285,13 @@ Object.entries(assigned).forEach(([playerId, position]) => {
     optimizerProfileRules,
   })
 
-  if (optimizerMode !== 'tournament') {
-    enforceMinimumTwoPositions({ lineup, players, fitMap, priorityMap })
-  }
+    enforceMinimumPositions({
+    lineup,
+    players,
+    fitMap,
+    priorityMap,
+    optimizerProfile,
+  })
 
   return lineup
 }
