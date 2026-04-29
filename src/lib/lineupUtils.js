@@ -912,15 +912,12 @@ function assignPositionsForInning({
       .sort((a, b) => b.totalScore - a.totalScore)
   })
 
-    const orderedPositions = [...openPositions].sort((a, b) => {
-    if (optimizerMode === 'tournament') {
-            return (
-        positionFillRank(optimizerProfileRules, a) - positionFillRank(optimizerProfileRules, b) ||
-        positionImportance(optimizerProfileRules, b) - positionImportance(optimizerProfileRules, a)
-      )
-    }
-
-    return candidatesByPosition[a].length - candidatesByPosition[b].length
+      const orderedPositions = [...openPositions].sort((a, b) => {
+    return (
+      positionFillRank(optimizerProfileRules, a) - positionFillRank(optimizerProfileRules, b) ||
+      positionImportance(optimizerProfileRules, b) - positionImportance(optimizerProfileRules, a) ||
+      candidatesByPosition[a].length - candidatesByPosition[b].length
+    )
   })
 
   let bestScore = -Infinity
@@ -1122,7 +1119,7 @@ function enforceConsecutivePositionRules({ lineup, players, fitMap, optimizerPro
     return true
   }
 
-  ;['P', 'C'].forEach((position) => {
+    FIELD_POSITIONS.forEach((position) => {
     if (consecutiveMode(optimizerProfileRules, position) !== 'must_2') return
 
     for (let inning = 1; inning <= innings; inning += 1) {
