@@ -44,11 +44,10 @@ function blankRule(position) {
   return {
     position,
     fill_rank: 99,
-    importance: 1,
+    importance: 1,    
     allow_primary: true,
     allow_secondary: true,
     allow_development: true,
-    allow_disallowed: false,
   }
 }
 
@@ -62,7 +61,6 @@ function normalizeRule(rule, position) {
     allow_primary: rule?.allow_primary !== false,
     allow_secondary: rule?.allow_secondary !== false,
     allow_development: rule?.allow_development !== false,
-    allow_disallowed: rule?.allow_disallowed === true,
   }
 }
 
@@ -197,7 +195,6 @@ export default function OptimizerInputsPage({
       allow_primary: true,
       allow_secondary: true,
       allow_development: true,
-      allow_disallowed: false,
     }))
 
     const rulesRes = await supabase
@@ -271,7 +268,6 @@ export default function OptimizerInputsPage({
         allow_primary: rule.allow_primary === true,
         allow_secondary: rule.allow_secondary === true,
         allow_development: rule.allow_development === true,
-        allow_disallowed: rule.allow_disallowed === true,
       }
     })
 
@@ -761,13 +757,20 @@ export default function OptimizerInputsPage({
                             />
                           </td>
 
-                          <td>
+                                                    <td>
                             <input
                               type="checkbox"
-                              checked={rule.allow_disallowed === true}
-                              onChange={(e) =>
-                                updateDraftRule(position, 'allow_disallowed', e.target.checked)
+                              checked={
+                                rule.allow_primary === false &&
+                                rule.allow_secondary === false &&
+                                rule.allow_development === false
                               }
+                              onChange={(e) => {
+                                const checked = e.target.checked
+                                updateDraftRule(position, 'allow_primary', !checked)
+                                updateDraftRule(position, 'allow_secondary', !checked)
+                                updateDraftRule(position, 'allow_development', !checked)
+                              }}
                             />
                           </td>
                         </tr>
