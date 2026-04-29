@@ -2,7 +2,6 @@ const NAV_ITEMS = [
   { key: 'games', label: 'Games' },
   { key: 'game-detail', label: 'Game Detail' },
   { key: 'lineup-setter', label: 'Lineup Setter' },
-  { key: 'optimizer-inputs', label: 'Optimizer Inputs' },
   { key: 'tracking', label: 'Tracking' },
   { key: 'players', label: 'Players' },
   { key: 'positioning-priority', label: 'Positioning Priority' },
