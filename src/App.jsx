@@ -84,7 +84,7 @@ export default function App() {
   const [optimizerBatchGameIds, setOptimizerBatchGameIds] = useState([])
   const [optimizerPreviewByGame, setOptimizerPreviewByGame] = useState({})
   const [optimizerPlanSitOutTargets, setOptimizerPlanSitOutTargets] = useState({})
-  const [optimizerMode, setOptimizerMode] = useState('standard')
+  const [optimizerMode, setOptimizerMode] = useState('')
   const [optimizerProfiles, setOptimizerProfiles] = useState([])
   const [optimizerProfileRules, setOptimizerProfileRules] = useState({})
   const [lineupSetterStateLoaded, setLineupSetterStateLoaded] = useState(false)
@@ -634,11 +634,14 @@ function isCompleteLineup(lineup) {
 
       setOptimizerProfileRules(loadedRulesByProfile)
 
-      const defaultProfile = loadedProfiles.find((profile) => profile.is_default)
+      const defaultProfile =
+  loadedProfiles.find((profile) => profile.is_default) ||
+  loadedProfiles[0] ||
+  null
 
-      if (defaultProfile?.profile_key && !optimizerMode) {
-        setOptimizerMode(defaultProfile.profile_key)
-      }
+if (defaultProfile?.profile_key) {
+  setOptimizerMode(defaultProfile.profile_key)
+}
 
       const stateRes = await supabase
         .from('lineup_setter_state')
