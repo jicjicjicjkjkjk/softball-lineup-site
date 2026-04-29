@@ -166,9 +166,20 @@ export default function AdminPage({
       }
     }
 
+        const teamId =
+      optimizerProfiles.find((p) => p.team_id)?.team_id ||
+      selectedProfile?.team_id ||
+      null
+
+    if (!teamId) {
+      alert('Missing team_id. Open an existing team/profile first, then try again.')
+      return
+    }
+
     const inserted = await supabase
       .from('optimizer_profiles')
       .insert({
+        team_id: teamId,
         profile_name: profileName,
         profile_key: profileKey,
         is_default: profileForm.is_default === true,
@@ -444,65 +455,35 @@ export default function AdminPage({
     )
   }
 
-  return (
+      return (
     <div className="stack">
       <div className="card">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 12,
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div>
-            <h2 style={{ marginBottom: 8 }}>Admin</h2>
-            <div className="small-note">
-              Manage reusable lists and optimizer logic profiles.
-            </div>
-          </div>
-
-          <button onClick={refreshAll}>Refresh Admin Data</button>
+        <h2>Coach Dashboard</h2>
+        <div className="small-note">
+          Set lineup rules, fairness rules, and position preferences.
         </div>
+        <button onClick={refreshAll}>Refresh Data</button>
       </div>
 
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>Optimizer Profiles</h3>
+        <h3>Create New Strategy</h3>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1.4fr 1fr 110px 120px 130px 150px auto',
-            gap: 12,
-            alignItems: 'end',
-            marginBottom: 18,
-          }}
-        >
+        <div className="grid-2">
           <div>
-            <label>Profile Name</label>
+            <label>Strategy Name</label>
+            <div className="small-note">Example: Balanced, Development, Competitive</div>
             <input
               value={profileForm.profile_name}
               onChange={(e) =>
                 setProfileForm((s) => ({ ...s, profile_name: e.target.value }))
               }
-              placeholder="Balanced Competitive"
+              placeholder="Balanced"
             />
           </div>
 
           <div>
-            <label>Profile Key</label>
-            <input
-              value={profileForm.profile_key}
-              onChange={(e) =>
-                setProfileForm((s) => ({ ...s, profile_key: e.target.value }))
-              }
-              placeholder="auto if blank"
-            />
-          </div>
-
-          <div>
-            <label>Default</label>
+            <label>Default Strategy</label>
+            <div className="small-note">Used automatically when no strategy is selected.</div>
             <select
               value={profileForm.is_default ? 'yes' : 'no'}
               onChange={(e) =>
@@ -518,7 +499,8 @@ export default function AdminPage({
           </div>
 
           <div>
-            <label>Min Pos</label>
+            <label>Minimum Positions per Player</label>
+            <div className="small-note">Helps rotate players into different positions.</div>
             <input
               type="number"
               value={profileForm.min_positions_per_player}
@@ -532,7 +514,8 @@ export default function AdminPage({
           </div>
 
           <div>
-            <label>Min Pos Mode</label>
+            <label>Position Rule Mode</label>
+            <div className="small-note">Nice = flexible. Must = stricter.</div>
             <select
               value={profileForm.min_positions_mode}
               onChange={(e) =>
@@ -550,6 +533,7 @@ export default function AdminPage({
 
           <div>
             <label>Sit Gap</label>
+            <div className="small-note">Minimum innings between sit-outs.</div>
             <input
               type="number"
               value={profileForm.min_innings_between_sitouts}
@@ -562,38 +546,49 @@ export default function AdminPage({
             />
           </div>
 
-          <button onClick={addOptimizerProfile}>Add Profile</button>
+          <div>
+            <label>Everyone Sits Once First</label>
+            <div className="small-note">Prevents a second sit-out before everyone has sat once.</div>
+            <select
+              value={profileForm.sit_all_before_second ? 'yes' : 'no'}
+              onChange={(e) =>
+                setProfileForm((s) => ({
+                  ...s,
+                  sit_all_before_second: e.target.value === 'yes',
+                }))
+              }
+            >
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
         </div>
 
-        <div style={{ marginBottom: 18 }}>
-          <label>Select Profile to Edit</label>
-          <select
-            value={selectedProfile?.id || ''}
-            onChange={(e) => setSelectedProfileId(e.target.value)}
-          >
-            <option value="">Select profile</option>
-            {optimizerProfiles.map((profile) => (
-              <option key={profile.id} value={profile.id}>
-                {profile.profile_name}
-                {profile.is_default ? ' (Default)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
+        <button onClick={addOptimizerProfile}>Create Strategy</button>
+      </div>
+
+      <div className="card">
+        <h3>Edit Strategy</h3>
+
+        <label>Select Strategy</label>
+        <select
+          value={selectedProfile?.id || ''}
+          onChange={(e) => setSelectedProfileId(e.target.value)}
+        >
+          <option value="">Select strategy</option>
+          {optimizerProfiles.map((profile) => (
+            <option key={profile.id} value={profile.id}>
+              {profile.profile_name}
+              {profile.is_default ? ' (Default)' : ''}
+            </option>
+          ))}
+        </select>
 
         {selectedProfile && (
           <>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1.4fr 1fr 120px 120px 130px 150px 180px',
-                gap: 12,
-                alignItems: 'end',
-                marginBottom: 18,
-              }}
-            >
+            <div className="grid-2" style={{ marginTop: 18 }}>
               <div>
-                <label>Name</label>
+                <label>Strategy Name</label>
                 <input
                   value={selectedProfile.profile_name || ''}
                   onChange={(e) =>
@@ -605,19 +600,7 @@ export default function AdminPage({
               </div>
 
               <div>
-                <label>Key</label>
-                <input
-                  value={selectedProfile.profile_key || ''}
-                  onChange={(e) =>
-                    updateOptimizerProfile(selectedProfile.id, {
-                      profile_key: normalizeValue(e.target.value),
-                    })
-                  }
-                />
-              </div>
-
-              <div>
-                <label>Default</label>
+                <label>Default Strategy</label>
                 <select
                   value={selectedProfile.is_default ? 'yes' : 'no'}
                   onChange={(e) =>
@@ -632,7 +615,7 @@ export default function AdminPage({
               </div>
 
               <div>
-                <label>Min Pos</label>
+                <label>Minimum Positions per Player</label>
                 <input
                   type="number"
                   value={selectedProfile.min_positions_per_player ?? 0}
@@ -645,7 +628,7 @@ export default function AdminPage({
               </div>
 
               <div>
-                <label>Mode</label>
+                <label>Position Rule Mode</label>
                 <select
                   value={selectedProfile.min_positions_mode || 'nice'}
                   onChange={(e) =>
@@ -674,7 +657,7 @@ export default function AdminPage({
               </div>
 
               <div>
-                <label>Everyone Sits First</label>
+                <label>Everyone Sits Once First</label>
                 <select
                   value={selectedProfile.sit_all_before_second ? 'yes' : 'no'}
                   onChange={(e) =>
@@ -689,13 +672,10 @@ export default function AdminPage({
               </div>
             </div>
 
-            <div style={{ marginBottom: 18 }}>
-              <label>Copy From Another Profile</label>
-              <select
-                value=""
-                onChange={(e) => copyProfileFrom(e.target.value)}
-              >
-                <option value="">Choose profile to copy from</option>
+            <div style={{ marginTop: 18 }}>
+              <label>Copy Settings From Another Strategy</label>
+              <select value="" onChange={(e) => copyProfileFrom(e.target.value)}>
+                <option value="">Choose strategy to copy from</option>
                 {optimizerProfiles
                   .filter((profile) => profile.id !== selectedProfile.id)
                   .map((profile) => (
@@ -705,117 +685,100 @@ export default function AdminPage({
                   ))}
               </select>
             </div>
-
-            <div style={{ overflowX: 'auto' }}>
-              <table className="table-center" style={{ minWidth: 980 }}>
-                <thead>
-                  <tr>
-                    <th>Position</th>
-                    <th>Fill Rank</th>
-                    <th>Importance</th>
-                    <th>Allow A / Primary</th>
-                    <th>Allow B / Secondary</th>
-                    <th>Allow C-D / Development</th>
-                    <th>Allow E / No</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {POSITIONS.map((position) => {
-                    const rule = selectedRules[position] || blankRule(position)
-
-                    return (
-                      <tr key={position}>
-                        <td>
-                          <strong>{position}</strong>
-                        </td>
-
-                        <td>
-                          <input
-                            type="number"
-                            value={rule.fill_rank ?? 99}
-                            onChange={(e) =>
-                              updateProfileRule(position, 'fill_rank', e.target.value)
-                            }
-                            style={{ width: 90 }}
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="number"
-                            value={rule.importance ?? 1}
-                            onChange={(e) =>
-                              updateProfileRule(position, 'importance', e.target.value)
-                            }
-                            style={{ width: 90 }}
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={rule.allow_primary !== false}
-                            onChange={(e) =>
-                              updateProfileRule(
-                                position,
-                                'allow_primary',
-                                e.target.checked
-                              )
-                            }
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={rule.allow_secondary !== false}
-                            onChange={(e) =>
-                              updateProfileRule(
-                                position,
-                                'allow_secondary',
-                                e.target.checked
-                              )
-                            }
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={rule.allow_development !== false}
-                            onChange={(e) =>
-                              updateProfileRule(
-                                position,
-                                'allow_development',
-                                e.target.checked
-                              )
-                            }
-                          />
-                        </td>
-
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={rule.allow_disallowed === true}
-                            onChange={(e) =>
-                              updateProfileRule(
-                                position,
-                                'allow_disallowed',
-                                e.target.checked
-                              )
-                            }
-                          />
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
           </>
         )}
       </div>
+
+      {selectedProfile && (
+        <div className="card">
+          <h3>Position Rules</h3>
+          <div className="small-note">
+            Fill Priority controls which positions get filled first. Importance controls how strongly the optimizer favors better-ranked players there.
+          </div>
+
+          {POSITIONS.map((position) => {
+            const rule = selectedRules[position] || blankRule(position)
+
+            return (
+              <div className="position-card" key={position}>
+                <div className="position-title">{position}</div>
+
+                <div className="grid-2">
+                  <div>
+                    <label>Fill Priority</label>
+                    <div className="small-note">Lower number = filled earlier.</div>
+                    <input
+                      type="number"
+                      value={rule.fill_rank ?? 99}
+                      onChange={(e) =>
+                        updateProfileRule(position, 'fill_rank', e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label>Importance</label>
+                    <div className="small-note">Higher number = protect this position more.</div>
+                    <input
+                      type="number"
+                      value={rule.importance ?? 1}
+                      onChange={(e) =>
+                        updateProfileRule(position, 'importance', e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="checkbox-row">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={rule.allow_primary !== false}
+                      onChange={(e) =>
+                        updateProfileRule(position, 'allow_primary', e.target.checked)
+                      }
+                    />
+                    A / Primary
+                  </label>
+
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={rule.allow_secondary !== false}
+                      onChange={(e) =>
+                        updateProfileRule(position, 'allow_secondary', e.target.checked)
+                      }
+                    />
+                    B / Secondary
+                  </label>
+
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={rule.allow_development !== false}
+                      onChange={(e) =>
+                        updateProfileRule(position, 'allow_development', e.target.checked)
+                      }
+                    />
+                    C-D / Development
+                  </label>
+
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={rule.allow_disallowed === true}
+                      onChange={(e) =>
+                        updateProfileRule(position, 'allow_disallowed', e.target.checked)
+                      }
+                    />
+                    E / Avoid
+                  </label>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {renderSection('Season Options', seasonRows, seasonForm, setSeasonForm, 'season')}
       {renderSection('Game Type Options', gameTypeRows, gameTypeForm, setGameTypeForm, 'game type')}
