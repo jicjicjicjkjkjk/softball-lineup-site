@@ -1107,9 +1107,9 @@ function enforceConsecutivePositionRules({ lineup, players, fitMap, optimizerPro
       if (prevSame || nextSame) continue
 
       const preferredNeighbor = inning < innings ? inning + 1 : inning - 1
-      const otherId = playerAt(lineup?.cells?.[playerId]?.[preferredNeighbor], inning)
+      const otherId = playerAt(position, preferredNeighbor)
 
-      if (!otherId) continue
+      if (!otherId || otherId === playerId) continue
       if (!canSwap(playerId, otherId, preferredNeighbor)) continue
 
       const currentOtherPos = lineup.cells[playerId][preferredNeighbor]
@@ -1224,14 +1224,15 @@ const planPositionCounts = initializePlanPositionCounts(players)
         lineup.cells[playerId][inning] = position
       }
     })
-Object.entries(assigned).forEach(([playerId, position]) => {
-  if (FIELD_POSITIONS.includes(position)) {
-    incrementPlanPositionCount(planPositionCounts, playerId, position)
+const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
+
+eligibleIds.forEach((id) => {
+  const value = lineup?.cells?.[id]?.[inning] || ''
+  if (FIELD_POSITIONS.includes(value)) {
+    incrementPlanPositionCount(planPositionCounts, id, value)
   }
 })
-    
-    const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
-    eligibleIds.forEach((id) => {
+  eligibleIds.forEach((id) => {
       if (lockedValue(lineup, id, inning)) return
       if (!lineup.cells?.[id]?.[inning]) lineup.cells[id][inning] = 'Out'
     })
@@ -1278,22 +1279,22 @@ Object.entries(assigned).forEach(([playerId, position]) => {
     })
   }
   
-      enforceConsecutivePositionRules({
-    lineup,
-    players,
-    fitMap,
-    optimizerProfileRules,
-  })
+      enforceMinimumPositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfile,
+})
 
-    enforceMinimumPositions({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfile,
-  })
+enforceConsecutivePositionRules({
+  lineup,
+  players,
+  fitMap,
+  optimizerProfileRules,
+})
 
-  return lineup
+return lineup
 }
 
 export function formatDateMMDDYY(dateStr) {
