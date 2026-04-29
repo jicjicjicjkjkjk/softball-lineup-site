@@ -72,6 +72,10 @@ function displayPct(value) {
   return Number.isNaN(n) ? '' : Math.round(n)
 }
 
+function printPlayerSummary() {
+  window.print()
+}
+
 export default function LineupSetterPage({
   optimizerFocusLineup,
   optimizerFocusGame,
@@ -643,8 +647,20 @@ const optimizerModeDescription =
   statusOptions={statusOptions}
 />
 
-      <div className="card">
-  <h3 style={{ marginTop: 0 }}>Tracking View</h3>
+            <div className="card">
+  <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+    <div>
+      <h3 style={{ marginTop: 0, marginBottom: 4 }}>Tracking View</h3>
+      <div className="small-note">
+        Use this data universe for the table below, priority tracking, and player summary printout.
+      </div>
+    </div>
+
+    <button type="button" onClick={printPlayerSummary}>
+      Print Player Summary
+    </button>
+  </div>
+
   <label>Use this data universe for the table below and priority tracking</label>
   <select
     value={lineupSetterUniverse}
@@ -881,6 +897,66 @@ const optimizerModeDescription =
     )
   })}
 
+  <div className="coach-plan-page player-summary-print-page">
+    <div className="coach-plan-title">Player Summary</div>
+    <div style={{ marginBottom: 10, fontSize: 12 }}>
+      {selectedUniverseTitle} • {filterSummary}
+    </div>
+
+    <table className="coach-plan-table">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Games</th>
+          <th>Fld</th>
+          <th>Out</th>
+          <th>Run Out</th>
+          <th>P</th>
+          <th>C</th>
+          <th>1B</th>
+          <th>2B</th>
+          <th>3B</th>
+          <th>SS</th>
+          <th>LF</th>
+          <th>CF</th>
+          <th>RF</th>
+          <th>IF</th>
+          <th>OF</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {activePlayers.map((player) => {
+          const id = pk(player.id)
+          const totals = selectedUniverseTotals?.[id] || {}
+          const n = (value) => Math.round(Number(value || 0))
+
+          return (
+            <tr key={id}>
+              <td>{player.name}</td>
+              <td>{n(totals.games)}</td>
+              <td>{n(totals.fieldTotal)}</td>
+              <td>{n(totals.Out)}</td>
+              <td>{n(totals.sitOutRunningTotal)}</td>
+              <td>{n(totals.P)}</td>
+              <td>{n(totals.C)}</td>
+              <td>{n(totals['1B'])}</td>
+              <td>{n(totals['2B'])}</td>
+              <td>{n(totals['3B'])}</td>
+              <td>{n(totals.SS)}</td>
+              <td>{n(totals.LF)}</td>
+              <td>{n(totals.CF)}</td>
+              <td>{n(totals.RF)}</td>
+              <td>{n(totals.IF)}</td>
+              <td>{n(totals.OF)}</td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  </div>
+              
+              
   <div className="coach-plan-page">
     <div className="coach-plan-title">Current Plan</div>
 
