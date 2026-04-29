@@ -959,7 +959,32 @@ function assignPositionsForInning({
   }
 
   search(0, new Set(), {}, 0)
-  return bestAssignment
+  // VALIDATION STEP
+const assignedPositions = Object.values(bestAssignment)
+const missingPositions = FIELD_POSITIONS.filter(
+  (pos) => !assignedPositions.includes(pos)
+)
+
+if (missingPositions.length > 0) {
+  // fallback: greedy assignment to guarantee coverage
+  const fallback = {}
+  const used = new Set()
+
+  FIELD_POSITIONS.forEach((position) => {
+    const candidates = candidatesByPosition[position] || []
+
+    const valid = candidates.find((c) => !used.has(c.playerId))
+
+    if (valid) {
+      fallback[valid.playerId] = position
+      used.add(valid.playerId)
+    }
+  })
+
+  return fallback
+}
+
+return bestAssignment
 }
 
 function getPlayerFieldPositionsInGame(lineup, playerId, uptoInning = null) {
