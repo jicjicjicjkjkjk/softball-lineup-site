@@ -21,6 +21,12 @@ const IMPORTANCE_OPTIONS = [
   { value: 1, label: 'Least important' },
 ]
 
+const CONSECUTIVE_OPTIONS = [
+  { value: 'none', label: 'No preference' },
+  { value: 'prefer', label: 'Prefer same spot' },
+  { value: 'must_2', label: 'Must 2+ if possible' },
+]
+
 const MIN_POSITION_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 const SIT_GAP_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7]
 
@@ -45,6 +51,7 @@ function blankRule(position) {
     position,
     fill_rank: 99,
     importance: 1,
+    consecutive_mode: ['P', 'C'].includes(position) ? 'must_2' : 'prefer',
     allow_primary: true,
     allow_secondary: true,
     allow_development: true,
@@ -58,6 +65,7 @@ function normalizeRule(rule, position) {
     ...(rule || {}),
     fill_rank: Number(rule?.fill_rank ?? base.fill_rank),
     importance: Number(rule?.importance ?? base.importance),
+    consecutive_mode: rule?.consecutive_mode || base.consecutive_mode,
     allow_primary: rule?.allow_primary !== false,
     allow_secondary: rule?.allow_secondary !== false,
     allow_development: rule?.allow_development !== false,
@@ -222,6 +230,7 @@ export default function OptimizerInputsPage({
       fill_rank: index + 1,
       emergency_rank: index + 1,
       importance: Math.max(10 - index, 1),
+      consecutive_mode: ['P', 'C'].includes(position) ? 'must_2' : 'prefer',
       allow_primary: true,
       allow_secondary: true,
       allow_development: true,
@@ -295,6 +304,7 @@ export default function OptimizerInputsPage({
         fill_rank: Number(rule.fill_rank || 99),
         emergency_rank: Number(rule.fill_rank || 99),
         importance: Number(rule.importance || 1),
+        consecutive_mode: rule.consecutive_mode || 'prefer',
         allow_primary: rule.allow_primary === true,
         allow_secondary: rule.allow_secondary === true,
         allow_development: rule.allow_development === true,
@@ -613,6 +623,7 @@ export default function OptimizerInputsPage({
                         Protect
                         <SortArrow active={positionSort.key === 'importance'} direction={positionSort.direction} />
                       </th>
+                      <th>Consecutive</th>
                       <th>Primary</th>
                       <th>Non-Primary</th>
                       <th>Avoid</th>
@@ -650,6 +661,21 @@ export default function OptimizerInputsPage({
                               }
                             >
                               {IMPORTANCE_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                                                    <td>
+                            <select
+                              value={rule.consecutive_mode || 'prefer'}
+                              onChange={(e) =>
+                                updateDraftRule(position, 'consecutive_mode', e.target.value)
+                              }
+                            >
+                              {CONSECUTIVE_OPTIONS.map((option) => (
                                 <option key={option.value} value={option.value}>
                                   {option.label}
                                 </option>
