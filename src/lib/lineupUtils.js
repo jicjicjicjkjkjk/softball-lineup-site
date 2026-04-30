@@ -894,20 +894,33 @@ function scorePlayerForPosition({
   optimizerProfile = null,
   optimizerProfileRules = {},
 }) {
+  const rule = getPositionRule(optimizerProfileRules, position)
   const fit = normalizeFit(fitMap?.[pk(playerId)]?.[position] || 'no')
-  const target = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
-  const bucket = positionBucket(position)
-  const importance = positionImportance(optimizerProfileRules, position)
 
-  // For now: only PRIMARY players are eligible during normal optimization.
-  if (fit !== 'primary') {
+  // 🚨 Only block if rule says it's not allowed
+  if (!fitAllowedByRule(rule, fit)) {
     return { playerId, position, totalScore: -100000000 }
   }
 
-  const fitScore = 12000 * importance
+  const target = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
+  const bucket = positionBucket(position)
+  const importance = positionImportance(optimizerProfileRules, position)
+  const fillRank = positionFillRank(optimizerProfileRules, position)
+
+  // ✅ Fit ranking (this is the key change)
+  const fitRank =
+    fit === 'primary' ? 4 :
+    fit === 'secondary' ? 3 :
+    fit === 'development' ? 2 :
+    1
+
+  const fitScore = fitRank * importance * 100
+  const fillScore = Math.max(0, 100 - fillRank) * importance
 
   const targetPool = (candidateIds || [])
-    .filter((id) => normalizeFit(fitMap?.[pk(id)]?.[position] || 'no') === 'primary')
+    .filter((id) =>
+      fitAllowedByRule(rule, fitMap?.[pk(id)]?.[position] || 'no')
+    )
     .map((id) => ({
       id,
       target: Number(getPriorityTarget(priorityMap, id, position) || 0),
@@ -927,9 +940,9 @@ function scorePlayerForPosition({
     const projectedPlayerCount = currentPlayerCount + 1
     const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
 
-    allocationScore = 5000 - distanceFromTarget * 2500 + target * 100 * importance
+    allocationScore = target * importance - distanceFromTarget * importance * 25
   } else if (targetTotal > 0 && target <= 0) {
-    allocationScore = -5000 * importance
+    allocationScore = -importance * 25
   }
 
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
@@ -938,11 +951,11 @@ function scorePlayerForPosition({
   let rotationScore = 0
 
   if (samePositionMode === 'prefer' && prevValue === position) {
-    rotationScore -= 1500
+    rotationScore += importance * 25
   }
 
   if (samePositionMode === 'must_2' && prevValue === position) {
-    rotationScore += 12000
+    rotationScore += importance * 100
   }
 
   if (samePositionMode === 'must_2' && inning > 1 && prevValue !== position) {
@@ -951,14 +964,14 @@ function scorePlayerForPosition({
     )
 
     if (previousPositionPlayer && previousPositionPlayer !== playerId) {
-      rotationScore -= 30000
+      rotationScore -= importance * 100
     }
   }
 
   return {
     playerId,
     position,
-    totalScore: fitScore + allocationScore + rotationScore,
+    totalScore: fitScore + fillScore + allocationScore + rotationScore,
   }
 }
 
@@ -1302,19 +1315,27 @@ function repairMissingAndDuplicatePositions({
   }
 
   function isValidAt(id, position) {
-  return normalizeFit(fitMap?.[pk(id)]?.[position] || 'no') === 'primary'
+  const rule = getPositionRule(optimizerProfileRules, position)
+  return fitAllowedByRule(rule, fitMap?.[pk(id)]?.[position] || 'no')
 }
 
   function fitScoreFor(id, position) {
-    const fit = normalizeFit(fitTier(fitMap, id, position))
-    const base =
-      fit === 'primary' ? 3000 :
-      fit === 'secondary' ? 1200 :
-      fit === 'development' ? 300 :
-      -100000
+  const rule = getPositionRule(optimizerProfileRules, position)
+  const fit = normalizeFit(fitTier(fitMap, id, position))
 
-    return base + priorityValue(priorityMap, id, position) * 20
-  }
+  if (!fitAllowedByRule(rule, fit)) return -100000
+
+  const importance = positionImportance(optimizerProfileRules, position)
+  const priority = priorityValue(priorityMap, id, position)
+
+  const fitRank =
+    fit === 'primary' ? 4 :
+    fit === 'secondary' ? 3 :
+    fit === 'development' ? 2 :
+    1
+
+  return fitRank * importance * 100 + priority * importance
+}
 
   for (let inning = 1; inning <= innings; inning += 1) {
     let changed = true
