@@ -41,9 +41,15 @@ export default function MobileLineupCard({
             </div>
           </div>
 
-          <button type="button" onClick={onClose}>
-            Close
-          </button>
+          <div className="mobile-lineup-card-actions">
+  <button type="button" onClick={() => window.print()}>
+    Print
+  </button>
+
+  <button type="button" onClick={onClose}>
+    Close
+  </button>
+</div>
         </div>
 
         <div className="mobile-lineup-card-scroll">
