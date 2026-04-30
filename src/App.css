@@ -2029,3 +2029,58 @@
 .checkbox-item.not-available {
   opacity: 0.6;
 }
+
+
+/* =====================================================
+   FINAL FINAL OVERRIDE — KEEP THIS LAST IN FILE
+   Controls Mobile Lineup Card + Print Cleanly
+   ===================================================== */
+
+/* Fix header buttons spacing */
+.mobile-lineup-card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Make sure card fills screen nicely */
+.mobile-lineup-card {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Improve readability slightly */
+.mobile-lineup-card-table th,
+.mobile-lineup-card-table td {
+  font-size: 13px;
+  padding: 6px 6px;
+}
+
+/* PRINT — force clean single-page lineup */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .mobile-lineup-card-overlay,
+  .mobile-lineup-card-overlay * {
+    visibility: visible;
+  }
+
+  .mobile-lineup-card-overlay {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    margin: 0;
+    background: #fff;
+  }
+
+  .mobile-lineup-card {
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .mobile-lineup-card-actions {
+    display: none !important;
+  }
+}
