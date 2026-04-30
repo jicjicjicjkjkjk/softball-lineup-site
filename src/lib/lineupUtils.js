@@ -1146,8 +1146,13 @@ function enforceConsecutivePositionRules({ lineup, players, fitMap, optimizerPro
     if (!FIELD_POSITIONS.includes(aPos) || !FIELD_POSITIONS.includes(bPos)) return false
     if (lockedValue(lineup, playerA, inning)) return false
     if (lockedValue(lineup, playerB, inning)) return false
-    if (isDisallowedFit(fitTier(fitMap, playerA, bPos))) return false
-    if (isDisallowedFit(fitTier(fitMap, playerB, aPos))) return false
+    const aFitForBPos = fitTier(fitMap, playerA, bPos)
+const bFitForAPos = fitTier(fitMap, playerB, aPos)
+const bPosRule = getPositionRule(optimizerProfileRules, bPos)
+const aPosRule = getPositionRule(optimizerProfileRules, aPos)
+
+if (!fitAllowedByRule(bPosRule, aFitForBPos)) return false
+if (!fitAllowedByRule(aPosRule, bFitForAPos)) return false
 
     return true
   }
