@@ -896,10 +896,11 @@ function assignPositionsForInning({
   )
 
   const candidatesByPosition = {}
+
   openPositions.forEach((position) => {
     candidatesByPosition[position] = candidateIds
       .map((id) =>
-                scorePlayerForPosition({
+        scorePlayerForPosition({
           playerId: id,
           position,
           priorityMap,
@@ -912,10 +913,11 @@ function assignPositionsForInning({
           optimizerProfileRules,
         })
       )
+      .filter((candidate) => candidate.totalScore > -50000000)
       .sort((a, b) => b.totalScore - a.totalScore)
   })
 
-      const orderedPositions = [...openPositions].sort((a, b) => {
+  const orderedPositions = [...openPositions].sort((a, b) => {
     return (
       positionFillRank(optimizerProfileRules, a) - positionFillRank(optimizerProfileRules, b) ||
       positionImportance(optimizerProfileRules, b) - positionImportance(optimizerProfileRules, a) ||
@@ -936,7 +938,7 @@ function assignPositionsForInning({
     }
 
     const position = orderedPositions[index]
-    const candidates = candidatesByPosition[position]
+    const candidates = candidatesByPosition[position] || []
 
     for (const candidate of candidates) {
       if (usedPlayers.has(candidate.playerId)) continue
@@ -957,39 +959,30 @@ function assignPositionsForInning({
   }
 
   search(0, new Set(), {}, 0)
-  // VALIDATION STEP
-const assignedPositions = Object.values(bestAssignment)
-const missingPositions = FIELD_POSITIONS.filter(
-  (pos) => !assignedPositions.includes(pos)
-)
 
-if (missingPositions.length > 0) {
-  // fallback: greedy assignment to guarantee coverage
-  const fallback = {}
-  const used = new Set()
+  const assignedOpenPositions = new Set(Object.values(bestAssignment))
+  const missingOpenPositions = openPositions.filter(
+    (position) => !assignedOpenPositions.has(position)
+  )
 
-  FIELD_POSITIONS.forEach((position) => {
-    const candidates = candidatesByPosition[position] || []
+  if (missingOpenPositions.length > 0) {
+    const fallback = { ...bestAssignment }
+    const used = new Set(Object.keys(fallback))
 
-    const valid = candidates.find((c) => {
-  if (used.has(c.playerId)) return false
+    missingOpenPositions.forEach((position) => {
+      const candidates = candidatesByPosition[position] || []
+      const valid = candidates.find((candidate) => !used.has(candidate.playerId))
 
-  const fit = fitTier(fitMap, c.playerId, position)
-  const rule = getPositionRule(optimizerProfileRules, position)
+      if (valid) {
+        fallback[valid.playerId] = position
+        used.add(valid.playerId)
+      }
+    })
 
-  return fitAllowedByRule(rule, fit)
-})
+    return fallback
+  }
 
-    if (valid) {
-      fallback[valid.playerId] = position
-      used.add(valid.playerId)
-    }
-  })
-
-  return fallback
-}
-
-return bestAssignment
+  return bestAssignment
 }
 
 function getPlayerFieldPositionsInGame(lineup, playerId, uptoInning = null) {
@@ -1018,7 +1011,14 @@ function isRowFullyLockedForGame(lineup, playerId) {
   return innings > 0
 }
 
-function enforceMinimumPositions({ lineup, players, fitMap, priorityMap, optimizerProfile }) {
+function enforceMinimumPositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfile,
+  optimizerProfileRules = {},
+}) {
   const availableIds = new Set((lineup?.availablePlayerIds || []).map(pk))
   const innings = Number(lineup?.innings || 0)
 
@@ -1072,8 +1072,13 @@ const mode = optimizerProfile?.min_positions_mode || 'nice'
     if (!FIELD_POSITIONS.includes(aPos) || !FIELD_POSITIONS.includes(bPos)) return false
     if (lockedValue(lineup, playerA, inning)) return false
     if (lockedValue(lineup, playerB, inning)) return false
-    if (isDisallowedFit(fitTier(fitMap, playerA, bPos))) return false
-    if (isDisallowedFit(fitTier(fitMap, playerB, aPos))) return false
+    const aFitForBPos = fitTier(fitMap, playerA, bPos)
+const bFitForAPos = fitTier(fitMap, playerB, aPos)
+const bPosRule = getPositionRule(optimizerProfileRules, bPos)
+const aPosRule = getPositionRule(optimizerProfileRules, aPos)
+
+if (!fitAllowedByRule(bPosRule, aFitForBPos)) return false
+if (!fitAllowedByRule(aPosRule, bFitForAPos)) return false
 
     return true
   }
@@ -1343,6 +1348,7 @@ eligibleIds.forEach((id) => {
   fitMap,
   priorityMap,
   optimizerProfile,
+  optimizerProfileRules,
 })
 
 enforceConsecutivePositionRules({
