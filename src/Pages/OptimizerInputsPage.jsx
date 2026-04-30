@@ -41,7 +41,7 @@ function blankProfileForm() {
     description: '',
     is_default: false,
     min_positions_per_player: 2,
-    min_innings_per_position: 2,
+    min_innings_per_used_position: 2,
     min_positions_mode: 'nice',
     min_innings_between_sitouts: 2,
     sit_all_before_second: true,
@@ -230,6 +230,7 @@ const selectedProfile =
         description: profileForm.description || '',
         is_default: profileForm.is_default === true,
         min_positions_per_player: Number(profileForm.min_positions_per_player || 0),
+        min_innings_per_used_position: Number(profileForm.min_innings_per_used_position || 1),
         min_positions_mode: profileForm.min_positions_mode || 'nice',
         min_innings_between_sitouts: Number(profileForm.min_innings_between_sitouts || 0),
         sit_all_before_second: profileForm.sit_all_before_second === true,
@@ -302,6 +303,7 @@ const selectedProfile =
         description: draftProfile.description || '',
         is_default: draftProfile.is_default === true,
         min_positions_per_player: Number(draftProfile.min_positions_per_player || 0),
+        min_innings_per_used_position: Number(draftProfile.min_innings_per_used_position || 1),
         min_positions_mode: draftProfile.min_positions_mode || 'nice',
         min_innings_between_sitouts: Number(draftProfile.min_innings_between_sitouts || 0),
         sit_all_before_second: draftProfile.sit_all_before_second === true,
@@ -413,6 +415,7 @@ const selectedProfile =
       ...current,
       description: source.description || '',
       min_positions_per_player: source.min_positions_per_player,
+      min_innings_per_used_position: source.min_innings_per_used_position,
       min_positions_mode: source.min_positions_mode,
       min_innings_between_sitouts: source.min_innings_between_sitouts,
       sit_all_before_second: source.sit_all_before_second,
@@ -451,7 +454,7 @@ const selectedProfile =
               <tr><td>7</td><td>Apply Protect weighting</td><td>Protect</td><td>Higher values protect important positions.</td></tr>
               <tr><td>8</td><td>Prefer consecutive positioning</td><td>Consecutive</td><td>Encourages back-to-back innings.</td></tr>
               <tr><td>9</td><td>Enforce consecutive minimum</td><td>Must 2+ if possible</td><td>Applies to any marked position.</td></tr>
-              <tr><td>10</td><td>Apply position variety</td><td>Minimum Positions + Variety Mode</td><td>Tries to give players different positions.</td></tr>
+              <tr><td>10</td><td>Apply position variety</td><td>Minimum Positions + Minimum Innings per Used Position + Variety Mode</td><td>Tries to give players different positions, but a position only counts toward variety after the minimum innings setting is met.</td></tr>
             </tbody>
           </table>
         </div>
@@ -522,6 +525,7 @@ function printOptimizerSummary() {
               <tr><th>Everyone Sits Once First</th><td>${profile.sit_all_before_second ? 'Yes' : 'No'}</td></tr>
               <tr><th>Sit Gap</th><td>${escapeHtml(profile.min_innings_between_sitouts)}</td></tr>
               <tr><th>Minimum Positions per Player</th><td>${escapeHtml(profile.min_positions_per_player)}</td></tr>
+              <tr><th>Minimum Innings per Used Position</th><td>${escapeHtml(profile.min_innings_per_used_position)}</td></tr>
               <tr><th>Position Variety Mode</th><td>${escapeHtml(profile.min_positions_mode)}</td></tr>
             </tbody>
           </table>
@@ -618,12 +622,28 @@ function printOptimizerSummary() {
           </select>
         </div>
 
-        <div>
-            <div>
-  <label>6b. Minimum Innings at Each Position</label>
+<div>
+  <label>6. Minimum Positions per Player</label>
   <select
-    value={Number(source.min_innings_per_position ?? 1)}
-    onChange={(e) => updateFn('min_innings_per_position', Number(e.target.value))}
+    value={Number(source.min_positions_per_player ?? 2)}
+    onChange={(e) => updateFn('min_positions_per_player', Number(e.target.value))}
+  >
+    {MIN_POSITION_OPTIONS.map((n) => (
+      <option key={n} value={n}>
+        {n} position{n === 1 ? '' : 's'}
+      </option>
+    ))}
+  </select>
+  <div className="small-note">
+    How many different defensive positions each player should ideally play.
+  </div>
+</div>
+
+<div>
+  <label>7. Minimum Innings per Used Position</label>
+  <select
+    value={Number(source.min_innings_per_used_position ?? 1)}
+    onChange={(e) => updateFn('min_innings_per_used_position', Number(e.target.value))}
   >
     {MIN_INNINGS_AT_POSITION_OPTIONS.map((n) => (
       <option key={n} value={n}>
@@ -631,11 +651,14 @@ function printOptimizerSummary() {
       </option>
     ))}
   </select>
+  <div className="small-note">
+    A position only counts toward variety after this many innings.
+  </div>
 </div>
 
-        <div>
-          <label>7. Position Variety Mode</label>
-          <select
+<div>
+  <label>8. Position Variety Mode</label>
+  <select
             value={source.min_positions_mode || 'nice'}
             onChange={(e) => updateFn('min_positions_mode', e.target.value)}
           >
