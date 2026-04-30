@@ -1,0 +1,211 @@
+/* =========================
+   LINEUP GRID
+   ========================= */
+
+.lineup-print-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.lineup-print-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #e6f4f4;
+}
+
+.lineup-print-table th,
+.lineup-print-table td {
+  padding: 4px 5px;
+  font-size: 12px;
+}
+
+.lineup-print-table select {
+  min-width: 72px;
+  min-height: 30px;
+  height: 30px;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.lineup-print-table input[type='number'] {
+  width: 54px;
+  min-width: 54px;
+  min-height: 30px;
+  height: 30px;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.lineup-print-table th:nth-child(1),
+.lineup-print-table td:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  width: 54px;
+  min-width: 54px;
+  max-width: 54px;
+  background: #fff;
+}
+
+.lineup-print-table th:nth-child(2),
+.lineup-print-table td:nth-child(2) {
+  position: sticky;
+  left: 54px;
+  z-index: 6;
+  width: 76px;
+  min-width: 76px;
+  max-width: 76px;
+  background: #fff;
+}
+
+.lineup-print-table th:nth-child(3),
+.lineup-print-table td:nth-child(3) {
+  position: sticky;
+  left: 130px;
+  z-index: 6;
+  width: 92px;
+  min-width: 92px;
+  max-width: 92px;
+  background: #fff;
+}
+
+.lineup-print-table thead th:nth-child(1),
+.lineup-print-table thead th:nth-child(2),
+.lineup-print-table thead th:nth-child(3) {
+  z-index: 30;
+  background: #e6f4f4;
+}
+
+.lineup-print-table td:nth-child(3) {
+  text-align: left;
+}
+
+.batting-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  background: #fff;
+}
+
+.batting-order-input {
+  width: 56px !important;
+  min-width: 56px !important;
+}
+
+.batting-cell .grid-cell-lock-only {
+  margin: 0;
+  min-width: 24px;
+}
+
+.batting-lock-button {
+  width: 38px;
+  min-width: 38px;
+  padding: 4px 6px;
+}
+
+.grid-cell-lock-only {
+  justify-content: center;
+  gap: 0;
+}
+
+.position-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inning-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 56px;
+}
+
+.inning-number {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.inning-remove {
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #e5b4b4;
+  background: #fbe4e4;
+  color: #b42318;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.inning-lock-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  margin: 0;
+}
+
+.inning-lock {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.row-locked {
+  opacity: 0.7;
+  background: #f8fafc;
+}
+
+/* Mini diamond */
+
+.mini-diamond-wrap {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  margin: 0 auto;
+}
+
+.mini-diamond-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid #94a3b8;
+  background: white;
+}
+
+.mini-diamond-dot.valid {
+  background: #22c55e;
+  border-color: #16a34a;
+}
+
+.mini-diamond-dot.invalid {
+  background: #ef4444;
+  border-color: #dc2626;
+}
+
+.mini-diamond-dot.empty {
+  background: white;
+}
+
+.mini-diamond-lock {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: white;
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 10px;
+  text-align: center;
+}
