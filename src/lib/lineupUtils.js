@@ -260,11 +260,11 @@ export function inningStatus(lineup, inning, players, fitMap) {
     const value = lineup?.cells?.[id]?.[inning] || ''
     if (!FIELD_POSITIONS.includes(value)) return
 
-    const tier = fitTier(fitMap, id, value)
-    if (tier === 'no' || tier === 'E') {
-      const player = (players || []).find((p) => pk(p.id) === id)
-      badFits.push(`${player?.name || id} @ ${value}`)
-    }
+    const tier = normalizeFit(fitMap?.[pk(id)]?.[value] || 'no')
+if (tier !== 'primary') {
+  const player = (players || []).find((p) => pk(p.id) === id)
+  badFits.push(`${player?.name || id} @ ${value}`)
+}
   })
 
   return { missing, duplicate, badFits }
@@ -297,10 +297,9 @@ export function validateLineup({ lineup, players, fitMap, optimizerProfileRules 
 
       positionCounts[value].push(playerName)
 
-      const fit = fitTier(fitMap, id, value)
-      const rule = getPositionRule(optimizerProfileRules, value)
+      const fit = normalizeFit(fitMap?.[pk(id)]?.[value] || 'no')
 
-      if (!fitAllowedByRule(rule, fit)) {
+      if (fit !== 'primary') {
         issues.push({
           inning,
           type: 'bad_fit',
@@ -850,16 +849,11 @@ function scorePlayerForPosition({
   optimizerProfile = null,
   optimizerProfileRules = {},
 }) {
-  const fit = normalizeFit(fitTier(fitMap, playerId, position))
+  const fit = normalizeFit(fitMap?.[pk(playerId)]?.[position] || 'no')
   const target = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
   const bucket = positionBucket(position)
-  const rule = getPositionRule(optimizerProfileRules, position)
   const importance = positionImportance(optimizerProfileRules, position)
-
-  const disallowed = fit === 'no'
   const primaryFit = fit === 'primary'
-  const secondaryFit = fit === 'secondary'
-  const developmentFit = fit === 'development'
 
   // HARD BLOCK anything not PRIMARY
 if (fit !== 'primary') {
@@ -874,7 +868,7 @@ if (fit !== 'primary') {
     -100000000
   
   const targetPool = (candidateIds || [])
-    .filter((id) => fitAllowedByRule(rule, fitTier(fitMap, id, position)))
+  .filter((id) => normalizeFit(fitMap?.[pk(id)]?.[position] || 'no') === 'primary')
     .map((id) => ({
       id,
       target: Number(getPriorityTarget(priorityMap, id, position) || 0),
@@ -1177,13 +1171,11 @@ const mode = optimizerProfile?.min_positions_mode || 'nice'
     if (!FIELD_POSITIONS.includes(aPos) || !FIELD_POSITIONS.includes(bPos)) return false
     if (lockedValue(lineup, playerA, inning)) return false
     if (lockedValue(lineup, playerB, inning)) return false
-    const aFitForBPos = fitTier(fitMap, playerA, bPos)
-const bFitForAPos = fitTier(fitMap, playerB, aPos)
-const bPosRule = getPositionRule(optimizerProfileRules, bPos)
-const aPosRule = getPositionRule(optimizerProfileRules, aPos)
+    const aFitForBPos = normalizeFit(fitMap?.[pk(playerA)]?.[bPos] || 'no')
+const bFitForAPos = normalizeFit(fitMap?.[pk(playerB)]?.[aPos] || 'no')
 
-if (!fitAllowedByRule(bPosRule, aFitForBPos)) return false
-if (!fitAllowedByRule(aPosRule, bFitForAPos)) return false
+if (aFitForBPos !== 'primary') return false
+if (bFitForAPos !== 'primary') return false
 
     return true
   }
@@ -1209,8 +1201,8 @@ if (qualifiedPositions.size >= minPositions) return
       if (!FIELD_POSITIONS.includes(currentPos)) continue
 
       const alternativePositions = FIELD_POSITIONS
-        .filter((pos) => pos !== currentPos)
-        .filter((pos) => !isDisallowedFit(fitTier(fitMap, playerId, pos)))
+  .filter((pos) => pos !== currentPos)
+  .filter((pos) => normalizeFit(fitMap?.[pk(playerId)]?.[pos] || 'no') === 'primary')
         .sort((a, b) => {
           const aPriority = priorityValue(priorityMap, playerId, a)
           const bPriority = priorityValue(priorityMap, playerId, b)
@@ -1252,14 +1244,11 @@ function enforceConsecutivePositionRules({ lineup, players, fitMap, optimizerPro
     if (lockedValue(lineup, playerA, inning)) return false
     if (lockedValue(lineup, playerB, inning)) return false
 
-    const aFitForBPos = fitTier(fitMap, playerA, bPos)
-    const bFitForAPos = fitTier(fitMap, playerB, aPos)
+    const aFitForBPos = normalizeFit(fitMap?.[pk(playerA)]?.[bPos] || 'no')
+const bFitForAPos = normalizeFit(fitMap?.[pk(playerB)]?.[aPos] || 'no')
 
-    const bPosRule = getPositionRule(optimizerProfileRules, bPos)
-    const aPosRule = getPositionRule(optimizerProfileRules, aPos)
-
-    if (!fitAllowedByRule(bPosRule, aFitForBPos)) return false
-    if (!fitAllowedByRule(aPosRule, bFitForAPos)) return false
+if (aFitForBPos !== 'primary') return false
+if (bFitForAPos !== 'primary') return false
 
     return true
   }
@@ -1313,9 +1302,8 @@ function repairMissingAndDuplicatePositions({
   }
 
   function isValidAt(id, position) {
-    const rule = getPositionRule(optimizerProfileRules, position)
-    return fitAllowedByRule(rule, fitTier(fitMap, id, position))
-  }
+  return normalizeFit(fitMap?.[pk(id)]?.[position] || 'no') === 'primary'
+}
 
   function fitScoreFor(id, position) {
     const fit = normalizeFit(fitTier(fitMap, id, position))
