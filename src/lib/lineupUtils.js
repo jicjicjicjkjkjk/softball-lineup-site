@@ -59,25 +59,40 @@ function consecutiveMode(profileRules, position) {
   return rule?.consecutive_mode || (['P', 'C'].includes(position) ? 'must_2' : 'prefer')
 }
 
-function fitAllowedByRule(rule, fit) {
-  const primaryFit = fit === 'A' || fit === 'primary'
-  const secondaryFit = fit === 'B' || fit === 'secondary'
-  const developmentFit = fit === 'C' || fit === 'D'
-  const disallowed = fit === 'E' || fit === 'no'
+function normalizeFit(fit) {
+  const value = String(fit || '').trim().toLowerCase()
 
-  if (primaryFit) {
+  if (value === 'a' || value === 'primary') return 'primary'
+  if (
+    value === 'b' ||
+    value === 'secondary' ||
+    value === 'non-primary' ||
+    value === 'nonprimary'
+  ) {
+    return 'secondary'
+  }
+  if (value === 'c' || value === 'd' || value === 'development') return 'development'
+  if (value === 'e' || value === 'no' || value === 'not allowed') return 'no'
+
+  return 'secondary'
+}
+
+function fitAllowedByRule(rule, fit) {
+  const normalized = normalizeFit(fit)
+
+  if (normalized === 'primary') {
     return getRuleBool(rule, ['allow_primary'], true)
   }
 
-  if (secondaryFit) {
+  if (normalized === 'secondary') {
     return getRuleBool(rule, ['allow_secondary', 'allow_non_primary'], true)
   }
 
-  if (developmentFit) {
+  if (normalized === 'development') {
     return getRuleBool(rule, ['allow_development', 'allow_c_d'], true)
   }
 
-  if (disallowed) {
+  if (normalized === 'no') {
     return getRuleBool(rule, ['allow_disallowed', 'allow_not_allowed', 'allow_no'], false)
   }
 
@@ -489,7 +504,7 @@ function lockedValue(lineup, playerId, inning) {
 }
 
 function isDisallowedFit(fit) {
-  return fit === 'no' || fit === 'E'
+  return normalizeFit(fit) === 'no'
 }
 
 function getEligiblePlayerIdsForInning(lineup, inning, players) {
@@ -827,16 +842,16 @@ function scorePlayerForPosition({
   optimizerProfile = null,
   optimizerProfileRules = {},
 }) {
-  const fit = fitTier(fitMap, playerId, position)
+  const fit = normalizeFit(fitTier(fitMap, playerId, position))
   const target = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
   const bucket = positionBucket(position)
   const rule = getPositionRule(optimizerProfileRules, position)
   const importance = positionImportance(optimizerProfileRules, position)
 
-  const disallowed = fit === 'E' || fit === 'no'
-  const primaryFit = fit === 'A' || fit === 'primary'
-  const secondaryFit = fit === 'B' || fit === 'secondary'
-  const developmentFit = fit === 'C' || fit === 'D'
+  const disallowed = fit === 'no'
+  const primaryFit = fit === 'primary'
+  const secondaryFit = fit === 'secondary'
+  const developmentFit = fit === 'development'
 
   if (!fitAllowedByRule(rule, fit)) {
     return { playerId, position, totalScore: -100000000 }
