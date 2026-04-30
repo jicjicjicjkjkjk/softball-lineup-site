@@ -971,7 +971,14 @@ if (missingPositions.length > 0) {
   FIELD_POSITIONS.forEach((position) => {
     const candidates = candidatesByPosition[position] || []
 
-    const valid = candidates.find((c) => !used.has(c.playerId))
+    const valid = candidates.find((c) => {
+  if (used.has(c.playerId)) return false
+
+  const fit = fitTier(fitMap, c.playerId, position)
+  const rule = getPositionRule(optimizerProfileRules, position)
+
+  return fitAllowedByRule(rule, fit)
+})
 
     if (valid) {
       fallback[valid.playerId] = position
