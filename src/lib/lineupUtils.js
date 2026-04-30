@@ -107,9 +107,6 @@ function clone(obj) {
   return JSON.parse(JSON.stringify(obj))
 }
 
-function battingLocked(lineup, playerId) {
-  return lineup?.lockedBattingOrder?.[playerId] === true
-}
 
 export function blankLineup(playerIds, innings = 6, availablePlayerIds = playerIds) {
   const cells = {}
@@ -806,13 +803,24 @@ function chooseSitOutsForInning({
     chosen.push(candidate.id)
   }
 
-  for (const candidate of ranked) {
-    if (chosen.length >= additionalOutsNeeded) break
-    if (chosen.includes(candidate.id)) continue
-    if (candidate.spacingBad) continue
-    if (!wouldStayFair(candidate)) continue
-    chosen.push(candidate.id)
+    for (const candidate of ranked) {
+  if (chosen.length >= additionalOutsNeeded) break
+  if (chosen.includes(candidate.id)) continue
+
+  if (candidate.spacingBad) {
+    const nonSpacingOptionsLeft = ranked.some(
+      (other) =>
+        !chosen.includes(other.id) &&
+        !other.spacingBad &&
+        wouldStayFair(other)
+    )
+
+    if (nonSpacingOptionsLeft) continue
   }
+
+  if (!wouldStayFair(candidate)) continue
+  chosen.push(candidate.id)
+}
 
   for (const candidate of ranked) {
     if (chosen.length >= additionalOutsNeeded) break
@@ -922,16 +930,13 @@ const needsMoreQualifiedPositions =
   qualifiedPositionCount < minPositions
 
   if (samePositionMode === 'prefer' && prevValue === position) {
-    rotationScore += 3000
-  }
+  rotationScore -= 1500
+}
 
   if (samePositionMode === 'must_2' && prevValue === position) {
     rotationScore += 12000
   }
 
-  if (samePositionMode === 'must_2' && inning > 1 && prevValue && prevValue !== position) {
-  rotationScore -= 20000
-}
 
 if (samePositionMode === 'must_2' && inning > 1 && prevValue !== position) {
   const previousPositionPlayer = Object.keys(lineup?.cells || {}).find(
@@ -1476,9 +1481,15 @@ eligibleIds.forEach((id) => {
   }
 })
   eligibleIds.forEach((id) => {
-      if (lockedValue(lineup, id, inning)) return
-      if (!lineup.cells?.[id]?.[inning]) lineup.cells[id][inning] = 'Out'
-    })
+  if (lockedValue(lineup, id, inning)) return
+
+  const value = lineup.cells?.[id]?.[inning]
+
+  // ONLY assign Out if still empty AFTER everything else
+  if (!value || value === '') {
+    lineup.cells[id][inning] = 'Out'
+  }
+})
 
     const inningTotals = computeTotals(
       [
@@ -1531,13 +1542,6 @@ eligibleIds.forEach((id) => {
   optimizerProfileRules,
 })
 
-enforceConsecutivePositionRules({
-  lineup,
-  players,
-  fitMap,
-  optimizerProfileRules,
-})
-
 repairMissingAndDuplicatePositions({
   lineup,
   players,
@@ -1546,6 +1550,13 @@ repairMissingAndDuplicatePositions({
   optimizerProfileRules,
 })
 
+enforceConsecutivePositionRules({
+  lineup,
+  players,
+  fitMap,
+  optimizerProfileRules,
+})
+  
 lineup.validationIssues = validateLineup({
   lineup,
   players,
