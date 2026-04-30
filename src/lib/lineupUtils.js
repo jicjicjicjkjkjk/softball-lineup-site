@@ -898,17 +898,16 @@ function scorePlayerForPosition({
   const target = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
   const bucket = positionBucket(position)
   const importance = positionImportance(optimizerProfileRules, position)
-  const primaryFit = fit === 'primary'
 
-  // HARD BLOCK anything not PRIMARY
-if (fit !== 'primary') {
-  return { playerId, position, totalScore: -100000000 }
-}
+  // For now: only PRIMARY players are eligible during normal optimization.
+  if (fit !== 'primary') {
+    return { playerId, position, totalScore: -100000000 }
+  }
 
-      const fitScore = 12000 * importance
-  
+  const fitScore = 12000 * importance
+
   const targetPool = (candidateIds || [])
-  .filter((id) => normalizeFit(fitMap?.[pk(id)]?.[position] || 'no') === 'primary')
+    .filter((id) => normalizeFit(fitMap?.[pk(id)]?.[position] || 'no') === 'primary')
     .map((id) => ({
       id,
       target: Number(getPriorityTarget(priorityMap, id, position) || 0),
@@ -928,72 +927,33 @@ if (fit !== 'primary') {
     const projectedPlayerCount = currentPlayerCount + 1
     const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
 
-        allocationScore = 5000 - distanceFromTarget * 2500 + target * 100 * importance
+    allocationScore = 5000 - distanceFromTarget * 2500 + target * 100 * importance
   } else if (targetTotal > 0 && target <= 0) {
     allocationScore = -5000 * importance
   }
 
   const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
-  const previousSamePositionCount = Object.entries(lineup?.cells?.[playerId] || {}).filter(
-    ([inningNumber, value]) => Number(inningNumber) < inning && value === position
-  ).length
+  const samePositionMode = consecutiveMode(optimizerProfileRules, position)
 
-  const minPositions = Number(optimizerProfile?.min_positions_per_player || 0)
-const minInningsPerUsedPosition = Number(
-  optimizerProfile?.min_innings_per_used_position || 1
-)
-const minPositionsMode = optimizerProfile?.min_positions_mode || 'nice'
-
-const samePositionMode = consecutiveMode(optimizerProfileRules, position)
-
-let rotationScore = 0
-
-const playerPositionCounts = {}
-Object.values(lineup?.cells?.[playerId] || {}).forEach((value) => {
-  if (!FIELD_POSITIONS.includes(value)) return
-  playerPositionCounts[value] = Number(playerPositionCounts[value] || 0) + 1
-})
-
-const qualifiedPositionCount = Object.values(playerPositionCounts).filter(
-  (count) => count >= minInningsPerUsedPosition
-).length
-
-const currentPositionCount = Number(playerPositionCounts[position] || 0)
-const needsMoreQualifiedPositions =
-  minPositionsMode !== 'off' &&
-  minPositions > 1 &&
-  qualifiedPositionCount < minPositions
+  let rotationScore = 0
 
   if (samePositionMode === 'prefer' && prevValue === position) {
-  rotationScore -= 1500
-}
+    rotationScore -= 1500
+  }
 
   if (samePositionMode === 'must_2' && prevValue === position) {
     rotationScore += 12000
   }
 
+  if (samePositionMode === 'must_2' && inning > 1 && prevValue !== position) {
+    const previousPositionPlayer = Object.keys(lineup?.cells || {}).find(
+      (id) => lineup?.cells?.[id]?.[inning - 1] === position
+    )
 
-if (samePositionMode === 'must_2' && inning > 1 && prevValue !== position) {
-  const previousPositionPlayer = Object.keys(lineup?.cells || {}).find(
-    (id) => lineup?.cells?.[id]?.[inning - 1] === position
-  )
-
-  if (previousPositionPlayer && previousPositionPlayer !== playerId) {
-    rotationScore -= 30000
+    if (previousPositionPlayer && previousPositionPlayer !== playerId) {
+      rotationScore -= 30000
+    }
   }
-}
-
-  if (needsMoreQualifiedPositions) {
-  if (currentPositionCount > 0 && currentPositionCount < minInningsPerUsedPosition) {
-    rotationScore += minPositionsMode === 'must' ? 9000 : 4500
-  } else if (currentPositionCount === 0) {
-    rotationScore += minPositionsMode === 'must' ? 5000 : 2500
-  } else {
-    rotationScore -= minPositionsMode === 'must' ? 2500 : 900
-  }
-
-  rotationScore -= currentPlayerCount * 300
-}
 
   return {
     playerId,
@@ -1743,15 +1703,6 @@ eligibleIds.forEach((id) => {
     })
   }
   
-      enforceMinimumPositions({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  optimizerProfile,
-  optimizerProfileRules,
-})
-
 repairMissingAndDuplicatePositions({
   lineup,
   players,
@@ -1775,14 +1726,6 @@ repairMissingAndDuplicatePositions({
   optimizerProfileRules,
 })
 
-forceFillAllPositions({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  optimizerProfileRules,
-})
-  
 lineup.validationIssues = validateLineup({
   lineup,
   players,
