@@ -297,9 +297,10 @@ export function validateLineup({ lineup, players, fitMap, optimizerProfileRules 
 
       positionCounts[value].push(playerName)
 
-      const fit = normalizeFit(fitMap?.[pk(id)]?.[value] || 'no')
+            const rule = getPositionRule(optimizerProfileRules, value)
+      const fit = normalizeFit(fitTier(fitMap, id, value))
 
-      if (fit !== 'primary') {
+      if (!fitAllowedByRule(rule, fit)) {
         issues.push({
           inning,
           type: 'bad_fit',
@@ -894,41 +895,39 @@ function scorePlayerForPosition({
   optimizerProfile = null,
   optimizerProfileRules = {},
 }) {
+  const id = pk(playerId)
   const rule = getPositionRule(optimizerProfileRules, position)
-  const fit = normalizeFit(fitMap?.[pk(playerId)]?.[position] || 'no')
+  const rawFit = fitTier(fitMap, id, position)
+  const fit = normalizeFit(rawFit)
 
-  // 🚨 Only block if rule says it's not allowed
   if (!fitAllowedByRule(rule, fit)) {
-    return { playerId, position, totalScore: -100000000 }
+    return { playerId: id, position, totalScore: -100000000 }
   }
 
-  const target = Number(getPriorityTarget(priorityMap, playerId, position) || 0)
+  const target = Number(getPriorityTarget(priorityMap, id, position) || 0)
   const bucket = positionBucket(position)
   const importance = positionImportance(optimizerProfileRules, position)
-  const fillRank = positionFillRank(optimizerProfileRules, position)
 
-  // ✅ Fit ranking (this is the key change)
-  const fitRank =
-    fit === 'primary' ? 4 :
-    fit === 'secondary' ? 3 :
-    fit === 'development' ? 2 :
-    1
-
-  const fitScore = fitRank * importance * 100
-  const fillScore = Math.max(0, 100 - fillRank) * importance
+  let fitScore = 0
+  if (fit === 'primary') fitScore = 12000 * importance
+  else if (fit === 'secondary') fitScore = 6000 * importance
+  else if (fit === 'development') fitScore = 1500 * importance
+  else fitScore = 100 * importance
 
   const targetPool = (candidateIds || [])
-    .filter((id) =>
-      fitAllowedByRule(rule, fitMap?.[pk(id)]?.[position] || 'no')
-    )
-    .map((id) => ({
-      id,
-      target: Number(getPriorityTarget(priorityMap, id, position) || 0),
+    .filter((candidateId) => {
+      const candidateFit = normalizeFit(fitTier(fitMap, candidateId, position))
+      const candidateRule = getPositionRule(optimizerProfileRules, position)
+      return fitAllowedByRule(candidateRule, candidateFit)
+    })
+    .map((candidateId) => ({
+      id: candidateId,
+      target: Number(getPriorityTarget(priorityMap, candidateId, position) || 0),
     }))
     .filter((row) => row.target > 0)
 
   const targetTotal = targetPool.reduce((sum, row) => sum + row.target, 0)
-  const currentPlayerCount = Number(planPositionCounts?.[playerId]?.[bucket] || 0)
+  const currentPlayerCount = Number(planPositionCounts?.[id]?.[bucket] || 0)
   const currentPositionTotal = totalPlanPositionCount(planPositionCounts, position)
 
   let allocationScore = 0
@@ -940,38 +939,38 @@ function scorePlayerForPosition({
     const projectedPlayerCount = currentPlayerCount + 1
     const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
 
-    allocationScore = target * importance - distanceFromTarget * importance * 25
+    allocationScore = 5000 - distanceFromTarget * 2500 + target * 100 * importance
   } else if (targetTotal > 0 && target <= 0) {
-    allocationScore = -importance * 25
+    allocationScore = -5000 * importance
   }
 
-  const prevValue = inning > 1 ? lineup?.cells?.[playerId]?.[inning - 1] || '' : ''
+  const prevValue = inning > 1 ? lineup?.cells?.[id]?.[inning - 1] || '' : ''
   const samePositionMode = consecutiveMode(optimizerProfileRules, position)
 
   let rotationScore = 0
 
   if (samePositionMode === 'prefer' && prevValue === position) {
-    rotationScore += importance * 25
+    rotationScore -= 1500
   }
 
   if (samePositionMode === 'must_2' && prevValue === position) {
-    rotationScore += importance * 100
+    rotationScore += 12000
   }
 
   if (samePositionMode === 'must_2' && inning > 1 && prevValue !== position) {
     const previousPositionPlayer = Object.keys(lineup?.cells || {}).find(
-      (id) => lineup?.cells?.[id]?.[inning - 1] === position
+      (otherId) => lineup?.cells?.[otherId]?.[inning - 1] === position
     )
 
-    if (previousPositionPlayer && previousPositionPlayer !== playerId) {
-      rotationScore -= importance * 100
+    if (previousPositionPlayer && previousPositionPlayer !== id) {
+      rotationScore -= 30000
     }
   }
 
   return {
-    playerId,
+    playerId: id,
     position,
-    totalScore: fitScore + fillScore + allocationScore + rotationScore,
+    totalScore: fitScore + allocationScore + rotationScore,
   }
 }
 
@@ -1316,7 +1315,8 @@ function repairMissingAndDuplicatePositions({
 
   function isValidAt(id, position) {
   const rule = getPositionRule(optimizerProfileRules, position)
-  return fitAllowedByRule(rule, fitMap?.[pk(id)]?.[position] || 'no')
+  const fit = normalizeFit(fitTier(fitMap, id, position))
+  return fitAllowedByRule(rule, fit)
 }
 
   function fitScoreFor(id, position) {
