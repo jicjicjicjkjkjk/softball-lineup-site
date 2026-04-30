@@ -99,6 +99,102 @@ function displayPct(value) {
   return Number.isNaN(n) ? '' : Math.round(n)
 }
 
+function printSelectedPlayerSummary({ playerName, filterSummary, rows = [] }) {
+  const htmlEscape = (value) =>
+    String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;')
+
+  const tableRows = rows
+    .map(
+      (row, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${htmlEscape(row.opponent || '')}</td>
+          <td>${htmlEscape(formatDateShort(row.date) || '')}</td>
+          <td>${htmlEscape(row.active || '')}</td>
+          <td>${htmlEscape(row.P || '')}</td>
+          <td>${htmlEscape(row.C || '')}</td>
+          <td>${htmlEscape(row['1B'] || '')}</td>
+          <td>${htmlEscape(row['2B'] || '')}</td>
+          <td>${htmlEscape(row['3B'] || '')}</td>
+          <td>${htmlEscape(row.SS || '')}</td>
+          <td>${htmlEscape(row.LF || '')}</td>
+          <td>${htmlEscape(row.CF || '')}</td>
+          <td>${htmlEscape(row.RF || '')}</td>
+          <td>${htmlEscape(row.Out || '')}</td>
+          <td>${htmlEscape(row.Injury || '')}</td>
+        </tr>
+      `
+    )
+    .join('')
+
+  const html = `
+    <html>
+      <head>
+        <title>${htmlEscape(playerName)} Positioning Summary</title>
+        <style>
+          @page { size: landscape; margin: 0.35in; }
+          body { font-family: Arial, sans-serif; padding: 18px; color: #111827; }
+          h1 { margin: 0 0 4px; font-size: 22px; }
+          .subtitle { margin-bottom: 14px; font-size: 12px; color: #4b5563; }
+          table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          th, td { border: 1px solid #cbd5e1; padding: 5px; font-size: 11px; text-align: center; }
+          th { background: #e8f3f3; font-weight: 700; }
+          td:nth-child(2), th:nth-child(2) { text-align: left; width: 150px; }
+        </style>
+      </head>
+      <body>
+        <h1>${htmlEscape(playerName)} Positioning by Game</h1>
+        <div class="subtitle">${htmlEscape(filterSummary)}</div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Game #</th>
+              <th>Opponent</th>
+              <th>Date</th>
+              <th>Act</th>
+              <th>P</th>
+              <th>C</th>
+              <th>1B</th>
+              <th>2B</th>
+              <th>3B</th>
+              <th>SS</th>
+              <th>LF</th>
+              <th>CF</th>
+              <th>RF</th>
+              <th>Out</th>
+              <th>Injury</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+
+        <script>
+          window.onload = function () {
+            window.focus()
+            window.print()
+          }
+        </script>
+      </body>
+    </html>
+  `
+
+  const printWindow = window.open('', '_blank')
+  if (!printWindow) {
+    alert('Please allow pop-ups so the player summary can print.')
+    return
+  }
+
+  printWindow.document.open()
+  printWindow.document.write(html)
+  printWindow.document.close()
+}
+
 function compareMatrixValue(a, b, direction = 'asc') {
   const aBlank = a === '' || a === null || a === undefined
   const bBlank = b === '' || b === null || b === undefined
@@ -614,7 +710,7 @@ const filterSummary = useMemo(() => {
     Filtered by: {filterSummary} ({trackingGames.length} games)
   </div>
 </div>
-          <div className="positioning-player-select">
+                    <div className="positioning-player-select">
             <select value={trackingPlayerId} onChange={(e) => setTrackingPlayerId(e.target.value)}>
               <option value="">Select Player</option>
               {(activePlayers || []).map((p) => (
@@ -623,6 +719,23 @@ const filterSummary = useMemo(() => {
                 </option>
               ))}
             </select>
+
+            {trackingPlayerId && (
+              <button
+                type="button"
+                onClick={() => {
+                  const player = (activePlayers || []).find((p) => pk(p.id) === pk(trackingPlayerId))
+
+                  printSelectedPlayerSummary({
+                    playerName: player?.name || 'Player',
+                    filterSummary: `${filterSummary} (${trackingGames.length} games)`,
+                    rows: selectedPlayerPositions || [],
+                  })
+                }}
+              >
+                Print Player Summary
+              </button>
+            )}
           </div>
         </div>
 
