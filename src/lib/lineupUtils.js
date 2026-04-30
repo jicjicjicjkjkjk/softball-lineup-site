@@ -1228,6 +1228,70 @@ if (updated.size >= minPositions) return
   return lineup
 }
 
+function enforceConsecutivePositionRules({ lineup, players, fitMap, optimizerProfileRules }) {
+  const innings = Number(lineup?.innings || 0)
+  if (!innings) return lineup
+
+  const playerIds = (players || []).map((player) => pk(player.id))
+
+  function playerAt(position, inning) {
+    return playerIds.find((id) => lineup?.cells?.[id]?.[inning] === position)
+  }
+
+  function canSwapAtInning(playerA, playerB, inning) {
+    const aPos = lineup?.cells?.[playerA]?.[inning] || ''
+    const bPos = lineup?.cells?.[playerB]?.[inning] || ''
+
+    if (!FIELD_POSITIONS.includes(aPos) || !FIELD_POSITIONS.includes(bPos)) return false
+    if (lockedValue(lineup, playerA, inning)) return false
+    if (lockedValue(lineup, playerB, inning)) return false
+
+    const aFitForBPos = fitTier(fitMap, playerA, bPos)
+    const bFitForAPos = fitTier(fitMap, playerB, aPos)
+
+    const bPosRule = getPositionRule(optimizerProfileRules, bPos)
+    const aPosRule = getPositionRule(optimizerProfileRules, aPos)
+
+    if (!fitAllowedByRule(bPosRule, aFitForBPos)) return false
+    if (!fitAllowedByRule(aPosRule, bFitForAPos)) return false
+
+    return true
+  }
+
+  FIELD_POSITIONS.forEach((position) => {
+    if (consecutiveMode(optimizerProfileRules, position) !== 'must_2') return
+
+    for (let inning = 1; inning <= innings; inning += 1) {
+      const playerId = playerAt(position, inning)
+      if (!playerId) continue
+
+      const prevSame = inning > 1 && lineup?.cells?.[playerId]?.[inning - 1] === position
+      const nextSame = inning < innings && lineup?.cells?.[playerId]?.[inning + 1] === position
+
+      if (prevSame || nextSame) continue
+
+      const neighborInnings = [inning + 1, inning - 1].filter(
+        (n) => n >= 1 && n <= innings
+      )
+
+      for (const neighbor of neighborInnings) {
+        const currentHolderAtNeighbor = playerAt(position, neighbor)
+        if (!currentHolderAtNeighbor) continue
+        if (currentHolderAtNeighbor === playerId) break
+
+        if (canSwapAtInning(playerId, currentHolderAtNeighbor, neighbor)) {
+          const playerNeighborPos = lineup.cells[playerId][neighbor]
+          lineup.cells[playerId][neighbor] = position
+          lineup.cells[currentHolderAtNeighbor][neighbor] = playerNeighborPos
+          break
+        }
+      }
+    }
+  })
+
+  return lineup
+}
+
 function repairMissingAndDuplicatePositions({
   lineup,
   players,
