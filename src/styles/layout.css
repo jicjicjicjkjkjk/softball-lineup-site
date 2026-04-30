@@ -1,0 +1,224 @@
+/* =========================
+   APP LAYOUT SAFETY
+   ========================= */
+
+.card,
+.main-content {
+  min-width: 0;
+}
+
+.table-scroll,
+.tracking-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+.table-scroll > table,
+.table-scroll .lineup-print-table {
+  min-width: max-content;
+}
+
+/* =========================
+   COMMON GRIDS / CARDS
+   ========================= */
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.position-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.position-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.checkbox-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* =========================
+   MOBILE/TABLET GENERAL
+   ========================= */
+
+@media (max-width: 900px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+  }
+
+  .main-content {
+    padding: 8px;
+  }
+
+  .stack {
+    gap: 10px;
+  }
+
+  .card {
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .card h2 {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .card h3 {
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+
+  .four-col,
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .row-between,
+  .wrap-row,
+  .button-row {
+    gap: 6px;
+  }
+
+  .main-content .card button {
+    min-height: 30px;
+    padding: 5px 9px;
+    font-size: 12px;
+    border-radius: 9px;
+    white-space: nowrap;
+  }
+
+  .main-content .card input,
+  .main-content .card select,
+  .main-content .card textarea {
+    min-height: 30px;
+    padding: 5px 8px;
+    font-size: 12px;
+    border-radius: 9px;
+  }
+
+  .main-content .card label {
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
+
+  .small-note {
+    font-size: 11px;
+  }
+
+  .table-scroll,
+  .tracking-scroll {
+    max-height: 72vh;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding-bottom: 4px;
+    background: #fff;
+  }
+}
+
+@media (max-width: 700px) {
+  .main-content {
+    padding: 6px;
+  }
+
+  .card {
+    padding: 8px;
+    border-radius: 12px;
+  }
+
+  .card h2 {
+    font-size: 17px;
+  }
+
+  .card h3 {
+    font-size: 14px;
+  }
+
+  .sidebar {
+    padding: 10px;
+  }
+
+  .sidebar h1 {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .nav-stack {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .nav-button {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 32px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .main-content .card button {
+    min-height: 28px;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .main-content .card input,
+  .main-content .card select,
+  .main-content .card textarea {
+    min-height: 28px;
+    font-size: 11px;
+  }
+
+  th,
+  td {
+    padding: 6px 7px;
+  }
+}
+
+/* =========================
+   LANDSCAPE TABLE MODE
+   ========================= */
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .tracking-scroll,
+  .table-scroll {
+    max-height: 68vh !important;
+    overflow: auto !important;
+  }
+
+  .card input[type='date'] {
+    width: 135px !important;
+    min-width: 135px !important;
+    max-width: 135px !important;
+  }
+
+  .card .filters-row {
+    gap: 10px !important;
+  }
+}
