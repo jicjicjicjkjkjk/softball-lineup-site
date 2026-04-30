@@ -1052,7 +1052,7 @@ function assignPositionsForInning({
 
   search(0, new Set(), {}, 0)
 
-  const assignedOpenPositions = new Set(Object.values(bestAssignment))
+    const assignedOpenPositions = new Set(Object.values(bestAssignment))
   const missingOpenPositions = openPositions.filter(
     (position) => !assignedOpenPositions.has(position)
   )
@@ -1063,7 +1063,14 @@ function assignPositionsForInning({
 
     missingOpenPositions.forEach((position) => {
       const candidates = candidatesByPosition[position] || []
-      const valid = candidates.find((candidate) => !used.has(candidate.playerId))
+
+      const valid = candidates.find((candidate) => {
+        if (used.has(candidate.playerId)) return false
+        if (lockedInfo.lockedFieldPlayers.has(candidate.playerId)) return false
+        if (lockedInfo.lockedOutPlayers.has(candidate.playerId)) return false
+        if (lineup?.cells?.[candidate.playerId]?.[inning] === 'Out') return false
+        return true
+      })
 
       if (valid) {
         fallback[valid.playerId] = position
@@ -1455,6 +1462,8 @@ enforceConsecutivePositionRules({
   optimizerProfileRules,
 })
 
+// Final sanity check: do NOT silently accept bad optimizer output.
+// For now, save the issues on the lineup so the UI/checks can show what failed.
 lineup.validationIssues = validateLineup({
   lineup,
   players,
