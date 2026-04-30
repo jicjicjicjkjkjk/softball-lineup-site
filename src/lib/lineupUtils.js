@@ -706,6 +706,40 @@ function totalPlanPositionCount(planPositionCounts, position) {
   )
 }
 
+function getRequiredPrimaryPlayersByPosition(lineup, inning, players, fitMap) {
+  const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
+
+  const positionToPlayers = {}
+
+  FIELD_POSITIONS.forEach((pos) => {
+    positionToPlayers[pos] = eligibleIds.filter(
+      (id) => normalizeFit(fitMap?.[pk(id)]?.[pos] || 'no') === 'primary'
+    )
+  })
+
+  const criticalPlayers = new Set()
+
+  // Step 1: single-coverage positions
+  Object.values(positionToPlayers).forEach((ids) => {
+    if (ids.length === 1) {
+      criticalPlayers.add(ids[0])
+    }
+  })
+
+  // Step 2: ensure we still have >= 9 total unique players to cover all positions
+  const uniquePrimaryPlayers = new Set()
+  Object.values(positionToPlayers).forEach((ids) => {
+    ids.forEach((id) => uniquePrimaryPlayers.add(id))
+  })
+
+  if (uniquePrimaryPlayers.size <= 9) {
+    // everyone is needed to cover the field
+    uniquePrimaryPlayers.forEach((id) => criticalPlayers.add(id))
+  }
+
+  return criticalPlayers
+}
+
 function chooseSitOutsForInning({
   lineup,
   inning,
@@ -715,6 +749,7 @@ function chooseSitOutsForInning({
   planSitOutTargets,
   cumulativePlanOutCounts,
   optimizerProfile = null,
+  fitMap,
 }) {
   const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
   const lockedInfo = getLockedAssignmentsForInning(lineup, inning, players)
@@ -724,9 +759,19 @@ function chooseSitOutsForInning({
 
   if (additionalOutsNeeded <= 0) return []
 
-  const unlockedEligibleIds = eligibleIds.filter(
-    (id) => !lockedInfo.lockedFieldPlayers.has(id) && !lockedInfo.lockedOutPlayers.has(id)
-  )
+  const criticalPlayers = getRequiredPrimaryPlayersByPosition(
+  lineup,
+  inning,
+  players,
+  fitMap
+)
+
+const unlockedEligibleIds = eligibleIds.filter(
+  (id) =>
+    !lockedInfo.lockedFieldPlayers.has(id) &&
+    !lockedInfo.lockedOutPlayers.has(id) &&
+    !criticalPlayers.has(id) // 🚨 DO NOT SIT THESE
+)
 
   if (!unlockedEligibleIds.length) return []
 
@@ -860,12 +905,7 @@ if (fit !== 'primary') {
   return { playerId, position, totalScore: -100000000 }
 }
 
-    const fitScore =
-    primaryFit ? 12000 * importance :
-    secondaryFit ? 4500 * importance :
-    developmentFit ? 800 * importance :
-    disallowed ? -75000 * importance :
-    -100000000
+      const fitScore = 12000 * importance
   
   const targetPool = (candidateIds || [])
   .filter((id) => normalizeFit(fitMap?.[pk(id)]?.[position] || 'no') === 'primary')
@@ -1482,7 +1522,7 @@ const planPositionCounts = initializePlanPositionCounts(players)
   })
 
   for (let inning = 1; inning <= lineup.innings; inning += 1) {
-        const sitOutIds = chooseSitOutsForInning({
+            const sitOutIds = chooseSitOutsForInning({
       lineup,
       inning,
       innings: lineup.innings,
@@ -1491,6 +1531,7 @@ const planPositionCounts = initializePlanPositionCounts(players)
       planSitOutTargets,
       cumulativePlanOutCounts,
       optimizerProfile,
+      fitMap,
     })
 
     sitOutIds.forEach((id) => {
@@ -1500,6 +1541,28 @@ const planPositionCounts = initializePlanPositionCounts(players)
       }
     })
 
+// 🚨 SAFETY: ensure all positions still have at least 1 primary candidate
+const eligibleAfterSits = getEligiblePlayerIdsForInning(lineup, inning, players)
+
+const positionCoverageOk = FIELD_POSITIONS.every((pos) => {
+  return eligibleAfterSits.some(
+    (id) => normalizeFit(fitMap?.[pk(id)]?.[pos] || 'no') === 'primary'
+  )
+})
+
+if (!positionCoverageOk) {
+  // rollback sits for this inning
+  sitOutIds.forEach((id) => {
+    if (!lockedValue(lineup, id, inning)) {
+      lineup.cells[id][inning] = ''
+      cumulativePlanOutCounts[id] = Math.max(
+        0,
+        Number(cumulativePlanOutCounts[id] || 0) - 1
+      )
+    }
+  })
+}
+    
     const assigned = assignPositionsForInning({
   lineup,
   inning,
