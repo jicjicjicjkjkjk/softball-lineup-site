@@ -6,6 +6,7 @@ import MobileLineupCard from './MobileLineupCard'
 
 export default function LineupFocusPanel(props) {
   const [showMobileLineupCard, setShowMobileLineupCard] = useState(false)
+
   const {
     optimizerFocusGame,
     optimizerFocusLineup,
@@ -61,78 +62,53 @@ export default function LineupFocusPanel(props) {
       activePlayerIds ? activePlayerIds() : []
     )
 
+  const badCheckCount = focusStatuses.filter(
+    (status) =>
+      status.duplicate?.length ||
+      status.missing?.length ||
+      status.badFits?.length
+  ).length
+
   return (
     <>
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>
-          Selected Game: {formatDateShort(optimizerFocusGame.date) || 'No Date'} vs{' '}
-          {optimizerFocusGame.opponent || 'Opponent'}
-          {optimizerFocusGame.game_type ? ` • ${optimizerFocusGame.game_type}` : ''}
-          {optimizerFocusGame.season ? ` • ${optimizerFocusGame.season}` : ''}
-        </h3>
+      <div className="lineup-focus-header card">
+        <div>
+          <h3 style={{ margin: 0 }}>
+            {formatDateShort(optimizerFocusGame.date) || 'No Date'} vs{' '}
+            {optimizerFocusGame.opponent || 'Opponent'}
+          </h3>
 
-        <LineupAvailability
-          activePlayers={activePlayers}
-          lineup={lineup}
-          optimizerFocusLocked={optimizerFocusLocked}
-          togglePreviewAvailable={togglePreviewAvailable}
-          optimizerFocusGame={optimizerFocusGame}
-          pk={pk}
-        />
+          <div className="small-note">
+            {optimizerFocusGame.game_type ? `${optimizerFocusGame.game_type} • ` : ''}
+            {optimizerFocusGame.season || ''}
+            {optimizerFocusLocked ? ' • Locked' : ' • Editable'}
+          </div>
+        </div>
 
-        <div style={{ marginTop: 16 }}>
-          <LineupImportPanel
-            optimizerFocusGame={optimizerFocusGame}
-            optimizerFocusLocked={optimizerFocusLocked}
-            optimizerImportSourceGameId={optimizerImportSourceGameId}
-            setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
-            optimizerImportableGames={optimizerImportableGames}
-            importLineupToPreview={importLineupToPreview}
-            pk={pk}
-            gameTypeOptions={gameTypeOptions}
-            seasonOptions={seasonOptions}
-          />
+        <div className="lineup-focus-status-pill">
+          {badCheckCount ? `${badCheckCount} issue${badCheckCount === 1 ? '' : 's'}` : 'Looks good'}
         </div>
       </div>
 
-      {optimizerFocusLineup && (
-        <div className="card" style={{ paddingTop: 12, paddingBottom: 12 }}>
-          <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 18 }}>Checks</h3>
-
-          <div className="stack" style={{ gap: 8 }}>
-            {focusStatuses.map((status) => (
-              <div
-                key={status.inning}
-                className="summary-box"
-                style={{ fontSize: 13, padding: '8px 10px' }}
-              >
-                <strong>Inning {status.inning}:</strong>{' '}
-                {status.duplicate?.length
-                  ? `Duplicate ${status.duplicate.join(', ')}. `
-                  : ''}
-                {status.missing?.length ? `Missing ${status.missing.join(', ')}. ` : ''}
-                {status.badFits?.length
-                  ? `Disallowed ${status.badFits.join('; ')}. `
-                  : ''}
-                {!status.duplicate?.length &&
-                !status.missing?.length &&
-                !status.badFits?.length
-                  ? 'Looks good.'
-                  : ''}
-              </div>
-            ))}
-          </div>
+      <div className="lineup-focus-two-col">
+        <div className="card">
+          <LineupAvailability
+            activePlayers={activePlayers}
+            lineup={lineup}
+            optimizerFocusLocked={optimizerFocusLocked}
+            togglePreviewAvailable={togglePreviewAvailable}
+            optimizerFocusGame={optimizerFocusGame}
+            pk={pk}
+          />
         </div>
-      )}
 
-            {optimizerFocusLineup && (
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Optimizer Mode</h3>
 
           <div className="optimizer-mode-row">
             <div>
               <label>Mode for Next Optimize Run</label>
-                            <select
+              <select
                 value={optimizerMode}
                 onChange={(e) => {
                   if (typeof setOptimizerMode === 'function') {
@@ -156,12 +132,55 @@ export default function LineupFocusPanel(props) {
               </select>
             </div>
 
-                        <div className="small-note">
-              <strong>
-                {selectedOptimizerProfile?.profile_name || 'Selected Strategy'}:
-              </strong>{' '}
+            <div className="small-note optimizer-mode-note">
+              <strong>{selectedOptimizerProfile?.profile_name || 'Selected Strategy'}:</strong>{' '}
               {optimizerModeDescription || 'No description has been added yet.'}
             </div>
+          </div>
+
+          <LineupImportPanel
+            optimizerFocusGame={optimizerFocusGame}
+            optimizerFocusLocked={optimizerFocusLocked}
+            optimizerImportSourceGameId={optimizerImportSourceGameId}
+            setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
+            optimizerImportableGames={optimizerImportableGames}
+            importLineupToPreview={importLineupToPreview}
+            pk={pk}
+            gameTypeOptions={gameTypeOptions}
+            seasonOptions={seasonOptions}
+          />
+        </div>
+      </div>
+
+      {optimizerFocusLineup && (
+        <div className="card checks-card">
+          <div className="row-between wrap-row">
+            <h3 style={{ margin: 0 }}>Checks</h3>
+            <div className="small-note">
+              {badCheckCount ? 'Review the innings below.' : 'All innings look good.'}
+            </div>
+          </div>
+
+          <div className="checks-grid">
+            {focusStatuses.map((status) => {
+              const hasIssue =
+                status.duplicate?.length ||
+                status.missing?.length ||
+                status.badFits?.length
+
+              return (
+                <div
+                  key={status.inning}
+                  className={`summary-box check-pill ${hasIssue ? 'check-issue' : 'check-good'}`}
+                >
+                  <strong>Inn {status.inning}:</strong>{' '}
+                  {status.duplicate?.length ? `Duplicate ${status.duplicate.join(', ')}. ` : ''}
+                  {status.missing?.length ? `Missing ${status.missing.join(', ')}. ` : ''}
+                  {status.badFits?.length ? `Disallowed ${status.badFits.join('; ')}. ` : ''}
+                  {!hasIssue ? 'Good' : ''}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -171,26 +190,17 @@ export default function LineupFocusPanel(props) {
           <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>Grid</h3>
 
-            <div className="button-row">
-              <button
-  type="button"
-  onClick={() => setShowMobileLineupCard(true)}
-  disabled={!optimizerFocusGame || !optimizerFocusLineup}
->
-  Lineup Card
-</button>
-              <button
-                onClick={runOptimizeCurrent}
-                disabled={!optimizerFocusGame || optimizerFocusLocked}
-              >
+            <div className="button-row lineup-grid-actions">
+              <button type="button" onClick={() => setShowMobileLineupCard(true)}>
+                Lineup Card
+              </button>
+
+              <button onClick={runOptimizeCurrent} disabled={optimizerFocusLocked}>
                 Optimize Current
               </button>
 
-              <button
-                onClick={runOptimizeAll}
-                disabled={!optimizerBatchGames?.length}
-              >
-                Optimize All in Plan
+              <button onClick={runOptimizeAll} disabled={!optimizerBatchGames?.length}>
+                Optimize All
               </button>
 
               <button
@@ -201,18 +211,16 @@ export default function LineupFocusPanel(props) {
               </button>
 
               <button
-                onClick={() =>
-                  toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)
-                }
+                onClick={() => toggleLineupLocked(optimizerFocusGame.id, !optimizerFocusLocked)}
               >
-                {optimizerFocusLocked ? 'Unlock Lineup' : 'Lock Lineup'}
+                {optimizerFocusLocked ? 'Unlock' : 'Lock'}
               </button>
 
               <button
                 onClick={() => clearPreviewLineup(optimizerFocusGame.id)}
                 disabled={optimizerFocusLocked}
               >
-                Clear Lineup
+                Clear
               </button>
             </div>
           </div>
@@ -243,21 +251,20 @@ export default function LineupFocusPanel(props) {
               onRemoveInning={(inning) =>
                 removePreviewInning(optimizerFocusGame.id, inning)
               }
-                            onBattingLockToggle={(playerId) => {
-                if (typeof togglePreviewBattingLock !== 'function') return
-                togglePreviewBattingLock(optimizerFocusGame.id, playerId)
-              }}
-                            onAllBattingLockToggle={() => {
-                if (typeof togglePreviewAllBattingLock !== 'function') return
-                togglePreviewAllBattingLock(optimizerFocusGame.id)
-              }}
+              onBattingLockToggle={(playerId) =>
+                togglePreviewBattingLock?.(optimizerFocusGame.id, playerId)
+              }
+              onAllBattingLockToggle={() =>
+                togglePreviewAllBattingLock?.(optimizerFocusGame.id)
+              }
               currentBatchTotals={currentBatchTotals}
               optimizerPlanSitOutTargets={optimizerPlanSitOutTargets}
             />
           </div>
         </div>
       )}
-          {showMobileLineupCard && (
+
+      {showMobileLineupCard && (
         <MobileLineupCard
           title="Current Plan Lineup Card"
           game={optimizerFocusGame}
