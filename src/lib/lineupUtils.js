@@ -214,14 +214,14 @@ export function fitTier(fitMap, playerId, position) {
   const id = pk(playerId)
 
   if (position === 'LF' || position === 'RF') {
-    return fitMap?.[id]?.[position] || fitMap?.[id]?.OF || 'secondary'
+    return fitMap?.[id]?.[position] || fitMap?.[id]?.OF || 'no'
   }
 
   if (position === 'CF') {
-    return fitMap?.[id]?.CF || fitMap?.[id]?.OF || 'secondary'
+    return fitMap?.[id]?.CF || fitMap?.[id]?.OF || 'no'
   }
 
-  return fitMap?.[id]?.[position] || 'secondary'
+  return fitMap?.[id]?.[position] || 'no'
 }
 
 export function priorityValue(priorityMap, playerId, position) {
@@ -1610,6 +1610,14 @@ enforceConsecutivePositionRules({
   lineup,
   players,
   fitMap,
+  optimizerProfileRules,
+})
+
+repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
   optimizerProfileRules,
 })
   
