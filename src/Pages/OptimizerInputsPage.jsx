@@ -57,7 +57,6 @@ function blankRule(position) {
     allow_primary: true,
     allow_secondary: true,
     allow_development: true,
-    allow_disallowed: false,
   }
 }
 
@@ -72,7 +71,6 @@ function normalizeRule(rule, position) {
     allow_primary: rule?.allow_primary !== false,
     allow_secondary: rule?.allow_secondary !== false,
     allow_development: rule?.allow_development !== false,
-    allow_disallowed: rule?.allow_disallowed === true,
   }
 }
 
@@ -331,7 +329,6 @@ const selectedProfile =
         allow_primary: rule.allow_primary === true,
         allow_secondary: rule.allow_secondary === true,
         allow_development: rule.allow_development === true,
-        allow_disallowed: rule.allow_disallowed === true,
       }
     })
 
@@ -901,13 +898,7 @@ function printOptimizerSummary() {
                           </td>
 
                           <td>
-  <input
-    type="checkbox"
-    checked={rule.allow_disallowed === true}
-    onChange={(e) =>
-      updateDraftRule(position, 'allow_disallowed', e.target.checked)
-    }
-  />
+  <span className="small-note">N/A</span>
 </td>
                         </tr>
                       )
