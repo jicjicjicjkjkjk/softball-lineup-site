@@ -8,20 +8,13 @@ function fullName(player) {
   return [player?.name, player?.last_name].filter(Boolean).join(' ').trim()
 }
 
-function playerSummary(lineup, playerId, innings) {
-  const summary = { IF: 0, OF: 0, P: 0, C: 0, Out: 0 }
-
-  for (let inning = 1; inning <= innings; inning += 1) {
-    const value = lineup?.cells?.[playerId]?.[inning] || ''
-
-    if (['1B', '2B', '3B', 'SS'].includes(value)) summary.IF += 1
-    if (['LF', 'CF', 'RF'].includes(value)) summary.OF += 1
-    if (value === 'P') summary.P += 1
-    if (value === 'C') summary.C += 1
-    if (value === 'Out') summary.Out += 1
-  }
-
-  return summary
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
 }
 
 export default function MobileLineupCard({
@@ -45,6 +38,137 @@ export default function MobileLineupCard({
       return aOrder - bOrder
     })
 
+  function printLineupCard() {
+    const inningHeaders = Array.from({ length: innings })
+      .map((_, index) => `<th>Inn ${index + 1}</th>`)
+      .join('')
+
+    const rows = playersInLineup
+      .map((player) => {
+        const id = pk(player.id)
+
+        const inningCells = Array.from({ length: innings })
+          .map((_, index) => {
+            const inning = index + 1
+            const value = lineup.cells?.[id]?.[inning] || ''
+            return `<td class="${value === 'Out' ? 'out' : ''}">${escapeHtml(
+              value === 'Out' ? 'OUT' : value || '-'
+            )}</td>`
+          })
+          .join('')
+
+        return `
+          <tr>
+            <td>${escapeHtml(lineup.battingOrder?.[id] || '')}</td>
+            <td>${escapeHtml(player.jersey_number || '')}</td>
+            <td class="player">${escapeHtml(fullName(player))}</td>
+            ${inningCells}
+          </tr>
+        `
+      })
+      .join('')
+
+    const html = `
+      <html>
+        <head>
+          <title>${escapeHtml(title)}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 18px;
+              color: #111827;
+            }
+
+            h1 {
+              margin: 0 0 4px;
+              font-size: 22px;
+            }
+
+            .subtitle {
+              margin-bottom: 14px;
+              font-size: 13px;
+              color: #4b5563;
+            }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              table-layout: fixed;
+            }
+
+            th, td {
+              border: 1px solid #cbd5e1;
+              padding: 6px;
+              font-size: 12px;
+              text-align: center;
+            }
+
+            th {
+              background: #e8f3f3;
+              font-weight: 700;
+            }
+
+            .player {
+              text-align: left;
+              font-weight: 700;
+              width: 160px;
+            }
+
+            .out {
+              font-weight: 700;
+              background: #eef2f7;
+            }
+
+            @page {
+              size: landscape;
+              margin: 0.35in;
+            }
+          </style>
+        </head>
+
+        <body>
+          <h1>${escapeHtml(title)}</h1>
+          <div class="subtitle">
+            ${escapeHtml(formatDateShort(game.date) || 'No Date')} vs ${escapeHtml(
+              game.opponent || 'Opponent'
+            )}
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Bat</th>
+                <th>#</th>
+                <th>Player</th>
+                ${inningHeaders}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+
+          <script>
+            window.onload = function () {
+              window.focus()
+              window.print()
+            }
+          </script>
+        </body>
+      </html>
+    `
+
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      alert('Please allow pop-ups so the lineup card can print.')
+      return
+    }
+
+    printWindow.document.open()
+    printWindow.document.write(html)
+    printWindow.document.close()
+  }
+
   return (
     <div className="mobile-lineup-card-overlay">
       <div className="mobile-lineup-card">
@@ -57,7 +181,7 @@ export default function MobileLineupCard({
           </div>
 
           <div className="mobile-lineup-card-actions">
-            <button type="button" onClick={() => window.print()}>
+            <button type="button" onClick={printLineupCard}>
               Print
             </button>
 
@@ -78,19 +202,12 @@ export default function MobileLineupCard({
                 {Array.from({ length: innings }).map((_, index) => (
                   <th key={index}>Inn {index + 1}</th>
                 ))}
-
-                <th>IF</th>
-                <th>OF</th>
-                <th>P</th>
-                <th>C</th>
-                <th>Out</th>
               </tr>
             </thead>
 
             <tbody>
               {playersInLineup.map((player) => {
                 const id = pk(player.id)
-                const summary = playerSummary(lineup, id, innings)
 
                 return (
                   <tr key={id}>
@@ -108,12 +225,6 @@ export default function MobileLineupCard({
                         </td>
                       )
                     })}
-
-                    <td>{summary.IF}</td>
-                    <td>{summary.OF}</td>
-                    <td>{summary.P}</td>
-                    <td>{summary.C}</td>
-                    <td>{summary.Out}</td>
                   </tr>
                 )
               })}
