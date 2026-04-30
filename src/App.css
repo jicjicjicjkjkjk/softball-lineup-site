@@ -2010,3 +2010,22 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+
+
+/* =========================
+   LINEUP AVAILABILITY CHIPS
+   ========================= */
+
+.player-chip {
+  font-weight: 600;
+}
+
+.checkbox-item.available {
+  background: #ecfdf5;
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.checkbox-item.not-available {
+  opacity: 0.6;
+}
