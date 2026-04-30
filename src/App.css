@@ -2120,3 +2120,92 @@
   background: #fee2e2;
   color: #991b1b;
 }
+
+
+/* =========================
+   LINEUP FOCUS CLEANUP
+   ========================= */
+
+.lineup-focus-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.lineup-focus-status-pill {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #e6f4f4;
+  border: 1px solid #b7dada;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.lineup-focus-two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 14px;
+}
+
+.optimizer-mode-note {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.checks-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.check-pill {
+  font-size: 12px;
+  padding: 8px 10px !important;
+}
+
+.check-good {
+  background: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+}
+
+.check-issue {
+  background: #fff7ed !important;
+  border-color: #fed7aa !important;
+}
+
+.lineup-grid-actions button {
+  min-width: 92px;
+}
+
+@media (max-width: 900px) {
+  .lineup-focus-header {
+    align-items: flex-start;
+  }
+
+  .lineup-focus-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .checks-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .lineup-grid-actions button {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .lineup-focus-header {
+    flex-direction: column;
+  }
+
+  .checks-grid {
+    grid-template-columns: 1fr;
+  }
+}
