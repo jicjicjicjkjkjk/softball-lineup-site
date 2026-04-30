@@ -276,40 +276,20 @@ export function printGameDetail({
       </body>
     </html>
   `
-    const iframe = document.createElement('iframe')
+      const printWindow = window.open('', '_blank')
 
-  iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
-  iframe.style.border = '0'
-
-  document.body.appendChild(iframe)
-
-  const iframeWindow = iframe.contentWindow
-  const iframeDocument = iframeWindow.document
-
-  iframeDocument.open()
-  iframeDocument.write(html)
-  iframeDocument.close()
-
-  const printNow = () => {
-    iframeWindow.focus()
-
-    try {
-      iframeWindow.print()
-    } catch (error) {
-      console.error('Print failed', error)
-    }
-
-    setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe)
-      }
-    }, 1000)
+  if (!printWindow) {
+    alert('Please allow pop-ups so the game detail can print.')
+    return
   }
 
-  setTimeout(printNow, 500)
+  printWindow.document.open()
+  printWindow.document.write(html)
+  printWindow.document.close()
+
+  setTimeout(() => {
+    printWindow.focus()
+    printWindow.print()
+  }, 750)
 }
   
