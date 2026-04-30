@@ -1307,70 +1307,126 @@ function repairMissingAndDuplicatePositions({
   const innings = Number(lineup?.innings || 0)
   const availableIds = (lineup?.availablePlayerIds || []).map(pk)
 
+  function playerName(id) {
+    return (players || []).find((p) => pk(p.id) === pk(id))?.name || id
+  }
+
+  function isValidAt(id, position) {
+    const rule = getPositionRule(optimizerProfileRules, position)
+    return fitAllowedByRule(rule, fitTier(fitMap, id, position))
+  }
+
+  function fitScoreFor(id, position) {
+    const fit = normalizeFit(fitTier(fitMap, id, position))
+    const base =
+      fit === 'primary' ? 3000 :
+      fit === 'secondary' ? 1200 :
+      fit === 'development' ? 300 :
+      -100000
+
+    return base + priorityValue(priorityMap, id, position) * 20
+  }
+
   for (let inning = 1; inning <= innings; inning += 1) {
-    const positionPlayers = {}
-    FIELD_POSITIONS.forEach((pos) => {
-      positionPlayers[pos] = []
-    })
+    let changed = true
+    let guard = 0
 
-    availableIds.forEach((id) => {
-      const value = lineup?.cells?.[id]?.[inning] || ''
-      if (FIELD_POSITIONS.includes(value)) {
-        positionPlayers[value].push(id)
-      }
-    })
+    while (changed && guard < 20) {
+      changed = false
+      guard += 1
 
-    const missingPositions = FIELD_POSITIONS.filter(
-      (pos) => positionPlayers[pos].length === 0
-    )
+      const positionPlayers = {}
+      FIELD_POSITIONS.forEach((pos) => {
+        positionPlayers[pos] = []
+      })
 
-    const duplicatePlayers = []
-
-    FIELD_POSITIONS.forEach((pos) => {
-      const ids = positionPlayers[pos] || []
-      if (ids.length <= 1) return
-
-      ids.slice(1).forEach((id) => {
-        if (!lockedValue(lineup, id, inning)) {
-          duplicatePlayers.push(id)
+      availableIds.forEach((id) => {
+        const value = lineup?.cells?.[id]?.[inning] || ''
+        if (FIELD_POSITIONS.includes(value)) {
+          positionPlayers[value].push(id)
         }
       })
-    })
 
-    missingPositions.forEach((missingPos) => {
-      const rule = getPositionRule(optimizerProfileRules, missingPos)
+      const missingPositions = FIELD_POSITIONS.filter(
+        (pos) => positionPlayers[pos].length === 0
+      )
 
-      const bestPlayer = duplicatePlayers
-        .filter((id) => !lockedValue(lineup, id, inning))
-        .filter((id) => fitAllowedByRule(rule, fitTier(fitMap, id, missingPos)))
-        .sort((a, b) => {
-          const aFit = normalizeFit(fitTier(fitMap, a, missingPos))
-          const bFit = normalizeFit(fitTier(fitMap, b, missingPos))
+      const problemPlayers = []
 
-          const fitScore = (fit) =>
-            fit === 'primary' ? 3 :
-            fit === 'secondary' ? 2 :
-            fit === 'development' ? 1 :
-            0
+      availableIds.forEach((id) => {
+        const value = lineup?.cells?.[id]?.[inning] || ''
 
-          return (
-            fitScore(bFit) - fitScore(aFit) ||
-            priorityValue(priorityMap, b, missingPos) - priorityValue(priorityMap, a, missingPos)
-          )
-        })[0]
+        if (!FIELD_POSITIONS.includes(value)) return
+        if (lockedValue(lineup, id, inning)) return
 
-      if (!bestPlayer) return
+        const isDuplicate = (positionPlayers[value] || []).length > 1
+        const isDisallowed = !isValidAt(id, value)
 
-      lineup.cells[bestPlayer][inning] = missingPos
+        if (isDuplicate || isDisallowed) {
+          problemPlayers.push({
+            id,
+            currentPosition: value,
+            isDuplicate,
+            isDisallowed,
+          })
+        }
+      })
 
-      const removeIndex = duplicatePlayers.indexOf(bestPlayer)
-      if (removeIndex >= 0) duplicatePlayers.splice(removeIndex, 1)
-    })
+      for (const missingPos of missingPositions) {
+        const bestProblem = problemPlayers
+          .filter((row) => !lockedValue(lineup, row.id, inning))
+          .filter((row) => isValidAt(row.id, missingPos))
+          .sort((a, b) => {
+            return (
+              fitScoreFor(b.id, missingPos) - fitScoreFor(a.id, missingPos) ||
+              playerName(a.id).localeCompare(playerName(b.id))
+            )
+          })[0]
+
+        if (!bestProblem) continue
+
+        lineup.cells[bestProblem.id][inning] = missingPos
+        changed = true
+
+        const removeIndex = problemPlayers.findIndex((row) => row.id === bestProblem.id)
+        if (removeIndex >= 0) problemPlayers.splice(removeIndex, 1)
+      }
+
+      // If someone is still in a disallowed position, try a clean swap.
+      for (const id of availableIds) {
+        const currentPos = lineup?.cells?.[id]?.[inning] || ''
+        if (!FIELD_POSITIONS.includes(currentPos)) continue
+        if (lockedValue(lineup, id, inning)) continue
+        if (isValidAt(id, currentPos)) continue
+
+        const swapCandidate = availableIds
+          .filter((otherId) => otherId !== id)
+          .filter((otherId) => !lockedValue(lineup, otherId, inning))
+          .map((otherId) => {
+            const otherPos = lineup?.cells?.[otherId]?.[inning] || ''
+            return { otherId, otherPos }
+          })
+          .filter(({ otherPos }) => FIELD_POSITIONS.includes(otherPos))
+          .filter(({ otherId, otherPos }) => {
+            return isValidAt(id, otherPos) && isValidAt(otherId, currentPos)
+          })
+          .sort((a, b) => {
+            const aScore = fitScoreFor(id, a.otherPos) + fitScoreFor(a.otherId, currentPos)
+            const bScore = fitScoreFor(id, b.otherPos) + fitScoreFor(b.otherId, currentPos)
+            return bScore - aScore
+          })[0]
+
+        if (swapCandidate) {
+          lineup.cells[id][inning] = swapCandidate.otherPos
+          lineup.cells[swapCandidate.otherId][inning] = currentPos
+          changed = true
+        }
+      }
+    }
   }
 
   return lineup
 }
-
 export function buildOptimizedLineup({
   game,
   players,
