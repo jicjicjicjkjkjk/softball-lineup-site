@@ -73,13 +73,6 @@ function displayPct(value) {
   return Number.isNaN(n) ? '' : Math.round(n)
 }
 
-function printPlayerSummary() {
-  setPrintMode('lineupSetter')
-
-  setTimeout(() => {
-    window.print()
-  }, 750)
-}
 
 export default function LineupSetterPage({
   optimizerFocusLineup,
@@ -667,17 +660,13 @@ const optimizerModeDescription =
 
             <div className="card">
   <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
-    <div>
-      <h3 style={{ marginTop: 0, marginBottom: 4 }}>Tracking View</h3>
-      <div className="small-note">
-        Use this data universe for the table below, priority tracking, and player summary printout.
-      </div>
+  <div>
+    <h3 style={{ marginTop: 0, marginBottom: 4 }}>Tracking View</h3>
+    <div className="small-note">
+      Use this data universe for the table below and priority tracking.
     </div>
-
-    <button type="button" onClick={printPlayerSummary}>
-      Print Player Summary
-    </button>
   </div>
+</div>
 
   <label>Use this data universe for the table below and priority tracking</label>
   <select
