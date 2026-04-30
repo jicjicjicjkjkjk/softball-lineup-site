@@ -861,9 +861,10 @@ function scorePlayerForPosition({
   const secondaryFit = fit === 'secondary'
   const developmentFit = fit === 'development'
 
-  if (!fitAllowedByRule(rule, fit)) {
-    return { playerId, position, totalScore: -100000000 }
-  }
+  // HARD BLOCK anything not PRIMARY
+if (fit !== 'primary') {
+  return { playerId, position, totalScore: -100000000 }
+}
 
     const fitScore =
     primaryFit ? 12000 * importance :
