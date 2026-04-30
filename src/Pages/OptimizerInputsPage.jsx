@@ -28,6 +28,7 @@ const CONSECUTIVE_OPTIONS = [
 ]
 
 const MIN_POSITION_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+const MIN_INNINGS_AT_POSITION_OPTIONS = [1, 2, 3, 4]
 const SIT_GAP_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7]
 
 function normalizeValue(text = '') {
@@ -40,6 +41,7 @@ function blankProfileForm() {
     description: '',
     is_default: false,
     min_positions_per_player: 2,
+    min_innings_per_position: 2,
     min_positions_mode: 'nice',
     min_innings_between_sitouts: 2,
     sit_all_before_second: true,
