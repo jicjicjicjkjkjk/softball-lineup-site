@@ -1757,6 +1757,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   }
 
     function runOptimizeAll() {
+     try {
     if (!optimizerBatchGames.length) {
       alert('No games in plan')
       return
@@ -1841,10 +1842,15 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       rollingTotals = addTotals(rollingTotals, computeTotals([optimized], players), players)
     })
 
-    setOptimizerPreviewByGame((current) => ({ ...current, ...next }))
+        setOptimizerPreviewByGame((current) => ({ ...current, ...next }))
+  } catch (error) {
+    console.error('Optimize all failed', error)
+    setAppError(error?.message || 'Optimize all failed.')
   }
+}
 
     function runOptimizeCurrent() {
+  try {
     if (!optimizerFocusGameId) return
 
     if (lineupLockedByGame[pk(optimizerFocusGameId)]) {
@@ -1912,8 +1918,12 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       [gameId]: rebuilt,
     }))
 
-    persistLineup(game.id, rebuilt)
+        persistLineup(game.id, rebuilt)
+  } catch (error) {
+    console.error('Optimize current failed', error)
+    setAppError(error?.message || 'Optimize current failed.')
   }
+}
 
   function updatePreview(gameId, updater) {
     if (lineupLockedByGame[pk(gameId)]) {
