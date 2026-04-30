@@ -619,18 +619,19 @@ function printOptimizerSummary() {
         </div>
 
         <div>
-          <label>6. Minimum Positions per Player</label>
-          <select
-            value={Number(source.min_positions_per_player ?? 2)}
-            onChange={(e) => updateFn('min_positions_per_player', Number(e.target.value))}
-          >
-            {MIN_POSITION_OPTIONS.map((n) => (
-              <option key={n} value={n}>
-                {n} position{n === 1 ? '' : 's'}
-              </option>
-            ))}
-          </select>
-        </div>
+            <div>
+  <label>6b. Minimum Innings at Each Position</label>
+  <select
+    value={Number(source.min_innings_per_position ?? 1)}
+    onChange={(e) => updateFn('min_innings_per_position', Number(e.target.value))}
+  >
+    {MIN_INNINGS_AT_POSITION_OPTIONS.map((n) => (
+      <option key={n} value={n}>
+        {n} inning{n === 1 ? '' : 's'}
+      </option>
+    ))}
+  </select>
+</div>
 
         <div>
           <label>7. Position Variety Mode</label>
