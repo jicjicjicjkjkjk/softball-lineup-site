@@ -992,7 +992,10 @@ function enforceMinimumPositions({ lineup, players, fitMap, priorityMap, optimiz
     if (!innings) return lineup
 
   const minPositions = Number(optimizerProfile?.min_positions_per_player || 1)
-  const mode = optimizerProfile?.min_positions_mode || 'nice'
+const minInningsPerUsedPosition = Number(
+  optimizerProfile?.min_innings_per_used_position || 1
+)
+const mode = optimizerProfile?.min_positions_mode || 'nice'
 
   if (mode === 'off' || minPositions <= 1) return lineup
 
@@ -1007,9 +1010,19 @@ function enforceMinimumPositions({ lineup, players, fitMap, priorityMap, optimiz
     return out
   }
 
-  function getUniqueFieldPositions(playerId) {
-    return new Set(getFieldInnings(playerId).map((x) => x.value))
-  }
+  function getQualifiedFieldPositions(playerId) {
+  const counts = {}
+
+  getFieldInnings(playerId).forEach(({ value }) => {
+    counts[value] = Number(counts[value] || 0) + 1
+  })
+
+  return new Set(
+    Object.entries(counts)
+      .filter(([, count]) => count >= minInningsPerUsedPosition)
+      .map(([position]) => position)
+  )
+}
 
   function findPlayerAtPosition(inning, position) {
     for (const player of players || []) {
@@ -1039,10 +1052,10 @@ function enforceMinimumPositions({ lineup, players, fitMap, priorityMap, optimiz
     if (isRowFullyLockedForGame(lineup, playerId)) return
 
     const fieldInnings = getFieldInnings(playerId)
-    const uniquePositions = getUniqueFieldPositions(playerId)
+    const qualifiedPositions = getQualifiedFieldPositions(playerId)
 
-    if (fieldInnings.length < minPositions) return
-    if (uniquePositions.size >= minPositions) return
+if (fieldInnings.length < minPositions * minInningsPerUsedPosition) return
+if (qualifiedPositions.size >= minPositions) return
 
     const unlockedFieldInnings = fieldInnings.filter(
       ({ inning }) => !lockedValue(lineup, playerId, inning)
@@ -1069,8 +1082,8 @@ function enforceMinimumPositions({ lineup, players, fitMap, priorityMap, optimiz
         lineup.cells[playerId][inning] = altPos
         lineup.cells[otherId][inning] = currentPos
 
-        const updated = getUniqueFieldPositions(playerId)
-         if (updated.size >= minPositions) return
+        const updated = getQualifiedFieldPositions(playerId)
+if (updated.size >= minPositions) return
       }
     }
   })
