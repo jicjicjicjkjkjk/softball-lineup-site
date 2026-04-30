@@ -28,8 +28,10 @@ export default function LineupImportPanel({
 
             {optimizerImportableGames.map((game) => (
               <option key={game.id} value={pk(game.id)}>
-                {(formatDateShort(game.date) || 'No Date')} vs {game.opponent}
-              </option>
+  {(formatDateShort(game.date) || 'No Date')} vs {game.opponent}
+  {game.game_type ? ` • ${getOptionLabel?.(gameTypeOptions, game.game_type) || game.game_type}` : ''}
+  {game.season ? ` • ${getOptionLabel?.(seasonOptions, game.season) || game.season}` : ''}
+</option>
             ))}
           </select>
         </div>
