@@ -74,7 +74,11 @@ function displayPct(value) {
 }
 
 function printPlayerSummary() {
-  window.print()
+  setPrintMode('lineupSetter')
+
+  setTimeout(() => {
+    window.print()
+  }, 750)
 }
 
 export default function LineupSetterPage({
@@ -155,7 +159,10 @@ useEffect(() => {
 
   function printCoachSheet() {
   setPrintMode('coachSheet')
-  setTimeout(() => window.print(), 50)
+
+  setTimeout(() => {
+    window.print()
+  }, 750)
 }
   
   const focusStatuses = optimizerFocusLineup
