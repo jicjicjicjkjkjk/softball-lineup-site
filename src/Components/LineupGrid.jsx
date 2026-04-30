@@ -17,6 +17,8 @@ export default function LineupGrid({
   showLocks,
   lockedLineup,
   visiblePlayerIds,
+  currentBatchTotals = {},
+  optimizerPlanSitOutTargets = {},
   onRemoveInning,
   onCellChange,
   onBattingChange,
@@ -146,7 +148,30 @@ export default function LineupGrid({
           return (
             <tr key={id} className={rowLocked ? 'row-locked' : ''}>
               <td>{player.jersey_number || ''}</td>
-              <td className="player-col">{player.name}</td>
+                            <td className="player-col">
+                <div className="player-name-with-balance">
+                  <span>{player.name}</span>
+
+                  {(() => {
+                    const totalOut = Number(currentBatchTotals?.[id]?.Out || 0)
+                    const targetRaw = optimizerPlanSitOutTargets?.[id]
+                    const hasTarget = targetRaw !== '' && targetRaw !== null && targetRaw !== undefined
+                    const target = hasTarget ? Number(targetRaw || 0) : null
+                    const gap = hasTarget ? target - totalOut : 0
+
+                    let className = 'sit-badge sit-ok'
+                    let label = `${totalOut} out`
+
+                    if (hasTarget) {
+                      label = `${totalOut}/${target} out`
+                      if (gap > 0) className = 'sit-badge sit-low'
+                      if (gap < 0) className = 'sit-badge sit-high'
+                    }
+
+                    return <span className={className}>{label}</span>
+                  })()}
+                </div>
+              </td>
 
               <td>
                 <div className="batting-cell">
