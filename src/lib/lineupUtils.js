@@ -804,11 +804,30 @@ function scorePlayerForPosition({
   ).length
 
   const minPositions = Number(optimizerProfile?.min_positions_per_player || 0)
-  const minPositionsMode = optimizerProfile?.min_positions_mode || 'nice'
+const minInningsPerUsedPosition = Number(
+  optimizerProfile?.min_innings_per_used_position || 1
+)
+const minPositionsMode = optimizerProfile?.min_positions_mode || 'nice'
 
-    const samePositionMode = consecutiveMode(optimizerProfileRules, position)
+const samePositionMode = consecutiveMode(optimizerProfileRules, position)
 
-    let rotationScore = 0
+let rotationScore = 0
+
+const playerPositionCounts = {}
+Object.values(lineup?.cells?.[playerId] || {}).forEach((value) => {
+  if (!FIELD_POSITIONS.includes(value)) return
+  playerPositionCounts[value] = Number(playerPositionCounts[value] || 0) + 1
+})
+
+const qualifiedPositionCount = Object.values(playerPositionCounts).filter(
+  (count) => count >= minInningsPerUsedPosition
+).length
+
+const currentPositionCount = Number(playerPositionCounts[position] || 0)
+const needsMoreQualifiedPositions =
+  minPositionsMode !== 'off' &&
+  minPositions > 1 &&
+  qualifiedPositionCount < minPositions
 
   if (samePositionMode === 'prefer' && prevValue === position) {
     rotationScore += 3000
@@ -832,10 +851,17 @@ if (samePositionMode === 'must_2' && inning > 1 && prevValue !== position) {
   }
 }
 
-  if (minPositionsMode !== 'off' && minPositions > 1) {
-    rotationScore -= previousSamePositionCount * 900
-    rotationScore -= currentPlayerCount * 600
+  if (needsMoreQualifiedPositions) {
+  if (currentPositionCount > 0 && currentPositionCount < minInningsPerUsedPosition) {
+    rotationScore += minPositionsMode === 'must' ? 9000 : 4500
+  } else if (currentPositionCount === 0) {
+    rotationScore += minPositionsMode === 'must' ? 5000 : 2500
+  } else {
+    rotationScore -= minPositionsMode === 'must' ? 2500 : 900
   }
+
+  rotationScore -= currentPlayerCount * 300
+}
 
   return {
     playerId,
