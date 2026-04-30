@@ -499,6 +499,12 @@
     table-layout: fixed !important;
   }
 
+.mobile-lineup-card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+   
   .lineup-print-table th,
   .lineup-print-table td {
     font-size: 12px !important;
@@ -948,6 +954,38 @@
     display: none !important;
   }
 
+.mobile-lineup-card-overlay {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  background: #fff !important;
+  padding: 0 !important;
+  display: block !important;
+  overflow: visible !important;
+}
+
+.mobile-lineup-card {
+  width: 100% !important;
+  max-height: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+
+.mobile-lineup-card-actions {
+  display: none !important;
+}
+
+.mobile-lineup-card-scroll {
+  overflow: visible !important;
+}
+
+.mobile-lineup-card-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed !important;
+}
+   
   .app-shell {
     display: block !important;
     min-height: 0 !important;
