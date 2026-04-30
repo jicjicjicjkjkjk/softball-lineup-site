@@ -46,6 +46,8 @@ export default function LineupFocusPanel(props) {
     optimizerProfiles = [],
     selectedOptimizerProfile = null,
     optimizerModeDescription = '',
+    currentBatchTotals = {},
+    optimizerPlanSitOutTargets = {},
   } = props
 
   if (!optimizerFocusGame) return null
@@ -245,10 +247,12 @@ export default function LineupFocusPanel(props) {
                 if (typeof togglePreviewBattingLock !== 'function') return
                 togglePreviewBattingLock(optimizerFocusGame.id, playerId)
               }}
-              onAllBattingLockToggle={() => {
+                            onAllBattingLockToggle={() => {
                 if (typeof togglePreviewAllBattingLock !== 'function') return
                 togglePreviewAllBattingLock(optimizerFocusGame.id)
               }}
+              currentBatchTotals={currentBatchTotals}
+              optimizerPlanSitOutTargets={optimizerPlanSitOutTargets}
             />
           </div>
         </div>
