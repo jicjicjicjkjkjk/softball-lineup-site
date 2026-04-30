@@ -1456,6 +1456,108 @@ function repairMissingAndDuplicatePositions({
 
   return lineup
 }
+
+function forceFillAllPositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules = {},
+}) {
+  const innings = Number(lineup?.innings || 0)
+
+  function fitScore(id, position) {
+    const fit = normalizeFit(fitMap?.[pk(id)]?.[position] || 'no')
+    const importance = positionImportance(optimizerProfileRules, position)
+    const priority = priorityValue(priorityMap, id, position)
+
+    if (fit === 'primary') return 100000 + importance * 1000 + priority * 100
+    if (fit === 'secondary') return 10000 + importance * 500 + priority * 50
+    if (fit === 'development') return 1000 + importance * 100 + priority * 10
+
+    // Last resort only: still better than leaving a position empty
+    return 1
+  }
+
+  for (let inning = 1; inning <= innings; inning += 1) {
+    const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
+
+    // If fewer than 9 eligible players, we cannot fill all 9 field spots.
+    if (eligibleIds.length < 9) continue
+
+    const expectedOuts = Math.max(0, eligibleIds.length - 9)
+
+    const usedPlayers = new Set()
+    const filledPositions = new Set()
+    let lockedOuts = 0
+
+    eligibleIds.forEach((id) => {
+      const value = lineup?.cells?.[id]?.[inning] || ''
+
+      if (!lockedValue(lineup, id, inning)) return
+
+      if (FIELD_POSITIONS.includes(value)) {
+        usedPlayers.add(id)
+        filledPositions.add(value)
+      }
+
+      if (value === 'Out') {
+        lockedOuts += 1
+      }
+    })
+
+    const openPositions = FIELD_POSITIONS.filter((pos) => !filledPositions.has(pos))
+
+    // Clear unlocked eligible cells so the final pass can rebuild the inning cleanly.
+    eligibleIds.forEach((id) => {
+      if (lockedValue(lineup, id, inning)) return
+      lineup.cells[id][inning] = ''
+    })
+
+    const availableForField = eligibleIds.filter(
+      (id) => !lockedValue(lineup, id, inning) && !usedPlayers.has(id)
+    )
+
+    const orderedPositions = [...openPositions].sort((a, b) => {
+      return (
+        positionFillRank(optimizerProfileRules, a) - positionFillRank(optimizerProfileRules, b) ||
+        positionImportance(optimizerProfileRules, b) - positionImportance(optimizerProfileRules, a)
+      )
+    })
+
+    orderedPositions.forEach((position) => {
+      const best = availableForField
+        .filter((id) => !usedPlayers.has(id))
+        .sort((a, b) => fitScore(b, position) - fitScore(a, position))[0]
+
+      if (!best) return
+
+      lineup.cells[best][inning] = position
+      usedPlayers.add(best)
+    })
+
+    // Everyone not used in the field becomes OUT, but only after all positions are filled.
+    let outCount = lockedOuts
+
+    eligibleIds.forEach((id) => {
+      if (lockedValue(lineup, id, inning)) return
+
+      const value = lineup.cells?.[id]?.[inning] || ''
+
+      if (FIELD_POSITIONS.includes(value)) return
+
+      if (outCount < expectedOuts) {
+        lineup.cells[id][inning] = 'Out'
+        outCount += 1
+      } else {
+        lineup.cells[id][inning] = ''
+      }
+    })
+  }
+
+  return lineup
+}
+
 export function buildOptimizedLineup({
   game,
   players,
@@ -1666,6 +1768,14 @@ enforceConsecutivePositionRules({
 })
 
 repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
+
+forceFillAllPositions({
   lineup,
   players,
   fitMap,
