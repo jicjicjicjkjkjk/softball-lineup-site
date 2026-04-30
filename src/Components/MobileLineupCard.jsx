@@ -148,11 +148,11 @@ export default function MobileLineupCard({
             </tbody>
           </table>
 
-          <script>
-            window.onload = function () {
+                    <script>
+            setTimeout(function () {
               window.focus()
               window.print()
-            }
+            }, 750)
           </script>
         </body>
       </html>
