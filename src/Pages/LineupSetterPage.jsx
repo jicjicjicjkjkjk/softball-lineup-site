@@ -647,6 +647,8 @@ const optimizerModeDescription =
         optimizerProfiles={optimizerProfiles}
         optimizerProfileRules={optimizerProfileRules}
         trackingPriorityByPositionRows={trackingPriorityByPositionRows}
+        currentBatchTotals={currentBatchTotals}
+        optimizerPlanSitOutTargets={optimizerPlanSitOutTargets}
       />
       <TrackingFilters
   trackingFilters={trackingFilters}
