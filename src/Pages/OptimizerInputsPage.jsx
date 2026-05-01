@@ -351,50 +351,54 @@ const selectedProfile =
   }
 
   async function deleteStrategy() {
-    if (!selectedProfile?.id) return
+  if (!selectedProfile?.id) return
 
-    const confirmed = window.confirm(
-      `Delete "${selectedProfile.profile_name}"? This cannot be undone.`
-    )
-    if (!confirmed) return
+  const confirmed = window.confirm(
+    `Delete "${selectedProfile.profile_name}"? This cannot be undone.`
+  )
+  if (!confirmed) return
 
-    const confirmedAgain = window.confirm(
-      'Are you absolutely sure? This will delete the strategy and its position rules.'
-    )
-    if (!confirmedAgain) return
+  setSaving(true)
 
-    setSaving(true)
+  const rulesDelete = await supabase
+    .from('optimizer_profile_position_rules')
+    .delete()
+    .eq('profile_id', selectedProfile.id)
+    .select('id')
 
-    const rulesDelete = await supabase
-      .from('optimizer_profile_position_rules')
-      .delete()
-      .eq('profile_id', selectedProfile.id)
-
-    if (rulesDelete.error) {
-      setSaving(false)
-      reportError(rulesDelete.error)
-      return
-    }
-
-    const profileDelete = await supabase
-      .from('optimizer_profiles')
-      .delete()
-      .eq('id', selectedProfile.id)
-
-    if (profileDelete.error) {
-      setSaving(false)
-      reportError(profileDelete.error)
-      return
-    }
-
-    setSelectedProfileId('')
-    setDraftProfile(null)
-    setDraftRules({})
-    setDirty(false)
+  if (rulesDelete.error) {
     setSaving(false)
-    await refreshAll()
+    reportError(rulesDelete.error)
+    return
   }
 
+  const profileDelete = await supabase
+    .from('optimizer_profiles')
+    .delete()
+    .eq('id', selectedProfile.id)
+    .select('id')
+
+  if (profileDelete.error) {
+    setSaving(false)
+    reportError(profileDelete.error)
+    return
+  }
+
+  if (!profileDelete.data?.length) {
+    setSaving(false)
+    reportError('Delete did not remove the strategy. Check Supabase permissions/RLS for optimizer_profiles.')
+    return
+  }
+
+  setSelectedProfileId('')
+  setDraftProfile(null)
+  setDraftRules({})
+  setDirty(false)
+  setSaving(false)
+
+  await refreshAll()
+}
+  
   async function copyProfileFrom() {
     if (!selectedProfile?.id || !copySourceId) return
 
