@@ -91,12 +91,12 @@ export default function TrackingTable({
           sitOutRunningByPlayer[id] !== undefined
             ? safeNumber(sitOutRunningByPlayer[id])
             : safeNumber(t.sitOutRunningTotal),
-        extraRunningTotals: Object.fromEntries(
-          (extraRunningTotals || []).map((item) => [
-            item.key,
-            safeNumber(item.totals?.[id]?.sitOutRunningTotal),
-          ])
-        ),
+        ...Object.fromEntries(
+  (extraRunningTotals || []).map((item) => [
+    item.key,
+    safeNumber(item.totals?.[id]?.sitOutRunningTotal),
+  ])
+),
         P: safeNumber(t.P),
         C: safeNumber(t.C),
         '1B': safeNumber(t['1B']),
@@ -225,10 +225,10 @@ export default function TrackingTable({
               )}
 
               {(extraRunningTotals || []).map((item) => (
-                <td key={`${row.playerId}-${item.key}`}>
-                  {displayRunningTotal(row.extraRunningTotals?.[item.key])}
-                </td>
-              ))}
+  <td key={`${row.playerId}-${item.key}`}>
+    {displayRunningTotal(row[item.key])}
+  </td>
+))}
             </tr>
           ))}
         </tbody>
