@@ -104,10 +104,10 @@ export default function LineupGrid({
                     <div style={{ height: 20 }} />
                   )}
 
-                  {inningLocked && (
-  <span className="mini-inning-lock" title={`Inning ${inning} is locked`}>
+                {inningLocked && (
+  <div className="mini-inning-lock" title={`Inning ${inning} is locked`}>
     🔒
-  </span>
+  </div>
 )}
 
 <MiniDiamond
