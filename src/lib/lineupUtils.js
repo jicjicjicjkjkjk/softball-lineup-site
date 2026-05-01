@@ -64,14 +64,18 @@ function normalizeFit(fit) {
 
   if (value === 'a' || value === 'primary') return 'primary'
   if (
-    value === 'b' ||
-    value === 'secondary' ||
-    value === 'non-primary' ||
-    value === 'nonprimary'
-  ) {
-    return 'secondary'
-  }
-  if (value === 'c' || value === 'd' || value === 'development') return 'development'
+  value === 'b' ||
+  value === 'c' ||
+  value === 'nc' ||
+  value === 'secondary' ||
+  value === 'non-primary' ||
+  value === 'non primary' ||
+  value === 'non_primary' ||
+  value === 'nonprimary'
+) {
+  return 'secondary'
+}
+  if (value === 'd' || value === 'development') return 'development'
   if (value === 'e' || value === 'no' || value === 'not allowed') return 'no'
 
   return 'secondary'
@@ -248,7 +252,7 @@ export function positionCountsForInning(lineup, inning, availableIds) {
   return counts
 }
 
-export function inningStatus(lineup, inning, players, fitMap) {
+export function inningStatus(lineup, inning, players, fitMap, optimizerProfileRules = {}) {
   const availableIds = (lineup?.availablePlayerIds || []).map(pk)
   const counts = positionCountsForInning(lineup, inning, availableIds)
 
@@ -260,8 +264,10 @@ export function inningStatus(lineup, inning, players, fitMap) {
     const value = lineup?.cells?.[id]?.[inning] || ''
     if (!FIELD_POSITIONS.includes(value)) return
 
-    const tier = normalizeFit(fitMap?.[pk(id)]?.[value] || 'no')
-if (tier !== 'primary') {
+    const rule = getPositionRule(optimizerProfileRules, value)
+const tier = normalizeFit(fitTier(fitMap, id, value))
+
+if (!fitAllowedByRule(rule, tier)) {
   const player = (players || []).find((p) => pk(p.id) === id)
   badFits.push(`${player?.name || id} @ ${value}`)
 }
@@ -707,35 +713,33 @@ function totalPlanPositionCount(planPositionCounts, position) {
   )
 }
 
-function getRequiredPrimaryPlayersByPosition(lineup, inning, players, fitMap) {
+function getRequiredPlayersByPosition(lineup, inning, players, fitMap, optimizerProfileRules = {}) {
   const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
 
   const positionToPlayers = {}
 
   FIELD_POSITIONS.forEach((pos) => {
-    positionToPlayers[pos] = eligibleIds.filter(
-      (id) => normalizeFit(fitMap?.[pk(id)]?.[pos] || 'no') === 'primary'
-    )
+    const rule = getPositionRule(optimizerProfileRules, pos)
+
+    positionToPlayers[pos] = eligibleIds.filter((id) => {
+      const fit = normalizeFit(fitTier(fitMap, id, pos))
+      return fitAllowedByRule(rule, fit)
+    })
   })
 
   const criticalPlayers = new Set()
 
-  // Step 1: single-coverage positions
   Object.values(positionToPlayers).forEach((ids) => {
-    if (ids.length === 1) {
-      criticalPlayers.add(ids[0])
-    }
+    if (ids.length === 1) criticalPlayers.add(ids[0])
   })
 
-  // Step 2: ensure we still have >= 9 total unique players to cover all positions
-  const uniquePrimaryPlayers = new Set()
+  const uniqueAllowedPlayers = new Set()
   Object.values(positionToPlayers).forEach((ids) => {
-    ids.forEach((id) => uniquePrimaryPlayers.add(id))
+    ids.forEach((id) => uniqueAllowedPlayers.add(id))
   })
 
-  if (uniquePrimaryPlayers.size <= 9) {
-    // everyone is needed to cover the field
-    uniquePrimaryPlayers.forEach((id) => criticalPlayers.add(id))
+  if (uniqueAllowedPlayers.size <= 9) {
+    uniqueAllowedPlayers.forEach((id) => criticalPlayers.add(id))
   }
 
   return criticalPlayers
@@ -750,7 +754,8 @@ function chooseSitOutsForInning({
   planSitOutTargets,
   cumulativePlanOutCounts,
   optimizerProfile = null,
-  fitMap,
+    fitMap,
+  optimizerProfileRules = {},
 }) {
   const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
   const lockedInfo = getLockedAssignmentsForInning(lineup, inning, players)
@@ -760,11 +765,12 @@ function chooseSitOutsForInning({
 
   if (additionalOutsNeeded <= 0) return []
 
-  const criticalPlayers = getRequiredPrimaryPlayersByPosition(
+  const criticalPlayers = getRequiredPlayersByPosition(
   lineup,
   inning,
   players,
-  fitMap
+  fitMap,
+  optimizerProfileRules
 )
 
 const unlockedEligibleIds = eligibleIds.filter(
@@ -1628,9 +1634,12 @@ const planPositionCounts = initializePlanPositionCounts(players)
 const eligibleAfterSits = getEligiblePlayerIdsForInning(lineup, inning, players)
 
 const positionCoverageOk = FIELD_POSITIONS.every((pos) => {
-  return eligibleAfterSits.some(
-    (id) => normalizeFit(fitMap?.[pk(id)]?.[pos] || 'no') === 'primary'
-  )
+  const rule = getPositionRule(optimizerProfileRules, pos)
+
+  return eligibleAfterSits.some((id) => {
+    const fit = normalizeFit(fitTier(fitMap, id, pos))
+    return fitAllowedByRule(rule, fit)
+  })
 })
 
 if (!positionCoverageOk) {
