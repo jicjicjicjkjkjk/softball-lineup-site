@@ -104,14 +104,22 @@ export default function LineupGrid({
                     <div style={{ height: 20 }} />
                   )}
 
-                  <MiniDiamond
-                    status={status}
-                    inning={inning}
-                    lineup={lineup}
-                    players={players}
-                  />
+                  <div className="mini-diamond-wrap">
+  <MiniDiamond
+    status={status}
+    inning={inning}
+    lineup={lineup}
+    players={players}
+  />
 
-                  {showLocks && (
+  {inningLocked && (
+    <span className="mini-inning-lock" title={`Inning ${inning} is locked`}>
+      🔒
+    </span>
+  )}
+</div>
+
+{showLocks && (
                     <label className="inning-lock-wrap">
                       <input
                         type="checkbox"
