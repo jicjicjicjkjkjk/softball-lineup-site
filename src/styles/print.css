@@ -21,7 +21,9 @@
     overflow: visible !important;
   }
 
-  .sidebar {
+  .sidebar,
+  .no-print,
+  button {
     display: none !important;
   }
 
@@ -34,18 +36,29 @@
     display: block !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;
   }
 
   .main-content .stack > * {
     display: none !important;
   }
 
+  .print-only,
   .print-only.show-print {
     display: block !important;
+    visibility: visible !important;
     width: 100% !important;
     background: #fff !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .print-only *,
+  .print-only.show-print * {
+    visibility: visible !important;
   }
 
   /* =========================
@@ -85,8 +98,25 @@
   }
 
   /* =========================
-     COACH SUMMARY TABLES
+     COACH SHEET / SUMMARY PRINT
      ========================= */
+
+  .coach-sheet-print,
+  .coach-summary-print,
+  .print-coach-sheet {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    background: #fff !important;
+    color: #111827 !important;
+    overflow: visible !important;
+  }
+
+  .coach-sheet-print *,
+  .coach-summary-print *,
+  .print-coach-sheet * {
+    visibility: visible !important;
+  }
 
   .coach-lineup-table,
   .coach-plan-table {
@@ -95,6 +125,7 @@
     border-collapse: collapse !important;
     table-layout: fixed !important;
     font-size: 10px !important;
+    background: #fff !important;
   }
 
   .coach-lineup-table th,
@@ -139,6 +170,11 @@
   .print-game {
     page-break-after: always !important;
     break-after: page !important;
+  }
+
+  .print-game:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
   }
 
   .coach-plan-page {
