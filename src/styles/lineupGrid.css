@@ -453,3 +453,10 @@
   line-height: 1;
   color: #0f172a;
 }
+
+.mini-inning-lock {
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
+  margin-bottom: 2px;
+}
