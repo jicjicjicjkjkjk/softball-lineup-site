@@ -12,10 +12,10 @@ import {
   requiredOutsForGame,
   computeTotals,
   addTotals,
-  buildOptimizedLineup,
   inningStatus,
   clearUnlockedLineupCells,
 } from './lib/lineupUtils'
+import { buildOptimizedLineupV2 as buildOptimizedLineup } from './lib/lineupOptimizerV2'
 
 import GamesPage from './Pages/GamesPage'
 import TrackingTable from './Components/TrackingTable'
