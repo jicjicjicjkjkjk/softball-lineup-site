@@ -230,6 +230,7 @@ export default function LineupFocusPanel(props) {
               players={activePlayers}
               lineup={optimizerFocusLineup}
               fitMap={fitByPlayer}
+              optimizerProfileRules={optimizerProfileRules}
               showLocks={true}
               lockedLineup={optimizerFocusLocked}
               visiblePlayerIds={visibleIds}
