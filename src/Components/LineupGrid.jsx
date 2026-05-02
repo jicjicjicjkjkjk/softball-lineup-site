@@ -19,6 +19,7 @@ export default function LineupGrid({
   visiblePlayerIds,
   currentBatchTotals = {},
   optimizerPlanSitOutTargets = {},
+  optimizerProfileRules = {},
   onRemoveInning,
   onCellChange,
   onBattingChange,
@@ -84,7 +85,7 @@ export default function LineupGrid({
           {showLocks && <th>Lock</th>}
 
           {Array.from({ length: innings }, (_, i) => i + 1).map((inning) => {
-            const status = inningStatus(lineup, inning, players, fitMap)
+            const status = inningStatus(lineup, inning, players, fitMap, optimizerProfileRules)
             const inningLocked = lineup?.lockedInnings?.[inning] === true
 
             return (
@@ -202,7 +203,7 @@ export default function LineupGrid({
                 let background = value ? '#eef6ff' : 'white'
 
                 if (FIELD_POSITIONS.includes(value)) {
-                  const status = inningStatus(lineup, inning, players, fitMap)
+                  const status = inningStatus(lineup, inning, players, fitMap, optimizerProfileRules)
 
                   if (status.duplicate.includes(value)) {
                     background = '#fee2e2'
