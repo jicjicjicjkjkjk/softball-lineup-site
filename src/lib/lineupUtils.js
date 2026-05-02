@@ -1938,6 +1938,30 @@ enforcePositionVarietyHard({
   optimizerProfileRules,
 })
 
+repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
+
+forceFillAllPositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
+
+repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
+
 lineup.validationIssues = validateLineup({
   lineup,
   players,
