@@ -936,40 +936,46 @@ function scorePlayerForPosition({
   const currentPlayerCount = Number(planPositionCounts?.[id]?.[bucket] || 0)
   const currentPositionTotal = totalPlanPositionCount(planPositionCounts, position)
 
-  let allocationScore = 0
+    let allocationScore = 0
+  let varietyScore = 0
+  let priorityScore = 0
 
-const minPositions = Number(optimizerProfile?.min_positions_per_player || 1)
-const varietyMode = optimizerProfile?.min_positions_mode || 'nice'
-const playerPositionsSoFar = Object.entries(planPositionCounts?.[id] || {})
-  .filter(([, count]) => Number(count || 0) > 0)
-  .map(([pos]) => pos)
+  const minPositions = Number(optimizerProfile?.min_positions_per_player || 1)
+  const varietyMode = optimizerProfile?.min_positions_mode || 'nice'
 
-const alreadyPlayedThisBucket = Number(planPositionCounts?.[id]?.[bucket] || 0) > 0
-const needsMoreVariety =
-  varietyMode !== 'off' &&
-  minPositions > 1 &&
-  playerPositionsSoFar.length > 0 &&
-  playerPositionsSoFar.length < minPositions
+  const playerPositionsSoFar = Object.entries(planPositionCounts?.[id] || {})
+    .filter(([, count]) => Number(count || 0) > 0)
+    .map(([pos]) => pos)
 
-if (needsMoreVariety && alreadyPlayedThisBucket) {
-  allocationScore -= varietyMode === 'must' ? 25000 : 8000
-}
+  const alreadyPlayedThisBucket = Number(planPositionCounts?.[id]?.[bucket] || 0) > 0
 
-if (needsMoreVariety && !alreadyPlayedThisBucket) {
-  allocationScore += varietyMode === 'must' ? 30000 : 10000
-}
+  const needsMoreVariety =
+    varietyMode !== 'off' &&
+    minPositions > 1 &&
+    playerPositionsSoFar.length > 0 &&
+    playerPositionsSoFar.length < minPositions
 
-if (targetTotal > 0 && target > 0) {
+  if (needsMoreVariety && alreadyPlayedThisBucket) {
+    varietyScore -= varietyMode === 'must' ? 60000 : 20000
+  }
+
+  if (needsMoreVariety && !alreadyPlayedThisBucket) {
+    varietyScore += varietyMode === 'must' ? 70000 : 25000
+  }
+
+  if (targetTotal > 0 && target > 0) {
     const expectedAfterThisAssignment =
       (currentPositionTotal + 1) * (target / targetTotal)
 
     const projectedPlayerCount = currentPlayerCount + 1
     const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
 
-    allocationScore = 5000 - distanceFromTarget * 2500 + target * 100 * importance
+    priorityScore += 5000 - distanceFromTarget * 2500 + target * 100 * importance
   } else if (targetTotal > 0 && target <= 0) {
-    allocationScore = -5000 * importance
+    priorityScore -= 5000 * importance
   }
+
+  allocationScore = varietyScore + priorityScore
 
   const prevValue = inning > 1 ? lineup?.cells?.[id]?.[inning - 1] || '' : ''
   const samePositionMode = consecutiveMode(optimizerProfileRules, position)
