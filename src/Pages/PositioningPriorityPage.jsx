@@ -58,7 +58,7 @@ export default function PositioningPriorityPage({
     const allowedPositionRows = allowedRows
       .map((row) => {
         const cells = ALLOWED_POSITIONS.map((position) => {
-          const tier = fitByPlayer[row.playerId]?.[position] || 'secondary'
+          const tier = fitByPlayer[row.playerId]?.[position] || 'no'
 
           const lockedPrimary =
             Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0 ||
@@ -366,7 +366,7 @@ export default function PositioningPriorityPage({
                   <td className="player-col">{row.name}</td>
                   <td>{row.jersey_number}</td>
                   {ALLOWED_POSITIONS.map((position) => {
-                    const tier = fitByPlayer[row.playerId]?.[position] || 'secondary'
+                    const tier = fitByPlayer[row.playerId]?.[position] || 'no'
                     const lockedPrimary =
                       Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0 ||
                       (['LF', 'CF', 'RF'].includes(position) &&
