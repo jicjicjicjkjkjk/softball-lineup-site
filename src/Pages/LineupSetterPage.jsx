@@ -182,7 +182,7 @@ export default function LineupSetterPage({
         blankLineup(
           activePlayers.map((p) => p.id),
           Number(game.innings || 6),
-          activePlayerIds()
+          activePlayerIds
         )
       )
     })
@@ -524,7 +524,7 @@ const optimizerModeDescription =
                   blankLineup(
                     activePlayers.map((p) => p.id),
                     Number(game.innings || 6),
-                    activePlayerIds()
+                    activePlayerIds
                   )
 
                 const effectiveInnings = Number(lineup?.innings || game.innings || 6)
