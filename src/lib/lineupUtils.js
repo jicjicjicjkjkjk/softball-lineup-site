@@ -1842,14 +1842,24 @@ eligibleIds.forEach((id) => {
     incrementPlanPositionCount(planPositionCounts, id, value)
   }
 })
-  eligibleIds.forEach((id) => {
+  const expectedOuts = Math.max(0, eligibleIds.length - 9)
+
+let currentOuts = eligibleIds.filter(
+  (id) => lineup.cells?.[id]?.[inning] === 'Out'
+).length
+
+eligibleIds.forEach((id) => {
   if (lockedValue(lineup, id, inning)) return
 
   const value = lineup.cells?.[id]?.[inning]
 
-  // ONLY assign Out if still empty AFTER everything else
   if (!value || value === '') {
-    lineup.cells[id][inning] = 'Out'
+    if (currentOuts < expectedOuts) {
+      lineup.cells[id][inning] = 'Out'
+      currentOuts += 1
+    } else {
+      lineup.cells[id][inning] = ''
+    }
   }
 })
 
