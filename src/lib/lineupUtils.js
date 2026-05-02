@@ -1,3 +1,5 @@
+Functioning code:
+
 // src/lib/lineupUtils.js
 
 export const FIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF']
@@ -1736,11 +1738,12 @@ export function buildOptimizedLineup({
   clearUnlockedCells(lineup, players)
 
   const rollingTotals = clone(totalsBefore || {})
-  const cumulativePlanOutCounts = {}
-  const planPositionCounts = initializePlanPositionCounts(players)
+const cumulativePlanOutCounts = {}
+const planPositionCounts = initializePlanPositionCounts(players)
 
   ;(players || []).forEach((player) => {
     const id = pk(player.id)
+
     cumulativePlanOutCounts[id] = Number(batchCurrentOuts?.[id] || 0)
 
     if (!rollingTotals[id]) {
@@ -1770,38 +1773,19 @@ export function buildOptimizedLineup({
     }
   })
 
-  function rebuildPlanCounts() {
-    const rebuilt = initializePlanPositionCounts(players)
-
-    for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
-      const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
-
-      eligibleIds.forEach((id) => {
-        const value = lineup?.cells?.[id]?.[inning] || ''
-        if (FIELD_POSITIONS.includes(value)) {
-          incrementPlanPositionCount(rebuilt, id, value)
-        }
-      })
-    }
-
-    Object.keys(rebuilt).forEach((id) => {
-      planPositionCounts[id] = rebuilt[id]
-    })
-  }
-
   for (let inning = 1; inning <= lineup.innings; inning += 1) {
-    const sitOutIds = chooseSitOutsForInning({
-      lineup,
-      inning,
-      innings: lineup.innings,
-      players,
-      totalsBefore: rollingTotals,
-      planSitOutTargets,
-      cumulativePlanOutCounts,
-      optimizerProfile,
-      fitMap,
-      optimizerProfileRules,
-    })
+            const sitOutIds = chooseSitOutsForInning({
+  lineup,
+  inning,
+  innings: lineup.innings,
+  players,
+  totalsBefore: rollingTotals,
+  planSitOutTargets,
+  cumulativePlanOutCounts,
+  optimizerProfile,
+  fitMap,
+  optimizerProfileRules,
+})
 
     sitOutIds.forEach((id) => {
       if (!lockedValue(lineup, id, inning)) {
@@ -1810,37 +1794,66 @@ export function buildOptimizedLineup({
       }
     })
 
+// 🚨 SAFETY: ensure all positions still have at least 1 primary candidate
+const eligibleAfterSits = getEligiblePlayerIdsForInning(lineup, inning, players)
+
+const positionCoverageOk = FIELD_POSITIONS.every((pos) => {
+  const rule = getPositionRule(optimizerProfileRules, pos)
+
+  return eligibleAfterSits.some((id) => {
+    const fit = normalizeFit(fitTier(fitMap, id, pos))
+    return fitAllowedByRule(rule, fit)
+  })
+})
+
+if (!positionCoverageOk) {
+  // rollback sits for this inning
+  sitOutIds.forEach((id) => {
+    if (!lockedValue(lineup, id, inning)) {
+      lineup.cells[id][inning] = ''
+      cumulativePlanOutCounts[id] = Math.max(
+        0,
+        Number(cumulativePlanOutCounts[id] || 0) - 1
+      )
+    }
+  })
+}
+    
     const assigned = assignPositionsForInning({
-      lineup,
-      inning,
-      players,
-      rollingTotals,
-      priorityMap,
-      fitMap,
-      planPositionCounts,
-      optimizerProfile,
-      optimizerProfileRules,
-    })
+  lineup,
+  inning,
+  players,
+  rollingTotals,
+  priorityMap,
+  fitMap,
+  planPositionCounts,
+  optimizerProfile,
+  optimizerProfileRules,
+})
 
     Object.entries(assigned).forEach(([playerId, position]) => {
       if (!lockedValue(lineup, playerId, inning)) {
         lineup.cells[playerId][inning] = position
       }
     })
+const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
 
-    const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
+eligibleIds.forEach((id) => {
+  const value = lineup?.cells?.[id]?.[inning] || ''
+  if (FIELD_POSITIONS.includes(value)) {
+    incrementPlanPositionCount(planPositionCounts, id, value)
+  }
+})
+  eligibleIds.forEach((id) => {
+  if (lockedValue(lineup, id, inning)) return
 
-    eligibleIds.forEach((id) => {
-      if (lockedValue(lineup, id, inning)) return
+  const value = lineup.cells?.[id]?.[inning]
 
-      const value = lineup.cells?.[id]?.[inning]
-
-      if (!value || value === '') {
-        lineup.cells[id][inning] = 'Out'
-      }
-    })
-
-    rebuildPlanCounts()
+  // ONLY assign Out if still empty AFTER everything else
+  if (!value || value === '') {
+    lineup.cells[id][inning] = 'Out'
+  }
+})
 
     const inningTotals = computeTotals(
       [
@@ -1883,103 +1896,105 @@ export function buildOptimizedLineup({
       current.delta = Number((current.actualOuts - current.expectedOuts).toFixed(2))
     })
   }
+  
+repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
 
-  repairMissingAndDuplicatePositions({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfileRules,
-  })
+enforceMinimumPositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfile,
+  optimizerProfileRules,
+})
 
-  forceFillAllPositions({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfileRules,
-  })
+repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
 
-  rebuildPlanCounts()
+enforceConsecutivePositionRules({
+  lineup,
+  players,
+  fitMap,
+  optimizerProfileRules,
+})
 
-  enforceMinimumPositions({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfile,
-    optimizerProfileRules,
-  })
+repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
 
-  rebuildPlanCounts()
+enforcePositionVarietyHard({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfile,
+  optimizerProfileRules,
+})
 
-  enforcePositionVarietyHard({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfile,
-    optimizerProfileRules,
-  })
+forceFillAllPositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
 
-  repairMissingAndDuplicatePositions({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfileRules,
-  })
+enforcePositionVarietyHard({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfile,
+  optimizerProfileRules,
+})
 
-  forceFillAllPositions({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfileRules,
-  })
+repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
 
-  rebuildPlanCounts()
+forceFillAllPositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
 
-  enforcePositionVarietyHard({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfile,
-    optimizerProfileRules,
-  })
+repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
 
-  repairMissingAndDuplicatePositions({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfileRules,
-  })
+lineup.validationIssues = validateLineup({
+  lineup,
+  players,
+  fitMap,
+  optimizerProfileRules,
+})
 
-  enforceConsecutivePositionRules({
-    lineup,
-    players,
-    fitMap,
-    optimizerProfileRules,
-  })
-
-  repairMissingAndDuplicatePositions({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfileRules,
-  })
-
-  lineup.validationIssues = validateLineup({
-    lineup,
-    players,
-    fitMap,
-    optimizerProfileRules,
-  })
-
-  return lineup
+return lineup
 }
 
 export function formatDateMMDDYY(dateStr) {
