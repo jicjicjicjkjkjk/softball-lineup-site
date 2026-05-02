@@ -49,7 +49,8 @@ export default function LineupFocusPanel(props) {
     optimizerModeDescription = '',
     currentBatchTotals = {},
     optimizerPlanSitOutTargets = {},
-  } = props
+    optimizerProfileRules = {},
+} = props
 
   if (!optimizerFocusGame) return null
 
@@ -59,7 +60,7 @@ export default function LineupFocusPanel(props) {
     blankLineup(
       activePlayers.map((p) => p.id),
       Number(optimizerFocusGame.innings || 6),
-      activePlayerIds ? activePlayerIds() : []
+      activePlayerIds || []
     )
 
   const badCheckCount = focusStatuses.filter(
