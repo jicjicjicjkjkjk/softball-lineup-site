@@ -733,15 +733,6 @@ function getRequiredPlayersByPosition(lineup, inning, players, fitMap, optimizer
     if (ids.length === 1) criticalPlayers.add(ids[0])
   })
 
-  const uniqueAllowedPlayers = new Set()
-  Object.values(positionToPlayers).forEach((ids) => {
-    ids.forEach((id) => uniqueAllowedPlayers.add(id))
-  })
-
-  if (uniqueAllowedPlayers.size <= 9) {
-    uniqueAllowedPlayers.forEach((id) => criticalPlayers.add(id))
-  }
-
   return criticalPlayers
 }
 
