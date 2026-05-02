@@ -211,10 +211,14 @@ export default function LineupGrid({
 
                     const isPrimary = tier === 'primary' || tier === 'a'
                     const isSecondary =
-                      tier === 'secondary' ||
-                      tier === 'non-primary' ||
-                      tier === 'b' ||
-                      tier === 'c'
+  tier === 'secondary' ||
+  tier === 'non-primary' ||
+  tier === 'non primary' ||
+  tier === 'non_primary' ||
+  tier === 'nonprimary' ||
+  tier === 'nc' ||
+  tier === 'b' ||
+  tier === 'c'
 
                     background = isPrimary ? '#d1fae5' : isSecondary ? '#fef9c3' : '#fee2e2'
                     
