@@ -1944,6 +1944,23 @@ enforcePositionVarietyHard({
   optimizerProfileRules,
 })
 
+forceFillAllPositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
+
+enforcePositionVarietyHard({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfile,
+  optimizerProfileRules,
+})
+
 repairMissingAndDuplicatePositions({
   lineup,
   players,
