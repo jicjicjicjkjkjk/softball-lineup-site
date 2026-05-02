@@ -1189,16 +1189,17 @@ const mode = optimizerProfile?.min_positions_mode || 'nice'
     if (!FIELD_POSITIONS.includes(aPos) || !FIELD_POSITIONS.includes(bPos)) return false
     if (lockedValue(lineup, playerA, inning)) return false
     if (lockedValue(lineup, playerB, inning)) return false
-    const aFitForBPos = normalizeFit(fitMap?.[pk(playerA)]?.[bPos] || 'no')
-const bFitForAPos = normalizeFit(fitMap?.[pk(playerB)]?.[aPos] || 'no')
-
-const aRuleForBPos = getPositionRule(optimizerProfileRules, bPos)
+    const aRuleForBPos = getPositionRule(optimizerProfileRules, bPos)
 const bRuleForAPos = getPositionRule(optimizerProfileRules, aPos)
+
+const aFitForBPos = normalizeFit(fitTier(fitMap, playerA, bPos))
+const bFitForAPos = normalizeFit(fitTier(fitMap, playerB, aPos))
 
 if (!fitAllowedByRule(aRuleForBPos, aFitForBPos)) return false
 if (!fitAllowedByRule(bRuleForAPos, bFitForAPos)) return false
 
-    return true  }
+    return true
+  }
 
   ;(players || []).forEach((player) => {
     const playerId = pk(player.id)
@@ -1618,16 +1619,17 @@ const planPositionCounts = initializePlanPositionCounts(players)
 
   for (let inning = 1; inning <= lineup.innings; inning += 1) {
             const sitOutIds = chooseSitOutsForInning({
-      lineup,
-      inning,
-      innings: lineup.innings,
-      players,
-      totalsBefore: rollingTotals,
-      planSitOutTargets,
-      cumulativePlanOutCounts,
-      optimizerProfile,
-      fitMap,
-    })
+  lineup,
+  inning,
+  innings: lineup.innings,
+  players,
+  totalsBefore: rollingTotals,
+  planSitOutTargets,
+  cumulativePlanOutCounts,
+  optimizerProfile,
+  fitMap,
+  optimizerProfileRules,
+})
 
     sitOutIds.forEach((id) => {
       if (!lockedValue(lineup, id, inning)) {
