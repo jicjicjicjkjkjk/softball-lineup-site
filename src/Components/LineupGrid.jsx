@@ -208,20 +208,31 @@ export default function LineupGrid({
                   if (status.duplicate.includes(value)) {
                     background = '#fee2e2'
                   } else {
-                                        const tier = String(fitTier(fitMap, id, value) || '').toLowerCase()
+                                        const rawTier = fitTier(fitMap, id, value)
+const tier = String(rawTier || '').trim().toLowerCase()
 
-                    const isPrimary = tier === 'primary' || tier === 'a'
-                    const isSecondary =
-  tier === 'secondary' ||
-  tier === 'non-primary' ||
-  tier === 'non primary' ||
-  tier === 'non_primary' ||
-  tier === 'nonprimary' ||
-  tier === 'nc' ||
-  tier === 'b' ||
-  tier === 'c'
+const normalizedTier =
+  tier === 'a' || tier === 'primary'
+    ? 'primary'
+    : tier === 'b' ||
+      tier === 'c' ||
+      tier === 'nc' ||
+      tier === 'secondary' ||
+      tier === 'non-primary' ||
+      tier === 'non primary' ||
+      tier === 'non_primary' ||
+      tier === 'nonprimary'
+    ? 'secondary'
+    : tier === 'd' || tier === 'development'
+    ? 'development'
+    : 'no'
 
-                    background = isPrimary ? '#d1fae5' : isSecondary ? '#fef9c3' : '#fee2e2'
+background =
+  normalizedTier === 'primary'
+    ? '#d1fae5'
+    : normalizedTier === 'secondary' || normalizedTier === 'development'
+    ? '#fef9c3'
+    : '#fee2e2'
                     
                   }
                 }
