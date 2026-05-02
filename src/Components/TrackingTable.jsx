@@ -16,11 +16,38 @@ function displayRunningTotal(val) {
 }
 
 function getFitColor(fit) {
-  const normalized = String(fit || '').toLowerCase().trim()
+  const normalized = String(fit || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2010-\u2015\u2212\uFF0D]/g, '-')
+    .replace(/\s+/g, ' ')
 
   if (normalized === 'primary' || normalized === 'a') return '#dcfce7'
-  if (['secondary', 'non-primary', 'nonprimary', 'b', 'c'].includes(normalized)) return '#fef9c3'
-  if (['no', 'not_allowed', 'not-allowed', 'not allowed', 'd', 'e'].includes(normalized)) return '#fee2e2'
+
+  if (
+    normalized === 'secondary' ||
+    normalized === 'non-primary' ||
+    normalized === 'non primary' ||
+    normalized === 'non_primary' ||
+    normalized === 'nonprimary' ||
+    normalized.includes('non') && normalized.includes('primary') ||
+    normalized === 'b' ||
+    normalized === 'c' ||
+    normalized === 'development' ||
+    normalized === 'd'
+  ) {
+    return '#fef9c3'
+  }
+
+  if (
+    normalized === 'no' ||
+    normalized === 'not_allowed' ||
+    normalized === 'not-allowed' ||
+    normalized === 'not allowed' ||
+    normalized === 'e'
+  ) {
+    return '#fee2e2'
+  }
 
   return ''
 }
