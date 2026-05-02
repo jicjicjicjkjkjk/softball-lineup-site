@@ -1192,11 +1192,13 @@ const mode = optimizerProfile?.min_positions_mode || 'nice'
     const aFitForBPos = normalizeFit(fitMap?.[pk(playerA)]?.[bPos] || 'no')
 const bFitForAPos = normalizeFit(fitMap?.[pk(playerB)]?.[aPos] || 'no')
 
-if (aFitForBPos !== 'primary') return false
-if (bFitForAPos !== 'primary') return false
+const aRuleForBPos = getPositionRule(optimizerProfileRules, bPos)
+const bRuleForAPos = getPositionRule(optimizerProfileRules, aPos)
 
-    return true
-  }
+if (!fitAllowedByRule(aRuleForBPos, aFitForBPos)) return false
+if (!fitAllowedByRule(bRuleForAPos, bFitForAPos)) return false
+
+    return true  }
 
   ;(players || []).forEach((player) => {
     const playerId = pk(player.id)
@@ -1220,7 +1222,11 @@ if (qualifiedPositions.size >= minPositions) return
 
       const alternativePositions = FIELD_POSITIONS
   .filter((pos) => pos !== currentPos)
-  .filter((pos) => normalizeFit(fitMap?.[pk(playerId)]?.[pos] || 'no') === 'primary')
+  .filter((pos) => {
+    const rule = getPositionRule(optimizerProfileRules, pos)
+    const fit = normalizeFit(fitTier(fitMap, playerId, pos))
+    return fitAllowedByRule(rule, fit)
+  })
         .sort((a, b) => {
           const aPriority = priorityValue(priorityMap, playerId, a)
           const bPriority = priorityValue(priorityMap, playerId, b)
@@ -1733,6 +1739,23 @@ eligibleIds.forEach((id) => {
     })
   }
   
+repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
+
+enforceMinimumPositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfile,
+  optimizerProfileRules,
+})
+
 repairMissingAndDuplicatePositions({
   lineup,
   players,
