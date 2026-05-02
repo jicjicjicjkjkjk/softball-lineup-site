@@ -1272,6 +1272,133 @@ if (updated.size >= minPositions) return
   return lineup
 }
 
+function enforcePositionVarietyHard({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfile,
+  optimizerProfileRules = {},
+}) {
+  const innings = Number(lineup?.innings || 0)
+  const minPositions = Number(optimizerProfile?.min_positions_per_player || 1)
+  const mode = optimizerProfile?.min_positions_mode || 'nice'
+
+  if (!innings || mode === 'off' || minPositions <= 1) return lineup
+
+  const availableIds = new Set((lineup?.availablePlayerIds || []).map(pk))
+
+  function allowedAt(playerId, position) {
+    const rule = getPositionRule(optimizerProfileRules, position)
+    const fit = normalizeFit(fitTier(fitMap, playerId, position))
+    return fitAllowedByRule(rule, fit)
+  }
+
+  function getFieldInnings(playerId) {
+    const out = []
+
+    for (let inning = 1; inning <= innings; inning += 1) {
+      const value = lineup?.cells?.[playerId]?.[inning] || ''
+
+      if (FIELD_POSITIONS.includes(value)) {
+        out.push({ inning, position: value })
+      }
+    }
+
+    return out
+  }
+
+  function getPositionCounts(playerId) {
+    const counts = {}
+
+    getFieldInnings(playerId).forEach(({ position }) => {
+      counts[position] = Number(counts[position] || 0) + 1
+    })
+
+    return counts
+  }
+
+  function getQualifiedPositions(playerId) {
+    return Object.keys(getPositionCounts(playerId))
+  }
+
+  function findPlayerAtPosition(inning, position) {
+    return (players || [])
+      .map((player) => pk(player.id))
+      .find((id) => lineup?.cells?.[id]?.[inning] === position)
+  }
+
+  function canSwap(playerA, playerB, inning) {
+    const aPos = lineup?.cells?.[playerA]?.[inning] || ''
+    const bPos = lineup?.cells?.[playerB]?.[inning] || ''
+
+    if (!FIELD_POSITIONS.includes(aPos) || !FIELD_POSITIONS.includes(bPos)) return false
+    if (lockedValue(lineup, playerA, inning)) return false
+    if (lockedValue(lineup, playerB, inning)) return false
+
+    return allowedAt(playerA, bPos) && allowedAt(playerB, aPos)
+  }
+
+  let changed = true
+  let guard = 0
+
+  while (changed && guard < 40) {
+    changed = false
+    guard += 1
+
+    for (const player of players || []) {
+      const playerId = pk(player.id)
+      if (!availableIds.has(playerId)) continue
+      if (isRowFullyLockedForGame(lineup, playerId)) continue
+
+      const qualified = getQualifiedPositions(playerId)
+      if (qualified.length >= minPositions) continue
+
+      const counts = getPositionCounts(playerId)
+
+      const fieldInnings = getFieldInnings(playerId)
+        .filter(({ inning }) => !lockedValue(lineup, playerId, inning))
+        .sort((a, b) => {
+          return (
+            Number(counts[b.position] || 0) - Number(counts[a.position] || 0) ||
+            a.inning - b.inning
+          )
+        })
+
+      for (const { inning, position: currentPos } of fieldInnings) {
+        const alternatives = FIELD_POSITIONS
+          .filter((pos) => pos !== currentPos)
+          .filter((pos) => allowedAt(playerId, pos))
+          .sort((a, b) => {
+            const aAlready = counts[a] ? 1 : 0
+            const bAlready = counts[b] ? 1 : 0
+            if (aAlready !== bAlready) return aAlready - bAlready
+
+            return priorityValue(priorityMap, playerId, b) - priorityValue(priorityMap, playerId, a)
+          })
+
+        for (const altPos of alternatives) {
+          const otherId = findPlayerAtPosition(inning, altPos)
+          if (!otherId || otherId === playerId) continue
+          if (!canSwap(playerId, otherId, inning)) continue
+
+          lineup.cells[playerId][inning] = altPos
+          lineup.cells[otherId][inning] = currentPos
+
+          changed = true
+          break
+        }
+
+        if (changed) break
+      }
+
+      if (changed) break
+    }
+  }
+
+  return lineup
+}
+
 function enforceConsecutivePositionRules({ lineup, players, fitMap, optimizerProfileRules }) {
   const innings = Number(lineup?.innings || 0)
   if (!innings) return lineup
@@ -1799,6 +1926,15 @@ repairMissingAndDuplicatePositions({
   players,
   fitMap,
   priorityMap,
+  optimizerProfileRules,
+})
+
+enforcePositionVarietyHard({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfile,
   optimizerProfileRules,
 })
 
