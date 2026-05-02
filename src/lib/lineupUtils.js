@@ -8,6 +8,9 @@ export const FIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'R
 export const INFIELD = ['1B', '2B', '3B', 'SS'];
 export const OUTFIELD = ['LF', 'CF', 'RF'];
 export const STATUS = { OUT: 'Out', INJURY: 'Injury', EMPTY: '' };
+export const PRIORITY_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF'];
+export const ALLOWED_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF'];
+export const GAME_TYPES = ['Friendly', 'Tournament Pool', 'Tournament Bracket', 'Doubleheader', 'Round Robin'];
 
 const DEFAULT_IMPORTANCE = { P: 9, C: 8, SS: 7, '3B': 6, '1B': 5, CF: 4, '2B': 3, LF: 2, RF: 1 };
 
@@ -266,4 +269,85 @@ function applyPostProcessRules(lineup, fitMap, profile, rules) {
   // Here you would chain the "Enforce Variety" or "Consecutive" logic 
   // without the messy "guard" loops.
   return lineup;
+}
+
+export function normalizeLineup(lineup, playersOrIds, inningsFallback = 6, availableFallback = []) {
+  const playerIds = (playersOrIds || []).map((item) =>
+    typeof item === 'object' && item !== null ? item.id : item
+  );
+
+  if (!lineup) {
+    return blankLineup(playerIds, inningsFallback, availableFallback.length ? availableFallback : playerIds);
+  }
+
+  const out = clone(lineup);
+  out.innings = Number(out.innings || inningsFallback || 6);
+  out.availablePlayerIds = (out.availablePlayerIds || availableFallback || playerIds).map(pk);
+  
+  // Ensure all objects exist so App.jsx doesn't crash
+  const keys = ['cells', 'battingOrder', 'lockedCells', 'lockedRows', 'lockedBattingOrder', 'lockedInnings'];
+  keys.forEach(key => { out[key] = out[key] || {}; });
+
+  return out;
+}
+
+export function requiredOutsForGame(playerCount, innings) {
+  return Math.max(0, Number(playerCount || 0) - 9) * Number(innings || 0);
+}
+
+export function inningStatus(lineup, inning, players) {
+  // This is a simplified version to keep the UI happy
+  const availableIds = (lineup?.availablePlayerIds || []).map(pk);
+  const counts = {};
+  FIELD_POSITIONS.forEach(pos => counts[pos] = 0);
+
+  availableIds.forEach(id => {
+    const pos = lineup?.cells?.[id]?.[inning];
+    if (FIELD_POSITIONS.includes(pos)) counts[pos]++;
+  });
+
+  return {
+    missing: FIELD_POSITIONS.filter(pos => counts[pos] === 0),
+    duplicate: FIELD_POSITIONS.filter(pos => counts[pos] > 1),
+    badFits: [] // You can expand this later if needed
+  };
+}
+
+export function clearUnlockedLineupCells(lineup, players) {
+  const next = clone(lineup);
+  (players || []).forEach((player) => {
+    const id = pk(player.id);
+    for (let inning = 1; inning <= Number(next.innings || 0); inning += 1) {
+      if (!isLocked(next, id, inning)) {
+        if (next.cells[id][inning] !== STATUS.INJURY) {
+          next.cells[id][inning] = STATUS.EMPTY;
+        }
+      }
+    }
+  });
+  return next;
+}
+
+export function addTotals(a, b, players) {
+  // This is helpful for combining "Season Totals" with "Tournament Totals"
+  const out = {};
+  (players || []).forEach((player) => {
+    const id = pk(player.id);
+    const rowA = a?.[id] || {};
+    const rowB = b?.[id] || {};
+    
+    out[id] = {
+      ...rowA,
+      ...rowB,
+      id,
+      games: (rowA.games || 0) + (rowB.games || 0),
+      actualOuts: (rowA.actualOuts || 0) + (rowB.actualOuts || 0),
+      fieldTotal: (rowA.fieldTotal || 0) + (rowB.fieldTotal || 0),
+    };
+    
+    FIELD_POSITIONS.forEach(pos => {
+      out[id][pos] = (rowA[pos] || 0) + (rowB[pos] || 0);
+    });
+  });
+  return out;
 }
