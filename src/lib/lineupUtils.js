@@ -938,7 +938,28 @@ function scorePlayerForPosition({
 
   let allocationScore = 0
 
-  if (targetTotal > 0 && target > 0) {
+const minPositions = Number(optimizerProfile?.min_positions_per_player || 1)
+const varietyMode = optimizerProfile?.min_positions_mode || 'nice'
+const playerPositionsSoFar = Object.entries(planPositionCounts?.[id] || {})
+  .filter(([, count]) => Number(count || 0) > 0)
+  .map(([pos]) => pos)
+
+const alreadyPlayedThisBucket = Number(planPositionCounts?.[id]?.[bucket] || 0) > 0
+const needsMoreVariety =
+  varietyMode !== 'off' &&
+  minPositions > 1 &&
+  playerPositionsSoFar.length > 0 &&
+  playerPositionsSoFar.length < minPositions
+
+if (needsMoreVariety && alreadyPlayedThisBucket) {
+  allocationScore -= varietyMode === 'must' ? 25000 : 8000
+}
+
+if (needsMoreVariety && !alreadyPlayedThisBucket) {
+  allocationScore += varietyMode === 'must' ? 30000 : 10000
+}
+
+if (targetTotal > 0 && target > 0) {
     const expectedAfterThisAssignment =
       (currentPositionTotal + 1) * (target / targetTotal)
 
