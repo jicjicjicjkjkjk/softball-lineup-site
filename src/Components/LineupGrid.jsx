@@ -241,7 +241,8 @@ background =
                   <td key={inning}>
                     <div className="position-cell">
                       <select
-                        value={value}
+  title={`${player.name} ${value}: ${fitTier(fitMap, id, value) || 'blank'}`}
+  value={value}
                         disabled={effectiveLocked}
                         onChange={(e) => onCellChange?.(id, inning, e.target.value)}
                         style={{ background }}
