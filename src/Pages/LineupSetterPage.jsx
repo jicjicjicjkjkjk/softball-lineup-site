@@ -3,7 +3,6 @@ import { formatDateShort } from '../lib/appHelpers'
 import LineupFocusPanel from '../Components/LineupFocusPanel'
 import { printCoachSummary } from '../lib/coachPrint'
 import TrackingFilters from '../Components/TrackingFilters'
-import PrintCoachSheet from '../Components/PrintCoachSheet'
 
 function renderOptionLabel(option) {
   if (!option) return ''
@@ -140,23 +139,7 @@ export default function LineupSetterPage({
   trackingPriorityRows = [],
   trackingPriorityByPositionRows = [],
 }) {
-  const [printMode, setPrintMode] = useState(null)
 
-
-  
-useEffect(() => {
-  const handler = () => setPrintMode(null)
-  window.addEventListener('afterprint', handler)
-  return () => window.removeEventListener('afterprint', handler)
-}, [])
-
-  function printCoachSheet() {
-  setPrintMode('coachSheet')
-
-  setTimeout(() => {
-    window.print()
-  }, 750)
-}
   
   const focusStatuses = optimizerFocusLineup
     ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
@@ -515,9 +498,7 @@ const optimizerModeDescription =
 >
   Print Coach Summary
 </button>
-<button type="button" onClick={printCoachSheet}>
-  Print Coach Sheet
-</button>
+
           </div>
 
           <table className="table-center lineup-setter-current-plan-table" style={{ tableLayout: 'fixed' }}>
@@ -836,18 +817,7 @@ const optimizerModeDescription =
         </div>
       </div>
 
-      <PrintCoachSheet
-  show={printMode === 'coachSheet'}
-  games={orderedPlanGames}
-  optimizerPreviewByGame={optimizerPreviewByGame}
-  lineupsByGame={lineupsByGame}
-  activePlayers={activePlayers}
-  currentBatchTotals={currentBatchTotals}
-  gameTypeOptions={gameTypeOptions}
-  seasonOptions={seasonOptions}
-  getOptionLabel={getOptionLabel}
-  pk={pk}
-/>
+      
       
                 </div>
   )
