@@ -60,7 +60,11 @@ function consecutiveMode(profileRules, position) {
 }
 
 function normalizeFit(fit) {
-  const value = String(fit || '').trim().toLowerCase()
+  const value = String(fit || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2010-\u2015\u2212\uFF0D]/g, '-')
+    .replace(/\s+/g, ' ')
 
   if (value === 'a' || value === 'primary') return 'primary'
   if (
@@ -71,7 +75,8 @@ function normalizeFit(fit) {
   value === 'non-primary' ||
   value === 'non primary' ||
   value === 'non_primary' ||
-  value === 'nonprimary'
+  value === 'nonprimary' ||
+  value.includes('non') && value.includes('primary')
 ) {
   return 'secondary'
 }
