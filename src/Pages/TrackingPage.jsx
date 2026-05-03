@@ -273,6 +273,72 @@ const metricCellStyle = {
   textAlign: 'left',
 }
 
+function printTrackingReport() {
+  const cards = Array.from(document.querySelectorAll('.tracking-card'))
+
+  const wantedTitles = [
+    'Batting Order Tracking',
+    'Sitting Out Summary',
+    'Sit Outs by Player',
+    'Tracking by Positioning by Priority',
+  ]
+
+  const selectedCards = cards.filter((card) => {
+    const title = card.querySelector('h3')?.textContent?.trim()
+    return wantedTitles.includes(title)
+  })
+
+  const html = `
+    <html>
+      <head>
+        <title>Tracking Report</title>
+        <style>
+          @page { size: landscape; margin: 0.3in; }
+          body { font-family: Arial, sans-serif; color: #1f2f46; padding: 12px; }
+          h1 { margin: 0 0 12px; font-size: 22px; }
+          h3 { margin: 14px 0 8px; font-size: 16px; }
+          table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 18px; }
+          th, td { border: 1px solid #cbd5e1; padding: 4px; font-size: 8.5px; text-align: center; }
+          th { background: #e6f4f4; font-weight: 800; }
+          .tracking-scroll { overflow: visible !important; }
+          .sticky-col-1, .sticky-col-2, .sticky-col-3 { position: static !important; }
+          .tracking-vertical { height: 105px !important; }
+          button, select, input { display: none !important; }
+          .card, .tracking-card { box-shadow: none !important; border: none !important; padding: 0 !important; }
+          .page-break { page-break-before: always; }
+        </style>
+      </head>
+      <body>
+        <h1>Tracking Report</h1>
+        ${selectedCards
+          .map(
+            (card, index) => `
+              ${index > 0 ? '<div class="page-break"></div>' : ''}
+              ${card.innerHTML}
+            `
+          )
+          .join('')}
+        <script>
+          window.onload = function () {
+            window.focus()
+            window.print()
+          }
+        </script>
+      </body>
+    </html>
+  `
+
+  const printWindow = window.open('', '_blank')
+  if (!printWindow) {
+    alert('Please allow pop-ups so the tracking report can print.')
+    return
+  }
+
+  printWindow.document.open()
+  printWindow.document.write(html)
+  printWindow.document.close()
+}
+
 export default function TrackingPage({
   trackingLockedLineups,
   trackingTotals,
@@ -458,8 +524,15 @@ const filterSummary = useMemo(() => {
   ])
   
   return (
-    <div className="stack">
-  <TrackingFilters
+  <div className="stack">
+    <div className="row-between wrap-row">
+      <h2 style={{ margin: 0 }}>Tracking</h2>
+      <button type="button" onClick={printTrackingReport}>
+        Print Tracking Report
+      </button>
+    </div>
+
+<TrackingFilters
   trackingFilters={trackingFilters}
   setTrackingFilters={setTrackingFilters}
   seasonOptions={seasonOptions}
