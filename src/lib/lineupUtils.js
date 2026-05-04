@@ -938,17 +938,17 @@ function scorePlayerForPosition({
     const beforePct = (beforePositionCount / beforeFieldTotal) * 100
 
     const beforeDistance = Math.abs(beforePct - targetPct)
-    const afterDistance = Math.abs(projectedPct - targetPct)
+const afterDistance = Math.abs(projectedPct - targetPct)
 
-    const improvesTarget = afterDistance < beforeDistance
-    const overTargetAfter = projectedPct > targetPct + 8
+const improvesTarget = afterDistance < beforeDistance
+const overTargetAfter = projectedPct > targetPct + 5
 
-    priorityScore += improvesTarget ? 35000 : -12000
-    priorityScore -= afterDistance * 1200
+priorityScore += improvesTarget ? 30000 : -25000
+priorityScore -= afterDistance * 1800
 
-    if (overTargetAfter) {
-      priorityScore -= (projectedPct - targetPct) * 1800
-    }
+if (overTargetAfter) {
+  priorityScore -= (projectedPct - targetPct) * 5000
+}
   } else {
     priorityScore -= 30000
   }
