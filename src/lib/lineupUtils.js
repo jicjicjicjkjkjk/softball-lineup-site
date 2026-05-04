@@ -912,10 +912,10 @@ function scorePlayerForPosition({
   const targetPct = Number(getPriorityTarget(priorityMap, id, position) || 0)
 
   let fitScore = 0
-  if (fit === 'primary') fitScore = 5000 * importance
-  else if (fit === 'secondary') fitScore = 2200 * importance
-  else if (fit === 'development') fitScore = 900 * importance
-  else fitScore = 100 * importance
+if (fit === 'primary') fitScore = 2500 * importance
+else if (fit === 'secondary') fitScore = 900 * importance
+else if (fit === 'development') fitScore = 300 * importance
+else fitScore = 50 * importance
 
   let priorityScore = 0
 
@@ -941,13 +941,17 @@ function scorePlayerForPosition({
 const afterDistance = Math.abs(projectedPct - targetPct)
 
 const improvesTarget = afterDistance < beforeDistance
-const overTargetAfter = projectedPct > targetPct + 5
+const overTargetAfter = projectedPct > targetPct + 3
 
-priorityScore += improvesTarget ? 30000 : -25000
-priorityScore -= afterDistance * 1800
+priorityScore += improvesTarget ? 45000 : -45000
+priorityScore -= afterDistance * 3000
 
 if (overTargetAfter) {
-  priorityScore -= (projectedPct - targetPct) * 5000
+  priorityScore -= (projectedPct - targetPct) * 9000
+}
+
+if (beforePct > targetPct + 8 && !improvesTarget) {
+  priorityScore -= 75000
 }
   } else {
     priorityScore -= 30000
