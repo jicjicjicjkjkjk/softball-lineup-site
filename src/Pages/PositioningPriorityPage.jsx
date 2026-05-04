@@ -61,9 +61,7 @@ export default function PositioningPriorityPage({
           const tier = fitByPlayer[row.playerId]?.[position] || 'no'
 
           const lockedPrimary =
-            Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0 ||
-            (['LF', 'CF', 'RF'].includes(position) &&
-            Number(priorityByPlayer[row.playerId]?.OF?.priority_pct || 0) > 0)
+  Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0
 
           const effectiveTier = lockedPrimary ? 'primary' : tier
 
@@ -368,9 +366,7 @@ export default function PositioningPriorityPage({
                   {ALLOWED_POSITIONS.map((position) => {
                     const tier = fitByPlayer[row.playerId]?.[position] || 'no'
                     const lockedPrimary =
-                      Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0 ||
-                      (['LF', 'CF', 'RF'].includes(position) &&
-                      Number(priorityByPlayer[row.playerId]?.OF?.priority_pct || 0) > 0)
+                    Number(priorityByPlayer[row.playerId]?.[position]?.priority_pct || 0) > 0
 
                     const background =
                       tier === 'primary'
