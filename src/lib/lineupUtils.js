@@ -1796,10 +1796,14 @@ const planPositionCounts = initializePlanPositionCounts(players)
 // 🚨 SAFETY: ensure all positions still have at least 1 primary candidate
 const eligibleAfterSits = getEligiblePlayerIdsForInning(lineup, inning, players)
 
+const fieldableAfterSits = eligibleAfterSits.filter(
+  (id) => lineup.cells?.[id]?.[inning] !== 'Out'
+)
+
 const positionCoverageOk = FIELD_POSITIONS.every((pos) => {
   const rule = getPositionRule(optimizerProfileRules, pos)
 
-  return eligibleAfterSits.some((id) => {
+  return fieldableAfterSits.some((id) => {
     const fit = normalizeFit(fitTier(fitMap, id, pos))
     return fitAllowedByRule(rule, fit)
   })
