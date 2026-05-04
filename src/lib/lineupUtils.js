@@ -1923,14 +1923,6 @@ enforceMinimumPositions({
   optimizerProfileRules,
 })
 
-repairMissingAndDuplicatePositions({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  optimizerProfileRules,
-})
-
 enforceConsecutivePositionRules({
   lineup,
   players,
@@ -1952,39 +1944,6 @@ enforcePositionVarietyHard({
   fitMap,
   priorityMap,
   optimizerProfile,
-  optimizerProfileRules,
-})
-
-forceFillAllPositions({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  optimizerProfileRules,
-})
-
-enforcePositionVarietyHard({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  optimizerProfile,
-  optimizerProfileRules,
-})
-
-repairMissingAndDuplicatePositions({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  optimizerProfileRules,
-})
-
-forceFillAllPositions({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
   optimizerProfileRules,
 })
 
