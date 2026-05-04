@@ -894,6 +894,7 @@ function scorePlayerForPosition({
   inning,
   planPositionCounts,
   candidateIds,
+  rollingTotals = {},
   optimizerProfile = null,
   optimizerProfileRules = {},
 }) {
@@ -906,35 +907,53 @@ function scorePlayerForPosition({
     return { playerId: id, position, totalScore: -100000000 }
   }
 
-  const target = Number(getPriorityTarget(priorityMap, id, position) || 0)
   const bucket = positionBucket(position)
   const importance = positionImportance(optimizerProfileRules, position)
+  const targetPct = Number(getPriorityTarget(priorityMap, id, position) || 0)
 
   let fitScore = 0
-  if (fit === 'primary') fitScore = 12000 * importance
-  else if (fit === 'secondary') fitScore = 6000 * importance
-  else if (fit === 'development') fitScore = 1500 * importance
+  if (fit === 'primary') fitScore = 5000 * importance
+  else if (fit === 'secondary') fitScore = 2200 * importance
+  else if (fit === 'development') fitScore = 900 * importance
   else fitScore = 100 * importance
 
-  const targetPool = (candidateIds || [])
-    .filter((candidateId) => {
-      const candidateFit = normalizeFit(fitTier(fitMap, candidateId, position))
-      const candidateRule = getPositionRule(optimizerProfileRules, position)
-      return fitAllowedByRule(candidateRule, candidateFit)
-    })
-    .map((candidateId) => ({
-      id: candidateId,
-      target: Number(getPriorityTarget(priorityMap, candidateId, position) || 0),
-    }))
-    .filter((row) => row.target > 0)
-
-  const targetTotal = targetPool.reduce((sum, row) => sum + row.target, 0)
-  const currentPlayerCount = Number(planPositionCounts?.[id]?.[bucket] || 0)
-  const currentPositionTotal = totalPlanPositionCount(planPositionCounts, position)
-
-    let allocationScore = 0
-  let varietyScore = 0
   let priorityScore = 0
+
+  if (targetPct > 0) {
+    const seasonPositionCount = Number(rollingTotals?.[id]?.[bucket] || 0)
+    const seasonFieldTotal = Number(rollingTotals?.[id]?.fieldTotal || 0)
+
+    const planPositionCount = Number(planPositionCounts?.[id]?.[bucket] || 0)
+    const planFieldTotal = Object.values(planPositionCounts?.[id] || {}).reduce(
+      (sum, count) => sum + Number(count || 0),
+      0
+    )
+
+    const projectedPositionCount = seasonPositionCount + planPositionCount + 1
+    const projectedFieldTotal = Math.max(seasonFieldTotal + planFieldTotal + 1, 1)
+    const projectedPct = (projectedPositionCount / projectedFieldTotal) * 100
+
+    const beforePositionCount = seasonPositionCount + planPositionCount
+    const beforeFieldTotal = Math.max(seasonFieldTotal + planFieldTotal, 1)
+    const beforePct = (beforePositionCount / beforeFieldTotal) * 100
+
+    const beforeDistance = Math.abs(beforePct - targetPct)
+    const afterDistance = Math.abs(projectedPct - targetPct)
+
+    const improvesTarget = afterDistance < beforeDistance
+    const overTargetAfter = projectedPct > targetPct + 8
+
+    priorityScore += improvesTarget ? 35000 : -12000
+    priorityScore -= afterDistance * 1200
+
+    if (overTargetAfter) {
+      priorityScore -= (projectedPct - targetPct) * 1800
+    }
+  } else {
+    priorityScore -= 30000
+  }
+
+  let varietyScore = 0
 
   const minPositions = Number(optimizerProfile?.min_positions_per_player || 1)
   const varietyMode = optimizerProfile?.min_positions_mode || 'nice'
@@ -952,26 +971,12 @@ function scorePlayerForPosition({
     playerPositionsSoFar.length < minPositions
 
   if (needsMoreVariety && alreadyPlayedThisBucket) {
-    varietyScore -= varietyMode === 'must' ? 60000 : 20000
+    varietyScore -= varietyMode === 'must' ? 30000 : 8000
   }
 
   if (needsMoreVariety && !alreadyPlayedThisBucket) {
-    varietyScore += varietyMode === 'must' ? 70000 : 25000
+    varietyScore += varietyMode === 'must' ? 35000 : 10000
   }
-
-  if (targetTotal > 0 && target > 0) {
-    const expectedAfterThisAssignment =
-      (currentPositionTotal + 1) * (target / targetTotal)
-
-    const projectedPlayerCount = currentPlayerCount + 1
-    const distanceFromTarget = Math.abs(projectedPlayerCount - expectedAfterThisAssignment)
-
-    priorityScore += 5000 - distanceFromTarget * 2500 + target * 100 * importance
-  } else if (targetTotal > 0 && target <= 0) {
-    priorityScore -= 5000 * importance
-  }
-
-  allocationScore = varietyScore + priorityScore
 
   const prevValue = inning > 1 ? lineup?.cells?.[id]?.[inning - 1] || '' : ''
   const samePositionMode = consecutiveMode(optimizerProfileRules, position)
@@ -979,7 +984,7 @@ function scorePlayerForPosition({
   let rotationScore = 0
 
   if (samePositionMode === 'prefer' && prevValue === position) {
-    rotationScore -= 1500
+    rotationScore += 1000
   }
 
   if (samePositionMode === 'must_2' && prevValue === position) {
@@ -999,7 +1004,7 @@ function scorePlayerForPosition({
   return {
     playerId: id,
     position,
-    totalScore: fitScore + allocationScore + rotationScore,
+    totalScore: fitScore + priorityScore + varietyScore + rotationScore,
   }
 }
 
@@ -1034,17 +1039,18 @@ function assignPositionsForInning({
     candidatesByPosition[position] = candidateIds
       .map((id) =>
         scorePlayerForPosition({
-          playerId: id,
-          position,
-          priorityMap,
-          fitMap,
-          lineup,
-          inning,
-          planPositionCounts,
-          candidateIds,
-          optimizerProfile,
-          optimizerProfileRules,
-        })
+  playerId: id,
+  position,
+  priorityMap,
+  fitMap,
+  lineup,
+  inning,
+  planPositionCounts,
+  candidateIds,
+  rollingTotals,
+  optimizerProfile,
+  optimizerProfileRules,
+})
       )
       .filter((candidate) => candidate.totalScore > -50000000)
       .sort((a, b) => b.totalScore - a.totalScore)
