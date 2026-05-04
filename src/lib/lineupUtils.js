@@ -243,6 +243,13 @@ export function priorityValue(priorityMap, playerId, position) {
   return Number(priorityMap?.[id]?.[position]?.priority_pct || 0)
 }
 
+function priorityTargetInnings(priorityMap, playerId, position, projectedFieldTotal) {
+  const targetPct = Number(priorityValue(priorityMap, playerId, position) || 0)
+  if (targetPct <= 0) return 0
+
+  return Math.max(1, Math.round((Number(projectedFieldTotal || 0) * targetPct) / 100))
+}
+
 export function positionCountsForInning(lineup, inning, availableIds) {
   const counts = {}
   FIELD_POSITIONS.forEach((pos) => {
@@ -908,8 +915,22 @@ function scorePlayerForPosition({
   }
 
   const bucket = positionBucket(position)
-  const importance = positionImportance(optimizerProfileRules, position)
-  const targetPct = Number(getPriorityTarget(priorityMap, id, position) || 0)
+const importance = positionImportance(optimizerProfileRules, position)
+const targetPct = Number(getPriorityTarget(priorityMap, id, position) || 0)
+
+const seasonPositionCount = Number(rollingTotals?.[id]?.[bucket] || 0)
+const seasonFieldTotal = Number(rollingTotals?.[id]?.fieldTotal || 0)
+
+const planPositionCount = Number(planPositionCounts?.[id]?.[bucket] || 0)
+const planFieldTotal = Object.values(planPositionCounts?.[id] || {}).reduce(
+  (sum, count) => sum + Number(count || 0),
+  0
+)
+
+const projectedFieldTotal = seasonFieldTotal + planFieldTotal + 1
+const targetInnings = priorityTargetInnings(priorityMap, id, position, projectedFieldTotal)
+const projectedPositionInnings = seasonPositionCount + planPositionCount + 1
+const overTargetInnings = projectedPositionInnings - targetInnings
 
   let fitScore = 0
 if (fit === 'primary') fitScore = 2500 * importance
@@ -919,19 +940,10 @@ else fitScore = 50 * importance
 
   let priorityScore = 0
 
-  if (targetPct > 0) {
-    const seasonPositionCount = Number(rollingTotals?.[id]?.[bucket] || 0)
-    const seasonFieldTotal = Number(rollingTotals?.[id]?.fieldTotal || 0)
-
-    const planPositionCount = Number(planPositionCounts?.[id]?.[bucket] || 0)
-    const planFieldTotal = Object.values(planPositionCounts?.[id] || {}).reduce(
-      (sum, count) => sum + Number(count || 0),
-      0
-    )
-
+    if (targetPct > 0) {
     const projectedPositionCount = seasonPositionCount + planPositionCount + 1
-    const projectedFieldTotal = Math.max(seasonFieldTotal + planFieldTotal + 1, 1)
-    const projectedPct = (projectedPositionCount / projectedFieldTotal) * 100
+    const safeProjectedFieldTotal = Math.max(projectedFieldTotal, 1)
+    const projectedPct = (projectedPositionCount / safeProjectedFieldTotal) * 100
 
     const beforePositionCount = seasonPositionCount + planPositionCount
     const beforeFieldTotal = Math.max(seasonFieldTotal + planFieldTotal, 1)
@@ -950,6 +962,14 @@ if (overTargetAfter) {
   priorityScore -= (projectedPct - targetPct) * 9000
 }
 
+if (overTargetInnings > 0) {
+  priorityScore -= overTargetInnings * 120000
+}
+
+if (targetPct <= 10 && overTargetInnings > 0) {
+  priorityScore -= 200000
+}
+    
 if (beforePct > targetPct + 8 && !improvesTarget) {
   priorityScore -= 75000
 }
@@ -1922,15 +1942,6 @@ repairMissingAndDuplicatePositions({
   optimizerProfileRules,
 })
 
-enforceMinimumPositions({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  optimizerProfile,
-  optimizerProfileRules,
-})
-
 enforceConsecutivePositionRules({
   lineup,
   players,
@@ -1946,22 +1957,33 @@ repairMissingAndDuplicatePositions({
   optimizerProfileRules,
 })
 
-enforcePositionVarietyHard({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  optimizerProfile,
-  optimizerProfileRules,
-})
+if (optimizerProfile?.min_positions_mode === 'must') {
+  enforceMinimumPositions({
+    lineup,
+    players,
+    fitMap,
+    priorityMap,
+    optimizerProfile,
+    optimizerProfileRules,
+  })
 
-repairMissingAndDuplicatePositions({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  optimizerProfileRules,
-})
+  enforcePositionVarietyHard({
+    lineup,
+    players,
+    fitMap,
+    priorityMap,
+    optimizerProfile,
+    optimizerProfileRules,
+  })
+
+  repairMissingAndDuplicatePositions({
+    lineup,
+    players,
+    fitMap,
+    priorityMap,
+    optimizerProfileRules,
+  })
+}
 
 lineup.validationIssues = validateLineup({
   lineup,
