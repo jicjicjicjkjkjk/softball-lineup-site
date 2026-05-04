@@ -1678,11 +1678,9 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
 
   async function persistFitTier(playerId, position, tier) {
     const primaryLocked =
-      Number(priorityByPlayer[pk(playerId)]?.[position]?.priority_pct || 0) > 0 ||
-      (['LF', 'RF'].includes(position) &&
-        Number(priorityByPlayer[pk(playerId)]?.OF?.priority_pct || 0) > 0)
+  Number(priorityByPlayer[pk(playerId)]?.[position]?.priority_pct || 0) > 0
 
-    if (primaryLocked) return
+if (primaryLocked) return
 
     const up = await supabase
       .from('player_allowed_positions')
