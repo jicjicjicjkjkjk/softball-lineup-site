@@ -14,7 +14,6 @@ import {
   addTotals,  
   buildOptimizedLineup,
   inningStatus,
-  clearUnlockedLineupCells,
 } from './lib/lineupUtils'
 
 import GamesPage from './Pages/GamesPage'
@@ -30,7 +29,6 @@ import {
   buildPlayerSitOuts,
   buildPositionByPlayer,
 } from './lib/appHelpers'
-import { formatGameLabel } from './lib/gameLabels'
 import { buildCumulativeSitOutRows } from './lib/sitOutHelpers'
 import {
   buildCurrentPlanLineupsByGame,
@@ -63,6 +61,16 @@ import {
   buildFitMap,
   normalizePriorityValue,
 } from './lib/positionInputHelpers'
+import {
+  getImportableGamesForGame as getImportableGamesForGameHelper,
+  copyLineupForGame,
+  clearLineupContents,
+  buildPreviewBaseLineup,
+  getAvailabilityConfirmMessage,
+  updateLineupAvailability,
+  addInningToLineup,
+  removeInningFromLineup,
+} from './lib/lineupEditHelpers'
 
 function dbReady() {
   return Boolean(supabase)
@@ -193,20 +201,13 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
     function activePlayerIds() {
     return getActivePlayerIds(activePlayers)
   }
-
-function getImportableGamesForGame(currentGameId) {
-  return [...games]
-    .filter((game) => pk(game.id) !== pk(currentGameId))
-    .filter((game) => lineupsByGame[pk(game.id)])
-    .sort((a, b) => compareGamesAsc(b, a, pk))
-}
   
 function importLineupToPreview(targetGameId, sourceGameId) {
   if (!targetGameId || !sourceGameId) return
 
   const targetGame = games.find((game) => pk(game.id) === pk(targetGameId))
 
-    const sourceLineup =
+  const sourceLineup =
     optimizerPreviewByGame[pk(sourceGameId)] ||
     lineupsByGame[pk(sourceGameId)]
 
@@ -220,14 +221,14 @@ function importLineupToPreview(targetGameId, sourceGameId) {
   )
   if (!confirmed) return
 
-  const copied = normalizeLineup(
-    JSON.parse(JSON.stringify(sourceLineup)),
+  const copied = copyLineupForGame({
+    sourceLineup,
+    targetGame,
     players,
-    Number(targetGame?.innings || sourceLineup.innings || 6),
-    sourceLineup.availablePlayerIds || activePlayerIds()
-  )
+    activePlayerIds,
+  })
 
-    setOptimizerPreviewByGame((current) => ({
+  setOptimizerPreviewByGame((current) => ({
     ...current,
     [pk(targetGameId)]: copied,
   }))
@@ -238,7 +239,7 @@ function importLineupToSaved(targetGameId, sourceGameId) {
 
   const targetGame = games.find((game) => pk(game.id) === pk(targetGameId))
 
-    const sourceLineup =
+  const sourceLineup =
     optimizerPreviewByGame[pk(sourceGameId)] ||
     lineupsByGame[pk(sourceGameId)]
 
@@ -252,12 +253,12 @@ function importLineupToSaved(targetGameId, sourceGameId) {
   )
   if (!confirmed) return
 
-  const copied = normalizeLineup(
-    JSON.parse(JSON.stringify(sourceLineup)),
+  const copied = copyLineupForGame({
+    sourceLineup,
+    targetGame,
     players,
-    Number(targetGame?.innings || sourceLineup.innings || 6),
-    sourceLineup.availablePlayerIds || activePlayerIds()
-  )
+    activePlayerIds,
+  })
 
   setLineupsByGame((current) => ({
     ...current,
@@ -265,10 +266,6 @@ function importLineupToSaved(targetGameId, sourceGameId) {
   }))
 
   autoSave(targetGameId, copied)
-}
-
-function clearLineupContents(lineup) {
-  return clearUnlockedLineupCells(lineup, players)
 }
   
 async function clearPreviewLineup(gameId) {
@@ -288,7 +285,7 @@ async function clearPreviewLineup(gameId) {
 
   if (!source) return
 
-  const cleared = clearLineupContents(source)
+    const cleared = clearLineupContents(source, players)
 
   setOptimizerPreviewByGame((current) => ({
     ...current,
@@ -940,11 +937,25 @@ useEffect(() => {
   
 
 const optimizerImportableGames = useMemo(() => {
-  return optimizerFocusGame ? getImportableGamesForGame(optimizerFocusGame.id) : []
+  return optimizerFocusGame
+    ? getImportableGamesForGameHelper({
+        games,
+        currentGameId: optimizerFocusGame.id,
+        lineupsByGame,
+        compareGamesAsc,
+      })
+    : []
 }, [optimizerFocusGame, games, lineupsByGame])
 
 const gameDetailImportableGames = useMemo(() => {
-  return selectedGame ? getImportableGamesForGame(selectedGame.id) : []
+  return selectedGame
+    ? getImportableGamesForGameHelper({
+        games,
+        currentGameId: selectedGame.id,
+        lineupsByGame,
+        compareGamesAsc,
+      })
+    : []
 }, [selectedGame, games, lineupsByGame])
 
 const activeOptimizerProfile = useMemo(() => {
@@ -1852,25 +1863,21 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     }
   }
 
-  function updatePreview(gameId, updater) {
+    function updatePreview(gameId, updater) {
     if (lineupLockedByGame[pk(gameId)]) {
       setAppError('This lineup is locked. Unlock it before editing.')
       return
     }
 
     setOptimizerPreviewByGame((current) => {
-      const baseGame = games.find((g) => pk(g.id) === pk(gameId))
-      const base =
-        current[pk(gameId)] ||
-        lineupsByGame[pk(gameId)] ||
-        blankLineup(players.map((p) => p.id), Number(baseGame?.innings || 6), activePlayerIds())
-
-      const existing = normalizeLineup(
-        base,
+      const existing = buildPreviewBaseLineup({
+        gameId,
+        games,
         players,
-        base.innings || 6,
-        base.availablePlayerIds || activePlayerIds()
-      )
+        activePlayerIds,
+        optimizerPreviewByGame: current,
+        lineupsByGame,
+      })
 
       const next = updater(JSON.parse(JSON.stringify(existing)))
       persistLineup(gameId, next)
@@ -1880,7 +1887,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   }
 
   
-    function togglePreviewAvailable(gameId, playerId) {
+        function togglePreviewAvailable(gameId, playerId) {
     const id = pk(playerId)
     const game = games.find((g) => pk(g.id) === pk(gameId))
     const player = players.find((p) => pk(p.id) === id)
@@ -1893,40 +1900,22 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     const currentlyAvailable = (currentLineup.availablePlayerIds || []).map(pk).includes(id)
 
     const confirmed = window.confirm(
-      currentlyAvailable
-        ? `Remove ${player?.name || 'this player'} from availability for ${
-            formatGameLabel(game)
-          }? This will clear their positions and batting order for this game.`
-        : `Add ${player?.name || 'this player'} to availability for ${formatGameLabel(game)}?`
+      getAvailabilityConfirmMessage({
+        currentlyAvailable,
+        player,
+        game,
+      })
     )
 
     if (!confirmed) return
 
-    updatePreview(gameId, (lineup) => {
-      if (!lineup.availablePlayerIds) lineup.availablePlayerIds = []
-
-      if (currentlyAvailable) {
-        lineup.availablePlayerIds = lineup.availablePlayerIds.filter((x) => pk(x) !== id)
-
-        for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
-          if (!lineup.cells[id]) lineup.cells[id] = {}
-          if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
-
-          lineup.cells[id][inning] = ''
-          lineup.lockedCells[id][inning] = false
-        }
-
-        if (!lineup.lockedRows) lineup.lockedRows = {}
-        if (!lineup.battingOrder) lineup.battingOrder = {}
-
-        lineup.lockedRows[id] = false
-        lineup.battingOrder[id] = ''
-      } else {
-        lineup.availablePlayerIds = [...new Set([...lineup.availablePlayerIds.map(pk), id])]
-      }
-
-      return lineup
-    })
+    updatePreview(gameId, (lineup) =>
+      updateLineupAvailability({
+        lineup,
+        playerId,
+        currentlyAvailable,
+      })
+    )
   }
 
 function togglePreviewBattingLock(gameId, playerId) {
@@ -2004,62 +1993,15 @@ function toggleSavedInningLock(gameId, inning) {
   })
 }
   
-  function addPreviewInning(gameId) {
-    updatePreview(gameId, (lineup) => {
-      const newInning = Number(lineup.innings || 0) + 1
-      lineup.innings = newInning
-
-      Object.keys(lineup.cells || {}).forEach((id) => {
-        if (!lineup.cells[id]) lineup.cells[id] = {}
-        if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
-        lineup.cells[id][newInning] = ''
-        lineup.lockedCells[id][newInning] = false
-      })
-      
-      if (!lineup.lockedInnings) lineup.lockedInnings = {}
-      lineup.lockedInnings[newInning] = false
-      
-      return lineup
-    })
+    function addPreviewInning(gameId) {
+    updatePreview(gameId, (lineup) => addInningToLineup(lineup))
   }
 
-  function removePreviewInning(gameId, inningToRemove) {
+    function removePreviewInning(gameId, inningToRemove) {
     const confirmed = window.confirm(`Remove inning ${inningToRemove}?`)
     if (!confirmed) return
 
-    updatePreview(gameId, (lineup) => {
-      if (Number(lineup.innings || 0) <= 1) return lineup
-
-      Object.keys(lineup.cells || {}).forEach((id) => {
-        const nextCells = {}
-        const nextLocks = {}
-        let nextInning = 1
-
-        for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
-          if (inning === inningToRemove) continue
-          nextCells[nextInning] = lineup.cells?.[id]?.[inning] || ''
-          nextLocks[nextInning] = lineup.lockedCells?.[id]?.[inning] || false
-          nextInning += 1
-        }
-
-        lineup.cells[id] = nextCells
-        lineup.lockedCells[id] = nextLocks
-      })
-
-const nextLockedInnings = {}
-let nextInningIndex = 1
-
-for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
-  if (inning === inningToRemove) continue
-  nextLockedInnings[nextInningIndex] = lineup.lockedInnings?.[inning] === true
-  nextInningIndex += 1
-}
-
-lineup.lockedInnings = nextLockedInnings
-      
-      lineup.innings = Number(lineup.innings || 0) - 1
-      return lineup
-    })
+    updatePreview(gameId, (lineup) => removeInningFromLineup(lineup, inningToRemove))
   }
 
   async function savePreview() {
