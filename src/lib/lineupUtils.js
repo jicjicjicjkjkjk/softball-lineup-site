@@ -56,7 +56,7 @@ function positionFillRank(profileRules, position) {
 
 function consecutiveMode(profileRules, position) {
   const rule = getPositionRule(profileRules, position)
-  return rule?.consecutive_mode || (['P', 'C'].includes(position) ? 'must_2' : 'prefer')
+  return rule?.consecutive_mode || 'prefer'
 }
 
 function normalizeFit(fit) {
@@ -958,6 +958,7 @@ const targetFieldTotal = fieldTotalBeforeThisPlan + expectedFieldTotalForGame
 const targetInnings = priorityTargetInnings(priorityMap, id, position, targetFieldTotal)
 const projectedPositionInnings = currentPositionInnings + 1
 const overTargetInnings = projectedPositionInnings - targetInnings
+const currentTargetNeed = targetInnings - currentPositionInnings  
   
   let fitScore = 0
 if (fit === 'primary') fitScore = 2500 * importance
@@ -967,41 +968,28 @@ else fitScore = 50 * importance
 
   let priorityScore = 0
 
-    if (targetPct > 0) {
-    const projectedPositionCount = currentPositionInnings + 1
-const safeTargetFieldTotal = Math.max(targetFieldTotal, 1)
-const projectedPct = (projectedPositionCount / safeTargetFieldTotal) * 100
+    let priorityScore = 0
 
-const beforePositionCount = currentPositionInnings
-const beforePct = (beforePositionCount / safeTargetFieldTotal) * 100
+if (targetPct > 0) {
+  priorityScore += currentTargetNeed * 90000
 
-    const beforeDistance = Math.abs(beforePct - targetPct)
-const afterDistance = Math.abs(projectedPct - targetPct)
+  if (currentTargetNeed > 0) {
+    priorityScore += 60000
+  }
 
-const improvesTarget = afterDistance < beforeDistance
-const overTargetAfter = projectedPct > targetPct + 3
+  if (overTargetInnings > 0) {
+    priorityScore -= overTargetInnings * 160000
+  }
 
-priorityScore += improvesTarget ? 45000 : -45000
-priorityScore -= afterDistance * 3000
+  const projectedPositionCount = currentPositionInnings + 1
+  const safeTargetFieldTotal = Math.max(targetFieldTotal, 1)
+  const projectedPct = (projectedPositionCount / safeTargetFieldTotal) * 100
+  const afterDistance = Math.abs(projectedPct - targetPct)
 
-if (overTargetAfter) {
-  priorityScore -= (projectedPct - targetPct) * 9000
-}
-
-if (overTargetInnings > 0) {
-  priorityScore -= overTargetInnings * 120000
-}
-
-if (targetPct <= 10 && overTargetInnings > 0) {
+  priorityScore -= afterDistance * 1500
+} else {
   priorityScore -= 200000
 }
-    
-if (beforePct > targetPct + 8 && !improvesTarget) {
-  priorityScore -= 75000
-}
-  } else {
-    priorityScore -= 30000
-  }
 
   let varietyScore = 0
 
