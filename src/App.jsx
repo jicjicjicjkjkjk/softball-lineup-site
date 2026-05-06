@@ -8,7 +8,6 @@ import {
   GAME_TYPES,
   pk,
   blankLineup,
-  normalizeLineup,
   requiredOutsForGame,
   computeTotals,
   addTotals,  
@@ -70,6 +69,14 @@ import {
   updateLineupAvailability,
   addInningToLineup,
   removeInningFromLineup,
+  toggleBattingLockOnLineup,
+  toggleAllBattingLocksOnLineup,
+  toggleCellLockOnLineup,
+  toggleRowLockOnLineup,
+  toggleInningLockOnLineup,
+  updateLineupCell,
+  updateLineupBattingOrder,
+  removeInningFromSavedLineup,
 } from './lib/lineupEditHelpers'
 
 function dbReady() {
@@ -1919,77 +1926,38 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   }
 
 function togglePreviewBattingLock(gameId, playerId) {
-  updatePreview(gameId, (lineup) => {
-    const id = pk(playerId)
-
-    if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
-    if (!lineup.battingOrder) lineup.battingOrder = {}
-
-    lineup.lockedBattingOrder[id] = !(lineup.lockedBattingOrder[id] === true)
-
-    return lineup
-  })
+  updatePreview(gameId, (lineup) => toggleBattingLockOnLineup(lineup, playerId))
 }
 
-  function togglePreviewAllBattingLock(gameId) {
-  updatePreview(gameId, (lineup) => {
-    if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
-
-    const ids = Object.keys(lineup.battingOrder || {})
-    const allLocked =
-      ids.length > 0 && ids.every((id) => lineup.lockedBattingOrder[id] === true)
-
-    ids.forEach((id) => {
-      lineup.lockedBattingOrder[id] = !allLocked
-    })
-
-    return lineup
-  })
+function togglePreviewAllBattingLock(gameId) {
+  updatePreview(gameId, (lineup) => toggleAllBattingLocksOnLineup(lineup))
 }
-  
-  function updatePreviewCell(gameId, playerId, inning, value) {
-    updatePreview(gameId, (lineup) => {
-      lineup.cells[pk(playerId)][inning] = value
-      return lineup
-    })
-  }
 
-  function updatePreviewBatting(gameId, playerId, value) {
-    updatePreview(gameId, (lineup) => {
-      lineup.battingOrder[pk(playerId)] = value
-      return lineup
-    })
-  }
+function updatePreviewCell(gameId, playerId, inning, value) {
+  updatePreview(gameId, (lineup) => updateLineupCell(lineup, playerId, inning, value))
+}
 
-  function togglePreviewCellLock(gameId, playerId, inning) {
-    updatePreview(gameId, (lineup) => {
-      lineup.lockedCells[pk(playerId)][inning] = !lineup.lockedCells[pk(playerId)][inning]
-      return lineup
-    })
-  }
+function updatePreviewBatting(gameId, playerId, value) {
+  updatePreview(gameId, (lineup) => updateLineupBattingOrder(lineup, playerId, value))
+}
 
-  function togglePreviewRowLock(gameId, playerId) {
-    updatePreview(gameId, (lineup) => {
-      lineup.lockedRows[pk(playerId)] = !lineup.lockedRows[pk(playerId)]
-      return lineup
-    })
-  }
+function togglePreviewCellLock(gameId, playerId, inning) {
+  updatePreview(gameId, (lineup) => toggleCellLockOnLineup(lineup, playerId, inning))
+}
 
-  function togglePreviewInningLock(gameId, inning) {
-  updatePreview(gameId, (lineup) => {
-    if (!lineup.lockedInnings) lineup.lockedInnings = {}
-    lineup.lockedInnings[inning] = !(lineup.lockedInnings[inning] === true)
-    return lineup
-  })
+function togglePreviewRowLock(gameId, playerId) {
+  updatePreview(gameId, (lineup) => toggleRowLockOnLineup(lineup, playerId))
+}
+
+function togglePreviewInningLock(gameId, inning) {
+  updatePreview(gameId, (lineup) => toggleInningLockOnLineup(lineup, inning))
 }
   
 function toggleSavedInningLock(gameId, inning) {
   updateSavedLineup(gameId, (lineup) => {
-    if (!lineup.lockedInnings) lineup.lockedInnings = {}
-    lineup.lockedInnings[inning] = !(lineup.lockedInnings[inning] === true)
-
-    autoSave(gameId, lineup)
-    return lineup
+    const next = toggleInningLockOnLineup(lineup, inning)
+    autoSave(gameId, next)
+    return next
   })
 }
   
@@ -2017,72 +1985,47 @@ function toggleSavedInningLock(gameId, inning) {
     })
   }
 
-  function updateSavedCell(gameId, playerId, inning, value) {
+    function updateSavedCell(gameId, playerId, inning, value) {
     updateSavedLineup(gameId, (lineup) => {
-      lineup.cells[pk(playerId)][inning] = value
-      autoSave(gameId, lineup)
-      return lineup
+      const next = updateLineupCell(lineup, playerId, inning, value)
+      autoSave(gameId, next)
+      return next
     })
   }
 
   function updateSavedBatting(gameId, playerId, value) {
     updateSavedLineup(gameId, (lineup) => {
-      lineup.battingOrder[pk(playerId)] = value
-      autoSave(gameId, lineup)
-      return lineup
+      const next = updateLineupBattingOrder(lineup, playerId, value)
+      autoSave(gameId, next)
+      return next
     })
   }
 
 function toggleSavedBattingLock(gameId, playerId) {
   updateSavedLineup(gameId, (lineup) => {
-    const id = pk(playerId)
-
-    if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
-    if (!lineup.battingOrder) lineup.battingOrder = {}
-
-    lineup.lockedBattingOrder[id] = !(lineup.lockedBattingOrder[id] === true)
-
-    autoSave(gameId, lineup)
-    return lineup
+    const next = toggleBattingLockOnLineup(lineup, playerId)
+    autoSave(gameId, next)
+    return next
   })
 }
 
 function toggleSavedAllBattingLock(gameId) {
   updateSavedLineup(gameId, (lineup) => {
-    if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
-
-    const ids = Object.keys(lineup.battingOrder || {})
-    const allLocked =
-      ids.length > 0 && ids.every((id) => lineup.lockedBattingOrder[id] === true)
-
-    ids.forEach((id) => {
-      lineup.lockedBattingOrder[id] = !allLocked
-    })
-
-    autoSave(gameId, lineup)
-    return lineup
+    const next = toggleAllBattingLocksOnLineup(lineup)
+    autoSave(gameId, next)
+    return next
   })
 }
   
-  function addSavedInning(gameId) {
+    function addSavedInning(gameId) {
   updateSavedLineup(gameId, (lineup) => {
-    const newInning = lineup.innings + 1
-    lineup.innings = newInning
-
-    Object.keys(lineup.cells).forEach((id) => {
-      lineup.cells[id][newInning] = ''
-      lineup.lockedCells[id][newInning] = false
-    })
-
-    if (!lineup.lockedInnings) lineup.lockedInnings = {}
-    lineup.lockedInnings[newInning] = false
-
-    autoSave(gameId, lineup)
-    return lineup
+    const next = addInningToLineup(lineup)
+    autoSave(gameId, next)
+    return next
   })
 }
 
-  function removeSavedInning(gameId, inningToRemove) {
+    function removeSavedInning(gameId, inningToRemove) {
   const confirmed = window.confirm(`Remove inning ${inningToRemove}?`)
   if (!confirmed) return
 
@@ -2092,50 +2035,12 @@ function toggleSavedAllBattingLock(gameId) {
     const existing = prev[pk(gameId)]
     if (!existing) return prev
 
-    let lineup = normalizeLineup(
-      JSON.parse(JSON.stringify(existing)),
+    const lineup = removeInningFromSavedLineup({
+      existing,
+      inningToRemove,
       players,
-      Number(existing.innings || 0),
-      existing.availablePlayerIds || activePlayerIds()
-    )
-
-    if (Number(lineup.innings || 0) <= 1) return prev
-
-    const newCells = {}
-    const newLockedCells = {}
-
-    Object.entries(lineup.cells || {}).forEach(([playerId, innings]) => {
-      const updatedCells = {}
-      const updatedLocks = {}
-
-      for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
-        if (inning === inningToRemove) continue
-
-        const newInning = inning > inningToRemove ? inning - 1 : inning
-        updatedCells[newInning] = innings?.[inning] || ''
-        updatedLocks[newInning] = lineup.lockedCells?.[playerId]?.[inning] || false
-      }
-
-      newCells[playerId] = updatedCells
-      newLockedCells[playerId] = updatedLocks
+      activePlayerIds,
     })
-
-    const newLockedInnings = {}
-
-    for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
-      if (inning === inningToRemove) continue
-
-      const newInning = inning > inningToRemove ? inning - 1 : inning
-      newLockedInnings[newInning] = lineup.lockedInnings?.[inning] === true
-    }
-
-    lineup = {
-      ...lineup,
-      innings: Number(lineup.innings || 0) - 1,
-      cells: newCells,
-      lockedCells: newLockedCells,
-      lockedInnings: newLockedInnings,
-    }
 
     lineupToSave = lineup
 
@@ -2212,51 +2117,34 @@ function toggleSavedAllBattingLock(gameId) {
     })
   }
 
-    function toggleSavedAvailable(gameId, playerId) {
+        function toggleSavedAvailable(gameId, playerId) {
     updateSavedLineup(gameId, (lineup) => {
-      const id = pk(playerId)
+      const currentlyAvailable = (lineup.availablePlayerIds || []).map(pk).includes(pk(playerId))
 
-      if (!lineup.availablePlayerIds) lineup.availablePlayerIds = []
+      const next = updateLineupAvailability({
+        lineup,
+        playerId,
+        currentlyAvailable,
+      })
 
-      if (lineup.availablePlayerIds.includes(id)) {
-        lineup.availablePlayerIds = lineup.availablePlayerIds.filter((x) => x !== id)
-
-        for (let inning = 1; inning <= lineup.innings; inning += 1) {
-          if (!lineup.cells[id]) lineup.cells[id] = {}
-          if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
-
-          lineup.cells[id][inning] = ''
-          lineup.lockedCells[id][inning] = false
-        }
-
-        lineup.lockedRows[id] = false
-        lineup.battingOrder[id] = ''
-      } else {
-        lineup.availablePlayerIds.push(id)
-      }
-
-      autoSave(gameId, lineup)
-      return lineup
+      autoSave(gameId, next)
+      return next
     })
   }
 
-  function toggleSavedCellLock(gameId, playerId, inning) {
+    function toggleSavedCellLock(gameId, playerId, inning) {
     updateSavedLineup(gameId, (lineup) => {
-      if (!lineup.lockedCells[pk(playerId)]) {
-        lineup.lockedCells[pk(playerId)] = {}
-      }
-      lineup.lockedCells[pk(playerId)][inning] =
-        !lineup.lockedCells[pk(playerId)][inning]
-      autoSave(gameId, lineup)
-      return lineup
+      const next = toggleCellLockOnLineup(lineup, playerId, inning)
+      autoSave(gameId, next)
+      return next
     })
   }
 
   function toggleSavedRowLock(gameId, playerId) {
     updateSavedLineup(gameId, (lineup) => {
-      lineup.lockedRows[pk(playerId)] = !lineup.lockedRows[pk(playerId)]
-      autoSave(gameId, lineup)
-      return lineup
+      const next = toggleRowLockOnLineup(lineup, playerId)
+      autoSave(gameId, next)
+      return next
     })
   }
   
