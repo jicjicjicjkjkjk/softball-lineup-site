@@ -1,29 +1,19 @@
-import { pk, blankLineup, normalizeLineup, clearUnlockedLineupCells } from './lineupUtils'
+import { blankLineup, clearUnlockedLineupCells, normalizeLineup, pk } from './lineupUtils'
 import { formatGameLabel } from './gameLabels'
 
-export function getImportableGamesForGame({
-  games,
-  currentGameId,
-  lineupsByGame,
-  compareGamesAsc,
-}) {
+export function getImportableGamesForGame({ games, currentGameId, lineupsByGame, compareGamesAsc }) {
   return [...(games || [])]
     .filter((game) => pk(game.id) !== pk(currentGameId))
     .filter((game) => lineupsByGame[pk(game.id)])
     .sort((a, b) => compareGamesAsc(b, a, pk))
 }
 
-export function copyLineupForGame({
-  sourceLineup,
-  targetGame,
-  players,
-  activePlayerIds,
-}) {
+export function copyLineupForGame({ sourceLineup, targetGame, players, activePlayerIds }) {
   return normalizeLineup(
     JSON.parse(JSON.stringify(sourceLineup)),
     players,
-    Number(targetGame?.innings || sourceLineup?.innings || 6),
-    sourceLineup?.availablePlayerIds || activePlayerIds()
+    Number(targetGame?.innings || sourceLineup.innings || 6),
+    sourceLineup.availablePlayerIds || activePlayerIds()
   )
 }
 
@@ -39,12 +29,12 @@ export function buildPreviewBaseLineup({
   optimizerPreviewByGame,
   lineupsByGame,
 }) {
-  const baseGame = games.find((g) => pk(g.id) === pk(gameId))
+  const game = games.find((g) => pk(g.id) === pk(gameId))
 
   const base =
     optimizerPreviewByGame[pk(gameId)] ||
     lineupsByGame[pk(gameId)] ||
-    blankLineup(players.map((p) => p.id), Number(baseGame?.innings || 6), activePlayerIds())
+    blankLineup(players.map((p) => p.id), Number(game?.innings || 6), activePlayerIds())
 
   return normalizeLineup(
     base,
@@ -54,26 +44,20 @@ export function buildPreviewBaseLineup({
   )
 }
 
-export function getAvailabilityConfirmMessage({
-  currentlyAvailable,
-  player,
-  game,
-}) {
+export function getAvailabilityConfirmMessage({ currentlyAvailable, player, game }) {
   return currentlyAvailable
-    ? `Remove ${player?.name || 'this player'} from availability for ${
-        formatGameLabel(game)
-      }? This will clear their positions and batting order for this game.`
+    ? `Remove ${player?.name || 'this player'} from availability for ${formatGameLabel(
+        game
+      )}? This will clear their positions and batting order for this game.`
     : `Add ${player?.name || 'this player'} to availability for ${formatGameLabel(game)}?`
 }
 
-export function updateLineupAvailability({
-  lineup,
-  playerId,
-  currentlyAvailable,
-}) {
+export function updateLineupAvailability({ lineup, playerId, currentlyAvailable }) {
   const id = pk(playerId)
 
   if (!lineup.availablePlayerIds) lineup.availablePlayerIds = []
+  if (!lineup.lockedRows) lineup.lockedRows = {}
+  if (!lineup.battingOrder) lineup.battingOrder = {}
 
   if (currentlyAvailable) {
     lineup.availablePlayerIds = lineup.availablePlayerIds.filter((x) => pk(x) !== id)
@@ -85,9 +69,6 @@ export function updateLineupAvailability({
       lineup.cells[id][inning] = ''
       lineup.lockedCells[id][inning] = false
     }
-
-    if (!lineup.lockedRows) lineup.lockedRows = {}
-    if (!lineup.battingOrder) lineup.battingOrder = {}
 
     lineup.lockedRows[id] = false
     lineup.battingOrder[id] = ''
@@ -105,6 +86,7 @@ export function addInningToLineup(lineup) {
   Object.keys(lineup.cells || {}).forEach((id) => {
     if (!lineup.cells[id]) lineup.cells[id] = {}
     if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
+
     lineup.cells[id][newInning] = ''
     lineup.lockedCells[id][newInning] = false
   })
@@ -232,7 +214,7 @@ export function removeInningFromSavedLineup({
   players,
   activePlayerIds,
 }) {
-  let lineup = normalizeLineup(
+  const lineup = normalizeLineup(
     JSON.parse(JSON.stringify(existing)),
     players,
     Number(existing.innings || 0),
