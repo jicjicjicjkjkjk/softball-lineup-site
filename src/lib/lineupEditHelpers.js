@@ -150,3 +150,94 @@ export function removeInningFromLineup(lineup, inningToRemove) {
 
   return lineup
 }
+
+export function toggleBattingLockOnLineup(lineup, playerId) {
+  const id = pk(playerId)
+
+  if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
+  if (!lineup.battingOrder) lineup.battingOrder = {}
+
+  lineup.lockedBattingOrder[id] = !(lineup.lockedBattingOrder[id] === true)
+
+  return lineup
+}
+
+export function toggleAllBattingLocksOnLineup(lineup) {
+  if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
+
+  const ids = Object.keys(lineup.battingOrder || {})
+  const allLocked =
+    ids.length > 0 && ids.every((id) => lineup.lockedBattingOrder[id] === true)
+
+  ids.forEach((id) => {
+    lineup.lockedBattingOrder[id] = !allLocked
+  })
+
+  return lineup
+}
+
+export function toggleCellLockOnLineup(lineup, playerId, inning) {
+  const id = pk(playerId)
+
+  if (!lineup.lockedCells) lineup.lockedCells = {}
+  if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
+
+  lineup.lockedCells[id][inning] = !lineup.lockedCells[id][inning]
+
+  return lineup
+}
+
+export function toggleRowLockOnLineup(lineup, playerId) {
+  const id = pk(playerId)
+
+  if (!lineup.lockedRows) lineup.lockedRows = {}
+
+  lineup.lockedRows[id] = !lineup.lockedRows[id]
+
+  return lineup
+}
+
+export function toggleInningLockOnLineup(lineup, inning) {
+  if (!lineup.lockedInnings) lineup.lockedInnings = {}
+
+  lineup.lockedInnings[inning] = !(lineup.lockedInnings[inning] === true)
+
+  return lineup
+}
+
+export function updateLineupCell(lineup, playerId, inning, value) {
+  const id = pk(playerId)
+
+  if (!lineup.cells) lineup.cells = {}
+  if (!lineup.cells[id]) lineup.cells[id] = {}
+
+  lineup.cells[id][inning] = value
+
+  return lineup
+}
+
+export function updateLineupBattingOrder(lineup, playerId, value) {
+  const id = pk(playerId)
+
+  if (!lineup.battingOrder) lineup.battingOrder = {}
+
+  lineup.battingOrder[id] = value
+
+  return lineup
+}
+
+export function removeInningFromSavedLineup({
+  existing,
+  inningToRemove,
+  players,
+  activePlayerIds,
+}) {
+  let lineup = normalizeLineup(
+    JSON.parse(JSON.stringify(existing)),
+    players,
+    Number(existing.innings || 0),
+    existing.availablePlayerIds || activePlayerIds()
+  )
+
+  return removeInningFromLineup(lineup, inningToRemove)
+}
