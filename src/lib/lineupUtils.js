@@ -943,20 +943,20 @@ function scorePlayerForPosition({
 const importance = positionImportance(optimizerProfileRules, position)
 const targetPct = Number(getPriorityTarget(priorityMap, id, position) || 0)
 
-const seasonPositionCount = Number(rollingTotals?.[id]?.[bucket] || 0)
-const seasonFieldTotal = Number(rollingTotals?.[id]?.fieldTotal || 0)
+const currentPositionInnings = Number(rollingTotals?.[id]?.[bucket] || 0)
+const currentFieldTotal = Number(rollingTotals?.[id]?.fieldTotal || 0)
 
-const planPositionCount = Number(planPositionCounts?.[id]?.[bucket] || 0)
 const planFieldTotal = Object.values(planPositionCounts?.[id] || {}).reduce(
   (sum, count) => sum + Number(count || 0),
   0
 )
 
+const fieldTotalBeforeThisPlan = Math.max(0, currentFieldTotal - planFieldTotal)
 const expectedFieldTotalForGame = expectedFieldInningsForPlayer(lineup, id)
-const targetFieldTotal = seasonFieldTotal + expectedFieldTotalForGame
+const targetFieldTotal = fieldTotalBeforeThisPlan + expectedFieldTotalForGame
 
 const targetInnings = priorityTargetInnings(priorityMap, id, position, targetFieldTotal)
-const projectedPositionInnings = seasonPositionCount + planPositionCount + 1
+const projectedPositionInnings = currentPositionInnings + 1
 const overTargetInnings = projectedPositionInnings - targetInnings
   
   let fitScore = 0
@@ -968,11 +968,11 @@ else fitScore = 50 * importance
   let priorityScore = 0
 
     if (targetPct > 0) {
-    const projectedPositionCount = seasonPositionCount + planPositionCount + 1
+    const projectedPositionCount = currentPositionInnings + 1
 const safeTargetFieldTotal = Math.max(targetFieldTotal, 1)
 const projectedPct = (projectedPositionCount / safeTargetFieldTotal) * 100
 
-const beforePositionCount = seasonPositionCount + planPositionCount
+const beforePositionCount = currentPositionInnings
 const beforePct = (beforePositionCount / safeTargetFieldTotal) * 100
 
     const beforeDistance = Math.abs(beforePct - targetPct)
