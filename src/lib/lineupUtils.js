@@ -247,7 +247,32 @@ function priorityTargetInnings(priorityMap, playerId, position, projectedFieldTo
   const targetPct = Number(priorityValue(priorityMap, playerId, position) || 0)
   if (targetPct <= 0) return 0
 
-  return Math.max(1, Math.round((Number(projectedFieldTotal || 0) * targetPct) / 100))
+  return Math.round((Number(projectedFieldTotal || 0) * targetPct) / 100)
+}
+
+function expectedFieldInningsForPlayer(lineup, playerId) {
+  const id = pk(playerId)
+  const availableIds = (lineup?.availablePlayerIds || []).map(pk)
+  const innings = Number(lineup?.innings || 0)
+
+  if (!availableIds.includes(id)) return 0
+
+  let expected = 0
+
+  for (let inning = 1; inning <= innings; inning += 1) {
+    const eligibleIds = availableIds.filter(
+      (pid) => (lineup?.cells?.[pid]?.[inning] || '') !== 'Injury'
+    )
+
+    if (!eligibleIds.includes(id)) continue
+
+    const expectedOuts = Math.max(0, eligibleIds.length - 9)
+    const expectedFieldShare = 1 - expectedOuts / Math.max(eligibleIds.length, 1)
+
+    expected += expectedFieldShare
+  }
+
+  return expected
 }
 
 export function positionCountsForInning(lineup, inning, availableIds) {
@@ -927,11 +952,13 @@ const planFieldTotal = Object.values(planPositionCounts?.[id] || {}).reduce(
   0
 )
 
-const projectedFieldTotal = seasonFieldTotal + planFieldTotal + 1
-const targetInnings = priorityTargetInnings(priorityMap, id, position, projectedFieldTotal)
+const expectedFieldTotalForGame = expectedFieldInningsForPlayer(lineup, id)
+const targetFieldTotal = seasonFieldTotal + expectedFieldTotalForGame
+
+const targetInnings = priorityTargetInnings(priorityMap, id, position, targetFieldTotal)
 const projectedPositionInnings = seasonPositionCount + planPositionCount + 1
 const overTargetInnings = projectedPositionInnings - targetInnings
-
+  
   let fitScore = 0
 if (fit === 'primary') fitScore = 2500 * importance
 else if (fit === 'secondary') fitScore = 900 * importance
@@ -942,12 +969,11 @@ else fitScore = 50 * importance
 
     if (targetPct > 0) {
     const projectedPositionCount = seasonPositionCount + planPositionCount + 1
-    const safeProjectedFieldTotal = Math.max(projectedFieldTotal, 1)
-    const projectedPct = (projectedPositionCount / safeProjectedFieldTotal) * 100
+const safeTargetFieldTotal = Math.max(targetFieldTotal, 1)
+const projectedPct = (projectedPositionCount / safeTargetFieldTotal) * 100
 
-    const beforePositionCount = seasonPositionCount + planPositionCount
-    const beforeFieldTotal = Math.max(seasonFieldTotal + planFieldTotal, 1)
-    const beforePct = (beforePositionCount / beforeFieldTotal) * 100
+const beforePositionCount = seasonPositionCount + planPositionCount
+const beforePct = (beforePositionCount / safeTargetFieldTotal) * 100
 
     const beforeDistance = Math.abs(beforePct - targetPct)
 const afterDistance = Math.abs(projectedPct - targetPct)
