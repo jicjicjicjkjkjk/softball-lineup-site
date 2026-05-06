@@ -957,24 +957,31 @@ else fitScore = 50 * importance
   let priorityScore = 0
 
 if (targetPct > 0) {
-  priorityScore += currentTargetNeed * 90000
-
-  if (currentTargetNeed > 0) {
-    priorityScore += 60000
-  }
-
-  if (overTargetInnings > 0) {
-    priorityScore -= overTargetInnings * 160000
-  }
-
   const projectedPositionCount = currentPositionInnings + 1
   const safeTargetFieldTotal = Math.max(targetFieldTotal, 1)
   const projectedPct = (projectedPositionCount / safeTargetFieldTotal) * 100
   const afterDistance = Math.abs(projectedPct - targetPct)
 
-  priorityScore -= afterDistance * 1500
+  if (currentTargetNeed > 0) {
+    priorityScore += currentTargetNeed * 150000
+    priorityScore += 100000
+  }
+
+  if (currentTargetNeed === 0) {
+    priorityScore -= 125000
+  }
+
+  if (currentTargetNeed < 0) {
+    priorityScore -= Math.abs(currentTargetNeed) * 250000
+  }
+
+  if (overTargetInnings > 0) {
+    priorityScore -= overTargetInnings * 300000
+  }
+
+  priorityScore -= afterDistance * 2500
 } else {
-  priorityScore -= 200000
+  priorityScore -= 300000
 }
 
   let varietyScore = 0
