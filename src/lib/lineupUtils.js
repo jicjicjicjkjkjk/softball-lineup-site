@@ -9,18 +9,6 @@ export const SEASON_BUCKETS = ['In Season', 'Out of Season']
 export const PRACTICE_TYPES = ['Pitchers/Catchers', 'Team Practice', 'Indoor Work', 'Outdoor Practice']
 export const SETTING_TYPES = ['Indoor', 'Outdoor']
 
-const DEFAULT_POSITION_IMPORTANCE = {
-  P: 9,
-  C: 8,
-  SS: 7,
-  '3B': 6,
-  '1B': 5,
-  CF: 4,
-  '2B': 3,
-  LF: 2,
-  RF: 1,
-}
-
 function getPositionRule(profileRules, position) {
   return profileRules?.[position] || null
 }
@@ -46,7 +34,7 @@ function getRuleBool(rule, keys, fallback) {
 
 function positionImportance(profileRules, position) {
   const rule = getPositionRule(profileRules, position)
-  return getRuleNumber(rule, ['importance', 'importance_score', 'hierarchy', 'fill_importance'], DEFAULT_POSITION_IMPORTANCE[position] || 1)
+  return getRuleNumber(rule, ['importance', 'importance_score', 'hierarchy', 'fill_importance'], 1)
 }
 
 function positionFillRank(profileRules, position) {
@@ -967,8 +955,6 @@ else if (fit === 'development') fitScore = 300 * importance
 else fitScore = 50 * importance
 
   let priorityScore = 0
-
-    let priorityScore = 0
 
 if (targetPct > 0) {
   priorityScore += currentTargetNeed * 90000
