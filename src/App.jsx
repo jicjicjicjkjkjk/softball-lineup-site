@@ -268,6 +268,25 @@ function activePlayerIds() {
   return getActivePlayerIds(activePlayers)
 }
 
+const {
+  upsertPlayer,
+  updatePlayerLocal,
+  addPlayer,
+  deletePlayer,
+} = usePlayerActions({
+  setAppError,
+  setPlayers,
+  loadAll,
+  newPlayerName,
+  setNewPlayerName,
+  newPlayerLastName,
+  setNewPlayerLastName,
+  newPlayerNumber,
+  setNewPlayerNumber,
+  newPlayerActive,
+  setNewPlayerActive,
+})
+  
   async function addGame(date, opponent, gameType, season) {
     const nextOrder = getNextGameOrder(games)
 
