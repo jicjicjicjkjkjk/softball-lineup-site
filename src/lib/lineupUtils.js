@@ -1941,22 +1941,6 @@ repairMissingAndDuplicatePositions({
   optimizerProfileRules,
 })
 
-forceFillAllPositions({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  optimizerProfileRules,
-})
-
-repairMissingAndDuplicatePositions({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  optimizerProfileRules,
-})
-
 enforceConsecutivePositionRules({
   lineup,
   players,
