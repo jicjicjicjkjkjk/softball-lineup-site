@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTrackingFilters } from './hooks/useTrackingFilters'
 import { useAppOptions } from './hooks/useAppOptions'
 import { useAppData } from './hooks/useAppData'
+import { usePlayerActions } from './hooks/usePlayerActions'
 import { useAppViewData } from './hooks/useAppViewData'
 import { supabase } from './lib/supabase'
 import {
