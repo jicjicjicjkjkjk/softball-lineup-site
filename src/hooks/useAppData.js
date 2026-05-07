@@ -178,31 +178,10 @@ export function useAppData({
         setOptimizerMode(defaultProfile.profile_key)
       }
 
-      const stateRes = await supabase
-        .from('lineup_setter_state')
-        .select('batch_game_ids, focus_game_id')
-        .eq('team_id', TEAM_ID)
-        .maybeSingle()
+      setOptimizerBatchGameIds([])
+      setOptimizerFocusGameId('')
 
-      if (stateRes.error) throw stateRes.error
-
-      const validGameIds = new Set(loadedGames.map((game) => pk(game.id)))
-
-      const savedBatchIds = Array.isArray(stateRes.data?.batch_game_ids)
-        ? stateRes.data.batch_game_ids.map(pk).filter((id) => validGameIds.has(id))
-        : []
-
-      const savedFocusId =
-        stateRes.data?.focus_game_id &&
-        validGameIds.has(pk(stateRes.data.focus_game_id))
-          ? pk(stateRes.data.focus_game_id)
-          : savedBatchIds[0] || ''
-
-      if (savedBatchIds.length) {
-        setOptimizerBatchGameIds(savedBatchIds)
-        setOptimizerFocusGameId(savedFocusId)
-        setOptimizerExistingGameId(savedFocusId)
-      } else if (loadedGames.length) {
+      if (loadedGames.length) {
         const latestGame = [...loadedGames]
           .sort((a, b) => compareGamesAsc(a, b, pk))
           .at(-1)
