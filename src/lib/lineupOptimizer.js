@@ -423,8 +423,7 @@ function scorePlayerForPosition({
     priorityScore -= Math.abs(needAfter) * 75000
 
     if (overTargetInnings > 0) {
-  priorityScore -= overTargetInnings * 3000000
-  priorityScore -= overTargetInnings * overTargetInnings * 750000
+  priorityScore -= overTargetInnings * 1200000
 }
   } else {
     priorityScore -= 400000
@@ -433,8 +432,7 @@ function scorePlayerForPosition({
   const alreadyPlayedThisPositionInPlan = Number(planPositionCounts?.[id]?.[bucket] || 0)
 
   if (alreadyPlayedThisPositionInPlan > 0 && consecutiveMode(optimizerProfileRules, position) !== 'must_2') {
-  priorityScore -= alreadyPlayedThisPositionInPlan * 450000
-  priorityScore -= alreadyPlayedThisPositionInPlan * alreadyPlayedThisPositionInPlan * 150000
+  priorityScore -= alreadyPlayedThisPositionInPlan * 175000
 }
 
   let varietyScore = 0
@@ -1485,16 +1483,7 @@ export function buildOptimizedLineup({
     })
   }
 
-  if (!skipSingleGameRebalance) {
-    rebalanceTowardPriorityTargets({
-      lineup,
-      players,
-      fitMap,
-      priorityMap,
-      totalsBefore,
-      optimizerProfileRules,
-    })
-  }
+  // Temporarily disabled: this was over-concentrating players into single positions.
 
   repairMissingAndDuplicatePositions({
     lineup,
