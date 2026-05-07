@@ -179,19 +179,21 @@ export function useAppData({
       }
 
       setOptimizerBatchGameIds([])
-      setOptimizerFocusGameId('')
 
-      if (loadedGames.length) {
-        const latestGame = [...loadedGames]
-          .sort((a, b) => compareGamesAsc(a, b, pk))
-          .at(-1)
+if (loadedGames.length) {
+  const latestGame = [...loadedGames]
+    .sort((a, b) => compareGamesAsc(a, b, pk))
+    .at(-1)
 
-        if (latestGame) {
-          setSelectedGameId(pk(latestGame.id))
-          setOptimizerExistingGameId(pk(latestGame.id))
-          setOptimizerFocusGameId(pk(latestGame.id))
-        }
-      }
+  if (latestGame) {
+    const latestGameId = pk(latestGame.id)
+
+    setSelectedGameId(latestGameId)
+    setOptimizerExistingGameId(latestGameId)
+    setOptimizerFocusGameId(latestGameId)
+    setOptimizerBatchGameIds([latestGameId])
+  }
+}
 
       setLineupSetterStateLoaded(true)
     } catch (error) {
