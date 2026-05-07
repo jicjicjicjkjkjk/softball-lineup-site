@@ -953,33 +953,27 @@ const currentTargetNeed = targetInnings - currentPositionInnings
   else if (fit === 'development') fitScore = 250 * importance
   else fitScore = 25 * importance
 
-    let priorityScore = 0
+      let priorityScore = 0
 
   if (targetPct > 0) {
-    const projectedFieldTotal = Math.max(currentFieldTotal + 1, 1)
-    const currentPct = (currentPositionInnings / Math.max(currentFieldTotal, 1)) * 100
-    const projectedPct = ((currentPositionInnings + 1) / projectedFieldTotal) * 100
+    const targetInnings = Math.round((targetFieldTotal * targetPct) / 100)
+    const needBefore = targetInnings - currentPositionInnings
+    const needAfter = targetInnings - projectedPositionInnings
 
-    const beforeDistance = Math.abs(currentPct - targetPct)
-    const afterDistance = Math.abs(projectedPct - targetPct)
-
-    if (afterDistance < beforeDistance) {
-      priorityScore += 350000
+    if (needBefore > 0) {
+      priorityScore += needBefore * 900000
+      priorityScore += 500000
     } else {
-      priorityScore -= 350000
+      priorityScore -= (Math.abs(needBefore) + 1) * 900000
     }
 
-    if (currentPct > targetPct) {
-      priorityScore -= (currentPct - targetPct) * 20000
-    }
+    priorityScore -= Math.abs(needAfter) * 75000
 
-    if (projectedPct > targetPct) {
-      priorityScore -= (projectedPct - targetPct) * 30000
+    if (overTargetInnings > 0) {
+      priorityScore -= overTargetInnings * 1200000
     }
-
-    priorityScore -= afterDistance * 8000
   } else {
-    priorityScore -= 150000
+    priorityScore -= 400000
   }
 
   const alreadyPlayedThisPositionInPlan = Number(planPositionCounts?.[id]?.[bucket] || 0)
