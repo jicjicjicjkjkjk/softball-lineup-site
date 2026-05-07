@@ -1,8 +1,6 @@
-// FILE: src/hooks/usePositionActions.js
-
 import { supabase } from '../lib/supabase'
-import { normalizePriorityValue } from '../lib/positionInputHelpers'
 import { pk } from '../lib/lineupUtils'
+import { normalizePriorityValue } from '../lib/positionInputHelpers'
 
 export function usePositionActions({
   setAppError,
@@ -40,7 +38,6 @@ export function usePositionActions({
         .eq('position', position)
 
       if (del.error) return setAppError(del.error.message)
-
       updatePriorityLocal(playerId, position, '')
       return
     }
@@ -55,7 +52,6 @@ export function usePositionActions({
     )
 
     if (up.error) return setAppError(up.error.message)
-
     updatePriorityLocal(playerId, position, cleanedValue)
   }
 
@@ -77,7 +73,6 @@ export function usePositionActions({
       )
 
       const error = results.find((res) => res.error)?.error
-
       if (error) return setAppError(error.message)
 
       setFitByPlayer((current) => ({
@@ -89,7 +84,6 @@ export function usePositionActions({
           RF: cleanedTier,
         },
       }))
-
       return
     }
 
@@ -103,7 +97,6 @@ export function usePositionActions({
     )
 
     if (up.error) return setAppError(up.error.message)
-
     updateFitLocal(playerId, position, cleanedTier)
   }
 
