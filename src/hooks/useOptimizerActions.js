@@ -5,6 +5,7 @@ import {
   computeTotals,
   addTotals,
   buildOptimizedLineup,
+  rebalancePlanTowardPriorityTargets,
 } from '../lib/lineupUtils'
 import {
   getNormalizedLineupForGame,
@@ -123,11 +124,22 @@ export function useOptimizerActions({
         rollingTotals = addTotals(rollingTotals, computeTotals([optimized], players), players)
       })
 
-        Object.entries(next).forEach(([gameId, lineup]) => {
+              const rebalancedNext = rebalancePlanTowardPriorityTargets({
+        lineupsByGame: next,
+        games: orderedGames,
+        players,
+        fitMap: fitByPlayer,
+        priorityMap: priorityByPlayer,
+        totalsBefore: lineupSetterFilteredTotals,
+        lineupLockedByGame,
+        optimizerProfileRules: activeOptimizerProfileRules,
+      })
+
+      Object.entries(rebalancedNext).forEach(([gameId, lineup]) => {
         persistLineup(gameId, lineup)
       })
 
-      setOptimizerPreviewByGame((current) => ({ ...current, ...next }))
+      setOptimizerPreviewByGame((current) => ({ ...current, ...rebalancedNext }))
     } catch (error) {
       setAppError(error?.message || 'Optimize all failed.')
     }
