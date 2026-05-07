@@ -1734,6 +1734,7 @@ function rebalanceTowardPriorityTargets({
   players,
   fitMap,
   priorityMap,
+  totalsBefore = {},
   optimizerProfileRules = {},
 }) {
   const innings = Number(lineup?.innings || 0)
@@ -1749,17 +1750,17 @@ function rebalanceTowardPriorityTargets({
     const counts = {}
 
     playerIds.forEach((id) => {
-      counts[id] = {
-        P: 0,
-        C: 0,
-        '1B': 0,
-        '2B': 0,
-        '3B': 0,
-        SS: 0,
-        OF: 0,
-        fieldTotal: 0,
-      }
-    })
+  counts[id] = {
+    P: Number(totalsBefore?.[id]?.P || 0),
+    C: Number(totalsBefore?.[id]?.C || 0),
+    '1B': Number(totalsBefore?.[id]?.['1B'] || 0),
+    '2B': Number(totalsBefore?.[id]?.['2B'] || 0),
+    '3B': Number(totalsBefore?.[id]?.['3B'] || 0),
+    SS: Number(totalsBefore?.[id]?.SS || 0),
+    OF: Number(totalsBefore?.[id]?.OF || 0),
+    fieldTotal: Number(totalsBefore?.[id]?.fieldTotal || 0),
+  }
+})
 
     for (let inning = 1; inning <= innings; inning += 1) {
       playerIds.forEach((id) => {
@@ -2145,6 +2146,7 @@ rebalanceTowardPriorityTargets({
   players,
   fitMap,
   priorityMap,
+  totalsBefore,
   optimizerProfileRules,
 })
 
