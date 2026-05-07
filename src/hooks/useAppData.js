@@ -180,20 +180,44 @@ export function useAppData({
 
       setOptimizerBatchGameIds([])
 
-if (loadedGames.length) {
-  const latestGame = [...loadedGames]
-    .sort((a, b) => compareGamesAsc(a, b, pk))
-    .at(-1)
+      const stateRes = await supabase
+        .from('lineup_setter_state')
+        .select('batch_game_ids, focus_game_id')
+        .eq('team_id', TEAM_ID)
+        .maybeSingle()
 
-  if (latestGame) {
-    const latestGameId = pk(latestGame.id)
+      if (stateRes.error) throw stateRes.error
 
-    setSelectedGameId(latestGameId)
-    setOptimizerExistingGameId(latestGameId)
-    setOptimizerFocusGameId(latestGameId)
-    setOptimizerBatchGameIds([latestGameId])
-  }
-}
+      const validGameIds = new Set(loadedGames.map((game) => pk(game.id)))
+
+      const savedBatchIds = Array.isArray(stateRes.data?.batch_game_ids)
+        ? stateRes.data.batch_game_ids.map(pk).filter((id) => validGameIds.has(id))
+        : []
+
+      const savedFocusId =
+        stateRes.data?.focus_game_id && validGameIds.has(pk(stateRes.data.focus_game_id))
+          ? pk(stateRes.data.focus_game_id)
+          : savedBatchIds[0] || ''
+
+      if (savedBatchIds.length) {
+        setOptimizerBatchGameIds(savedBatchIds)
+        setOptimizerFocusGameId(savedFocusId)
+        setOptimizerExistingGameId(savedFocusId)
+        setSelectedGameId(savedFocusId)
+      } else if (loadedGames.length) {
+        const latestGame = [...loadedGames]
+          .sort((a, b) => compareGamesAsc(a, b, pk))
+          .at(-1)
+
+        if (latestGame) {
+          const latestGameId = pk(latestGame.id)
+
+          setSelectedGameId(latestGameId)
+          setOptimizerExistingGameId(latestGameId)
+          setOptimizerFocusGameId(latestGameId)
+          setOptimizerBatchGameIds([])
+        }
+      }
 
       setLineupSetterStateLoaded(true)
     } catch (error) {
