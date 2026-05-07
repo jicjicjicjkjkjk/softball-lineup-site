@@ -88,7 +88,6 @@ export default function App() {
     setAttendanceByEvent,
     optimizerProfiles,
     optimizerProfileRules,
-    lineupSetterStateLoaded,
     loading,
     loadAll,
   } = useAppData({
@@ -139,8 +138,6 @@ const {
   seasonOptions,
   gameTypeOptions,
   statusOptions,
-  defaultSeasonOption,
-  defaultGameTypeOption,
   defaultStatusOption,
 } = useAppOptions({
   appOptions,
