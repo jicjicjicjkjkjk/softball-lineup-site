@@ -953,34 +953,39 @@ const currentTargetNeed = targetInnings - currentPositionInnings
   else if (fit === 'development') fitScore = 250 * importance
   else fitScore = 25 * importance
 
-  let priorityScore = 0
+    let priorityScore = 0
 
   if (targetPct > 0) {
-    const projectedPositionCount = currentPositionInnings + 1
-    const safeTargetFieldTotal = Math.max(targetFieldTotal, 1)
-    const projectedPct = (projectedPositionCount / safeTargetFieldTotal) * 100
+    const projectedFieldTotal = Math.max(currentFieldTotal + 1, 1)
+    const currentPct = (currentPositionInnings / Math.max(currentFieldTotal, 1)) * 100
+    const projectedPct = ((currentPositionInnings + 1) / projectedFieldTotal) * 100
+
+    const beforeDistance = Math.abs(currentPct - targetPct)
     const afterDistance = Math.abs(projectedPct - targetPct)
 
-    if (currentTargetNeed > 0) {
-      priorityScore += currentTargetNeed * 250000
-      priorityScore += 125000
+    if (afterDistance < beforeDistance) {
+      priorityScore += 350000
+    } else {
+      priorityScore -= 350000
     }
 
-    if (currentTargetNeed === 0) {
-      priorityScore -= 250000
+    if (currentPct > targetPct) {
+      priorityScore -= (currentPct - targetPct) * 20000
     }
 
-    if (currentTargetNeed < 0) {
-      priorityScore -= Math.abs(currentTargetNeed) * 500000
+    if (projectedPct > targetPct) {
+      priorityScore -= (projectedPct - targetPct) * 30000
     }
 
-    if (overTargetInnings > 0) {
-      priorityScore -= overTargetInnings * 750000
-    }
-
-    priorityScore -= afterDistance * 5000
+    priorityScore -= afterDistance * 8000
   } else {
-    priorityScore -= 25000
+    priorityScore -= 150000
+  }
+
+  const alreadyPlayedThisPositionInPlan = Number(planPositionCounts?.[id]?.[bucket] || 0)
+
+  if (alreadyPlayedThisPositionInPlan > 0 && consecutiveMode(optimizerProfileRules, position) !== 'must_2') {
+    priorityScore -= alreadyPlayedThisPositionInPlan * 175000
   }
 
   let varietyScore = 0
@@ -1013,8 +1018,8 @@ const currentTargetNeed = targetInnings - currentPositionInnings
 
   let rotationScore = 0
 
-  if (samePositionMode === 'prefer' && prevValue === position) {
-    rotationScore += 1000
+    if (samePositionMode === 'prefer' && prevValue === position) {
+    rotationScore -= 25000
   }
 
   if (samePositionMode === 'must_2' && prevValue === position) {
