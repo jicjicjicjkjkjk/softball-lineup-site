@@ -1456,8 +1456,8 @@ function enforceConsecutivePositionRules({ lineup, players, fitMap, optimizerPro
     if (lockedValue(lineup, playerA, inning)) return false
     if (lockedValue(lineup, playerB, inning)) return false
 
-    const aFitForBPos = normalizeFit(fitMap?.[pk(playerA)]?.[bPos] || 'no')
-const bFitForAPos = normalizeFit(fitMap?.[pk(playerB)]?.[aPos] || 'no')
+const aFitForBPos = normalizeFit(fitTier(fitMap, playerA, bPos))
+const bFitForAPos = normalizeFit(fitTier(fitMap, playerB, aPos))
 
 if (aFitForBPos !== 'primary') return false
 if (bFitForAPos !== 'primary') return false
@@ -1653,7 +1653,7 @@ function forceFillAllPositions({
     const importance = positionImportance(optimizerProfileRules, position)
     const priority = priorityValue(priorityMap, id, position)
 
-    if (!fitAllowedByRule(rule, fit)) return -100000
+    if (!fitAllowedByRule(rule, fit)) return -1000000
     if (fit === 'primary') return 100000 + importance * 1000 + priority * 100
     if (fit === 'secondary') return 10000 + importance * 500 + priority * 50
     if (fit === 'development') return 1000 + importance * 100 + priority * 10
@@ -1668,12 +1668,7 @@ function forceFillAllPositions({
 
     const usedPlayers = new Set()
     const filledPositions = new Set()
-
-    const plannedOuts = eligibleIds.filter(
-      (id) => lineup.cells?.[id]?.[inning] === 'Out'
-    )
-
-    const keepOuts = new Set(plannedOuts.slice(0, expectedOuts))
+    const lockedOuts = new Set()
 
     eligibleIds.forEach((id) => {
       const value = lineup?.cells?.[id]?.[inning] || ''
@@ -1684,32 +1679,28 @@ function forceFillAllPositions({
       }
 
       if (lockedValue(lineup, id, inning) && value === 'Out') {
-        keepOuts.add(id)
+        lockedOuts.add(id)
       }
     })
-
-    const openPositions = FIELD_POSITIONS.filter((pos) => !filledPositions.has(pos))
 
     eligibleIds.forEach((id) => {
       if (lockedValue(lineup, id, inning)) return
-      if (keepOuts.has(id)) {
-        lineup.cells[id][inning] = 'Out'
-      } else {
-        lineup.cells[id][inning] = ''
-      }
+      lineup.cells[id][inning] = ''
     })
 
-    const orderedPositions = [...openPositions].sort((a, b) => {
-      return (
-        positionFillRank(optimizerProfileRules, a) - positionFillRank(optimizerProfileRules, b) ||
-        positionImportance(optimizerProfileRules, b) - positionImportance(optimizerProfileRules, a)
-      )
-    })
+    const openPositions = FIELD_POSITIONS
+      .filter((pos) => !filledPositions.has(pos))
+      .sort((a, b) => {
+        return (
+          positionFillRank(optimizerProfileRules, a) - positionFillRank(optimizerProfileRules, b) ||
+          positionImportance(optimizerProfileRules, b) - positionImportance(optimizerProfileRules, a)
+        )
+      })
 
-    orderedPositions.forEach((position) => {
+    openPositions.forEach((position) => {
       const best = eligibleIds
         .filter((id) => !usedPlayers.has(id))
-        .filter((id) => !keepOuts.has(id))
+        .filter((id) => !lockedOuts.has(id))
         .filter((id) => !lockedValue(lineup, id, inning))
         .sort((a, b) => fitScore(b, position) - fitScore(a, position))[0]
 
@@ -1717,6 +1708,7 @@ function forceFillAllPositions({
 
       lineup.cells[best][inning] = position
       usedPlayers.add(best)
+      filledPositions.add(position)
     })
 
     let currentOuts = eligibleIds.filter(
@@ -1726,11 +1718,12 @@ function forceFillAllPositions({
     eligibleIds.forEach((id) => {
       if (lockedValue(lineup, id, inning)) return
       if (FIELD_POSITIONS.includes(lineup.cells?.[id]?.[inning])) return
-      if (lineup.cells?.[id]?.[inning] === 'Out') return
 
       if (currentOuts < expectedOuts) {
         lineup.cells[id][inning] = 'Out'
         currentOuts += 1
+      } else {
+        lineup.cells[id][inning] = ''
       }
     })
   }
@@ -1941,6 +1934,22 @@ eligibleIds.forEach((id) => {
     })
   }
   
+repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
+
+forceFillAllPositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
+
 repairMissingAndDuplicatePositions({
   lineup,
   players,
