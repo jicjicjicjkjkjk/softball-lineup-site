@@ -5,6 +5,7 @@ import { useTrackingFilters } from './hooks/useTrackingFilters'
 import { useAppOptions } from './hooks/useAppOptions'
 import { useAppData } from './hooks/useAppData'
 import { usePlayerActions } from './hooks/usePlayerActions'
+import { usePositionActions } from './hooks/usePositionActions'
 import { useAppViewData } from './hooks/useAppViewData'
 import { supabase } from './lib/supabase'
 import {
@@ -408,25 +409,13 @@ const {
     setOptimizerBatchGameIds((current) => current.filter((id) => pk(id) !== pk(gameId)))
   }
 
-  function updatePriorityLocal(playerId, position, value) {
-    setPriorityByPlayer((current) => ({
-      ...current,
-      [pk(playerId)]: {
-        ...(current[pk(playerId)] || {}),
-        [position]: { priority_pct: value },
-      },
-    }))
-  }
-
-  function updateFitLocal(playerId, position, tier) {
-    setFitByPlayer((current) => ({
-      ...current,
-      [pk(playerId)]: {
-        ...(current[pk(playerId)] || {}),
-        [position]: tier,
-      },
-    }))
-  }
+    const {
+    updatePriorityLocal,
+    updateFitLocal,
+  } = usePositionActions({
+    setPriorityByPlayer,
+    setFitByPlayer,
+  })
 
   async function persistPriority(playerId, position, value) {
     const cleanedValue = normalizePriorityValue(value)
