@@ -423,8 +423,9 @@ function scorePlayerForPosition({
     priorityScore -= Math.abs(needAfter) * 75000
 
     if (overTargetInnings > 0) {
-      priorityScore -= overTargetInnings * 1200000
-    }
+  priorityScore -= overTargetInnings * 3000000
+  priorityScore -= overTargetInnings * overTargetInnings * 750000
+}
   } else {
     priorityScore -= 400000
   }
@@ -432,8 +433,9 @@ function scorePlayerForPosition({
   const alreadyPlayedThisPositionInPlan = Number(planPositionCounts?.[id]?.[bucket] || 0)
 
   if (alreadyPlayedThisPositionInPlan > 0 && consecutiveMode(optimizerProfileRules, position) !== 'must_2') {
-    priorityScore -= alreadyPlayedThisPositionInPlan * 175000
-  }
+  priorityScore -= alreadyPlayedThisPositionInPlan * 450000
+  priorityScore -= alreadyPlayedThisPositionInPlan * alreadyPlayedThisPositionInPlan * 150000
+}
 
   let varietyScore = 0
   const minPositions = Number(optimizerProfile?.min_positions_per_player || 1)
