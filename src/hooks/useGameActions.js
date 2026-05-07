@@ -1,5 +1,3 @@
-// FILE: src/hooks/useGameActions.js
-
 import { supabase } from '../lib/supabase'
 import { TEAM_ID } from '../lib/constants'
 import { GAME_TYPES, pk, blankLineup } from '../lib/lineupUtils'
@@ -8,21 +6,20 @@ import { getNextGameOrder } from '../lib/appHelpers'
 export function useGameActions({
   games,
   setGames,
+  setAppError,
+  defaultStatusOption,
   players,
   activePlayerIds,
-  lineupsByGame,
-  setLineupsByGame,
+  currentPlanLineupsByGame,
   lineupLockedByGame,
+  setLineupsByGame,
   setLineupLockedByGame,
-  optimizerPreviewByGame,
   setOptimizerPreviewByGame,
-  optimizerBatchGameIds,
   setOptimizerBatchGameIds,
+  setSelectedGameId,
   setOptimizerFocusGameId,
   setOptimizerExistingGameId,
-  setSelectedGameId,
-  currentPlanLineupsByGame,
-  defaultStatusOption,
+  persistLineup,
   newGameDate,
   setNewGameDate,
   newGameOpponent,
@@ -39,8 +36,6 @@ export function useGameActions({
   setOptimizerNewType,
   optimizerNewSeason,
   setOptimizerNewSeason,
-  persistLineup,
-  setAppError,
 }) {
   async function addGame(date, opponent, gameType, season) {
     const nextOrder = getNextGameOrder(games)
@@ -81,13 +76,7 @@ export function useGameActions({
   }
 
   async function addGameFromGames() {
-    const game = await addGame(
-      newGameDate,
-      newGameOpponent,
-      newGameType,
-      newGameSeason
-    )
-
+    const game = await addGame(newGameDate, newGameOpponent, newGameType, newGameSeason)
     if (!game) return
 
     setNewGameDate('')
@@ -98,24 +87,16 @@ export function useGameActions({
   }
 
   async function addGameFromOptimizer() {
-    const game = await addGame(
-      optimizerNewDate,
-      optimizerNewOpponent,
-      optimizerNewType,
-      optimizerNewSeason
-    )
-
+    const game = await addGame(optimizerNewDate, optimizerNewOpponent, optimizerNewType, optimizerNewSeason)
     if (!game) return
 
     setOptimizerNewDate('')
     setOptimizerNewOpponent('')
     setOptimizerNewType('')
     setOptimizerNewSeason('')
-
     setOptimizerBatchGameIds((current) => [...new Set([...current, pk(game.id)])])
     setOptimizerFocusGameId(pk(game.id))
     setOptimizerExistingGameId(pk(game.id))
-
     setOptimizerPreviewByGame((current) => ({
       ...current,
       [pk(game.id)]: blankLineup(
@@ -128,9 +109,7 @@ export function useGameActions({
 
   async function updateGameField(gameId, field, value) {
     setGames((current) =>
-      current.map((game) =>
-        pk(game.id) === pk(gameId) ? { ...game, [field]: value } : game
-      )
+      current.map((game) => (pk(game.id) === pk(gameId) ? { ...game, [field]: value } : game))
     )
 
     const updates = {}
@@ -143,22 +122,13 @@ export function useGameActions({
     if (field === 'game_order') updates.game_order = value === '' ? null : Number(value)
 
     const res = await supabase.from('games').update(updates).eq('id', gameId)
-
-    if (res.error) {
-      setAppError(res.error.message)
-      return
-    }
+    if (res.error) return setAppError(res.error.message)
 
     if (field === 'status' && String(value).toLowerCase() === 'complete') {
       const game = games.find((g) => pk(g.id) === pk(gameId))
-
       const currentLineup =
         currentPlanLineupsByGame[pk(gameId)] ||
-        blankLineup(
-          players.map((p) => p.id),
-          Number(game?.innings || 6),
-          activePlayerIds()
-        )
+        blankLineup(players.map((p) => p.id), Number(game?.innings || 6), activePlayerIds())
 
       await persistLineup(gameId, currentLineup, true)
     }
@@ -166,23 +136,16 @@ export function useGameActions({
 
   async function deleteGame(gameId) {
     if (lineupLockedByGame[pk(gameId)]) {
-      setAppError('Unlock the lineup before deleting the game.')
-      return
+      return setAppError('Unlock the lineup before deleting the game.')
     }
 
     if (!window.confirm('Are you sure you want to delete this game?')) return
 
     const deleteLineup = await supabase.from('game_lineups').delete().eq('game_id', gameId)
-    if (deleteLineup.error) {
-      setAppError(deleteLineup.error.message)
-      return
-    }
+    if (deleteLineup.error) return setAppError(deleteLineup.error.message)
 
     const deleteGameRow = await supabase.from('games').delete().eq('id', gameId)
-    if (deleteGameRow.error) {
-      setAppError(deleteGameRow.error.message)
-      return
-    }
+    if (deleteGameRow.error) return setAppError(deleteGameRow.error.message)
 
     setGames((current) => current.filter((game) => pk(game.id) !== pk(gameId)))
 
@@ -204,13 +167,10 @@ export function useGameActions({
       return next
     })
 
-    setOptimizerBatchGameIds((current) =>
-      current.filter((id) => pk(id) !== pk(gameId))
-    )
+    setOptimizerBatchGameIds((current) => current.filter((id) => pk(id) !== pk(gameId)))
   }
 
   return {
-    addGame,
     addGameFromGames,
     addGameFromOptimizer,
     updateGameField,
