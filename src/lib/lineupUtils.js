@@ -948,43 +948,43 @@ const overTargetInnings = projectedPositionInnings - targetInnings
 const currentTargetNeed = targetInnings - currentPositionInnings  
   
   let fitScore = 0
-if (fit === 'primary') fitScore = 2500 * importance
-else if (fit === 'secondary') fitScore = 900 * importance
-else if (fit === 'development') fitScore = 300 * importance
-else fitScore = 50 * importance
+  if (fit === 'primary') fitScore = 900 * importance
+  else if (fit === 'secondary') fitScore = 550 * importance
+  else if (fit === 'development') fitScore = 250 * importance
+  else fitScore = 25 * importance
 
   let priorityScore = 0
 
-if (targetPct > 0) {
-  const projectedPositionCount = currentPositionInnings + 1
-  const safeTargetFieldTotal = Math.max(targetFieldTotal, 1)
-  const projectedPct = (projectedPositionCount / safeTargetFieldTotal) * 100
-  const afterDistance = Math.abs(projectedPct - targetPct)
+  if (targetPct > 0) {
+    const projectedPositionCount = currentPositionInnings + 1
+    const safeTargetFieldTotal = Math.max(targetFieldTotal, 1)
+    const projectedPct = (projectedPositionCount / safeTargetFieldTotal) * 100
+    const afterDistance = Math.abs(projectedPct - targetPct)
 
-  if (currentTargetNeed > 0) {
-    priorityScore += currentTargetNeed * 150000
-    priorityScore += 100000
+    if (currentTargetNeed > 0) {
+      priorityScore += currentTargetNeed * 250000
+      priorityScore += 125000
+    }
+
+    if (currentTargetNeed === 0) {
+      priorityScore -= 250000
+    }
+
+    if (currentTargetNeed < 0) {
+      priorityScore -= Math.abs(currentTargetNeed) * 500000
+    }
+
+    if (overTargetInnings > 0) {
+      priorityScore -= overTargetInnings * 750000
+    }
+
+    priorityScore -= afterDistance * 5000
+  } else {
+    priorityScore -= 25000
   }
-
-  if (currentTargetNeed === 0) {
-    priorityScore -= 125000
-  }
-
-  if (currentTargetNeed < 0) {
-    priorityScore -= Math.abs(currentTargetNeed) * 250000
-  }
-
-  if (overTargetInnings > 0) {
-    priorityScore -= overTargetInnings * 300000
-  }
-
-  priorityScore -= afterDistance * 2500
-} else {
-  priorityScore -= 300000
-}
 
   let varietyScore = 0
-
+  
   const minPositions = Number(optimizerProfile?.min_positions_per_player || 1)
   const varietyMode = optimizerProfile?.min_positions_mode || 'nice'
 
