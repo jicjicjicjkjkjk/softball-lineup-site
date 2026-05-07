@@ -114,6 +114,7 @@ function runOptimizeAll() {
         fitMap: fitByPlayer,
         planSitOutTargets: optimizerPlanSitOutTargets,
         batchCurrentOuts: planAssignedOuts,
+        skipSingleGameRebalance: true,
       })
 
       next[gameId] = optimized
