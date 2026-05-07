@@ -408,60 +408,6 @@ const {
     setOptimizerBatchGameIds((current) => current.filter((id) => pk(id) !== pk(gameId)))
   }
 
-  async function upsertPlayer(player) {
-    if (!player.name?.trim()) return
-
-    const payload = {
-      name: player.name,
-      last_name: player.last_name || '',
-      jersey_number: player.jersey_number,
-      active: player.active,
-    }
-
-    if (player.id) {
-      const updateRes = await supabase.from('players').update(payload).eq('id', player.id)
-      if (updateRes.error) setAppError(updateRes.error.message)
-      return
-    }
-
-    const insertRes = await supabase
-      .from('players')
-      .insert({ team_id: TEAM_ID, ...payload })
-      .select('id, name, last_name, jersey_number, active')
-      .single()
-
-    if (insertRes.error) return setAppError(insertRes.error.message)
-    setPlayers((current) => [...current, insertRes.data])
-  }
-
-  function updatePlayerLocal(playerId, field, value) {
-    setPlayers((current) =>
-      current.map((player) => (pk(player.id) === pk(playerId) ? { ...player, [field]: value } : player))
-    )
-  }
-
-  async function addPlayer() {
-    await upsertPlayer({
-      name: newPlayerName,
-      last_name: newPlayerLastName,
-      jersey_number: newPlayerNumber,
-      active: newPlayerActive,
-    })
-
-    setNewPlayerName('')
-    setNewPlayerLastName('')
-    setNewPlayerNumber('')
-    setNewPlayerActive(true)
-    await loadAll()
-  }
-
-  async function deletePlayer(playerId) {
-    if (!window.confirm('Delete this player?')) return
-    const del = await supabase.from('players').delete().eq('id', playerId)
-    if (del.error) return setAppError(del.error.message)
-    setPlayers((current) => current.filter((player) => pk(player.id) !== pk(playerId)))
-  }
-
   function updatePriorityLocal(playerId, position, value) {
     setPriorityByPlayer((current) => ({
       ...current,
