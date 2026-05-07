@@ -1738,7 +1738,12 @@ export function rebalanceTowardPriorityTargets({
   optimizerProfileRules = {},
 }) {
   const innings = Number(lineup?.innings || 0)
-  const playerIds = (players || []).map((player) => pk(player.id))
+  const availableSet = new Set((lineup?.availablePlayerIds || []).map(pk))
+  const playerIds = (players || [])
+    .map((player) => pk(player.id))
+    .filter((id) => availableSet.has(id))
+
+  const BUCKETS = ['P', 'C', '1B', '2B', '3B', 'SS', 'OF']
 
   function allowedAt(playerId, position) {
     const rule = getPositionRule(optimizerProfileRules, position)
@@ -1750,17 +1755,17 @@ export function rebalanceTowardPriorityTargets({
     const counts = {}
 
     playerIds.forEach((id) => {
-  counts[id] = {
-    P: Number(totalsBefore?.[id]?.P || 0),
-    C: Number(totalsBefore?.[id]?.C || 0),
-    '1B': Number(totalsBefore?.[id]?.['1B'] || 0),
-    '2B': Number(totalsBefore?.[id]?.['2B'] || 0),
-    '3B': Number(totalsBefore?.[id]?.['3B'] || 0),
-    SS: Number(totalsBefore?.[id]?.SS || 0),
-    OF: Number(totalsBefore?.[id]?.OF || 0),
-    fieldTotal: Number(totalsBefore?.[id]?.fieldTotal || 0),
-  }
-})
+      counts[id] = {
+        P: Number(totalsBefore?.[id]?.P || 0),
+        C: Number(totalsBefore?.[id]?.C || 0),
+        '1B': Number(totalsBefore?.[id]?.['1B'] || 0),
+        '2B': Number(totalsBefore?.[id]?.['2B'] || 0),
+        '3B': Number(totalsBefore?.[id]?.['3B'] || 0),
+        SS: Number(totalsBefore?.[id]?.SS || 0),
+        OF: Number(totalsBefore?.[id]?.OF || 0),
+        fieldTotal: Number(totalsBefore?.[id]?.fieldTotal || 0),
+      }
+    })
 
     for (let inning = 1; inning <= innings; inning += 1) {
       playerIds.forEach((id) => {
@@ -1768,7 +1773,7 @@ export function rebalanceTowardPriorityTargets({
         if (!FIELD_POSITIONS.includes(position)) return
 
         const bucket = positionBucket(position)
-        counts[id][bucket] = Number(counts[id][bucket] || 0) + 1
+        counts[id][bucket] += 1
         counts[id].fieldTotal += 1
       })
     }
@@ -1776,60 +1781,55 @@ export function rebalanceTowardPriorityTargets({
     return counts
   }
 
-  function bucketTarget(counts, playerId, bucket) {
-    const targetPct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
-    return Math.round((Number(counts?.[playerId]?.fieldTotal || 0) * targetPct) / 100)
+  function targetFor(counts, playerId, bucket) {
+    const pct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
+    if (pct <= 0) return 0
+    return Math.round((Number(counts?.[playerId]?.fieldTotal || 0) * pct) / 100)
   }
 
-  function bucketScore(counts, playerId, bucket) {
-    const targetPct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
-    const actual = Number(counts?.[playerId]?.[bucket] || 0)
-    const target = bucketTarget(counts, playerId, bucket)
-
-    if (targetPct <= 0) {
-      return actual * 500000
-    }
-
-    const shortfall = Math.max(0, target - actual)
-    const overage = Math.max(0, actual - target)
-
-    return shortfall * 900000 + overage * 700000
-  }
-
-  function affectedScore(counts, affected) {
-    const seen = new Set()
+  function totalScore(counts) {
     let score = 0
 
-    affected.forEach(([playerId, bucket]) => {
-      const key = `${playerId}-${bucket}`
-      if (seen.has(key)) return
-      seen.add(key)
-      score += bucketScore(counts, playerId, bucket)
+    playerIds.forEach((id) => {
+      BUCKETS.forEach((bucket) => {
+        const pct = Number(priorityValue(priorityMap, id, bucket) || 0)
+        const actual = Number(counts?.[id]?.[bucket] || 0)
+        const target = targetFor(counts, id, bucket)
+
+        if (pct <= 0) {
+          score += actual * 900000
+          return
+        }
+
+        const diff = actual - target
+        score += Math.abs(diff) * 1000000
+
+        if (diff > 0) score += diff * 350000
+        if (diff < 0) score += Math.abs(diff) * 500000
+      })
     })
 
     return score
   }
 
-  function moveCount(counts, playerId, bucket, amount) {
-    counts[playerId][bucket] = Number(counts[playerId][bucket] || 0) + amount
-  }
-
   let changed = true
   let guard = 0
 
-  while (changed && guard < 100) {
+  while (changed && guard < 250) {
     changed = false
     guard += 1
 
-    const counts = buildCounts()
+    const baseCounts = buildCounts()
+    const baseScore = totalScore(baseCounts)
+
     let bestSwap = null
-    let bestGain = 0
+    let bestScore = baseScore
 
     for (let inning = 1; inning <= innings; inning += 1) {
-      for (let aIndex = 0; aIndex < playerIds.length; aIndex += 1) {
-        for (let bIndex = aIndex + 1; bIndex < playerIds.length; bIndex += 1) {
-          const playerA = playerIds[aIndex]
-          const playerB = playerIds[bIndex]
+      for (let a = 0; a < playerIds.length; a += 1) {
+        for (let b = a + 1; b < playerIds.length; b += 1) {
+          const playerA = playerIds[a]
+          const playerB = playerIds[b]
 
           if (lockedValue(lineup, playerA, inning)) continue
           if (lockedValue(lineup, playerB, inning)) continue
@@ -1839,38 +1839,20 @@ export function rebalanceTowardPriorityTargets({
 
           if (!FIELD_POSITIONS.includes(posA)) continue
           if (!FIELD_POSITIONS.includes(posB)) continue
-
-          const bucketA = positionBucket(posA)
-          const bucketB = positionBucket(posB)
-
-          if (bucketA === bucketB) continue
+          if (positionBucket(posA) === positionBucket(posB)) continue
           if (!allowedAt(playerA, posB)) continue
           if (!allowedAt(playerB, posA)) continue
 
-          const affected = [
-            [playerA, bucketA],
-            [playerA, bucketB],
-            [playerB, bucketA],
-            [playerB, bucketB],
-          ]
+          lineup.cells[playerA][inning] = posB
+          lineup.cells[playerB][inning] = posA
 
-          const before = affectedScore(counts, affected)
+          const nextScore = totalScore(buildCounts())
 
-          moveCount(counts, playerA, bucketA, -1)
-          moveCount(counts, playerA, bucketB, 1)
-          moveCount(counts, playerB, bucketB, -1)
-          moveCount(counts, playerB, bucketA, 1)
+          lineup.cells[playerA][inning] = posA
+          lineup.cells[playerB][inning] = posB
 
-          const after = affectedScore(counts, affected)
-          const gain = before - after
-
-          moveCount(counts, playerA, bucketA, 1)
-          moveCount(counts, playerA, bucketB, -1)
-          moveCount(counts, playerB, bucketB, 1)
-          moveCount(counts, playerB, bucketA, -1)
-
-          if (gain > bestGain) {
-            bestGain = gain
+          if (nextScore < bestScore) {
+            bestScore = nextScore
             bestSwap = { inning, playerA, playerB, posA, posB }
           }
         }
