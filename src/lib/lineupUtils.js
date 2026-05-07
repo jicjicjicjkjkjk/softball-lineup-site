@@ -104,7 +104,6 @@ function clone(obj) {
   return JSON.parse(JSON.stringify(obj))
 }
 
-
 export function blankLineup(playerIds, innings = 6, availablePlayerIds = playerIds) {
   const cells = {}
   const battingOrder = {}
