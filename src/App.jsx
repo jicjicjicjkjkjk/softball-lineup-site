@@ -1,6 +1,8 @@
 // FILE: src/app.jsx
 
 import { useEffect, useMemo, useState } from 'react'
+import { useTrackingFilters } from './hooks/useTrackingFilters'
+import { useAppOptions } from './hooks/useAppOptions'
 import { supabase } from './lib/supabase'
 import {
   PRIORITY_POSITIONS,
@@ -93,26 +95,6 @@ function dbReady() {
   return Boolean(supabase)
 }
 
-function buildDefaultOption(label, category, sortOrder = 999) {
-  return {
-    id: `${category}-${label}`,
-    category,
-    label,
-    value: label,
-    sort_order: sortOrder,
-    is_active: true,
-  }
-}
-
-const defaultTrackingFilters = {
-  seasons: [],
-  gameTypes: [],
-  gameStatuses: [],
-  lineupStates: ['Locked'],
-  dateFrom: '',
-  dateTo: '',
-}
-
 export default function App() {
   const [page, setPage] = useState('games')
 
@@ -171,28 +153,10 @@ export default function App() {
     status: [],
   })
 
-  const [trackingFilters, setTrackingFilters] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem('softball-lineup-tracking-filters')
-      const parsed = saved ? JSON.parse(saved) : {}
-      const savedLineupStates = Array.isArray(parsed?.lineupStates)
-        ? parsed.lineupStates.filter((x) => ['Locked', 'Saved', 'Empty'].includes(x))
-        : []
-
-      return {
-        ...defaultTrackingFilters,
-        ...(parsed && typeof parsed === 'object' ? parsed : {}),
-        seasons: Array.isArray(parsed?.seasons) ? parsed.seasons : [],
-        gameTypes: Array.isArray(parsed?.gameTypes) ? parsed.gameTypes : [],
-        gameStatuses: Array.isArray(parsed?.gameStatuses) ? parsed.gameStatuses : [],
-        lineupStates: savedLineupStates.length
-          ? savedLineupStates
-          : defaultTrackingFilters.lineupStates,
-      }
-    } catch {
-      return defaultTrackingFilters
-    }
-  })
+  const {
+  trackingFilters,
+  setTrackingFilters,
+} = useTrackingFilters()
 
   const [attendanceDate, setAttendanceDate] = useState('')
   const [attendanceSeason, setAttendanceSeason] = useState(ATTENDANCE_SEASON_OPTIONS[0])
@@ -240,72 +204,22 @@ export default function App() {
     return true
   }
 
-  async function loadAppOptions() {
-    const res = await supabase
-      .from('app_options')
-      .select('id, category, value, label, sort_order, is_active, is_default')
-      .order('category', { ascending: true })
-      .order('sort_order', { ascending: true })
-
-    if (res.error) {
-      setAppError(res.error.message)
-      return
-    }
-
-    const next = { season: [], game_type: [], status: [] }
-    ;(res.data || []).forEach((row) => {
-      if (!next[row.category]) next[row.category] = []
-      next[row.category].push(row)
-    })
-
-    setAppOptions(next)
-  }
-
-  async function addAppOption(option) {
-    const res = await supabase.from('app_options').insert(option)
-    if (res.error) return setAppError(res.error.message)
-    await loadAppOptions()
-  }
-
-  async function updateAppOption(id, updates) {
-    const res = await supabase.from('app_options').update(updates).eq('id', id)
-    if (res.error) return setAppError(res.error.message)
-    await loadAppOptions()
-  }
-
-  const seasonOptions = useMemo(() => {
-    const saved = (appOptions.season || []).filter((x) => x.is_active)
-    return saved.length
-      ? saved
-      : [
-          buildDefaultOption('Fall', 'season', 1),
-          buildDefaultOption('Winter', 'season', 2),
-          buildDefaultOption('Spring', 'season', 3),
-        ]
-  }, [appOptions])
-
-  const gameTypeOptions = useMemo(() => {
-    const saved = (appOptions.game_type || []).filter((x) => x.is_active)
-    return saved.length
-      ? saved
-      : (GAME_TYPES || []).map((label, idx) => buildDefaultOption(label, 'game_type', idx + 1))
-  }, [appOptions])
-
-  const statusOptions = useMemo(() => {
-    const saved = (appOptions.status || []).filter((x) => x.is_active)
-    return saved.length
-      ? saved
-      : [
-          buildDefaultOption('Planned', 'status', 1),
-          buildDefaultOption('Complete', 'status', 2),
-          buildDefaultOption('Cancelled', 'status', 3),
-        ]
-  }, [appOptions])
-
-  const defaultSeasonOption = useMemo(() => seasonOptions.find((x) => x.is_default), [seasonOptions])
-  const defaultGameTypeOption = useMemo(() => gameTypeOptions.find((x) => x.is_default), [gameTypeOptions])
-  const defaultStatusOption = useMemo(() => statusOptions.find((x) => x.is_default), [statusOptions])
-
+const {
+  loadAppOptions,
+  addAppOption,
+  updateAppOption,
+  seasonOptions,
+  gameTypeOptions,
+  statusOptions,
+  defaultSeasonOption,
+  defaultGameTypeOption,
+  defaultStatusOption,
+} = useAppOptions({
+  appOptions,
+  setAppOptions,
+  setAppError,
+})
+  
   async function persistLineup(gameId, lineup, nextLocked = null) {
     const existing = await supabase
       .from('game_lineups')
@@ -534,11 +448,6 @@ export default function App() {
     loadAll()
   }, [])
 
-  useEffect(() => {
-    try {
-      sessionStorage.setItem('softball-lineup-tracking-filters', JSON.stringify(trackingFilters))
-    } catch {}
-  }, [trackingFilters])
 
   useEffect(() => {
     if (loading || !lineupSetterStateLoaded || !dbReady()) return
