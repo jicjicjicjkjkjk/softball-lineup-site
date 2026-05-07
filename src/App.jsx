@@ -1,6 +1,6 @@
 // FILE: src/app.jsx
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTrackingFilters } from './hooks/useTrackingFilters'
 import { useAppOptions } from './hooks/useAppOptions'
 import { useAppData } from './hooks/useAppData'
@@ -13,13 +13,9 @@ import { supabase } from './lib/supabase'
 import {
   PRIORITY_POSITIONS,
   ALLOWED_POSITIONS,
-  GAME_TYPES,
   pk,
   blankLineup,
   requiredOutsForGame,
-  computeTotals,
-  addTotals,
-  buildOptimizedLineup,
   inningStatus,
 } from './lib/lineupUtils'
 
@@ -35,35 +31,13 @@ import Sidebar from './Components/Sidebar'
 import AdminPage from './Pages/AdminPage'
 import OptimizerInputsPage from './Pages/OptimizerInputsPage'
 
+import { nextSort } from './lib/appHelpers'
 import {
-  nextSort,
-  sortRows,
-  getNextGameOrder,
-  compareGamesAsc,
-  buildBattingOrderMatrix,
-  buildSitOutSummary,
-  buildPlayerSitOuts,
-  buildPositionByPlayer,
-} from './lib/appHelpers'
-import { buildCumulativeSitOutRows } from './lib/sitOutHelpers'
-import {
-  TEAM_ID,
   ATTENDANCE_SEASON_OPTIONS,
   ATTENDANCE_TYPE_OPTIONS,
   ATTENDANCE_SURFACE_OPTIONS,
 } from './lib/constants'
-import { normalizePriorityValue } from './lib/positionInputHelpers'
-import {
-  buildCurrentPlanLineupsByGame,
-  getActivePlayerIds,
-  getNormalizedLineupForGame,
-  getOrderedOptimizerGames,
-  buildEmptyOutCounts,
-  addLineupOutsToPlanCounts,
-  buildBatchCurrentOutsFromLineups,
-  getOtherPreviewLineups,
-  calculateTotalsBeforeCurrentGame,
-} from './lib/optimizerPlanHelpers'
+import { getActivePlayerIds } from './lib/optimizerPlanHelpers'
 import {
   copyLineupForGame,
   clearLineupContents,
@@ -81,20 +55,6 @@ import {
   updateLineupBattingOrder,
   removeInningFromSavedLineup,
 } from './lib/lineupEditHelpers'
-import {
-  buildOptimizerImportableGames,
-  buildGameDetailImportableGames,
-  buildActiveOptimizerProfile,
-  buildActiveOptimizerProfileRules,
-} from './lib/optimizerViewHelpers'
-import {
-  buildAttendanceTotals,
-  buildAttendanceBreakdownByPlayer,
-} from './lib/attendanceHelpers'
-
-function dbReady() {
-  return Boolean(supabase)
-}
 
 export default function App() {
   const [page, setPage] = useState('games')
