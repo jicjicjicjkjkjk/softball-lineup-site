@@ -1,4 +1,10 @@
-import { pk, computeTotals, addTotals, buildOptimizedLineup } from '../lib/lineupUtils'
+import {
+  pk,
+  computeTotals,
+  addTotals,
+  buildOptimizedLineup,
+  rebalanceTowardPriorityTargets,
+} from '../lib/lineupUtils'
 import {
   getNormalizedLineupForGame,
   getOrderedOptimizerGames,
@@ -116,6 +122,36 @@ export function useOptimizerActions({
         persistLineup(gameId, optimized)
         rollingTotals = addTotals(rollingTotals, computeTotals([optimized], players), players)
       })
+
+            for (let pass = 0; pass < 4; pass += 1) {
+        orderedGames.forEach((game) => {
+          const gameId = pk(game.id)
+          if (lineupLockedByGame[gameId]) return
+          if (!next[gameId]) return
+
+          const otherLineups = Object.entries(next)
+            .filter(([otherGameId]) => otherGameId !== gameId)
+            .map(([, lineup]) => lineup)
+            .filter(Boolean)
+
+          const totalsBeforeThisLineup = addTotals(
+            lineupSetterFilteredTotals,
+            computeTotals(otherLineups, players),
+            players
+          )
+
+          next[gameId] = rebalanceTowardPriorityTargets({
+            lineup: next[gameId],
+            players,
+            fitMap: fitByPlayer,
+            priorityMap: priorityByPlayer,
+            totalsBefore: totalsBeforeThisLineup,
+            optimizerProfileRules: activeOptimizerProfileRules,
+          })
+
+          persistLineup(gameId, next[gameId])
+        })
+      }
 
       setOptimizerPreviewByGame((current) => ({ ...current, ...next }))
     } catch (error) {
