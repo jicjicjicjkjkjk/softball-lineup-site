@@ -1729,6 +1729,163 @@ function forceFillAllPositions({
   return lineup
 }
 
+function rebalanceTowardPriorityTargets({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules = {},
+}) {
+  const innings = Number(lineup?.innings || 0)
+  const playerIds = (players || []).map((player) => pk(player.id))
+
+  function allowedAt(playerId, position) {
+    const rule = getPositionRule(optimizerProfileRules, position)
+    const fit = normalizeFit(fitTier(fitMap, playerId, position))
+    return fitAllowedByRule(rule, fit)
+  }
+
+  function buildCounts() {
+    const counts = {}
+
+    playerIds.forEach((id) => {
+      counts[id] = {
+        P: 0,
+        C: 0,
+        '1B': 0,
+        '2B': 0,
+        '3B': 0,
+        SS: 0,
+        OF: 0,
+        fieldTotal: 0,
+      }
+    })
+
+    for (let inning = 1; inning <= innings; inning += 1) {
+      playerIds.forEach((id) => {
+        const position = lineup?.cells?.[id]?.[inning] || ''
+        if (!FIELD_POSITIONS.includes(position)) return
+
+        const bucket = positionBucket(position)
+        counts[id][bucket] = Number(counts[id][bucket] || 0) + 1
+        counts[id].fieldTotal += 1
+      })
+    }
+
+    return counts
+  }
+
+  function bucketTarget(counts, playerId, bucket) {
+    const targetPct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
+    return Math.round((Number(counts?.[playerId]?.fieldTotal || 0) * targetPct) / 100)
+  }
+
+  function bucketScore(counts, playerId, bucket) {
+    const targetPct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
+    const actual = Number(counts?.[playerId]?.[bucket] || 0)
+    const target = bucketTarget(counts, playerId, bucket)
+
+    if (targetPct <= 0) {
+      return actual * 500000
+    }
+
+    const shortfall = Math.max(0, target - actual)
+    const overage = Math.max(0, actual - target)
+
+    return shortfall * 900000 + overage * 700000
+  }
+
+  function affectedScore(counts, affected) {
+    const seen = new Set()
+    let score = 0
+
+    affected.forEach(([playerId, bucket]) => {
+      const key = `${playerId}-${bucket}`
+      if (seen.has(key)) return
+      seen.add(key)
+      score += bucketScore(counts, playerId, bucket)
+    })
+
+    return score
+  }
+
+  function moveCount(counts, playerId, bucket, amount) {
+    counts[playerId][bucket] = Number(counts[playerId][bucket] || 0) + amount
+  }
+
+  let changed = true
+  let guard = 0
+
+  while (changed && guard < 100) {
+    changed = false
+    guard += 1
+
+    const counts = buildCounts()
+    let bestSwap = null
+    let bestGain = 0
+
+    for (let inning = 1; inning <= innings; inning += 1) {
+      for (let aIndex = 0; aIndex < playerIds.length; aIndex += 1) {
+        for (let bIndex = aIndex + 1; bIndex < playerIds.length; bIndex += 1) {
+          const playerA = playerIds[aIndex]
+          const playerB = playerIds[bIndex]
+
+          if (lockedValue(lineup, playerA, inning)) continue
+          if (lockedValue(lineup, playerB, inning)) continue
+
+          const posA = lineup?.cells?.[playerA]?.[inning] || ''
+          const posB = lineup?.cells?.[playerB]?.[inning] || ''
+
+          if (!FIELD_POSITIONS.includes(posA)) continue
+          if (!FIELD_POSITIONS.includes(posB)) continue
+
+          const bucketA = positionBucket(posA)
+          const bucketB = positionBucket(posB)
+
+          if (bucketA === bucketB) continue
+          if (!allowedAt(playerA, posB)) continue
+          if (!allowedAt(playerB, posA)) continue
+
+          const affected = [
+            [playerA, bucketA],
+            [playerA, bucketB],
+            [playerB, bucketA],
+            [playerB, bucketB],
+          ]
+
+          const before = affectedScore(counts, affected)
+
+          moveCount(counts, playerA, bucketA, -1)
+          moveCount(counts, playerA, bucketB, 1)
+          moveCount(counts, playerB, bucketB, -1)
+          moveCount(counts, playerB, bucketA, 1)
+
+          const after = affectedScore(counts, affected)
+          const gain = before - after
+
+          moveCount(counts, playerA, bucketA, 1)
+          moveCount(counts, playerA, bucketB, -1)
+          moveCount(counts, playerB, bucketB, 1)
+          moveCount(counts, playerB, bucketA, -1)
+
+          if (gain > bestGain) {
+            bestGain = gain
+            bestSwap = { inning, playerA, playerB, posA, posB }
+          }
+        }
+      }
+    }
+
+    if (bestSwap) {
+      lineup.cells[bestSwap.playerA][bestSwap.inning] = bestSwap.posB
+      lineup.cells[bestSwap.playerB][bestSwap.inning] = bestSwap.posA
+      changed = true
+    }
+  }
+
+  return lineup
+}
+
 export function buildOptimizedLineup({
   game,
   players,
@@ -1982,6 +2139,22 @@ if (optimizerProfile?.min_positions_mode === 'must') {
     optimizerProfileRules,
   })
 }
+
+rebalanceTowardPriorityTargets({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
+
+repairMissingAndDuplicatePositions({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
 
 lineup.validationIssues = validateLineup({
   lineup,
