@@ -34,6 +34,7 @@ import OptimizerInputsPage from './Pages/OptimizerInputsPage'
 
 import { nextSort } from './lib/appHelpers'
 import {
+  TEAM_ID,
   ATTENDANCE_SEASON_OPTIONS,
   ATTENDANCE_TYPE_OPTIONS,
   ATTENDANCE_SURFACE_OPTIONS,
@@ -88,6 +89,7 @@ export default function App() {
     setAttendanceByEvent,
     optimizerProfiles,
     optimizerProfileRules,
+    lineupSetterStateLoaded,
     loading,
     loadAll,
   } = useAppData({
@@ -407,6 +409,25 @@ const {
     setOptimizerPreviewByGame,
     persistLineup,
   })
+
+useEffect(() => {
+  if (!lineupSetterStateLoaded) return
+
+  async function saveLineupSetterState() {
+    const res = await supabase.from('lineup_setter_state').upsert(
+      {
+        team_id: TEAM_ID,
+        batch_game_ids: optimizerBatchGameIds.map(pk),
+        focus_game_id: optimizerFocusGameId || null,
+      },
+      { onConflict: 'team_id' }
+    )
+
+    if (res.error) setAppError(res.error.message)
+  }
+
+  saveLineupSetterState()
+}, [lineupSetterStateLoaded, optimizerBatchGameIds, optimizerFocusGameId, setAppError])
   
   function updatePreview(gameId, updater) {
     if (lineupLockedByGame[pk(gameId)]) return setAppError('This lineup is locked. Unlock it before editing.')
