@@ -287,6 +287,74 @@ const {
   newPlayerActive,
   setNewPlayerActive,
 })
+
+  const {
+    updatePriorityLocal,
+    updateFitLocal,
+    persistPriority,
+    persistFitTier,
+  } = usePositionActions({
+    setAppError,
+    setPriorityByPlayer,
+    setFitByPlayer,
+  })
+
+  async function persistLineup(gameId, lineup, nextLocked = null) {
+    const existing = await supabase
+      .from('game_lineups')
+      .select('id, lineup_locked')
+      .eq('game_id', gameId)
+      .eq('lineup_name', 'Main')
+      .maybeSingle()
+
+    if (existing.error) {
+      setAppError(existing.error.message)
+      return false
+    }
+
+    const lockedValue =
+      nextLocked === null
+        ? existing.data?.lineup_locked === true || lineupLockedByGame[pk(gameId)] === true
+        : nextLocked
+
+    const payload = {
+      lineup_data: lineup,
+      optimizer_meta: {
+        innings: lineup.innings,
+        availablePlayerIds: lineup.availablePlayerIds,
+      },
+      lineup_locked: lockedValue,
+    }
+
+    const res = existing.data?.id
+      ? await supabase.from('game_lineups').update(payload).eq('id', existing.data.id)
+      : await supabase.from('game_lineups').insert({
+          game_id: gameId,
+          lineup_name: 'Main',
+          ...payload,
+        })
+
+    if (res.error) {
+      setAppError(res.error.message)
+      return false
+    }
+
+    setLineupsByGame((current) => ({
+      ...current,
+      [pk(gameId)]: JSON.parse(JSON.stringify(lineup)),
+    }))
+
+    setLineupLockedByGame((current) => ({
+      ...current,
+      [pk(gameId)]: lockedValue,
+    }))
+
+    return true
+  }
+
+  function autoSave(gameId, lineup) {
+    persistLineup(gameId, lineup)
+  }
   
   async function addGame(date, opponent, gameType, season) {
     const nextOrder = getNextGameOrder(games)
@@ -407,87 +475,6 @@ const {
       return next
     })
     setOptimizerBatchGameIds((current) => current.filter((id) => pk(id) !== pk(gameId)))
-  }
-
-    const {
-    updatePriorityLocal,
-    updateFitLocal,
-  } = usePositionActions({
-    setPriorityByPlayer,
-    setFitByPlayer,
-  })
-
-  async function persistPriority(playerId, position, value) {
-    const cleanedValue = normalizePriorityValue(value)
-
-    if (cleanedValue === '') {
-      const del = await supabase
-        .from('player_position_preferences')
-        .delete()
-        .eq('player_id', playerId)
-        .eq('position', position)
-
-      if (del.error) return setAppError(del.error.message)
-      updatePriorityLocal(playerId, position, '')
-      return
-    }
-
-    const up = await supabase.from('player_position_preferences').upsert(
-      {
-        player_id: playerId,
-        position,
-        priority_pct: cleanedValue,
-      },
-      { onConflict: 'player_id,position' }
-    )
-
-    if (up.error) return setAppError(up.error.message)
-    updatePriorityLocal(playerId, position, cleanedValue)
-  }
-
-  async function persistFitTier(playerId, position, tier) {
-    const cleanedTier = tier || 'no'
-
-    if (position === 'OF') {
-      const results = await Promise.all(
-        ['LF', 'CF', 'RF'].map((ofPos) =>
-          supabase.from('player_allowed_positions').upsert(
-            {
-              player_id: playerId,
-              position: ofPos,
-              fit_tier: cleanedTier,
-            },
-            { onConflict: 'player_id,position' }
-          )
-        )
-      )
-
-      const error = results.find((res) => res.error)?.error
-      if (error) return setAppError(error.message)
-
-      setFitByPlayer((current) => ({
-        ...current,
-        [pk(playerId)]: {
-          ...(current[pk(playerId)] || {}),
-          LF: cleanedTier,
-          CF: cleanedTier,
-          RF: cleanedTier,
-        },
-      }))
-      return
-    }
-
-    const up = await supabase.from('player_allowed_positions').upsert(
-      {
-        player_id: playerId,
-        position,
-        fit_tier: cleanedTier,
-      },
-      { onConflict: 'player_id,position' }
-    )
-
-    if (up.error) return setAppError(up.error.message)
-    updateFitLocal(playerId, position, cleanedTier)
   }
 
   function addExistingGameToBatch() {
