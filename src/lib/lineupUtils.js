@@ -1869,6 +1869,191 @@ export function rebalanceTowardPriorityTargets({
   return lineup
 }
 
+export function rebalancePlanTowardPriorityTargets({
+  lineupsByGame,
+  games,
+  players,
+  fitMap,
+  priorityMap,
+  totalsBefore = {},
+  lineupLockedByGame = {},
+  optimizerProfileRules = {},
+}) {
+  const next = clone(lineupsByGame || {})
+  const playerIds = (players || []).map((player) => pk(player.id))
+  const gameIds = (games || []).map((game) => pk(game.id))
+
+  function allowedAt(playerId, position) {
+    const rule = getPositionRule(optimizerProfileRules, position)
+    const fit = normalizeFit(fitTier(fitMap, playerId, position))
+    return fitAllowedByRule(rule, fit)
+  }
+
+  function buildCounts() {
+    const counts = {}
+
+    playerIds.forEach((id) => {
+      counts[id] = {
+        P: Number(totalsBefore?.[id]?.P || 0),
+        C: Number(totalsBefore?.[id]?.C || 0),
+        '1B': Number(totalsBefore?.[id]?.['1B'] || 0),
+        '2B': Number(totalsBefore?.[id]?.['2B'] || 0),
+        '3B': Number(totalsBefore?.[id]?.['3B'] || 0),
+        SS: Number(totalsBefore?.[id]?.SS || 0),
+        OF: Number(totalsBefore?.[id]?.OF || 0),
+        fieldTotal: Number(totalsBefore?.[id]?.fieldTotal || 0),
+      }
+    })
+
+    gameIds.forEach((gameId) => {
+      const lineup = next[gameId]
+      if (!lineup) return
+
+      for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+        playerIds.forEach((id) => {
+          const position = lineup?.cells?.[id]?.[inning] || ''
+          if (!FIELD_POSITIONS.includes(position)) return
+
+          const bucket = positionBucket(position)
+          counts[id][bucket] = Number(counts[id][bucket] || 0) + 1
+          counts[id].fieldTotal += 1
+        })
+      }
+    })
+
+    return counts
+  }
+
+  function bucketTarget(counts, playerId, bucket) {
+    const targetPct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
+    return Math.round((Number(counts?.[playerId]?.fieldTotal || 0) * targetPct) / 100)
+  }
+
+  function bucketScore(counts, playerId, bucket) {
+    const targetPct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
+    const actual = Number(counts?.[playerId]?.[bucket] || 0)
+    const target = bucketTarget(counts, playerId, bucket)
+
+    if (targetPct <= 0) {
+      return actual * 600000
+    }
+
+    const shortfall = Math.max(0, target - actual)
+    const overage = Math.max(0, actual - target)
+
+    return shortfall * 1200000 + overage * 900000
+  }
+
+  function totalPlanScore(counts) {
+    let score = 0
+
+    playerIds.forEach((playerId) => {
+      PRIORITY_POSITIONS.forEach((bucket) => {
+        score += bucketScore(counts, playerId, bucket)
+      })
+    })
+
+    return score
+  }
+
+  function moveCount(counts, playerId, bucket, amount) {
+    counts[playerId][bucket] = Number(counts[playerId][bucket] || 0) + amount
+  }
+
+  let changed = true
+  let guard = 0
+
+  while (changed && guard < 250) {
+    changed = false
+    guard += 1
+
+    const counts = buildCounts()
+    const beforeScore = totalPlanScore(counts)
+
+    let bestSwap = null
+    let bestGain = 0
+
+    gameIds.forEach((gameId) => {
+      if (lineupLockedByGame?.[gameId]) return
+
+      const lineup = next[gameId]
+      if (!lineup) return
+
+      for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+        for (let aIndex = 0; aIndex < playerIds.length; aIndex += 1) {
+          for (let bIndex = aIndex + 1; bIndex < playerIds.length; bIndex += 1) {
+            const playerA = playerIds[aIndex]
+            const playerB = playerIds[bIndex]
+
+            if (lockedValue(lineup, playerA, inning)) continue
+            if (lockedValue(lineup, playerB, inning)) continue
+
+            const posA = lineup?.cells?.[playerA]?.[inning] || ''
+            const posB = lineup?.cells?.[playerB]?.[inning] || ''
+
+            if (!FIELD_POSITIONS.includes(posA)) continue
+            if (!FIELD_POSITIONS.includes(posB)) continue
+
+            const bucketA = positionBucket(posA)
+            const bucketB = positionBucket(posB)
+
+            if (bucketA === bucketB) continue
+            if (!allowedAt(playerA, posB)) continue
+            if (!allowedAt(playerB, posA)) continue
+
+            moveCount(counts, playerA, bucketA, -1)
+            moveCount(counts, playerA, bucketB, 1)
+            moveCount(counts, playerB, bucketB, -1)
+            moveCount(counts, playerB, bucketA, 1)
+
+            const afterScore = totalPlanScore(counts)
+            const gain = beforeScore - afterScore
+
+            moveCount(counts, playerA, bucketA, 1)
+            moveCount(counts, playerA, bucketB, -1)
+            moveCount(counts, playerB, bucketB, 1)
+            moveCount(counts, playerB, bucketA, -1)
+
+            if (gain > bestGain) {
+              bestGain = gain
+              bestSwap = { gameId, inning, playerA, playerB, posA, posB }
+            }
+          }
+        }
+      }
+    })
+
+    if (bestSwap) {
+      const lineup = next[bestSwap.gameId]
+      lineup.cells[bestSwap.playerA][bestSwap.inning] = bestSwap.posB
+      lineup.cells[bestSwap.playerB][bestSwap.inning] = bestSwap.posA
+      changed = true
+    }
+  }
+
+  gameIds.forEach((gameId) => {
+    const lineup = next[gameId]
+    if (!lineup) return
+
+    repairMissingAndDuplicatePositions({
+      lineup,
+      players,
+      fitMap,
+      priorityMap,
+      optimizerProfileRules,
+    })
+
+    lineup.validationIssues = validateLineup({
+      lineup,
+      players,
+      fitMap,
+      optimizerProfileRules,
+    })
+  })
+
+  return next
+}
+
 export function buildOptimizedLineup({
   game,
   players,
@@ -1881,6 +2066,7 @@ export function buildOptimizedLineup({
   batchCurrentOuts = {},
   optimizerProfile = null,
   optimizerProfileRules = {},
+  skipSingleGameRebalance = false,
 }) {
   const safeAvailable = (availablePlayerIds || []).map(pk)
 
@@ -2123,14 +2309,16 @@ if (optimizerProfile?.min_positions_mode === 'must') {
   })
 }
 
-rebalanceTowardPriorityTargets({
-  lineup,
-  players,
-  fitMap,
-  priorityMap,
-  totalsBefore,
-  optimizerProfileRules,
-})
+if (!skipSingleGameRebalance) {
+  rebalanceTowardPriorityTargets({
+    lineup,
+    players,
+    fitMap,
+    priorityMap,
+    totalsBefore,
+    optimizerProfileRules,
+  })
+}
 
 repairMissingAndDuplicatePositions({
   lineup,
