@@ -1729,7 +1729,7 @@ function forceFillAllPositions({
   return lineup
 }
 
-function rebalanceTowardPriorityTargets({
+export function rebalanceTowardPriorityTargets({
   lineup,
   players,
   fitMap,
