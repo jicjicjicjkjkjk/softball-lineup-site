@@ -1,71 +1,88 @@
 import React from 'react'
 
+function cleanArray(value) {
+  return Array.isArray(value) ? value : []
+}
+
 export default function TrackingFilters({
-  trackingFilters,
+  trackingFilters = {},
   setTrackingFilters,
   seasonOptions = [],
   gameTypeOptions = [],
   statusOptions = [],
 }) {
+  const filters = {
+    seasons: cleanArray(trackingFilters.seasons),
+    gameTypes: cleanArray(trackingFilters.gameTypes),
+    gameStatuses: cleanArray(trackingFilters.gameStatuses),
+    lineupStates: cleanArray(trackingFilters.lineupStates),
+    dateFrom: trackingFilters.dateFrom || '',
+    dateTo: trackingFilters.dateTo || '',
+  }
+
+  function updateFilter(key, value) {
+    setTrackingFilters((current) => ({
+      ...current,
+      [key]: value,
+    }))
+  }
+
+  function selectedValues(e) {
+    return Array.from(e.target.selectedOptions, (option) => option.value)
+  }
+
+  function clearFilters() {
+    setTrackingFilters({
+      seasons: [],
+      gameTypes: [],
+      gameStatuses: [],
+      lineupStates: [],
+      dateFrom: '',
+      dateTo: '',
+    })
+  }
+
   return (
     <div className="card">
       <h3 style={{ marginTop: 0 }}>Filters</h3>
 
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        {/* Season */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 600 }}>Season</div>
           <select
             multiple
-            value={trackingFilters.seasons}
-            onChange={(e) =>
-              setTrackingFilters((f) => ({
-                ...f,
-                seasons: Array.from(e.target.selectedOptions, (o) => o.value),
-              }))
-            }
+            value={filters.seasons}
+            onChange={(e) => updateFilter('seasons', selectedValues(e))}
           >
             {seasonOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
+              <option key={opt.value || opt.label} value={opt.value || opt.label}>
+                {opt.label || opt.value}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Game Type */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 600 }}>Game Type</div>
           <select
             multiple
-            value={trackingFilters.gameTypes}
-            onChange={(e) =>
-              setTrackingFilters((f) => ({
-                ...f,
-                gameTypes: Array.from(e.target.selectedOptions, (o) => o.value),
-              }))
-            }
+            value={filters.gameTypes}
+            onChange={(e) => updateFilter('gameTypes', selectedValues(e))}
           >
             {gameTypeOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
+              <option key={opt.value || opt.label} value={opt.value || opt.label}>
+                {opt.label || opt.value}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Game Status */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 600 }}>Game Status</div>
           <select
             multiple
-            value={trackingFilters.gameStatuses || []}
-            onChange={(e) =>
-              setTrackingFilters((f) => ({
-                ...f,
-                gameStatuses: Array.from(e.target.selectedOptions, (o) => o.value),
-              }))
-            }
+            value={filters.gameStatuses}
+            onChange={(e) => updateFilter('gameStatuses', selectedValues(e))}
           >
             {statusOptions.map((opt) => (
               <option key={opt.value || opt.label} value={opt.value || opt.label}>
@@ -75,18 +92,12 @@ export default function TrackingFilters({
           </select>
         </div>
 
-        {/* Lineup State */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 600 }}>Lineup State</div>
           <select
             multiple
-            value={trackingFilters.lineupStates}
-            onChange={(e) =>
-              setTrackingFilters((f) => ({
-                ...f,
-                lineupStates: Array.from(e.target.selectedOptions, (o) => o.value),
-              }))
-            }
+            value={filters.lineupStates}
+            onChange={(e) => updateFilter('lineupStates', selectedValues(e))}
           >
             <option value="Locked">Locked</option>
             <option value="Saved">Saved</option>
@@ -94,51 +105,26 @@ export default function TrackingFilters({
           </select>
         </div>
 
-        {/* Date From */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 600 }}>Date From</div>
           <input
             type="date"
-            value={trackingFilters.dateFrom || ''}
-            onChange={(e) =>
-              setTrackingFilters((f) => ({
-                ...f,
-                dateFrom: e.target.value,
-              }))
-            }
+            value={filters.dateFrom}
+            onChange={(e) => updateFilter('dateFrom', e.target.value)}
           />
         </div>
 
-        {/* Date To */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 600 }}>Date To</div>
           <input
             type="date"
-            value={trackingFilters.dateTo || ''}
-            onChange={(e) =>
-              setTrackingFilters((f) => ({
-                ...f,
-                dateTo: e.target.value,
-              }))
-            }
+            value={filters.dateTo}
+            onChange={(e) => updateFilter('dateTo', e.target.value)}
           />
         </div>
 
-        {/* Clear */}
         <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-          <button
-            type="button"
-            onClick={() =>
-              setTrackingFilters({
-                seasons: [],
-                gameTypes: [],
-                gameStatuses: [],
-                lineupStates: ['Locked'],
-                dateFrom: '',
-                dateTo: '',
-              })
-            }
-          >
+          <button type="button" onClick={clearFilters}>
             Clear Filters
           </button>
         </div>
