@@ -167,6 +167,26 @@ export default function App() {
     status: [],
   })
 
+const {
+  loadAppOptions,
+  addAppOption,
+  updateAppOption,
+  seasonOptions,
+  gameTypeOptions,
+  statusOptions,
+  defaultSeasonOption,
+  defaultGameTypeOption,
+  defaultStatusOption,
+} = useAppOptions({
+  appOptions,
+  setAppOptions,
+  setAppError,
+})
+
+useEffect(() => {
+  loadAppOptions()
+}, [])
+  
   const {
   trackingFilters,
   setTrackingFilters,
