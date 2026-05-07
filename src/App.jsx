@@ -8,9 +8,10 @@ import {
   GAME_TYPES,
   pk,
   blankLineup,
+  normalizeLineup,
   requiredOutsForGame,
   computeTotals,
-  addTotals,  
+  addTotals,
   buildOptimizedLineup,
   inningStatus,
 } from './lib/lineupUtils'
@@ -18,6 +19,15 @@ import {
 import GamesPage from './Pages/GamesPage'
 import TrackingTable from './Components/TrackingTable'
 import AttendancePage from './Pages/AttendancePage'
+import PositioningPriorityPage from './Pages/PositioningPriorityPage'
+import GameDetailPage from './Pages/GameDetailPage'
+import LineupSetterPage from './Pages/LineupSetterPage'
+import TrackingPage from './Pages/TrackingPage'
+import LineupGrid from './Components/LineupGrid'
+import Sidebar from './Components/Sidebar'
+import AdminPage from './Pages/AdminPage'
+import OptimizerInputsPage from './Pages/OptimizerInputsPage'
+
 import {
   nextSort,
   sortRows,
@@ -30,26 +40,6 @@ import {
 } from './lib/appHelpers'
 import { buildCumulativeSitOutRows } from './lib/sitOutHelpers'
 import {
-  buildCurrentPlanLineupsByGame,
-  getActivePlayerIds,
-  getNormalizedLineupForGame,
-  getOrderedOptimizerGames,
-  buildEmptyOutCounts,
-  addLineupOutsToPlanCounts,
-  buildBatchCurrentOutsFromLineups,
-  getOtherPreviewLineups,
-  calculateTotalsBeforeCurrentGame,
-} from './lib/optimizerPlanHelpers'
-import PlayersPage from './Pages/PlayersPage'
-import PositioningPriorityPage from './Pages/PositioningPriorityPage'
-import GameDetailPage from './Pages/GameDetailPage'
-import LineupSetterPage from './Pages/LineupSetterPage'
-import TrackingPage from './Pages/TrackingPage'
-import LineupGrid from './Components/LineupGrid'
-import Sidebar from './Components/Sidebar'
-import AdminPage from './Pages/AdminPage'
-import OptimizerInputsPage from './Pages/OptimizerInputsPage'
-import {
   TEAM_ID,
   ATTENDANCE_SEASON_OPTIONS,
   ATTENDANCE_TYPE_OPTIONS,
@@ -61,7 +51,17 @@ import {
   normalizePriorityValue,
 } from './lib/positionInputHelpers'
 import {
-  getImportableGamesForGame as getImportableGamesForGameHelper,
+  buildCurrentPlanLineupsByGame,
+  getActivePlayerIds,
+  getNormalizedLineupForGame,
+  getOrderedOptimizerGames,
+  buildEmptyOutCounts,
+  addLineupOutsToPlanCounts,
+  buildBatchCurrentOutsFromLineups,
+  getOtherPreviewLineups,
+  calculateTotalsBeforeCurrentGame,
+} from './lib/optimizerPlanHelpers'
+import {
   copyLineupForGame,
   clearLineupContents,
   buildPreviewBaseLineup,
@@ -78,6 +78,16 @@ import {
   updateLineupBattingOrder,
   removeInningFromSavedLineup,
 } from './lib/lineupEditHelpers'
+import {
+  buildOptimizerImportableGames,
+  buildGameDetailImportableGames,
+  buildActiveOptimizerProfile,
+  buildActiveOptimizerProfileRules,
+} from './lib/optimizerViewHelpers'
+import {
+  buildAttendanceTotals,
+  buildAttendanceBreakdownByPlayer,
+} from './lib/attendanceHelpers'
 
 function dbReady() {
   return Boolean(supabase)
@@ -92,6 +102,15 @@ function buildDefaultOption(label, category, sortOrder = 999) {
     sort_order: sortOrder,
     is_active: true,
   }
+}
+
+const defaultTrackingFilters = {
+  seasons: [],
+  gameTypes: [],
+  gameStatuses: [],
+  lineupStates: ['Locked'],
+  dateFrom: '',
+  dateTo: '',
 }
 
 export default function App() {
@@ -119,7 +138,7 @@ export default function App() {
   const [optimizerProfiles, setOptimizerProfiles] = useState([])
   const [optimizerProfileRules, setOptimizerProfileRules] = useState({})
   const [lineupSetterStateLoaded, setLineupSetterStateLoaded] = useState(false)
-  
+
   const [newGameDate, setNewGameDate] = useState('')
   const [newGameOpponent, setNewGameOpponent] = useState('')
   const [newGameType, setNewGameType] = useState('')
@@ -134,7 +153,7 @@ export default function App() {
   const [newPlayerLastName, setNewPlayerLastName] = useState('')
   const [newPlayerNumber, setNewPlayerNumber] = useState('')
   const [newPlayerActive, setNewPlayerActive] = useState(true)
-  
+
   const [playerSort, setPlayerSort] = useState({ key: 'name', direction: 'asc' })
   const [gameSort, setGameSort] = useState({ key: 'date', direction: 'desc' })
   const [prioritySort, setPrioritySort] = useState({ key: 'name', direction: 'asc' })
@@ -144,6 +163,7 @@ export default function App() {
 
   const [optimizerImportSourceGameId, setOptimizerImportSourceGameId] = useState('')
   const [gameDetailImportSourceGameId, setGameDetailImportSourceGameId] = useState('')
+  const [trackingPlayerId, setTrackingPlayerId] = useState('')
 
   const [appOptions, setAppOptions] = useState({
     season: [],
@@ -151,52 +171,29 @@ export default function App() {
     status: [],
   })
 
-  const [trackingPlayerId, setTrackingPlayerId] = useState('')
+  const [trackingFilters, setTrackingFilters] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('softball-lineup-tracking-filters')
+      const parsed = saved ? JSON.parse(saved) : {}
+      const savedLineupStates = Array.isArray(parsed?.lineupStates)
+        ? parsed.lineupStates.filter((x) => ['Locked', 'Saved', 'Empty'].includes(x))
+        : []
 
-const defaultTrackingFilters = {
-  seasons: [],
-  gameTypes: [],
-  gameStatuses: [],
-  lineupStates: ['Locked'],
-  dateFrom: '',
-  dateTo: '',
-}
-
-const [trackingFilters, setTrackingFilters] = useState(() => {
-  try {
-    const saved = sessionStorage.getItem('softball-lineup-tracking-filters')
-    const parsed = saved ? JSON.parse(saved) : {}
-
-    const savedLineupStates = Array.isArray(parsed?.lineupStates)
-      ? parsed.lineupStates.filter((x) => ['Locked', 'Saved', 'Empty'].includes(x))
-      : []
-
-    return {
-      ...defaultTrackingFilters,
-      ...(parsed && typeof parsed === 'object' ? parsed : {}),
-      seasons: Array.isArray(parsed?.seasons) ? parsed.seasons : [],
-      gameTypes: Array.isArray(parsed?.gameTypes) ? parsed.gameTypes : [],
-      gameStatuses: Array.isArray(parsed?.gameStatuses) ? parsed.gameStatuses : [],
-      lineupStates: savedLineupStates.length ? savedLineupStates : defaultTrackingFilters.lineupStates,
+      return {
+        ...defaultTrackingFilters,
+        ...(parsed && typeof parsed === 'object' ? parsed : {}),
+        seasons: Array.isArray(parsed?.seasons) ? parsed.seasons : [],
+        gameTypes: Array.isArray(parsed?.gameTypes) ? parsed.gameTypes : [],
+        gameStatuses: Array.isArray(parsed?.gameStatuses) ? parsed.gameStatuses : [],
+        lineupStates: savedLineupStates.length
+          ? savedLineupStates
+          : defaultTrackingFilters.lineupStates,
+      }
+    } catch {
+      return defaultTrackingFilters
     }
-  } catch (error) {
-    console.error('Failed to load tracking filters from sessionStorage', error)
-    return defaultTrackingFilters
-  }
-})
+  })
 
-  useEffect(() => {
-  if (
-    trackingFilters.lineupStates?.length === 1 &&
-    trackingFilters.lineupStates[0] === 'Locked'
-  ) {
-    setTrackingFilters((current) => ({
-      ...current,
-      lineupStates: ['Locked'],
-    }))
-  }
-}, [])
-  
   const [attendanceDate, setAttendanceDate] = useState('')
   const [attendanceSeason, setAttendanceSeason] = useState(ATTENDANCE_SEASON_OPTIONS[0])
   const [attendanceType, setAttendanceType] = useState(ATTENDANCE_TYPE_OPTIONS[0])
@@ -205,118 +202,44 @@ const [trackingFilters, setTrackingFilters] = useState(() => {
 
   const activePlayers = useMemo(() => players.filter((p) => p.active !== false), [players])
 
-    function activePlayerIds() {
+  function activePlayerIds() {
     return getActivePlayerIds(activePlayers)
   }
-  
-function importLineupToPreview(targetGameId, sourceGameId) {
-  if (!targetGameId || !sourceGameId) return
 
-  const targetGame = games.find((game) => pk(game.id) === pk(targetGameId))
-
-  const sourceLineup =
-    optimizerPreviewByGame[pk(sourceGameId)] ||
-    lineupsByGame[pk(sourceGameId)]
-
-  if (!sourceLineup) {
-    setAppError('Selected source game does not have a lineup.')
-    return
+  function getGameLineupState(game) {
+    if (lineupLockedByGame[pk(game.id)]) return 'Locked'
+    if (lineupsByGame[pk(game.id)]) return 'Saved'
+    return 'Empty'
   }
 
-  const confirmed = window.confirm(
-    'Are you sure you want to import this lineup? This will overwrite the current game lineup.'
-  )
-  if (!confirmed) return
+  function gameMatchesFilters(game, filters) {
+    const seasons = filters?.seasons || []
+    const gameTypes = filters?.gameTypes || []
+    const gameStatuses = filters?.gameStatuses || []
+    const lineupStates = filters?.lineupStates || []
+    const dateFrom = filters?.dateFrom || ''
+    const dateTo = filters?.dateTo || ''
+    const gameDate = game?.date || ''
 
-  const copied = copyLineupForGame({
-    sourceLineup,
-    targetGame,
-    players,
-    activePlayerIds,
-  })
-
-  setOptimizerPreviewByGame((current) => ({
-    ...current,
-    [pk(targetGameId)]: copied,
-  }))
-}
-
-function importLineupToSaved(targetGameId, sourceGameId) {
-  if (!targetGameId || !sourceGameId) return
-
-  const targetGame = games.find((game) => pk(game.id) === pk(targetGameId))
-
-  const sourceLineup =
-    optimizerPreviewByGame[pk(sourceGameId)] ||
-    lineupsByGame[pk(sourceGameId)]
-
-  if (!sourceLineup) {
-    setAppError('Selected source game does not have a lineup.')
-    return
-  }
-
-  const confirmed = window.confirm(
-    'Are you sure you want to import this lineup? This will overwrite the current game lineup.'
-  )
-  if (!confirmed) return
-
-  const copied = copyLineupForGame({
-    sourceLineup,
-    targetGame,
-    players,
-    activePlayerIds,
-  })
-
-  setLineupsByGame((current) => ({
-    ...current,
-    [pk(targetGameId)]: copied,
-  }))
-
-  autoSave(targetGameId, copied)
-}
-  
-async function clearPreviewLineup(gameId) {
-  if (!gameId) return
-
-  if (lineupLockedByGame[pk(gameId)]) {
-    setAppError('Unlock the lineup before clearing it.')
-    return
-  }
-
-  const confirmed = window.confirm('Clear the lineup for this game?')
-  if (!confirmed) return
-
-  const source =
-    optimizerPreviewByGame[pk(gameId)] ||
-    lineupsByGame[pk(gameId)]
-
-  if (!source) return
-
-    const cleared = clearLineupContents(source, players)
-
-  setOptimizerPreviewByGame((current) => ({
-    ...current,
-    [pk(gameId)]: cleared,
-  }))
-
-  await persistLineup(gameId, cleared)
-}
-  
-function isCompleteLineup(lineup) {
-  if (!lineup) return false
-
-  const innings = lineup.innings || 0
-
-  for (let inning = 1; inning <= innings; inning++) {
-    const assigned = Object.values(lineup.cells || {}).filter(
-      (p) => p?.[inning]
+    return (
+      (!seasons.length || seasons.includes(game.season || '')) &&
+      (!gameTypes.length || gameTypes.includes(game.game_type || '')) &&
+      (!gameStatuses.length || gameStatuses.includes(game.status || '')) &&
+      (!lineupStates.length || lineupStates.includes(getGameLineupState(game))) &&
+      (!dateFrom || (gameDate && gameDate >= dateFrom)) &&
+      (!dateTo || (gameDate && gameDate <= dateTo))
     )
-    if (assigned.length === 0) return false
   }
 
-  return true
-}
-  
+  function isCompleteLineup(lineup) {
+    if (!lineup) return false
+    for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+      const assigned = Object.values(lineup.cells || {}).filter((p) => p?.[inning])
+      if (assigned.length === 0) return false
+    }
+    return true
+  }
+
   async function loadAppOptions() {
     const res = await supabase
       .from('app_options')
@@ -330,7 +253,6 @@ function isCompleteLineup(lineup) {
     }
 
     const next = { season: [], game_type: [], status: [] }
-
     ;(res.data || []).forEach((row) => {
       if (!next[row.category]) next[row.category] = []
       next[row.category].push(row)
@@ -341,98 +263,49 @@ function isCompleteLineup(lineup) {
 
   async function addAppOption(option) {
     const res = await supabase.from('app_options').insert(option)
-    if (res.error) {
-      setAppError(res.error.message)
-      return
-    }
+    if (res.error) return setAppError(res.error.message)
     await loadAppOptions()
   }
 
   async function updateAppOption(id, updates) {
     const res = await supabase.from('app_options').update(updates).eq('id', id)
-    if (res.error) {
-      setAppError(res.error.message)
-      return
-    }
+    if (res.error) return setAppError(res.error.message)
     await loadAppOptions()
   }
 
   const seasonOptions = useMemo(() => {
     const saved = (appOptions.season || []).filter((x) => x.is_active)
-    if (saved.length) return saved
-
-    return [
-      buildDefaultOption('Fall', 'season', 1),
-      buildDefaultOption('Winter', 'season', 2),
-      buildDefaultOption('Spring', 'season', 3),
-    ]
+    return saved.length
+      ? saved
+      : [
+          buildDefaultOption('Fall', 'season', 1),
+          buildDefaultOption('Winter', 'season', 2),
+          buildDefaultOption('Spring', 'season', 3),
+        ]
   }, [appOptions])
 
   const gameTypeOptions = useMemo(() => {
     const saved = (appOptions.game_type || []).filter((x) => x.is_active)
-    if (saved.length) return saved
-
-    return (GAME_TYPES || []).map((label, idx) =>
-      buildDefaultOption(label, 'game_type', idx + 1)
-    )
+    return saved.length
+      ? saved
+      : (GAME_TYPES || []).map((label, idx) => buildDefaultOption(label, 'game_type', idx + 1))
   }, [appOptions])
 
-  
   const statusOptions = useMemo(() => {
     const saved = (appOptions.status || []).filter((x) => x.is_active)
-    if (saved.length) return saved
-
-    return [
-      buildDefaultOption('Planned', 'status', 1),
-      buildDefaultOption('Complete', 'status', 2),
-      buildDefaultOption('Cancelled', 'status', 3),
-    ]
+    return saved.length
+      ? saved
+      : [
+          buildDefaultOption('Planned', 'status', 1),
+          buildDefaultOption('Complete', 'status', 2),
+          buildDefaultOption('Cancelled', 'status', 3),
+        ]
   }, [appOptions])
 
-  const defaultSeasonOption = useMemo(
-    () => (seasonOptions || []).find((x) => x.is_default),
-    [seasonOptions]
-  )
+  const defaultSeasonOption = useMemo(() => seasonOptions.find((x) => x.is_default), [seasonOptions])
+  const defaultGameTypeOption = useMemo(() => gameTypeOptions.find((x) => x.is_default), [gameTypeOptions])
+  const defaultStatusOption = useMemo(() => statusOptions.find((x) => x.is_default), [statusOptions])
 
-  const defaultGameTypeOption = useMemo(
-    () => (gameTypeOptions || []).find((x) => x.is_default),
-    [gameTypeOptions]
-  )
-
-  const defaultStatusOption = useMemo(
-    () => (statusOptions || []).find((x) => x.is_default),
-    [statusOptions]
-  )
-
-
-  function getGameLineupState(game) {
-    if (lineupLockedByGame[pk(game.id)]) return 'Locked'
-    if (lineupsByGame[pk(game.id)]) return 'Saved'
-    return 'Empty'
-  }
-
-  function gameMatchesFilters(game, filters) {
-  const seasons = filters?.seasons || []
-  const gameTypes = filters?.gameTypes || []
-  const gameStatuses = filters?.gameStatuses || []
-  const lineupStates = filters?.lineupStates || []
-  const dateFrom = filters?.dateFrom || ''
-  const dateTo = filters?.dateTo || ''
-
-  const gameDate = game?.date || ''
-
-  const seasonMatch = !seasons.length || seasons.includes(game.season || '')
-  const typeMatch = !gameTypes.length || gameTypes.includes(game.game_type || '')
-  const statusMatch = !gameStatuses.length || gameStatuses.includes(game.status || '')
-  const lineupStateMatch =
-    !lineupStates.length || lineupStates.includes(getGameLineupState(game))
-
-  const fromMatch = !dateFrom || (gameDate && gameDate >= dateFrom)
-  const toMatch = !dateTo || (gameDate && gameDate <= dateTo)
-
-  return seasonMatch && typeMatch && statusMatch && lineupStateMatch && fromMatch && toMatch
-}
-  
   async function persistLineup(gameId, lineup, nextLocked = null) {
     const existing = await supabase
       .from('game_lineups')
@@ -460,30 +333,18 @@ function isCompleteLineup(lineup) {
       lineup_locked: lockedValue,
     }
 
-    if (existing.data?.id) {
-      const updated = await supabase
-        .from('game_lineups')
-        .update(payload)
-        .eq('id', existing.data.id)
+    const res = existing.data?.id
+      ? await supabase.from('game_lineups').update(payload).eq('id', existing.data.id)
+      : await supabase.from('game_lineups').insert({
+          game_id: gameId,
+          lineup_name: 'Main',
+          ...payload,
+        })
 
-      if (updated.error) {
-        setAppError(updated.error.message)
-        return false
-      }
-    } else {
-      const inserted = await supabase.from('game_lineups').insert({
-        game_id: gameId,
-        lineup_name: 'Main',
-        ...payload,
-      })
-
-      if (inserted.error) {
-        setAppError(inserted.error.message)
-        return false
-      }
+    if (res.error) {
+      setAppError(res.error.message)
+      return false
     }
-
-    
 
     setLineupsByGame((current) => ({
       ...current,
@@ -514,8 +375,8 @@ function isCompleteLineup(lineup) {
         .select('id, name, last_name, jersey_number, active')
         .eq('team_id', TEAM_ID)
         .order('name', { ascending: true })
-
       if (playersRes.error) throw playersRes.error
+
       const loadedPlayers = playersRes.data || []
       setPlayers(loadedPlayers)
 
@@ -525,7 +386,6 @@ function isCompleteLineup(lineup) {
         .eq('team_id', TEAM_ID)
         .order('game_date', { ascending: true, nullsFirst: false })
         .order('game_order', { ascending: true })
-
       if (gamesRes.error) throw gamesRes.error
 
       const loadedGames = (gamesRes.data || []).map((row) => ({
@@ -545,7 +405,6 @@ function isCompleteLineup(lineup) {
         .from('game_lineups')
         .select('game_id, lineup_data, optimizer_meta, lineup_locked')
         .eq('lineup_name', 'Main')
-
       if (lineupRes.error) throw lineupRes.error
 
       const loadedLineups = {}
@@ -568,13 +427,11 @@ function isCompleteLineup(lineup) {
       const prefRes = await supabase
         .from('player_position_preferences')
         .select('player_id, position, priority_pct')
-
       if (prefRes.error) throw prefRes.error
 
       const allowedRes = await supabase
         .from('player_allowed_positions')
         .select('player_id, position, fit_tier')
-
       if (allowedRes.error) throw allowedRes.error
 
       setPriorityByPlayer(buildPriorityMap(prefRes.data || []))
@@ -585,14 +442,12 @@ function isCompleteLineup(lineup) {
         .select('id, event_date, season_bucket, event_type, surface, title')
         .eq('team_id', TEAM_ID)
         .order('event_date', { ascending: true })
-
       if (attendanceEventsRes.error) throw attendanceEventsRes.error
       setAttendanceEvents(attendanceEventsRes.data || [])
 
       const attendanceRecordsRes = await supabase
         .from('attendance_records')
         .select('event_id, player_id, attended')
-
       if (attendanceRecordsRes.error) throw attendanceRecordsRes.error
 
       const byEvent = {}
@@ -603,36 +458,30 @@ function isCompleteLineup(lineup) {
       })
       setAttendanceByEvent(byEvent)
 
-            await loadAppOptions()
+      await loadAppOptions()
 
       const profilesRes = await supabase
         .from('optimizer_profiles')
         .select('*')
         .eq('team_id', TEAM_ID)
         .order('profile_name', { ascending: true })
-
       if (profilesRes.error) throw profilesRes.error
 
       const loadedProfiles = profilesRes.data || []
       setOptimizerProfiles(loadedProfiles)
 
       const profileIds = loadedProfiles.map((profile) => profile.id)
-
-      let loadedRulesByProfile = {}
+      const loadedRulesByProfile = {}
 
       if (profileIds.length) {
         const rulesRes = await supabase
           .from('optimizer_profile_position_rules')
           .select('*')
           .in('profile_id', profileIds)
-
         if (rulesRes.error) throw rulesRes.error
 
         ;(rulesRes.data || []).forEach((rule) => {
-          if (!loadedRulesByProfile[rule.profile_id]) {
-            loadedRulesByProfile[rule.profile_id] = {}
-          }
-
+          if (!loadedRulesByProfile[rule.profile_id]) loadedRulesByProfile[rule.profile_id] = {}
           loadedRulesByProfile[rule.profile_id][rule.position] = rule
         })
       }
@@ -640,49 +489,40 @@ function isCompleteLineup(lineup) {
       setOptimizerProfileRules(loadedRulesByProfile)
 
       const defaultProfile =
-  loadedProfiles.find((profile) => profile.is_default) ||
-  loadedProfiles[0] ||
-  null
-
-if (defaultProfile?.profile_key) {
-  setOptimizerMode(defaultProfile.profile_key)
-}
+        loadedProfiles.find((profile) => profile.is_default) || loadedProfiles[0] || null
+      if (defaultProfile?.profile_key) setOptimizerMode(defaultProfile.profile_key)
 
       const stateRes = await supabase
         .from('lineup_setter_state')
-  .select('batch_game_ids, focus_game_id')
-  .eq('team_id', TEAM_ID)
-  .maybeSingle()
+        .select('batch_game_ids, focus_game_id')
+        .eq('team_id', TEAM_ID)
+        .maybeSingle()
+      if (stateRes.error) throw stateRes.error
 
-const validGameIds = new Set(loadedGames.map((game) => pk(game.id)))
+      const validGameIds = new Set(loadedGames.map((game) => pk(game.id)))
+      const savedBatchIds = Array.isArray(stateRes.data?.batch_game_ids)
+        ? stateRes.data.batch_game_ids.map(pk).filter((id) => validGameIds.has(id))
+        : []
 
-if (stateRes.error) throw stateRes.error
+      const savedFocusId =
+        stateRes.data?.focus_game_id && validGameIds.has(pk(stateRes.data.focus_game_id))
+          ? pk(stateRes.data.focus_game_id)
+          : savedBatchIds[0] || ''
 
-const savedBatchIds = Array.isArray(stateRes.data?.batch_game_ids)
-  ? stateRes.data.batch_game_ids.map(pk).filter((id) => validGameIds.has(id))
-  : []
+      if (savedBatchIds.length) {
+        setOptimizerBatchGameIds(savedBatchIds)
+        setOptimizerFocusGameId(savedFocusId)
+        setOptimizerExistingGameId(savedFocusId)
+      } else if (loadedGames.length) {
+        const latestGame = [...loadedGames].sort((a, b) => compareGamesAsc(a, b, pk)).at(-1)
+        if (latestGame) {
+          setSelectedGameId(pk(latestGame.id))
+          setOptimizerExistingGameId(pk(latestGame.id))
+          setOptimizerFocusGameId(pk(latestGame.id))
+        }
+      }
 
-const savedFocusId =
-  stateRes.data?.focus_game_id && validGameIds.has(pk(stateRes.data.focus_game_id))
-    ? pk(stateRes.data.focus_game_id)
-    : savedBatchIds[0] || ''
-
-if (savedBatchIds.length) {
-  setOptimizerBatchGameIds(savedBatchIds)
-  setOptimizerFocusGameId(savedFocusId)
-  setOptimizerExistingGameId(savedFocusId)
-} else if (loadedGames.length) {
-  const latestGame = [...loadedGames].sort((a, b) => compareGamesAsc(a, b, pk)).at(-1)
-
-  if (latestGame) {
-    setSelectedGameId(pk(latestGame.id))
-    setOptimizerExistingGameId(pk(latestGame.id))
-    setOptimizerFocusGameId(pk(latestGame.id))
-  }
-}
-
-setLineupSetterStateLoaded(true)
-
+      setLineupSetterStateLoaded(true)
     } catch (error) {
       setAppError(error.message || 'Failed to load data.')
     } finally {
@@ -691,55 +531,35 @@ setLineupSetterStateLoaded(true)
   }
 
   useEffect(() => {
-  try {
-    sessionStorage.setItem(
-      'softball-lineup-tracking-filters',
-      JSON.stringify(trackingFilters)
-    )
-  } catch (error) {
-    console.error('Failed to save tracking filters to sessionStorage', error)
-  }
-}, [trackingFilters])
-
-useEffect(() => {
-  if (loading || !lineupSetterStateLoaded) return
-  if (!dbReady()) return
-
-  async function saveLineupSetterState() {
-    const { error } = await supabase.from('lineup_setter_state').upsert(
-      {
-        team_id: TEAM_ID,
-        batch_game_ids: optimizerBatchGameIds.map(pk),
-        focus_game_id: optimizerFocusGameId || null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'team_id' }
-    )
-
-        if (error) {
-      console.warn('Failed to save lineup setter state', error)
-    }
-  }
-
-  saveLineupSetterState()
-}, [
-  optimizerBatchGameIds,
-  optimizerFocusGameId,
-  loading,
-  lineupSetterStateLoaded,
-])
-  
-  
-  useEffect(() => {
     loadAll()
   }, [])
 
   useEffect(() => {
-  if (!loading && games.length) {
-    setTrackingFilters((current) => ({ ...current }))
-  }
-}, [loading, games])
-  
+    try {
+      sessionStorage.setItem('softball-lineup-tracking-filters', JSON.stringify(trackingFilters))
+    } catch {}
+  }, [trackingFilters])
+
+  useEffect(() => {
+    if (loading || !lineupSetterStateLoaded || !dbReady()) return
+
+    async function saveLineupSetterState() {
+      const { error } = await supabase.from('lineup_setter_state').upsert(
+        {
+          team_id: TEAM_ID,
+          batch_game_ids: optimizerBatchGameIds.map(pk),
+          focus_game_id: optimizerFocusGameId || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'team_id' }
+      )
+
+      if (error) console.warn('Failed to save lineup setter state', error)
+    }
+
+    saveLineupSetterState()
+  }, [optimizerBatchGameIds, optimizerFocusGameId, loading, lineupSetterStateLoaded])
+
   useEffect(() => {
     if (!newGameSeason && defaultSeasonOption) {
       setNewGameSeason(defaultSeasonOption.value || defaultSeasonOption.label || '')
@@ -764,33 +584,25 @@ useEffect(() => {
     }
   }, [defaultGameTypeOption, optimizerNewType])
 
-useEffect(() => {
-  if (!games.length) return
-  if (!lineupSetterStateLoaded) return
+  useEffect(() => {
+    if (!games.length || !lineupSetterStateLoaded) return
+    const latestGame = [...games].sort((a, b) => compareGamesAsc(a, b, pk)).at(-1)
+    if (!latestGame) return
 
-  const latestGame = [...games].sort((a, b) => compareGamesAsc(a, b, pk)).at(-1)
-  if (!latestGame) return
+    if (!selectedGameId) setSelectedGameId(pk(latestGame.id))
+    if (!optimizerExistingGameId) setOptimizerExistingGameId(pk(latestGame.id))
+    if (!optimizerFocusGameId && !optimizerBatchGameIds.length) {
+      setOptimizerFocusGameId(pk(latestGame.id))
+    }
+  }, [
+    games,
+    selectedGameId,
+    optimizerExistingGameId,
+    optimizerFocusGameId,
+    optimizerBatchGameIds,
+    lineupSetterStateLoaded,
+  ])
 
-  if (!selectedGameId) {
-    setSelectedGameId(pk(latestGame.id))
-  }
-
-  if (!optimizerExistingGameId) {
-    setOptimizerExistingGameId(pk(latestGame.id))
-  }
-
-  if (!optimizerFocusGameId && !optimizerBatchGameIds.length) {
-    setOptimizerFocusGameId(pk(latestGame.id))
-  }
-}, [
-  games,
-  selectedGameId,
-  optimizerExistingGameId,
-  optimizerFocusGameId,
-  optimizerBatchGameIds,
-  lineupSetterStateLoaded,
-])
-  
   const selectedGame = useMemo(
     () => games.find((game) => pk(game.id) === pk(selectedGameId)) || null,
     [games, selectedGameId]
@@ -802,103 +614,94 @@ useEffect(() => {
   )
 
   const selectedLocked = useMemo(() => {
-  if (!selectedGame) return false
+    if (!selectedGame) return false
+    const id = pk(selectedGame.id)
+    if (Object.prototype.hasOwnProperty.call(lineupLockedByGame, id)) {
+      return lineupLockedByGame[id] === true
+    }
+    return Boolean(lineupsByGame[id])
+  }, [selectedGame, lineupLockedByGame, lineupsByGame])
 
-  const id = pk(selectedGame.id)
+  const sortedPlayers = useMemo(
+    () =>
+      sortRows(
+        players.map((player) => ({
+          ...player,
+          activeText: player.active === false ? 'No' : 'Yes',
+        })),
+        playerSort
+      ),
+    [players, playerSort]
+  )
 
-  if (Object.prototype.hasOwnProperty.call(lineupLockedByGame, id)) {
-    return lineupLockedByGame[id] === true
-  }
+  const sortedGames = useMemo(
+    () =>
+      sortRows(
+        games.map((game) => ({
+          ...game,
+          lineupState: getGameLineupState(game),
+        })),
+        gameSort
+      ),
+    [games, lineupsByGame, lineupLockedByGame, gameSort]
+  )
 
-  if (lineupsByGame[id]) return true
+  const orderedGamesAsc = useMemo(
+    () => [...games].sort((a, b) => compareGamesAsc(a, b, pk)),
+    [games]
+  )
 
-  return false
-}, [selectedGame, lineupLockedByGame, lineupsByGame])
-  
-  const sortedPlayers = useMemo(() => {
-    return sortRows(
-      players.map((player) => ({
-        ...player,
-        activeText: player.active === false ? 'No' : 'Yes',
-      })),
-      playerSort
-    )
-  }, [players, playerSort])
+  const activePriorityRows = useMemo(
+    () =>
+      sortRows(
+        activePlayers.map((player) => {
+          const pr = priorityByPlayer[pk(player.id)] || {}
+          return {
+            playerId: pk(player.id),
+            name: player.name,
+            jersey_number: player.jersey_number || '',
+            P: pr.P?.priority_pct || '',
+            C: pr.C?.priority_pct || '',
+            '1B': pr['1B']?.priority_pct || '',
+            '2B': pr['2B']?.priority_pct || '',
+            '3B': pr['3B']?.priority_pct || '',
+            SS: pr.SS?.priority_pct || '',
+            OF: pr.OF?.priority_pct || '',
+            subtotal: PRIORITY_POSITIONS.reduce(
+              (sum, pos) => sum + Number(pr[pos]?.priority_pct || 0),
+              0
+            ),
+          }
+        }),
+        prioritySort
+      ),
+    [activePlayers, priorityByPlayer, prioritySort]
+  )
 
-  const sortedGames = useMemo(() => {
-    return sortRows(
-      games.map((game) => ({
-        ...game,
-        lineupState: lineupLockedByGame[pk(game.id)]
-          ? 'Locked'
-          : lineupsByGame[pk(game.id)]
-          ? 'Saved'
-          : 'Empty',
-      })),
-      gameSort
-    )
-  }, [games, lineupsByGame, lineupLockedByGame, gameSort])
-
-  const orderedGamesAsc = useMemo(() => {
-    return [...games].sort((a, b) => compareGamesAsc(a, b, pk))
-  }, [games])
-
-  const orderedGamesDesc = useMemo(() => {
-  return [...orderedGamesAsc].reverse()
-  }, [orderedGamesAsc])
-  
-  const activePriorityRows = useMemo(() => {
-    return sortRows(
-      activePlayers.map((player) => {
-        const pr = priorityByPlayer[pk(player.id)] || {}
-
-        return {
-          playerId: pk(player.id),
-          name: player.name,
-          jersey_number: player.jersey_number || '',
-          P: pr.P?.priority_pct || '',
-          C: pr.C?.priority_pct || '',
-          '1B': pr['1B']?.priority_pct || '',
-          '2B': pr['2B']?.priority_pct || '',
-          '3B': pr['3B']?.priority_pct || '',
-          SS: pr.SS?.priority_pct || '',
-          OF: pr.OF?.priority_pct || '',
-          subtotal:
-            Number(pr.P?.priority_pct || 0) +
-            Number(pr.C?.priority_pct || 0) +
-            Number(pr['1B']?.priority_pct || 0) +
-            Number(pr['2B']?.priority_pct || 0) +
-            Number(pr['3B']?.priority_pct || 0) +
-            Number(pr.SS?.priority_pct || 0) +
-            Number(pr.OF?.priority_pct || 0),
-        }
-      }),
-      prioritySort
-    )
-  }, [activePlayers, priorityByPlayer, prioritySort])
-
-  const allowedRows = useMemo(() => {
-    return sortRows(
-      activePlayers.map((player) => {
-        const fit = fitByPlayer[pk(player.id)] || {}
-        return {
-          playerId: pk(player.id),
-          name: player.name,
-          jersey_number: player.jersey_number || '',
-          P: fit.P || '',
-          C: fit.C || '',
-          '1B': fit['1B'] || '',
-          '2B': fit['2B'] || '',
-          '3B': fit['3B'] || '',
-          SS: fit.SS || '',
-          LF: fit.LF || '',
-          CF: fit.CF || '',
-          RF: fit.RF || '',
-        }
-      }),
-      allowedSort
-    )
-  }, [activePlayers, fitByPlayer, allowedSort])
+  const allowedRows = useMemo(
+    () =>
+      sortRows(
+        activePlayers.map((player) => {
+          const fit = fitByPlayer[pk(player.id)] || {}
+          return {
+            playerId: pk(player.id),
+            name: player.name,
+            jersey_number: player.jersey_number || '',
+            P: fit.P || '',
+            C: fit.C || '',
+            '1B': fit['1B'] || '',
+            '2B': fit['2B'] || '',
+            '3B': fit['3B'] || '',
+            SS: fit.SS || '',
+            LF: fit.LF || '',
+            CF: fit.CF || '',
+            RF: fit.RF || '',
+          }
+        }),
+        allowedSort
+      ),
+    [activePlayers, fitByPlayer, allowedSort]
+  )
 
   const priorityFooter = useMemo(() => {
     const footer = {}
@@ -925,80 +728,67 @@ useEffect(() => {
   )
 
   const optimizerFocusLineup = useMemo(() => {
-  if (!optimizerFocusGameId) return null
+    if (!optimizerFocusGameId) return null
+    const game = games.find((g) => pk(g.id) === pk(optimizerFocusGameId))
 
-  const game = games.find((g) => pk(g.id) === pk(optimizerFocusGameId))
+    return (
+      optimizerPreviewByGame[pk(optimizerFocusGameId)] ||
+      lineupsByGame[pk(optimizerFocusGameId)] ||
+      (game
+        ? blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds())
+        : null)
+    )
+  }, [optimizerPreviewByGame, lineupsByGame, optimizerFocusGameId, games, players])
 
-  return (
-    optimizerPreviewByGame[pk(optimizerFocusGameId)] ||
-    lineupsByGame[pk(optimizerFocusGameId)] ||
-    (game
-      ? blankLineup(
-          players.map((p) => p.id),
-          Number(game.innings || 6),
-          activePlayerIds()
-        )
-      : null)
-  )
-}, [optimizerPreviewByGame, lineupsByGame, optimizerFocusGameId, games, players])
-  
-
-const optimizerImportableGames = useMemo(() => {
-  return optimizerFocusGame
-    ? getImportableGamesForGameHelper({
+  const optimizerImportableGames = useMemo(
+    () =>
+      buildOptimizerImportableGames({
+        optimizerFocusGame,
         games,
-        currentGameId: optimizerFocusGame.id,
         lineupsByGame,
         compareGamesAsc,
-      })
-    : []
-}, [optimizerFocusGame, games, lineupsByGame])
+      }),
+    [optimizerFocusGame, games, lineupsByGame]
+  )
 
-const gameDetailImportableGames = useMemo(() => {
-  return selectedGame
-    ? getImportableGamesForGameHelper({
+  const gameDetailImportableGames = useMemo(
+    () =>
+      buildGameDetailImportableGames({
+        selectedGame,
         games,
-        currentGameId: selectedGame.id,
         lineupsByGame,
         compareGamesAsc,
-      })
-    : []
-}, [selectedGame, games, lineupsByGame])
-
-const activeOptimizerProfile = useMemo(() => {
-  return (
-    optimizerProfiles.find((profile) => profile.profile_key === optimizerMode) ||
-    optimizerProfiles.find((profile) => profile.is_default) ||
-    null
+      }),
+    [selectedGame, games, lineupsByGame]
   )
-}, [optimizerProfiles, optimizerMode])
 
-const activeOptimizerProfileRules = useMemo(() => {
-  if (!activeOptimizerProfile?.id) return {}
-  return optimizerProfileRules?.[activeOptimizerProfile.id] || {}
-}, [activeOptimizerProfile, optimizerProfileRules])
-  
-  const lineupSetterFilteredGames = useMemo(() => {
-  return orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters))
-}, [orderedGamesAsc, trackingFilters])
-
-const lineupSetterFilteredGamesExcludingBatch = useMemo(() => {
-  return lineupSetterFilteredGames.filter(
-    (game) => !optimizerBatchGameIds.includes(pk(game.id))
+  const activeOptimizerProfile = useMemo(
+    () => buildActiveOptimizerProfile({ optimizerProfiles, optimizerMode }),
+    [optimizerProfiles, optimizerMode]
   )
-}, [lineupSetterFilteredGames, optimizerBatchGameIds])
 
-const lineupSetterFilteredGamesWithLineups = useMemo(() => {
-  return lineupSetterFilteredGamesExcludingBatch.filter(
-    (game) => lineupsByGame[pk(game.id)]
+  const activeOptimizerProfileRules = useMemo(
+    () => buildActiveOptimizerProfileRules({ activeOptimizerProfile, optimizerProfileRules }),
+    [activeOptimizerProfile, optimizerProfileRules]
   )
-}, [lineupSetterFilteredGamesExcludingBatch, lineupsByGame])
-  
-  const lineupSetterFilteredLineups = useMemo(() => {
-    return lineupSetterFilteredGamesWithLineups
-      .map((game) => lineupsByGame[pk(game.id)])
-      .filter(Boolean)
-  }, [lineupSetterFilteredGamesWithLineups, lineupsByGame])
+
+  const lineupSetterFilteredGames = useMemo(
+    () => orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters)),
+    [orderedGamesAsc, trackingFilters, lineupsByGame, lineupLockedByGame]
+  )
+
+  const lineupSetterFilteredGamesWithLineups = useMemo(
+    () =>
+      lineupSetterFilteredGames
+        .filter((game) => !optimizerBatchGameIds.includes(pk(game.id)))
+        .filter((game) => lineupsByGame[pk(game.id)]),
+    [lineupSetterFilteredGames, optimizerBatchGameIds, lineupsByGame]
+  )
+
+  const lineupSetterFilteredLineups = useMemo(
+    () => lineupSetterFilteredGamesWithLineups.map((game) => lineupsByGame[pk(game.id)]).filter(Boolean),
+    [lineupSetterFilteredGamesWithLineups, lineupsByGame]
+  )
 
   const lineupSetterFilteredTotals = useMemo(
     () => computeTotals(lineupSetterFilteredLineups, players),
@@ -1006,57 +796,35 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   )
 
   const lineupSetterSitSummary = useMemo(
-    () =>
-      buildSitOutSummary(
-        lineupSetterFilteredGamesWithLineups,
-        lineupsByGame,
-        activePlayers,
-        pk
-      ),
+    () => buildSitOutSummary(lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers, pk),
     [lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers]
   )
 
   const lineupSetterSitByPlayer = useMemo(
-    () =>
-      buildPlayerSitOuts(
-        lineupSetterFilteredGamesWithLineups,
-        lineupsByGame,
-        activePlayers,
-        pk
-      ),
+    () => buildPlayerSitOuts(lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers, pk),
     [lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers]
   )
 
-        const lineupSetterComputedSitRows = useMemo(
-  () => buildCumulativeSitOutRows(lineupSetterSitByPlayer, lineupSetterSitSummary),
-  [lineupSetterSitByPlayer, lineupSetterSitSummary]
-)
+  const lineupSetterComputedSitRows = useMemo(
+    () => buildCumulativeSitOutRows(lineupSetterSitByPlayer, lineupSetterSitSummary),
+    [lineupSetterSitByPlayer, lineupSetterSitSummary]
+  )
 
-        const currentPlanLineupsByGame = useMemo(
+  const currentPlanLineupsByGame = useMemo(
     () => buildCurrentPlanLineupsByGame(lineupsByGame, optimizerPreviewByGame),
     [lineupsByGame, optimizerPreviewByGame]
   )
 
-      const currentPlanSitOutRows = useMemo(
+  const currentPlanSitOutRows = useMemo(
     () =>
       buildCumulativeSitOutRows(
-  buildPlayerSitOuts(
-    optimizerBatchGames,
-    currentPlanLineupsByGame,
-    activePlayers,
-    pk
-  ),
-  buildSitOutSummary(
-    optimizerBatchGames,
-    currentPlanLineupsByGame,
-    activePlayers,
-    pk
-  )
-),
+        buildPlayerSitOuts(optimizerBatchGames, currentPlanLineupsByGame, activePlayers, pk),
+        buildSitOutSummary(optimizerBatchGames, currentPlanLineupsByGame, activePlayers, pk)
+      ),
     [optimizerBatchGames, currentPlanLineupsByGame, activePlayers]
   )
-  
-    const currentBatchTotals = useMemo(
+
+  const currentBatchTotals = useMemo(
     () =>
       computeTotals(
         optimizerBatchGames
@@ -1072,9 +840,10 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     [lineupSetterFilteredTotals, currentBatchTotals, players]
   )
 
-      const lineupSetterFutureGamesWithLineups = useMemo(() => {
-    return [...lineupSetterFilteredGamesWithLineups, ...optimizerBatchGames]
-  }, [lineupSetterFilteredGamesWithLineups, optimizerBatchGames])
+  const lineupSetterFutureGamesWithLineups = useMemo(
+    () => [...lineupSetterFilteredGamesWithLineups, ...optimizerBatchGames],
+    [lineupSetterFilteredGamesWithLineups, optimizerBatchGames]
+  )
 
   const lineupSetterFutureSitSummary = useMemo(
     () =>
@@ -1084,11 +853,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         activePlayers,
         pk
       ),
-    [
-      lineupSetterFutureGamesWithLineups,
-      currentPlanLineupsByGame,
-      activePlayers,
-    ]
+    [lineupSetterFutureGamesWithLineups, currentPlanLineupsByGame, activePlayers]
   )
 
   const lineupSetterFutureSitByPlayer = useMemo(
@@ -1099,261 +864,157 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         activePlayers,
         pk
       ),
-    [
-      lineupSetterFutureGamesWithLineups,
-      currentPlanLineupsByGame,
-      activePlayers,
-    ]
+    [lineupSetterFutureGamesWithLineups, currentPlanLineupsByGame, activePlayers]
   )
 
-        const lineupSetterFutureComputedSitRows = useMemo(
-  () => buildCumulativeSitOutRows(lineupSetterFutureSitByPlayer, lineupSetterFutureSitSummary),
-  [lineupSetterFutureSitByPlayer, lineupSetterFutureSitSummary]
-)
-  
-  const lockedLineupsOnly = useMemo(() => {
-    return Object.entries(lineupsByGame)
-      .filter(([gameId]) => lineupLockedByGame[pk(gameId)] === true)
-      .map(([, lineup]) => lineup)
-  }, [lineupsByGame, lineupLockedByGame])
-
-  const ytdBeforeTotals = useMemo(
-    () => computeTotals(lockedLineupsOnly, players),
-    [lockedLineupsOnly, players]
+  const lineupSetterFutureComputedSitRows = useMemo(
+    () => buildCumulativeSitOutRows(lineupSetterFutureSitByPlayer, lineupSetterFutureSitSummary),
+    [lineupSetterFutureSitByPlayer, lineupSetterFutureSitSummary]
   )
 
-  const ytdAfterTotals = useMemo(
-    () => addTotals(ytdBeforeTotals, currentBatchTotals, players),
-    [ytdBeforeTotals, currentBatchTotals, players]
+  const filteredTrackingGames = useMemo(
+    () => orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters)),
+    [orderedGamesAsc, trackingFilters, lineupsByGame, lineupLockedByGame]
   )
 
-  const filteredTrackingGames = useMemo(() => {
-    return orderedGamesAsc.filter((game) => gameMatchesFilters(game, trackingFilters))
-  }, [orderedGamesAsc, trackingFilters])
+  const filteredTrackingGamesWithLineups = useMemo(
+    () => filteredTrackingGames.filter((game) => lineupsByGame[pk(game.id)]),
+    [filteredTrackingGames, lineupsByGame]
+  )
 
-  const filteredTrackingGamesWithLineups = useMemo(() => {
-    return filteredTrackingGames.filter((game) => lineupsByGame[pk(game.id)])
-  }, [filteredTrackingGames, lineupsByGame])
-
-  const filteredTrackingLineups = useMemo(() => {
-    return filteredTrackingGamesWithLineups
-      .map((game) => lineupsByGame[pk(game.id)])
-      .filter(Boolean)
-  }, [filteredTrackingGamesWithLineups, lineupsByGame])
+  const filteredTrackingLineups = useMemo(
+    () => filteredTrackingGamesWithLineups.map((game) => lineupsByGame[pk(game.id)]).filter(Boolean),
+    [filteredTrackingGamesWithLineups, lineupsByGame]
+  )
 
   const battingRows = useMemo(
-    () =>
-      buildBattingOrderMatrix(
-        filteredTrackingGamesWithLineups,
-        lineupsByGame,
-        activePlayers,
-        pk
-      ),
+    () => buildBattingOrderMatrix(filteredTrackingGamesWithLineups, lineupsByGame, activePlayers, pk),
     [filteredTrackingGamesWithLineups, lineupsByGame, activePlayers]
   )
 
   const sitSummary = useMemo(
-    () =>
-      buildSitOutSummary(
-        filteredTrackingGamesWithLineups,
-        lineupsByGame,
-        activePlayers,
-        pk
-      ),
+    () => buildSitOutSummary(filteredTrackingGamesWithLineups, lineupsByGame, activePlayers, pk),
     [filteredTrackingGamesWithLineups, lineupsByGame, activePlayers]
   )
 
   const sitByPlayer = useMemo(
-    () =>
-      buildPlayerSitOuts(
-        filteredTrackingGamesWithLineups,
-        lineupsByGame,
-        activePlayers,
-        pk
-      ),
+    () => buildPlayerSitOuts(filteredTrackingGamesWithLineups, lineupsByGame, activePlayers, pk),
     [filteredTrackingGamesWithLineups, lineupsByGame, activePlayers]
   )
 
-  const trackingComputedSitRows = useMemo(
-    () => buildCumulativeSitOutRows(sitByPlayer),
-    [sitByPlayer]
+  const trackingComputedSitRows = useMemo(() => buildCumulativeSitOutRows(sitByPlayer), [sitByPlayer])
+
+  const trackingTotals = useMemo(
+    () => computeTotals(filteredTrackingLineups, players),
+    [filteredTrackingLineups, players]
   )
-  
-  const trackingTotals = useMemo(() => {
-    return computeTotals(filteredTrackingLineups, players)
-  }, [filteredTrackingLineups, players])
 
   const selectedPlayerPositions = useMemo(() => {
     if (!trackingPlayerId) return []
-    return buildPositionByPlayer(
-      filteredTrackingGamesWithLineups,
-      lineupsByGame,
-      pk(trackingPlayerId),
-      pk
-    )
+    return buildPositionByPlayer(filteredTrackingGamesWithLineups, lineupsByGame, pk(trackingPlayerId), pk)
   }, [trackingPlayerId, filteredTrackingGamesWithLineups, lineupsByGame])
 
-  const trackingPriorityRows = useMemo(() => {
-    return sortRows(
-      activePlayers.map((player) => {
-        const totals = trackingTotals[pk(player.id)] || {}
-        const priority = priorityByPlayer[pk(player.id)] || {}
-        const fieldTotal = Math.max(totals.fieldTotal || 0, 1)
+  const trackingPriorityRows = useMemo(
+    () =>
+      sortRows(
+        activePlayers.map((player) => {
+          const totals = trackingTotals[pk(player.id)] || {}
+          const priority = priorityByPlayer[pk(player.id)] || {}
+          const fieldTotal = Math.max(totals.fieldTotal || 0, 1)
+          const actPct = (n) => {
+            const value = Number((((n || 0) / fieldTotal) * 100).toFixed(1))
+            return value === 0 ? '' : value
+          }
 
-        const actPct = (n) => {
-          const value = Number((((n || 0) / fieldTotal) * 100).toFixed(1))
-          return value === 0 ? '' : value
-        }
+          return {
+            playerId: pk(player.id),
+            name: player.name,
+            fieldTotal: totals.fieldTotal || 0,
+            targP: priority.P?.priority_pct || '',
+            targC: priority.C?.priority_pct || '',
+            targ1B: priority['1B']?.priority_pct || '',
+            targ2B: priority['2B']?.priority_pct || '',
+            targ3B: priority['3B']?.priority_pct || '',
+            targSS: priority.SS?.priority_pct || '',
+            targOF: priority.OF?.priority_pct || '',
+            actP: actPct(totals.P),
+            actC: actPct(totals.C),
+            act1B: actPct(totals['1B']),
+            act2B: actPct(totals['2B']),
+            act3B: actPct(totals['3B']),
+            actSS: actPct(totals.SS),
+            actOF: actPct(totals.OF),
+          }
+        }),
+        trackingSort
+      ),
+    [activePlayers, trackingTotals, priorityByPlayer, trackingSort]
+  )
 
-        return {
-          playerId: pk(player.id),
-          name: player.name,
-          fieldTotal: totals.fieldTotal || 0,
-          targP: priority.P?.priority_pct || '',
-          targC: priority.C?.priority_pct || '',
-          targ1B: priority['1B']?.priority_pct || '',
-          targ2B: priority['2B']?.priority_pct || '',
-          targ3B: priority['3B']?.priority_pct || '',
-          targSS: priority.SS?.priority_pct || '',
-          targOF: priority.OF?.priority_pct || '',
-          actP: actPct(totals.P),
-          actC: actPct(totals.C),
-          act1B: actPct(totals['1B']),
-          act2B: actPct(totals['2B']),
-          act3B: actPct(totals['3B']),
-          actSS: actPct(totals.SS),
-          actOF: actPct(totals.OF),
-        }
-      }),
-      trackingSort
-    )
-  }, [activePlayers, trackingTotals, priorityByPlayer, trackingSort])
+  const trackingPriorityByPositionRows = useMemo(() => {
+    const positionTotals = {}
+    ;['P', 'C', '1B', '2B', '3B', 'SS', 'OF'].forEach((pos) => {
+      positionTotals[pos] = activePlayers.reduce(
+        (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.[pos] || 0),
+        0
+      )
+    })
 
-    const trackingPriorityByPositionRows = useMemo(() => {
-  const positionTotals = {
-    P: activePlayers.reduce(
-      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.P || 0),
-      0
-    ),
-    C: activePlayers.reduce(
-      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.C || 0),
-      0
-    ),
-    '1B': activePlayers.reduce(
-      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.['1B'] || 0),
-      0
-    ),
-    '2B': activePlayers.reduce(
-      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.['2B'] || 0),
-      0
-    ),
-    '3B': activePlayers.reduce(
-      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.['3B'] || 0),
-      0
-    ),
-    SS: activePlayers.reduce(
-      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.SS || 0),
-      0
-    ),
-    OF: activePlayers.reduce(
-      (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.OF || 0),
-      0
-    ),
-  }
-
-  const actPctByPosition = (playerTotal, positionKey) => {
-    const numer = Number(playerTotal || 0)
-    const denom = Number(positionTotals[positionKey] || 0)
-    if (!numer || !denom) return ''
-    return Number(((numer / denom) * 100).toFixed(1))
-  }
-
-  return activePlayers.map((player) => {
-    const playerId = pk(player.id)
-    const totals = trackingTotals[playerId] || {}
-    const priority = priorityByPlayer[playerId] || {}
-
-    return {
-      playerId,
-      name: player.name,
-      fieldTotal: totals.fieldTotal || 0,
-
-      targP: priority.P?.priority_pct || '',
-      actP: actPctByPosition(totals.P, 'P'),
-
-      targC: priority.C?.priority_pct || '',
-      actC: actPctByPosition(totals.C, 'C'),
-
-      targ1B: priority['1B']?.priority_pct || '',
-      act1B: actPctByPosition(totals['1B'], '1B'),
-
-      targ2B: priority['2B']?.priority_pct || '',
-      act2B: actPctByPosition(totals['2B'], '2B'),
-
-      targ3B: priority['3B']?.priority_pct || '',
-      act3B: actPctByPosition(totals['3B'], '3B'),
-
-      targSS: priority.SS?.priority_pct || '',
-      actSS: actPctByPosition(totals.SS, 'SS'),
-
-      targOF: priority.OF?.priority_pct || '',
-      actOF: actPctByPosition(totals.OF, 'OF'),
+    const actPctByPosition = (playerTotal, positionKey) => {
+      const numer = Number(playerTotal || 0)
+      const denom = Number(positionTotals[positionKey] || 0)
+      if (!numer || !denom) return ''
+      return Number(((numer / denom) * 100).toFixed(1))
     }
-  })
-}, [activePlayers, trackingTotals, priorityByPlayer, pk])
 
-  
-  const filteredAttendanceEvents = useMemo(() => {
-    return sortRows(attendanceEvents, attendanceSort)
-  }, [attendanceEvents, attendanceSort])
-
-  const attendanceTotals = useMemo(() => {
-    const events = filteredAttendanceEvents
-    return {
-      inSeason: events.filter((e) => e.season_bucket === 'In Season').length,
-      outSeason: events.filter((e) => e.season_bucket === 'Out of Season').length,
-      pitchersCatchers: events.filter((e) => e.event_type === 'Pitchers/Catchers').length,
-      teamPractice: events.filter((e) => e.event_type === 'Team Practice').length,
-      indoor: events.filter((e) => e.surface === 'Indoor').length,
-      outdoor: events.filter((e) => e.surface === 'Outdoor').length,
-    }
-  }, [filteredAttendanceEvents])
-
-  const attendanceBreakdownByPlayer = useMemo(() => {
     return activePlayers.map((player) => {
-      const id = pk(player.id)
-      const eventRows = filteredAttendanceEvents
-
-      function countAttended(predicate) {
-        return eventRows
-          .filter(predicate)
-          .filter((event) => attendanceByEvent[pk(event.id)]?.[id] === true).length
-      }
-
-      function formatValue(actual, total) {
-        if (!total) return ''
-        return `${actual} (${Math.round((actual / total) * 100)}%)`
-      }
-
-      const inSeasonActual = countAttended((event) => event.season_bucket === 'In Season')
-      const outSeasonActual = countAttended((event) => event.season_bucket === 'Out of Season')
-      const pcActual = countAttended((event) => event.event_type === 'Pitchers/Catchers')
-      const teamActual = countAttended((event) => event.event_type === 'Team Practice')
-      const indoorActual = countAttended((event) => event.surface === 'Indoor')
-      const outdoorActual = countAttended((event) => event.surface === 'Outdoor')
+      const playerId = pk(player.id)
+      const totals = trackingTotals[playerId] || {}
+      const priority = priorityByPlayer[playerId] || {}
 
       return {
-        playerId: id,
+        playerId,
         name: player.name,
-        inSeason: formatValue(inSeasonActual, attendanceTotals.inSeason),
-        outSeason: formatValue(outSeasonActual, attendanceTotals.outSeason),
-        pitchersCatchers: formatValue(pcActual, attendanceTotals.pitchersCatchers),
-        teamPractice: formatValue(teamActual, attendanceTotals.teamPractice),
-        indoor: formatValue(indoorActual, attendanceTotals.indoor),
-        outdoor: formatValue(outdoorActual, attendanceTotals.outdoor),
+        fieldTotal: totals.fieldTotal || 0,
+        targP: priority.P?.priority_pct || '',
+        actP: actPctByPosition(totals.P, 'P'),
+        targC: priority.C?.priority_pct || '',
+        actC: actPctByPosition(totals.C, 'C'),
+        targ1B: priority['1B']?.priority_pct || '',
+        act1B: actPctByPosition(totals['1B'], '1B'),
+        targ2B: priority['2B']?.priority_pct || '',
+        act2B: actPctByPosition(totals['2B'], '2B'),
+        targ3B: priority['3B']?.priority_pct || '',
+        act3B: actPctByPosition(totals['3B'], '3B'),
+        targSS: priority.SS?.priority_pct || '',
+        actSS: actPctByPosition(totals.SS, 'SS'),
+        targOF: priority.OF?.priority_pct || '',
+        actOF: actPctByPosition(totals.OF, 'OF'),
       }
     })
-  }, [activePlayers, filteredAttendanceEvents, attendanceByEvent, attendanceTotals])
+  }, [activePlayers, trackingTotals, priorityByPlayer])
+
+  const filteredAttendanceEvents = useMemo(
+    () => sortRows(attendanceEvents, attendanceSort),
+    [attendanceEvents, attendanceSort]
+  )
+
+  const attendanceTotals = useMemo(
+    () => buildAttendanceTotals(filteredAttendanceEvents),
+    [filteredAttendanceEvents]
+  )
+
+  const attendanceBreakdownByPlayer = useMemo(
+    () =>
+      buildAttendanceBreakdownByPlayer({
+        activePlayers,
+        filteredAttendanceEvents,
+        attendanceByEvent,
+        attendanceTotals,
+        pk,
+      }),
+    [activePlayers, filteredAttendanceEvents, attendanceByEvent, attendanceTotals]
+  )
 
   async function addGame(date, opponent, gameType, season) {
     const nextOrder = getNextGameOrder(games)
@@ -1365,10 +1026,7 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         game_date: date || null,
         opponent: opponent || null,
         innings: 6,
-        status:
-  defaultStatusOption?.value ||
-  defaultStatusOption?.label ||
-  'Planned',
+        status: defaultStatusOption?.value || defaultStatusOption?.label || 'Planned',
         game_type: gameType || GAME_TYPES[0],
         season: season || null,
         game_order: nextOrder,
@@ -1398,100 +1056,67 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
 
   async function addGameFromGames() {
     const game = await addGame(newGameDate, newGameOpponent, newGameType, newGameSeason)
-    if (game) {
-      setNewGameDate('')
-      setNewGameOpponent('')
-      setNewGameType('')
-      setNewGameSeason('')
-      setSelectedGameId(pk(game.id))
-    }
+    if (!game) return
+    setNewGameDate('')
+    setNewGameOpponent('')
+    setNewGameType('')
+    setNewGameSeason('')
+    setSelectedGameId(pk(game.id))
   }
 
   async function addGameFromOptimizer() {
-    const game = await addGame(
-      optimizerNewDate,
-      optimizerNewOpponent,
-      optimizerNewType,
-      optimizerNewSeason
-    )
+    const game = await addGame(optimizerNewDate, optimizerNewOpponent, optimizerNewType, optimizerNewSeason)
+    if (!game) return
 
-    if (game) {
-      setOptimizerNewDate('')
-      setOptimizerNewOpponent('')
-      setOptimizerNewType('')
-      setOptimizerNewSeason('')
-      setOptimizerBatchGameIds((current) => [...new Set([...current, pk(game.id)])])
-      setOptimizerFocusGameId(pk(game.id))
-      setOptimizerExistingGameId(pk(game.id))
-      setOptimizerPreviewByGame((current) => ({
-        ...current,
-        [pk(game.id)]: blankLineup(
-          players.map((p) => p.id),
-          Number(game.innings || 6),
-          activePlayerIds()
-        ),
-      }))
-    }
+    setOptimizerNewDate('')
+    setOptimizerNewOpponent('')
+    setOptimizerNewType('')
+    setOptimizerNewSeason('')
+    setOptimizerBatchGameIds((current) => [...new Set([...current, pk(game.id)])])
+    setOptimizerFocusGameId(pk(game.id))
+    setOptimizerExistingGameId(pk(game.id))
+    setOptimizerPreviewByGame((current) => ({
+      ...current,
+      [pk(game.id)]: blankLineup(players.map((p) => p.id), Number(game.innings || 6), activePlayerIds()),
+    }))
   }
 
   async function updateGameField(gameId, field, value) {
-  setGames((current) =>
-    current.map((game) =>
-      pk(game.id) === pk(gameId) ? { ...game, [field]: value } : game
+    setGames((current) =>
+      current.map((game) => (pk(game.id) === pk(gameId) ? { ...game, [field]: value } : game))
     )
-  )
 
-  const updates = {}
-  if (field === 'date') updates.game_date = value || null
-  if (field === 'opponent') updates.opponent = value || null
-  if (field === 'innings') updates.innings = Number(value)
-  if (field === 'status') updates.status = value
-  if (field === 'game_type') updates.game_type = value || null
-  if (field === 'season') updates.season = value || null
-  if (field === 'game_order') updates.game_order = value === '' ? null : Number(value)
+    const updates = {}
+    if (field === 'date') updates.game_date = value || null
+    if (field === 'opponent') updates.opponent = value || null
+    if (field === 'innings') updates.innings = Number(value)
+    if (field === 'status') updates.status = value
+    if (field === 'game_type') updates.game_type = value || null
+    if (field === 'season') updates.season = value || null
+    if (field === 'game_order') updates.game_order = value === '' ? null : Number(value)
 
-  const res = await supabase.from('games').update(updates).eq('id', gameId)
-  if (res.error) {
-    setAppError(res.error.message)
-    return
+    const res = await supabase.from('games').update(updates).eq('id', gameId)
+    if (res.error) return setAppError(res.error.message)
+
+    if (field === 'status' && String(value).toLowerCase() === 'complete') {
+      const game = games.find((g) => pk(g.id) === pk(gameId))
+      const currentLineup =
+        currentPlanLineupsByGame[pk(gameId)] ||
+        blankLineup(players.map((p) => p.id), Number(game?.innings || 6), activePlayerIds())
+
+      await persistLineup(gameId, currentLineup, true)
+    }
   }
-
-  // ✅ AUTO LOCK WHEN COMPLETE
-  if (field === 'status' && String(value).toLowerCase() === 'complete') {
-    const game = games.find((g) => pk(g.id) === pk(gameId))
-
-    const currentLineup =
-      currentPlanLineupsByGame[pk(gameId)] ||
-      blankLineup(
-        players.map((p) => p.id),
-        Number(game?.innings || 6),
-        activePlayerIds()
-      )
-
-    await persistLineup(gameId, currentLineup, true)
-  }
-}
 
   async function deleteGame(gameId) {
-    if (lineupLockedByGame[pk(gameId)]) {
-      setAppError('Unlock the lineup before deleting the game.')
-      return
-    }
-
-    const confirmed = window.confirm('Are you sure you want to delete this game?')
-    if (!confirmed) return
+    if (lineupLockedByGame[pk(gameId)]) return setAppError('Unlock the lineup before deleting the game.')
+    if (!window.confirm('Are you sure you want to delete this game?')) return
 
     const deleteLineup = await supabase.from('game_lineups').delete().eq('game_id', gameId)
-    if (deleteLineup.error) {
-      setAppError(deleteLineup.error.message)
-      return
-    }
+    if (deleteLineup.error) return setAppError(deleteLineup.error.message)
 
     const deleteGameRow = await supabase.from('games').delete().eq('id', gameId)
-    if (deleteGameRow.error) {
-      setAppError(deleteGameRow.error.message)
-      return
-    }
+    if (deleteGameRow.error) return setAppError(deleteGameRow.error.message)
 
     setGames((current) => current.filter((game) => pk(game.id) !== pk(gameId)))
     setLineupsByGame((current) => {
@@ -1515,172 +1140,55 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
   async function upsertPlayer(player) {
     if (!player.name?.trim()) return
 
+    const payload = {
+      name: player.name,
+      last_name: player.last_name || '',
+      jersey_number: player.jersey_number,
+      active: player.active,
+    }
+
     if (player.id) {
-      const updateRes = await supabase
-        .from('players')
-        .update({
-  name: player.name,
-  last_name: player.last_name || '',
-  jersey_number: player.jersey_number,
-  active: player.active,
-})
-        .eq('id', player.id)
-
-      if (updateRes.error) {
-        setAppError(updateRes.error.message)
-        return
-      }
-
+      const updateRes = await supabase.from('players').update(payload).eq('id', player.id)
+      if (updateRes.error) setAppError(updateRes.error.message)
       return
     }
 
     const insertRes = await supabase
       .from('players')
-      .insert({
-  team_id: TEAM_ID,
-  name: player.name,
-  last_name: player.last_name || '',
-  jersey_number: player.jersey_number,
-  active: player.active,
-})
-.select('id, name, last_name, jersey_number, active')
+      .insert({ team_id: TEAM_ID, ...payload })
+      .select('id, name, last_name, jersey_number, active')
       .single()
 
-    if (insertRes.error) {
-      setAppError(insertRes.error.message)
-      return
-    }
-
+    if (insertRes.error) return setAppError(insertRes.error.message)
     setPlayers((current) => [...current, insertRes.data])
   }
 
   function updatePlayerLocal(playerId, field, value) {
     setPlayers((current) =>
-      current.map((player) =>
-        pk(player.id) === pk(playerId) ? { ...player, [field]: value } : player
-      )
+      current.map((player) => (pk(player.id) === pk(playerId) ? { ...player, [field]: value } : player))
     )
   }
 
   async function addPlayer() {
-  await upsertPlayer({
-    name: newPlayerName,
-    last_name: newPlayerLastName,
-    jersey_number: newPlayerNumber,
-    active: newPlayerActive,
-  })
+    await upsertPlayer({
+      name: newPlayerName,
+      last_name: newPlayerLastName,
+      jersey_number: newPlayerNumber,
+      active: newPlayerActive,
+    })
 
-  setNewPlayerName('')
-  setNewPlayerLastName('')
-  setNewPlayerNumber('')
-  setNewPlayerActive(true)
-  await loadAll()
-}
+    setNewPlayerName('')
+    setNewPlayerLastName('')
+    setNewPlayerNumber('')
+    setNewPlayerActive(true)
+    await loadAll()
+  }
 
   async function deletePlayer(playerId) {
-    const confirmed = window.confirm('Delete this player?')
-    if (!confirmed) return
-
+    if (!window.confirm('Delete this player?')) return
     const del = await supabase.from('players').delete().eq('id', playerId)
-    if (del.error) {
-      setAppError(del.error.message)
-      return
-    }
-
+    if (del.error) return setAppError(del.error.message)
     setPlayers((current) => current.filter((player) => pk(player.id) !== pk(playerId)))
-  }
-
-    async function persistPriority(playerId, position, value) {
-    const cleanedValue = normalizePriorityValue(value)
-
-    if (cleanedValue === '') {
-      const del = await supabase
-        .from('player_position_preferences')
-        .delete()
-        .eq('player_id', playerId)
-        .eq('position', position)
-
-      if (del.error) {
-        setAppError(del.error.message)
-        return
-      }
-
-      updatePriorityLocal(playerId, position, '')
-      return
-    }
-
-    const up = await supabase
-      .from('player_position_preferences')
-      .upsert(
-        {
-          player_id: playerId,
-          position,
-          priority_pct: cleanedValue,
-        },
-        { onConflict: 'player_id,position' }
-      )
-
-    if (up.error) {
-      setAppError(up.error.message)
-      return
-    }
-
-    updatePriorityLocal(playerId, position, cleanedValue)
-  }
-
-    async function persistFitTier(playerId, position, tier) {
-    const cleanedTier = tier || 'no'
-
-    if (position === 'OF') {
-      const updates = ['LF', 'CF', 'RF'].map((ofPos) =>
-        supabase.from('player_allowed_positions').upsert(
-          {
-            player_id: playerId,
-            position: ofPos,
-            fit_tier: cleanedTier,
-          },
-          { onConflict: 'player_id,position' }
-        )
-      )
-
-      const results = await Promise.all(updates)
-      const error = results.find((res) => res.error)?.error
-
-      if (error) {
-        setAppError(error.message)
-        return
-      }
-
-      setFitByPlayer((current) => ({
-        ...current,
-        [pk(playerId)]: {
-          ...(current[pk(playerId)] || {}),
-          LF: cleanedTier,
-          CF: cleanedTier,
-          RF: cleanedTier,
-        },
-      }))
-
-      return
-    }
-
-    const up = await supabase
-      .from('player_allowed_positions')
-      .upsert(
-        {
-          player_id: playerId,
-          position,
-          fit_tier: cleanedTier,
-        },
-        { onConflict: 'player_id,position' }
-      )
-
-    if (up.error) {
-      setAppError(up.error.message)
-      return
-    }
-
-    updateFitLocal(playerId, position, cleanedTier)
   }
 
   function updatePriorityLocal(playerId, position, value) {
@@ -1703,9 +1211,81 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     }))
   }
 
-        function addExistingGameToBatch() {
-    if (!optimizerExistingGameId) return
+  async function persistPriority(playerId, position, value) {
+    const cleanedValue = normalizePriorityValue(value)
 
+    if (cleanedValue === '') {
+      const del = await supabase
+        .from('player_position_preferences')
+        .delete()
+        .eq('player_id', playerId)
+        .eq('position', position)
+
+      if (del.error) return setAppError(del.error.message)
+      updatePriorityLocal(playerId, position, '')
+      return
+    }
+
+    const up = await supabase.from('player_position_preferences').upsert(
+      {
+        player_id: playerId,
+        position,
+        priority_pct: cleanedValue,
+      },
+      { onConflict: 'player_id,position' }
+    )
+
+    if (up.error) return setAppError(up.error.message)
+    updatePriorityLocal(playerId, position, cleanedValue)
+  }
+
+  async function persistFitTier(playerId, position, tier) {
+    const cleanedTier = tier || 'no'
+
+    if (position === 'OF') {
+      const results = await Promise.all(
+        ['LF', 'CF', 'RF'].map((ofPos) =>
+          supabase.from('player_allowed_positions').upsert(
+            {
+              player_id: playerId,
+              position: ofPos,
+              fit_tier: cleanedTier,
+            },
+            { onConflict: 'player_id,position' }
+          )
+        )
+      )
+
+      const error = results.find((res) => res.error)?.error
+      if (error) return setAppError(error.message)
+
+      setFitByPlayer((current) => ({
+        ...current,
+        [pk(playerId)]: {
+          ...(current[pk(playerId)] || {}),
+          LF: cleanedTier,
+          CF: cleanedTier,
+          RF: cleanedTier,
+        },
+      }))
+      return
+    }
+
+    const up = await supabase.from('player_allowed_positions').upsert(
+      {
+        player_id: playerId,
+        position,
+        fit_tier: cleanedTier,
+      },
+      { onConflict: 'player_id,position' }
+    )
+
+    if (up.error) return setAppError(up.error.message)
+    updateFitLocal(playerId, position, cleanedTier)
+  }
+
+  function addExistingGameToBatch() {
+    if (!optimizerExistingGameId) return
     const gameId = pk(optimizerExistingGameId)
     const game = games.find((g) => pk(g.id) === gameId)
     if (!game) return
@@ -1719,17 +1299,13 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
 
     setOptimizerBatchGameIds((current) => [...new Set([...current, gameId])])
     setOptimizerFocusGameId(gameId)
-    setOptimizerPreviewByGame((current) => ({
-      ...current,
-      [gameId]: normalized,
-    }))
+    setOptimizerPreviewByGame((current) => ({ ...current, [gameId]: normalized }))
   }
 
-    function removeBatchGame(gameId) {
+  function removeBatchGame(gameId) {
     setOptimizerBatchGameIds((current) => current.filter((id) => pk(id) !== pk(gameId)))
 
     if (lineupsByGame[pk(gameId)]) return
-
     setOptimizerPreviewByGame((current) => {
       const next = { ...current }
       delete next[pk(gameId)]
@@ -1737,12 +1313,9 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     })
   }
 
-        function runOptimizeAll() {
+  function runOptimizeAll() {
     try {
-      if (!optimizerBatchGames.length) {
-        alert('No games in plan')
-        return
-      }
+      if (!optimizerBatchGames.length) return alert('No games in plan')
 
       let rollingTotals = JSON.parse(JSON.stringify(lineupSetterFilteredTotals))
       const next = {}
@@ -1754,13 +1327,11 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
 
         if (lineupLockedByGame[gameId]) {
           const lockedLineup = currentPlanLineupsByGame[gameId]
-
           if (lockedLineup) {
             next[gameId] = lockedLineup
             rollingTotals = addTotals(rollingTotals, computeTotals([lockedLineup], players), players)
             addLineupOutsToPlanCounts(planAssignedOuts, lockedLineup, players)
           }
-
           return
         }
 
@@ -1792,32 +1363,27 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
 
         next[gameId] = optimized
         addLineupOutsToPlanCounts(planAssignedOuts, optimized, players)
-
         persistLineup(gameId, optimized)
         rollingTotals = addTotals(rollingTotals, computeTotals([optimized], players), players)
       })
 
       setOptimizerPreviewByGame((current) => ({ ...current, ...next }))
     } catch (error) {
-      console.error('Optimize all failed', error)
       setAppError(error?.message || 'Optimize all failed.')
     }
   }
 
-        function runOptimizeCurrent() {
+  function runOptimizeCurrent() {
     try {
       if (!optimizerFocusGameId) return
-
       if (lineupLockedByGame[pk(optimizerFocusGameId)]) {
-        setAppError('This lineup is locked. Unlock it before optimizing.')
-        return
+        return setAppError('This lineup is locked. Unlock it before optimizing.')
       }
 
       const game = games.find((g) => pk(g.id) === pk(optimizerFocusGameId))
       if (!game) return
 
       const gameId = pk(game.id)
-
       const otherPreviewLineups = getOtherPreviewLineups({
         optimizerBatchGames,
         currentPlanLineupsByGame,
@@ -1840,8 +1406,6 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
       const availableIds = (source.availablePlayerIds || activePlayerIds()).map(pk)
       if (!availableIds.length) return
 
-      const batchCurrentOuts = buildBatchCurrentOutsFromLineups(otherPreviewLineups, players)
-
       const rebuilt = buildOptimizedLineup({
         game: { ...game, innings: Number(source?.innings || game.innings || 6) },
         players,
@@ -1854,27 +1418,19 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
         priorityMap: priorityByPlayer,
         fitMap: fitByPlayer,
         planSitOutTargets: optimizerPlanSitOutTargets,
-        batchCurrentOuts,
+        batchCurrentOuts: buildBatchCurrentOutsFromLineups(otherPreviewLineups, players),
         existingPlanLineups: otherPreviewLineups,
       })
 
-      setOptimizerPreviewByGame((current) => ({
-        ...current,
-        [gameId]: rebuilt,
-      }))
-
+      setOptimizerPreviewByGame((current) => ({ ...current, [gameId]: rebuilt }))
       persistLineup(game.id, rebuilt)
     } catch (error) {
-      console.error('Optimize current failed', error)
       setAppError(error?.message || 'Optimize current failed.')
     }
   }
 
-    function updatePreview(gameId, updater) {
-    if (lineupLockedByGame[pk(gameId)]) {
-      setAppError('This lineup is locked. Unlock it before editing.')
-      return
-    }
+  function updatePreview(gameId, updater) {
+    if (lineupLockedByGame[pk(gameId)]) return setAppError('This lineup is locked. Unlock it before editing.')
 
     setOptimizerPreviewByGame((current) => {
       const existing = buildPreviewBaseLineup({
@@ -1888,33 +1444,61 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
 
       const next = updater(JSON.parse(JSON.stringify(existing)))
       persistLineup(gameId, next)
-
       return { ...current, [pk(gameId)]: next }
     })
   }
 
-  
-        function togglePreviewAvailable(gameId, playerId) {
+  function importLineupToPreview(targetGameId, sourceGameId) {
+    if (!targetGameId || !sourceGameId) return
+
+    const targetGame = games.find((game) => pk(game.id) === pk(targetGameId))
+    const sourceLineup = optimizerPreviewByGame[pk(sourceGameId)] || lineupsByGame[pk(sourceGameId)]
+
+    if (!sourceLineup) return setAppError('Selected source game does not have a lineup.')
+    if (!window.confirm('Are you sure you want to import this lineup? This will overwrite the current game lineup.')) return
+
+    const copied = copyLineupForGame({ sourceLineup, targetGame, players, activePlayerIds })
+    setOptimizerPreviewByGame((current) => ({ ...current, [pk(targetGameId)]: copied }))
+  }
+
+  function importLineupToSaved(targetGameId, sourceGameId) {
+    if (!targetGameId || !sourceGameId) return
+
+    const targetGame = games.find((game) => pk(game.id) === pk(targetGameId))
+    const sourceLineup = optimizerPreviewByGame[pk(sourceGameId)] || lineupsByGame[pk(sourceGameId)]
+
+    if (!sourceLineup) return setAppError('Selected source game does not have a lineup.')
+    if (!window.confirm('Are you sure you want to import this lineup? This will overwrite the current game lineup.')) return
+
+    const copied = copyLineupForGame({ sourceLineup, targetGame, players, activePlayerIds })
+    setLineupsByGame((current) => ({ ...current, [pk(targetGameId)]: copied }))
+    autoSave(targetGameId, copied)
+  }
+
+  async function clearPreviewLineup(gameId) {
+    if (!gameId) return
+    if (lineupLockedByGame[pk(gameId)]) return setAppError('Unlock the lineup before clearing it.')
+    if (!window.confirm('Clear the lineup for this game?')) return
+
+    const source = optimizerPreviewByGame[pk(gameId)] || lineupsByGame[pk(gameId)]
+    if (!source) return
+
+    const cleared = clearLineupContents(source, players)
+    setOptimizerPreviewByGame((current) => ({ ...current, [pk(gameId)]: cleared }))
+    await persistLineup(gameId, cleared)
+  }
+
+  function togglePreviewAvailable(gameId, playerId) {
     const id = pk(playerId)
     const game = games.find((g) => pk(g.id) === pk(gameId))
     const player = players.find((p) => pk(p.id) === id)
-
     const currentLineup =
       optimizerPreviewByGame[pk(gameId)] ||
       lineupsByGame[pk(gameId)] ||
       blankLineup(players.map((p) => p.id), Number(game?.innings || 6), activePlayerIds())
 
     const currentlyAvailable = (currentLineup.availablePlayerIds || []).map(pk).includes(id)
-
-    const confirmed = window.confirm(
-      getAvailabilityConfirmMessage({
-        currentlyAvailable,
-        player,
-        game,
-      })
-    )
-
-    if (!confirmed) return
+    if (!window.confirm(getAvailabilityConfirmMessage({ currentlyAvailable, player, game }))) return
 
     updatePreview(gameId, (lineup) =>
       updateLineupAvailability({
@@ -1925,56 +1509,8 @@ const lineupSetterFilteredGamesWithLineups = useMemo(() => {
     )
   }
 
-function togglePreviewBattingLock(gameId, playerId) {
-  updatePreview(gameId, (lineup) => toggleBattingLockOnLineup(lineup, playerId))
-}
-
-function togglePreviewAllBattingLock(gameId) {
-  updatePreview(gameId, (lineup) => toggleAllBattingLocksOnLineup(lineup))
-}
-
-function updatePreviewCell(gameId, playerId, inning, value) {
-  updatePreview(gameId, (lineup) => updateLineupCell(lineup, playerId, inning, value))
-}
-
-function updatePreviewBatting(gameId, playerId, value) {
-  updatePreview(gameId, (lineup) => updateLineupBattingOrder(lineup, playerId, value))
-}
-
-function togglePreviewCellLock(gameId, playerId, inning) {
-  updatePreview(gameId, (lineup) => toggleCellLockOnLineup(lineup, playerId, inning))
-}
-
-function togglePreviewRowLock(gameId, playerId) {
-  updatePreview(gameId, (lineup) => toggleRowLockOnLineup(lineup, playerId))
-}
-
-function togglePreviewInningLock(gameId, inning) {
-  updatePreview(gameId, (lineup) => toggleInningLockOnLineup(lineup, inning))
-}
-  
-function toggleSavedInningLock(gameId, inning) {
-  updateSavedLineup(gameId, (lineup) => {
-    const next = toggleInningLockOnLineup(lineup, inning)
-    autoSave(gameId, next)
-    return next
-  })
-}
-  
-    function addPreviewInning(gameId) {
-    updatePreview(gameId, (lineup) => addInningToLineup(lineup))
-  }
-
-    function removePreviewInning(gameId, inningToRemove) {
-    const confirmed = window.confirm(`Remove inning ${inningToRemove}?`)
-    if (!confirmed) return
-
-    updatePreview(gameId, (lineup) => removeInningFromLineup(lineup, inningToRemove))
-  }
-
-  async function savePreview() {
-    return
-  }
+  const savePreview = async () => {}
+  const saveSavedLineup = async () => {}
 
   function updateSavedLineup(gameId, updater) {
     setLineupsByGame((current) => {
@@ -1985,113 +1521,98 @@ function toggleSavedInningLock(gameId, inning) {
     })
   }
 
-    function updateSavedCell(gameId, playerId, inning, value) {
+  const togglePreviewBattingLock = (gameId, playerId) =>
+    updatePreview(gameId, (lineup) => toggleBattingLockOnLineup(lineup, playerId))
+  const togglePreviewAllBattingLock = (gameId) =>
+    updatePreview(gameId, (lineup) => toggleAllBattingLocksOnLineup(lineup))
+  const updatePreviewCell = (gameId, playerId, inning, value) =>
+    updatePreview(gameId, (lineup) => updateLineupCell(lineup, playerId, inning, value))
+  const updatePreviewBatting = (gameId, playerId, value) =>
+    updatePreview(gameId, (lineup) => updateLineupBattingOrder(lineup, playerId, value))
+  const togglePreviewCellLock = (gameId, playerId, inning) =>
+    updatePreview(gameId, (lineup) => toggleCellLockOnLineup(lineup, playerId, inning))
+  const togglePreviewRowLock = (gameId, playerId) =>
+    updatePreview(gameId, (lineup) => toggleRowLockOnLineup(lineup, playerId))
+  const togglePreviewInningLock = (gameId, inning) =>
+    updatePreview(gameId, (lineup) => toggleInningLockOnLineup(lineup, inning))
+  const addPreviewInning = (gameId) =>
+    updatePreview(gameId, (lineup) => addInningToLineup(lineup))
+  const removePreviewInning = (gameId, inningToRemove) => {
+    if (!window.confirm(`Remove inning ${inningToRemove}?`)) return
+    updatePreview(gameId, (lineup) => removeInningFromLineup(lineup, inningToRemove))
+  }
+
+  function updateSavedAndPersist(gameId, updater) {
     updateSavedLineup(gameId, (lineup) => {
-      const next = updateLineupCell(lineup, playerId, inning, value)
+      const next = updater(lineup)
       autoSave(gameId, next)
       return next
     })
   }
 
-  function updateSavedBatting(gameId, playerId, value) {
-    updateSavedLineup(gameId, (lineup) => {
-      const next = updateLineupBattingOrder(lineup, playerId, value)
-      autoSave(gameId, next)
-      return next
-    })
-  }
-
-function toggleSavedBattingLock(gameId, playerId) {
-  updateSavedLineup(gameId, (lineup) => {
-    const next = toggleBattingLockOnLineup(lineup, playerId)
-    autoSave(gameId, next)
-    return next
-  })
-}
-
-function toggleSavedAllBattingLock(gameId) {
-  updateSavedLineup(gameId, (lineup) => {
-    const next = toggleAllBattingLocksOnLineup(lineup)
-    autoSave(gameId, next)
-    return next
-  })
-}
-  
-    function addSavedInning(gameId) {
-  updateSavedLineup(gameId, (lineup) => {
-    const next = addInningToLineup(lineup)
-    autoSave(gameId, next)
-    return next
-  })
-}
-
-    function removeSavedInning(gameId, inningToRemove) {
-  const confirmed = window.confirm(`Remove inning ${inningToRemove}?`)
-  if (!confirmed) return
-
-  let lineupToSave = null
-
-  setLineupsByGame((prev) => {
-    const existing = prev[pk(gameId)]
-    if (!existing) return prev
-
-    const lineup = removeInningFromSavedLineup({
-      existing,
-      inningToRemove,
-      players,
-      activePlayerIds,
+  const updateSavedCell = (gameId, playerId, inning, value) =>
+    updateSavedAndPersist(gameId, (lineup) => updateLineupCell(lineup, playerId, inning, value))
+  const updateSavedBatting = (gameId, playerId, value) =>
+    updateSavedAndPersist(gameId, (lineup) => updateLineupBattingOrder(lineup, playerId, value))
+  const toggleSavedBattingLock = (gameId, playerId) =>
+    updateSavedAndPersist(gameId, (lineup) => toggleBattingLockOnLineup(lineup, playerId))
+  const toggleSavedAllBattingLock = (gameId) =>
+    updateSavedAndPersist(gameId, (lineup) => toggleAllBattingLocksOnLineup(lineup))
+  const addSavedInning = (gameId) =>
+    updateSavedAndPersist(gameId, (lineup) => addInningToLineup(lineup))
+  const toggleSavedInningLock = (gameId, inning) =>
+    updateSavedAndPersist(gameId, (lineup) => toggleInningLockOnLineup(lineup, inning))
+  const toggleSavedCellLock = (gameId, playerId, inning) =>
+    updateSavedAndPersist(gameId, (lineup) => toggleCellLockOnLineup(lineup, playerId, inning))
+  const toggleSavedRowLock = (gameId, playerId) =>
+    updateSavedAndPersist(gameId, (lineup) => toggleRowLockOnLineup(lineup, playerId))
+  const toggleSavedAvailable = (gameId, playerId) =>
+    updateSavedAndPersist(gameId, (lineup) => {
+      const currentlyAvailable = (lineup.availablePlayerIds || []).map(pk).includes(pk(playerId))
+      return updateLineupAvailability({ lineup, playerId, currentlyAvailable })
     })
 
-    lineupToSave = lineup
+  function removeSavedInning(gameId, inningToRemove) {
+    if (!window.confirm(`Remove inning ${inningToRemove}?`)) return
 
-    return {
-      ...prev,
-      [pk(gameId)]: lineup,
+    let lineupToSave = null
+    setLineupsByGame((prev) => {
+      const existing = prev[pk(gameId)]
+      if (!existing) return prev
+
+      const lineup = removeInningFromSavedLineup({
+        existing,
+        inningToRemove,
+        players,
+        activePlayerIds,
+      })
+
+      lineupToSave = lineup
+      return { ...prev, [pk(gameId)]: lineup }
+    })
+
+    if (lineupToSave) persistLineup(gameId, lineupToSave)
+  }
+
+  async function toggleLineupLocked(gameId, nextLocked) {
+    const game = games.find((g) => pk(g.id) === pk(gameId))
+    const currentLineup =
+      currentPlanLineupsByGame[pk(gameId)] ||
+      lineupsByGame[pk(gameId)] ||
+      optimizerPreviewByGame[pk(gameId)] ||
+      blankLineup(players.map((p) => p.id), Number(game?.innings || 6), activePlayerIds())
+
+    setLineupLockedByGame((current) => ({ ...current, [pk(gameId)]: nextLocked }))
+    const ok = await persistLineup(gameId, currentLineup, nextLocked)
+
+    if (!ok) {
+      setLineupLockedByGame((current) => ({ ...current, [pk(gameId)]: !nextLocked }))
     }
-  })
-
-  if (lineupToSave) {
-    persistLineup(gameId, lineupToSave)
-  }
-}
-  
-  async function saveSavedLineup() {
-    return
   }
 
-    async function toggleLineupLocked(gameId, nextLocked) {
-  const game = games.find((g) => pk(g.id) === pk(gameId))
-
-  const currentLineup =
-    currentPlanLineupsByGame[pk(gameId)] ||
-    lineupsByGame[pk(gameId)] ||
-    optimizerPreviewByGame[pk(gameId)] ||
-    blankLineup(players.map((p) => p.id), Number(game?.innings || 6), activePlayerIds())
-
-  setLineupLockedByGame((current) => ({
-    ...current,
-    [pk(gameId)]: nextLocked,
-  }))
-
-  const ok = await persistLineup(gameId, currentLineup, nextLocked)
-
-  if (!ok) {
-    setLineupLockedByGame((current) => ({
-      ...current,
-      [pk(gameId)]: !nextLocked,
-    }))
-  }
-}
-  
-  
-    async function clearSavedLineup(gameId) {
-    if (lineupLockedByGame[pk(gameId)]) {
-      setAppError('Unlock the lineup before clearing it.')
-      return
-    }
-
-    const confirmed = window.confirm('Clear the lineup for this game?')
-    if (!confirmed) return
+  async function clearSavedLineup(gameId) {
+    if (lineupLockedByGame[pk(gameId)]) return setAppError('Unlock the lineup before clearing it.')
+    if (!window.confirm('Clear the lineup for this game?')) return
 
     const res = await supabase
       .from('game_lineups')
@@ -2099,17 +1620,13 @@ function toggleSavedAllBattingLock(gameId) {
       .eq('game_id', gameId)
       .eq('lineup_name', 'Main')
 
-    if (res.error) {
-      setAppError(res.error.message)
-      return
-    }
+    if (res.error) return setAppError(res.error.message)
 
     setLineupsByGame((current) => {
       const next = { ...current }
       delete next[pk(gameId)]
       return next
     })
-
     setOptimizerPreviewByGame((current) => {
       const next = { ...current }
       delete next[pk(gameId)]
@@ -2117,37 +1634,6 @@ function toggleSavedAllBattingLock(gameId) {
     })
   }
 
-        function toggleSavedAvailable(gameId, playerId) {
-    updateSavedLineup(gameId, (lineup) => {
-      const currentlyAvailable = (lineup.availablePlayerIds || []).map(pk).includes(pk(playerId))
-
-      const next = updateLineupAvailability({
-        lineup,
-        playerId,
-        currentlyAvailable,
-      })
-
-      autoSave(gameId, next)
-      return next
-    })
-  }
-
-    function toggleSavedCellLock(gameId, playerId, inning) {
-    updateSavedLineup(gameId, (lineup) => {
-      const next = toggleCellLockOnLineup(lineup, playerId, inning)
-      autoSave(gameId, next)
-      return next
-    })
-  }
-
-  function toggleSavedRowLock(gameId, playerId) {
-    updateSavedLineup(gameId, (lineup) => {
-      const next = toggleRowLockOnLineup(lineup, playerId)
-      autoSave(gameId, next)
-      return next
-    })
-  }
-  
   async function addAttendanceEvent() {
     const res = await supabase
       .from('attendance_events')
@@ -2162,33 +1648,23 @@ function toggleSavedAllBattingLock(gameId) {
       .select()
       .single()
 
-    if (res.error) {
-      setAppError(res.error.message)
-      return
-    }
+    if (res.error) return setAppError(res.error.message)
 
     const newEvent = res.data
-
     setAttendanceEvents((current) =>
-      [...current, newEvent].sort((a, b) =>
-        `${a.event_date || ''}`.localeCompare(`${b.event_date || ''}`)
-      )
+      [...current, newEvent].sort((a, b) => `${a.event_date || ''}`.localeCompare(`${b.event_date || ''}`))
     )
 
-    const inserts = activePlayers.map((player) => ({
-      event_id: newEvent.id,
-      player_id: player.id,
-      attended: false,
-    }))
+    const recRes = await supabase.from('attendance_records').upsert(
+      activePlayers.map((player) => ({
+        event_id: newEvent.id,
+        player_id: player.id,
+        attended: false,
+      })),
+      { onConflict: 'event_id,player_id' }
+    )
 
-    const recRes = await supabase.from('attendance_records').upsert(inserts, {
-      onConflict: 'event_id,player_id',
-    })
-
-    if (recRes.error) {
-      setAppError(recRes.error.message)
-      return
-    }
+    if (recRes.error) return setAppError(recRes.error.message)
 
     setAttendanceByEvent((current) => ({
       ...current,
@@ -2240,20 +1716,13 @@ function toggleSavedAllBattingLock(gameId) {
   }
 
   async function deleteAttendanceEvent(eventId) {
-    const confirmed = window.confirm('Delete this attendance event?')
-    if (!confirmed) return
+    if (!window.confirm('Delete this attendance event?')) return
 
     const recDel = await supabase.from('attendance_records').delete().eq('event_id', eventId)
-    if (recDel.error) {
-      setAppError(recDel.error.message)
-      return
-    }
+    if (recDel.error) return setAppError(recDel.error.message)
 
     const eventDel = await supabase.from('attendance_events').delete().eq('id', eventId)
-    if (eventDel.error) {
-      setAppError(eventDel.error.message)
-      return
-    }
+    if (eventDel.error) return setAppError(eventDel.error.message)
 
     setAttendanceEvents((current) => current.filter((event) => pk(event.id) !== pk(eventId)))
     setAttendanceByEvent((current) => {
@@ -2263,62 +1732,24 @@ function toggleSavedAllBattingLock(gameId) {
     })
   }
 
-  function renderAttendancePage() {
-    return (
-      <AttendancePage
-        attendanceDate={attendanceDate}
-        setAttendanceDate={setAttendanceDate}
-        attendanceSeason={attendanceSeason}
-        setAttendanceSeason={setAttendanceSeason}
-        attendanceType={attendanceType}
-        setAttendanceType={setAttendanceType}
-        attendanceSurface={attendanceSurface}
-        setAttendanceSurface={setAttendanceSurface}
-        attendanceTitle={attendanceTitle}
-        setAttendanceTitle={setAttendanceTitle}
-        addAttendanceEvent={addAttendanceEvent}
-        ATTENDANCE_SEASON_OPTIONS={ATTENDANCE_SEASON_OPTIONS}
-        ATTENDANCE_TYPE_OPTIONS={ATTENDANCE_TYPE_OPTIONS}
-        ATTENDANCE_SURFACE_OPTIONS={ATTENDANCE_SURFACE_OPTIONS}
-        activePlayers={activePlayers}
-        filteredAttendanceEvents={filteredAttendanceEvents}
-        updateAttendanceEventField={updateAttendanceEventField}
-        attendanceByEvent={attendanceByEvent}
-        toggleAttendance={toggleAttendance}
-        deleteAttendanceEvent={deleteAttendanceEvent}
-        attendanceTotals={attendanceTotals}
-        attendanceBreakdownByPlayer={attendanceBreakdownByPlayer}
-      />
-    )
-  }
-
   return (
     <div className="app-shell">
       <Sidebar page={page} setPage={setPage} />
 
       <main className="main-content">
         {appError && (
-  <div
-    className="card"
-    style={{
-      marginBottom: 16,
-      borderColor: '#fecaca',
-      background: '#fff7f7',
-    }}
-  >
-    <div className="row-between wrap-row">
-      <p style={{ color: '#b91c1c', margin: 0 }}>
-        <strong>Error:</strong> {appError}
-      </p>
+          <div className="card" style={{ marginBottom: 16, borderColor: '#fecaca', background: '#fff7f7' }}>
+            <div className="row-between wrap-row">
+              <p style={{ color: '#b91c1c', margin: 0 }}>
+                <strong>Error:</strong> {appError}
+              </p>
+              <button type="button" onClick={() => setAppError('')}>
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
 
-      <button type="button" onClick={() => setAppError('')}>
-        Dismiss
-      </button>
-    </div>
-  </div>
-)}
-
-      
         {page === 'positioning-priority' && (
           <PositioningPriorityPage
             activePriorityRows={activePriorityRows}
@@ -2369,7 +1800,7 @@ function toggleSavedAllBattingLock(gameId) {
           />
         )}
 
-                        {page === 'game-detail' && (
+        {page === 'game-detail' && (
           <GameDetailPage
             selectedGame={selectedGame}
             selectedLineup={selectedLineup}
@@ -2407,119 +1838,141 @@ function toggleSavedAllBattingLock(gameId) {
         )}
 
         {page === 'lineup-setter' && (
-  <LineupSetterPage
-    optimizerFocusLineup={optimizerFocusLineup}
-    optimizerFocusGame={optimizerFocusGame}
-    optimizerFocusLocked={optimizerFocusLocked}
-    toggleLineupLocked={toggleLineupLocked}
-    lineupLockedByGame={lineupLockedByGame}
-    optimizerExistingGameId={optimizerExistingGameId}
-    coachSummaryGames={optimizerBatchGames}
-    coachSummaryLineups={optimizerPreviewByGame}
-    coachSummaryTotals={currentBatchTotals}
-    coachSummarySitRows={lineupSetterFutureComputedSitRows}
-    setOptimizerExistingGameId={setOptimizerExistingGameId}
-    games={games}
-    togglePreviewInningLock={togglePreviewInningLock}
-    trackingPriorityByPositionRows={trackingPriorityByPositionRows}
-    addExistingGameToBatch={addExistingGameToBatch}
-    optimizerNewDate={optimizerNewDate}
-    setOptimizerNewDate={setOptimizerNewDate}
-    optimizerNewOpponent={optimizerNewOpponent}
-    setOptimizerNewOpponent={setOptimizerNewOpponent}
-    optimizerNewType={optimizerNewType}
-    setOptimizerNewType={setOptimizerNewType}
-    optimizerNewSeason={optimizerNewSeason}
-    setOptimizerNewSeason={setOptimizerNewSeason}
-    gameTypeOptions={gameTypeOptions}
-    seasonOptions={seasonOptions}
-    statusOptions={statusOptions}
-    trackingFilters={trackingFilters}
-    setTrackingFilters={setTrackingFilters}
-    addGameFromOptimizer={addGameFromOptimizer}
-    runOptimizeCurrent={runOptimizeCurrent}
-    optimizerFocusGameId={optimizerFocusGameId}
-    runOptimizeAll={runOptimizeAll}
-    optimizerBatchGames={optimizerBatchGames}
-    optimizerPreviewByGame={optimizerPreviewByGame}
-    lineupsByGame={lineupsByGame}
-    activePlayers={activePlayers}
-    activePlayerIds={activePlayerIds()}
-    requiredOutsForGame={requiredOutsForGame}
-    setOptimizerFocusGameId={setOptimizerFocusGameId}
-    savePreview={savePreview}
-    removeBatchGame={removeBatchGame}
-    addPreviewInning={addPreviewInning}
-    removePreviewInning={removePreviewInning}
-    togglePreviewAvailable={togglePreviewAvailable}
-    LineupGrid={LineupGrid}
-    togglePreviewBattingLock={togglePreviewBattingLock}
-    fitByPlayer={fitByPlayer}
-    updatePreviewCell={updatePreviewCell}
-    updatePreviewBatting={updatePreviewBatting}
-    togglePreviewCellLock={togglePreviewCellLock}
-    togglePreviewRowLock={togglePreviewRowLock}
-    filteredLineups={lineupSetterFilteredLineups}
-    ytdBeforeTotals={lineupSetterFilteredTotals}
-    currentBatchTotals={currentBatchTotals}
-    currentPlanSitOutRows={currentPlanSitOutRows}
-    ytdAfterTotals={lineupSetterFutureTotals}
-    ytdBeforeSitOutRows={lineupSetterComputedSitRows}
-    ytdAfterSitOutRows={lineupSetterFutureComputedSitRows}
-    trackingSort={trackingSort}
-    setTrackingSort={setTrackingSort}
-    TrackingTable={TrackingTable}
-    blankLineup={blankLineup}
-    pk={pk}
-    optimizerPlanSitOutTargets={optimizerPlanSitOutTargets}
-    setOptimizerPlanSitOutTargets={setOptimizerPlanSitOutTargets}
-    optimizerMode={optimizerMode}
-    setOptimizerMode={setOptimizerMode}
-    optimizerProfiles={optimizerProfiles}
-    optimizerProfileRules={optimizerProfileRules}
-    inningStatus={inningStatus}
-    trackingPriorityRows={trackingPriorityRows}
-    optimizerImportSourceGameId={optimizerImportSourceGameId}
-    setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
-    togglePreviewAllBattingLock={togglePreviewAllBattingLock}
-    optimizerImportableGames={optimizerImportableGames}
-    importLineupToPreview={importLineupToPreview}
-    clearPreviewLineup={clearPreviewLineup}
-    toggleSavedBattingLock={toggleSavedBattingLock}
-    toggleSavedAllBattingLock={toggleSavedAllBattingLock}
-  />
-)}
-                {page === 'tracking' && (
-  <TrackingPage
-    trackingLockedLineups={filteredTrackingLineups}
-    trackingTotals={trackingTotals}
-    trackingSitByPlayer={trackingComputedSitRows}
-    trackingSitSummary={sitSummary}
-    activePlayers={activePlayers}
-    trackingSort={trackingSort}
-    setTrackingSort={setTrackingSort}
-    trackingFilters={trackingFilters}
-    setTrackingFilters={setTrackingFilters}
-    seasonOptions={seasonOptions}
-    gameTypeOptions={gameTypeOptions}
-    statusOptions={statusOptions}
-    TrackingTable={TrackingTable}
-    battingRows={battingRows}
-    sitSummary={sitSummary}
-    sitByPlayer={sitByPlayer}
-    gamesWithLineups={filteredTrackingGamesWithLineups}
-    trackingPlayerId={trackingPlayerId}
-    setTrackingPlayerId={setTrackingPlayerId}
-    selectedPlayerPositions={selectedPlayerPositions}
-    trackingPriorityRows={trackingPriorityRows}
-    trackingPriorityByPositionRows={trackingPriorityByPositionRows}
-    pk={pk}
-  />
-)}
-        
-                {page === 'attendance' && renderAttendancePage()}
+          <LineupSetterPage
+            optimizerFocusLineup={optimizerFocusLineup}
+            optimizerFocusGame={optimizerFocusGame}
+            optimizerFocusLocked={optimizerFocusLocked}
+            toggleLineupLocked={toggleLineupLocked}
+            lineupLockedByGame={lineupLockedByGame}
+            optimizerExistingGameId={optimizerExistingGameId}
+            setOptimizerExistingGameId={setOptimizerExistingGameId}
+            games={games}
+            togglePreviewInningLock={togglePreviewInningLock}
+            trackingPriorityByPositionRows={trackingPriorityByPositionRows}
+            addExistingGameToBatch={addExistingGameToBatch}
+            optimizerNewDate={optimizerNewDate}
+            setOptimizerNewDate={setOptimizerNewDate}
+            optimizerNewOpponent={optimizerNewOpponent}
+            setOptimizerNewOpponent={setOptimizerNewOpponent}
+            optimizerNewType={optimizerNewType}
+            setOptimizerNewType={setOptimizerNewType}
+            optimizerNewSeason={optimizerNewSeason}
+            setOptimizerNewSeason={setOptimizerNewSeason}
+            gameTypeOptions={gameTypeOptions}
+            seasonOptions={seasonOptions}
+            statusOptions={statusOptions}
+            trackingFilters={trackingFilters}
+            setTrackingFilters={setTrackingFilters}
+            addGameFromOptimizer={addGameFromOptimizer}
+            runOptimizeCurrent={runOptimizeCurrent}
+            optimizerFocusGameId={optimizerFocusGameId}
+            runOptimizeAll={runOptimizeAll}
+            optimizerBatchGames={optimizerBatchGames}
+            optimizerPreviewByGame={optimizerPreviewByGame}
+            lineupsByGame={lineupsByGame}
+            activePlayers={activePlayers}
+            activePlayerIds={activePlayerIds()}
+            requiredOutsForGame={requiredOutsForGame}
+            setOptimizerFocusGameId={setOptimizerFocusGameId}
+            savePreview={savePreview}
+            removeBatchGame={removeBatchGame}
+            addPreviewInning={addPreviewInning}
+            removePreviewInning={removePreviewInning}
+            togglePreviewAvailable={togglePreviewAvailable}
+            LineupGrid={LineupGrid}
+            togglePreviewBattingLock={togglePreviewBattingLock}
+            togglePreviewAllBattingLock={togglePreviewAllBattingLock}
+            fitByPlayer={fitByPlayer}
+            updatePreviewCell={updatePreviewCell}
+            updatePreviewBatting={updatePreviewBatting}
+            togglePreviewCellLock={togglePreviewCellLock}
+            togglePreviewRowLock={togglePreviewRowLock}
+            filteredLineups={lineupSetterFilteredLineups}
+            ytdBeforeTotals={lineupSetterFilteredTotals}
+            currentBatchTotals={currentBatchTotals}
+            currentPlanSitOutRows={currentPlanSitOutRows}
+            ytdAfterTotals={lineupSetterFutureTotals}
+            ytdBeforeSitOutRows={lineupSetterComputedSitRows}
+            ytdAfterSitOutRows={lineupSetterFutureComputedSitRows}
+            trackingSort={trackingSort}
+            setTrackingSort={setTrackingSort}
+            TrackingTable={TrackingTable}
+            blankLineup={blankLineup}
+            pk={pk}
+            optimizerPlanSitOutTargets={optimizerPlanSitOutTargets}
+            setOptimizerPlanSitOutTargets={setOptimizerPlanSitOutTargets}
+            optimizerMode={optimizerMode}
+            setOptimizerMode={setOptimizerMode}
+            optimizerProfiles={optimizerProfiles}
+            optimizerProfileRules={optimizerProfileRules}
+            inningStatus={inningStatus}
+            trackingPriorityRows={trackingPriorityRows}
+            optimizerImportSourceGameId={optimizerImportSourceGameId}
+            setOptimizerImportSourceGameId={setOptimizerImportSourceGameId}
+            optimizerImportableGames={optimizerImportableGames}
+            importLineupToPreview={importLineupToPreview}
+            clearPreviewLineup={clearPreviewLineup}
+            toggleSavedBattingLock={toggleSavedBattingLock}
+            toggleSavedAllBattingLock={toggleSavedAllBattingLock}
+          />
+        )}
 
-                {page === 'optimizer-inputs' && (
+        {page === 'tracking' && (
+          <TrackingPage
+            trackingLockedLineups={filteredTrackingLineups}
+            trackingTotals={trackingTotals}
+            trackingSitByPlayer={trackingComputedSitRows}
+            trackingSitSummary={sitSummary}
+            activePlayers={activePlayers}
+            trackingSort={trackingSort}
+            setTrackingSort={setTrackingSort}
+            trackingFilters={trackingFilters}
+            setTrackingFilters={setTrackingFilters}
+            seasonOptions={seasonOptions}
+            gameTypeOptions={gameTypeOptions}
+            statusOptions={statusOptions}
+            TrackingTable={TrackingTable}
+            battingRows={battingRows}
+            sitSummary={sitSummary}
+            sitByPlayer={sitByPlayer}
+            gamesWithLineups={filteredTrackingGamesWithLineups}
+            trackingPlayerId={trackingPlayerId}
+            setTrackingPlayerId={setTrackingPlayerId}
+            selectedPlayerPositions={selectedPlayerPositions}
+            trackingPriorityRows={trackingPriorityRows}
+            trackingPriorityByPositionRows={trackingPriorityByPositionRows}
+            pk={pk}
+          />
+        )}
+
+        {page === 'attendance' && (
+          <AttendancePage
+            attendanceDate={attendanceDate}
+            setAttendanceDate={setAttendanceDate}
+            attendanceSeason={attendanceSeason}
+            setAttendanceSeason={setAttendanceSeason}
+            attendanceType={attendanceType}
+            setAttendanceType={setAttendanceType}
+            attendanceSurface={attendanceSurface}
+            setAttendanceSurface={setAttendanceSurface}
+            attendanceTitle={attendanceTitle}
+            setAttendanceTitle={setAttendanceTitle}
+            addAttendanceEvent={addAttendanceEvent}
+            ATTENDANCE_SEASON_OPTIONS={ATTENDANCE_SEASON_OPTIONS}
+            ATTENDANCE_TYPE_OPTIONS={ATTENDANCE_TYPE_OPTIONS}
+            ATTENDANCE_SURFACE_OPTIONS={ATTENDANCE_SURFACE_OPTIONS}
+            activePlayers={activePlayers}
+            filteredAttendanceEvents={filteredAttendanceEvents}
+            updateAttendanceEventField={updateAttendanceEventField}
+            attendanceByEvent={attendanceByEvent}
+            toggleAttendance={toggleAttendance}
+            deleteAttendanceEvent={deleteAttendanceEvent}
+            attendanceTotals={attendanceTotals}
+            attendanceBreakdownByPlayer={attendanceBreakdownByPlayer}
+          />
+        )}
+
+        {page === 'optimizer-inputs' && (
           <OptimizerInputsPage
             optimizerProfiles={optimizerProfiles}
             optimizerProfileRules={optimizerProfileRules}
@@ -2529,33 +1982,31 @@ function toggleSavedAllBattingLock(gameId) {
         )}
 
         {page === 'admin' && (
-  <AdminPage
-    appOptions={appOptions}
-    loadAppOptions={loadAppOptions}
-    addAppOption={addAppOption}
-    updateAppOption={updateAppOption}
-    reloadAllData={loadAll}
-    players={players}
-    sortedPlayers={sortedPlayers}
-    playerSort={playerSort}
-    setPlayerSort={setPlayerSort}
-    nextSort={nextSort}
-    updatePlayerLocal={updatePlayerLocal}
-    upsertPlayer={upsertPlayer}
-    deletePlayer={deletePlayer}
-    addPlayer={addPlayer}
-    newPlayerName={newPlayerName}
-    setNewPlayerName={setNewPlayerName}
-    newPlayerLastName={newPlayerLastName}
-    setNewPlayerLastName={setNewPlayerLastName}
-    newPlayerNumber={newPlayerNumber}
-    setNewPlayerNumber={setNewPlayerNumber}
-    newPlayerActive={newPlayerActive}
-    setNewPlayerActive={setNewPlayerActive}
-  />
-)}
-
-        
+          <AdminPage
+            appOptions={appOptions}
+            loadAppOptions={loadAppOptions}
+            addAppOption={addAppOption}
+            updateAppOption={updateAppOption}
+            reloadAllData={loadAll}
+            players={players}
+            sortedPlayers={sortedPlayers}
+            playerSort={playerSort}
+            setPlayerSort={setPlayerSort}
+            nextSort={nextSort}
+            updatePlayerLocal={updatePlayerLocal}
+            upsertPlayer={upsertPlayer}
+            deletePlayer={deletePlayer}
+            addPlayer={addPlayer}
+            newPlayerName={newPlayerName}
+            setNewPlayerName={setNewPlayerName}
+            newPlayerLastName={newPlayerLastName}
+            setNewPlayerLastName={setNewPlayerLastName}
+            newPlayerNumber={newPlayerNumber}
+            setNewPlayerNumber={setNewPlayerNumber}
+            newPlayerActive={newPlayerActive}
+            setNewPlayerActive={setNewPlayerActive}
+          />
+        )}
       </main>
     </div>
   )
