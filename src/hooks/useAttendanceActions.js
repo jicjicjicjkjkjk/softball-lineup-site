@@ -1,4 +1,29 @@
-async function addAttendanceEvent() {
+import { supabase } from '../lib/supabase'
+import { pk } from '../lib/lineupUtils'
+import {
+  TEAM_ID,
+  ATTENDANCE_SEASON_OPTIONS,
+  ATTENDANCE_TYPE_OPTIONS,
+  ATTENDANCE_SURFACE_OPTIONS,
+} from '../lib/constants'
+
+export function useAttendanceActions({
+  setAppError,
+  activePlayers,
+  setAttendanceEvents,
+  setAttendanceByEvent,
+  attendanceDate,
+  setAttendanceDate,
+  attendanceSeason,
+  setAttendanceSeason,
+  attendanceType,
+  setAttendanceType,
+  attendanceSurface,
+  setAttendanceSurface,
+  attendanceTitle,
+  setAttendanceTitle,
+}) {
+  async function addAttendanceEvent() {
     const res = await supabase
       .from('attendance_events')
       .insert({
@@ -12,27 +37,26 @@ async function addAttendanceEvent() {
       .select()
       .single()
 
-    if (res.error) {
-      setAppError(res.error.message)
-      return
-    }
+    if (res.error) return setAppError(res.error.message)
 
     const newEvent = res.data
-    setAttendanceEvents((current) => [...current, newEvent].sort((a, b) => `${a.event_date || ''}`.localeCompare(`${b.event_date || ''}`)))
 
-    const inserts = activePlayers.map((player) => ({
-      event_id: newEvent.id,
-      player_id: player.id,
-      attended: false,
-    }))
+    setAttendanceEvents((current) =>
+      [...current, newEvent].sort((a, b) =>
+        `${a.event_date || ''}`.localeCompare(`${b.event_date || ''}`)
+      )
+    )
 
-    const recRes = await supabase.from('attendance_records').upsert(inserts, {
-      onConflict: 'event_id,player_id',
-    })
-    if (recRes.error) {
-      setAppError(recRes.error.message)
-      return
-    }
+    const recRes = await supabase.from('attendance_records').upsert(
+      activePlayers.map((player) => ({
+        event_id: newEvent.id,
+        player_id: player.id,
+        attended: false,
+      })),
+      { onConflict: 'event_id,player_id' }
+    )
+
+    if (recRes.error) return setAppError(recRes.error.message)
 
     setAttendanceByEvent((current) => ({
       ...current,
@@ -84,22 +108,16 @@ async function addAttendanceEvent() {
   }
 
   async function deleteAttendanceEvent(eventId) {
-    const confirmed = window.confirm('Delete this attendance event?')
-    if (!confirmed) return
+    if (!window.confirm('Delete this attendance event?')) return
 
     const recDel = await supabase.from('attendance_records').delete().eq('event_id', eventId)
-    if (recDel.error) {
-      setAppError(recDel.error.message)
-      return
-    }
+    if (recDel.error) return setAppError(recDel.error.message)
 
     const eventDel = await supabase.from('attendance_events').delete().eq('id', eventId)
-    if (eventDel.error) {
-      setAppError(eventDel.error.message)
-      return
-    }
+    if (eventDel.error) return setAppError(eventDel.error.message)
 
     setAttendanceEvents((current) => current.filter((event) => pk(event.id) !== pk(eventId)))
+
     setAttendanceByEvent((current) => {
       const next = { ...current }
       delete next[pk(eventId)]
@@ -107,5 +125,10 @@ async function addAttendanceEvent() {
     })
   }
 
-
-  
+  return {
+    addAttendanceEvent,
+    toggleAttendance,
+    updateAttendanceEventField,
+    deleteAttendanceEvent,
+  }
+}
