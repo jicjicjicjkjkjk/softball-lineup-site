@@ -134,31 +134,6 @@ export function removeInningFromLineup(lineup, inningToRemove) {
 }
 
 export function toggleBattingLockOnLineup(lineup, playerId) {
-  const id = pk(playerId)
-
-  if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
-  if (!lineup.battingOrder) lineup.battingOrder = {}
-
-  lineup.lockedBattingOrder[id] = !(lineup.lockedBattingOrder[id] === true)
-
-  return lineup
-}
-
-export function toggleAllBattingLocksOnLineup(lineup) {
-  if (!lineup.lockedBattingOrder) lineup.lockedBattingOrder = {}
-
-  const ids = Object.keys(lineup.battingOrder || {})
-  const allLocked =
-    ids.length > 0 && ids.every((id) => lineup.lockedBattingOrder[id] === true)
-
-  ids.forEach((id) => {
-    lineup.lockedBattingOrder[id] = !allLocked
-  })
-
-  return lineup
-}
-
-export function toggleBattingLockOnLineup(lineup, playerId) {
   const next = JSON.parse(JSON.stringify(lineup || {}))
   const id = pk(playerId)
 
