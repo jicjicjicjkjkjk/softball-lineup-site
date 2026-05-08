@@ -1191,12 +1191,15 @@ playerIds.forEach((id) => {
         if (lockedPositions.has(position)) return
 
         const fieldingCandidates = availableIds.filter((id) => {
-          const value = lineup?.cells?.[id]?.[inning] || ''
-          if (!FIELD_POSITIONS.includes(value)) return false
-          if (lockedValue(lineup, id, inning)) return false
-          return allowedAt(id, position)
-        })
+  const value = lineup?.cells?.[id]?.[inning] || ''
 
+  if (value === 'Out') return false
+  if (value === 'Injury') return false
+  if (lockedValue(lineup, id, inning)) return false
+
+  return allowedAt(id, position)
+})
+        
         if (!fieldingCandidates.length) return
 
         const bucket = positionBucket(position)
@@ -1302,7 +1305,7 @@ playerIds.forEach((id) => {
     counts[best][slot.bucket] += 1
     used.add(best)
   })
-
+  
   gameIds.forEach((gameId) => {
     const lineup = next[gameId]
     if (!lineup) return
@@ -1562,19 +1565,57 @@ export function buildOptimizedLineup({
     ).length
 
     eligibleIds.forEach((id) => {
-      if (lockedValue(lineup, id, inning)) return
+  if (lockedValue(lineup, id, inning)) return
 
-      const value = lineup.cells?.[id]?.[inning]
+  const value = lineup.cells?.[id]?.[inning]
 
-      if (!value || value === '') {
-        if (currentOuts < expectedOuts) {
-          lineup.cells[id][inning] = 'Out'
-          currentOuts += 1
-        } else {
-          lineup.cells[id][inning] = ''
-        }
-      }
-    })
+  if (!value || value === '') {
+    if (currentOuts < expectedOuts) {
+      lineup.cells[id][inning] = 'Out'
+      currentOuts += 1
+    }
+  }
+})
+
+const currentFielders = eligibleIds.filter((id) =>
+  FIELD_POSITIONS.includes(lineup?.cells?.[id]?.[inning] || '')
+)
+
+const neededFielders = Math.min(9, eligibleIds.length)
+
+if (currentFielders.length < neededFielders) {
+  const openPositions = FIELD_POSITIONS.filter((pos) => {
+    return !eligibleIds.some(
+      (id) => lineup?.cells?.[id]?.[inning] === pos
+    )
+  })
+
+  for (const position of openPositions) {
+    const updatedFielders = eligibleIds.filter((id) =>
+      FIELD_POSITIONS.includes(lineup?.cells?.[id]?.[inning] || '')
+    )
+
+    if (updatedFielders.length >= neededFielders) break
+
+    const fallbackPlayer = eligibleIds.find((id) => {
+  const value = lineup?.cells?.[id]?.[inning] || ''
+
+  if (value === 'Out') return false
+  if (value === 'Injury') return false
+  if (FIELD_POSITIONS.includes(value)) return false
+  if (lockedValue(lineup, id, inning)) return false
+
+  const rule = getPositionRule(optimizerProfileRules, position)
+  const fit = normalizeFit(fitTier(fitMap, id, position))
+
+  return fitAllowedByRule(rule, fit)
+})
+
+    if (fallbackPlayer) {
+      lineup.cells[fallbackPlayer][inning] = position
+    }
+  }
+}
 
     const inningTotals = computeTotals(
       [
