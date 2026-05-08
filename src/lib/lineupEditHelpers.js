@@ -158,33 +158,65 @@ export function toggleAllBattingLocksOnLineup(lineup) {
   return lineup
 }
 
-export function toggleCellLockOnLineup(lineup, playerId, inning) {
+export function toggleBattingLockOnLineup(lineup, playerId) {
+  const next = JSON.parse(JSON.stringify(lineup || {}))
   const id = pk(playerId)
 
-  if (!lineup.lockedCells) lineup.lockedCells = {}
-  if (!lineup.lockedCells[id]) lineup.lockedCells[id] = {}
+  if (!next.lockedBattingOrder) next.lockedBattingOrder = {}
+  if (!next.battingOrder) next.battingOrder = {}
 
-  lineup.lockedCells[id][inning] = !lineup.lockedCells[id][inning]
+  next.lockedBattingOrder[id] = !(next.lockedBattingOrder[id] === true)
 
-  return lineup
+  return next
+}
+
+export function toggleAllBattingLocksOnLineup(lineup) {
+  const next = JSON.parse(JSON.stringify(lineup || {}))
+
+  if (!next.lockedBattingOrder) next.lockedBattingOrder = {}
+
+  const ids = Object.keys(next.battingOrder || {})
+  const allLocked =
+    ids.length > 0 && ids.every((id) => next.lockedBattingOrder[id] === true)
+
+  ids.forEach((id) => {
+    next.lockedBattingOrder[id] = !allLocked
+  })
+
+  return next
+}
+
+export function toggleCellLockOnLineup(lineup, playerId, inning) {
+  const next = JSON.parse(JSON.stringify(lineup || {}))
+  const id = pk(playerId)
+
+  if (!next.lockedCells) next.lockedCells = {}
+  if (!next.lockedCells[id]) next.lockedCells[id] = {}
+
+  next.lockedCells[id][inning] = !(next.lockedCells[id][inning] === true)
+
+  return next
 }
 
 export function toggleRowLockOnLineup(lineup, playerId) {
+  const next = JSON.parse(JSON.stringify(lineup || {}))
   const id = pk(playerId)
 
-  if (!lineup.lockedRows) lineup.lockedRows = {}
+  if (!next.lockedRows) next.lockedRows = {}
 
-  lineup.lockedRows[id] = !lineup.lockedRows[id]
+  next.lockedRows[id] = !(next.lockedRows[id] === true)
 
-  return lineup
+  return next
 }
 
 export function toggleInningLockOnLineup(lineup, inning) {
-  if (!lineup.lockedInnings) lineup.lockedInnings = {}
+  const next = JSON.parse(JSON.stringify(lineup || {}))
 
-  lineup.lockedInnings[inning] = !(lineup.lockedInnings[inning] === true)
+  if (!next.lockedInnings) next.lockedInnings = {}
 
-  return lineup
+  next.lockedInnings[inning] = !(next.lockedInnings[inning] === true)
+
+  return next
 }
 
 export function updateLineupCell(lineup, playerId, inning, value) {
