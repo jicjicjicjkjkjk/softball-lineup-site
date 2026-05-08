@@ -194,6 +194,27 @@ function priorityTargetInnings(priorityMap, playerId, position, projectedFieldTo
   return Math.round((Number(projectedFieldTotal || 0) * targetPct) / 100)
 }
 
+function buildExpectedFieldTotalsForPlan(games, lineupsByGame, players) {
+  const totals = {}
+
+  ;(players || []).forEach((player) => {
+    totals[pk(player.id)] = 0
+  })
+
+  ;(games || []).forEach((game) => {
+    const gameId = pk(game.id)
+    const lineup = lineupsByGame?.[gameId]
+    if (!lineup) return
+
+    ;(players || []).forEach((player) => {
+      const id = pk(player.id)
+      totals[id] += expectedFieldInningsForPlayer(lineup, id)
+    })
+  })
+
+  return totals
+}
+
 function getRequiredPlayersByPosition(lineup, inning, players, fitMap, optimizerProfileRules = {}) {
   const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
   const positionToPlayers = {}
@@ -369,6 +390,8 @@ function scorePlayerForPosition({
   inning,
   planPositionCounts,
   rollingTotals = {},
+  baseTotalsForTargets = {},
+  planExpectedFieldTotals = null,
   optimizerProfile = null,
   optimizerProfileRules = {},
 }) {
@@ -385,17 +408,16 @@ function scorePlayerForPosition({
   const importance = positionImportance(optimizerProfileRules, position)
   const targetPct = Number(priorityValue(priorityMap, id, position) || 0)
 
-  const currentPositionInnings = Number(rollingTotals?.[id]?.[bucket] || 0)
-  const currentFieldTotal = Number(rollingTotals?.[id]?.fieldTotal || 0)
+    const currentPositionInnings = Number(rollingTotals?.[id]?.[bucket] || 0)
 
-  const planFieldTotal = Object.values(planPositionCounts?.[id] || {}).reduce(
-    (sum, count) => sum + Number(count || 0),
-    0
-  )
+  const baseFieldTotal = Number(baseTotalsForTargets?.[id]?.fieldTotal || 0)
 
-  const fieldTotalBeforeThisPlan = Math.max(0, currentFieldTotal - planFieldTotal)
-  const expectedFieldTotalForGame = expectedFieldInningsForPlayer(lineup, id)
-  const targetFieldTotal = fieldTotalBeforeThisPlan + expectedFieldTotalForGame
+  const expectedFieldTotalForPlan =
+    planExpectedFieldTotals && planExpectedFieldTotals[id] !== undefined
+      ? Number(planExpectedFieldTotals[id] || 0)
+      : expectedFieldInningsForPlayer(lineup, id)
+
+  const targetFieldTotal = baseFieldTotal + expectedFieldTotalForPlan
 
   const targetInnings = priorityTargetInnings(priorityMap, id, position, targetFieldTotal)
   const projectedPositionInnings = currentPositionInnings + 1
@@ -494,6 +516,8 @@ function assignPositionsForInning({
   inning,
   players,
   rollingTotals,
+  baseTotalsForTargets,
+  planExpectedFieldTotals,
   priorityMap,
   fitMap,
   planPositionCounts,
@@ -528,6 +552,8 @@ function assignPositionsForInning({
           inning,
           planPositionCounts,
           rollingTotals,
+          baseTotalsForTargets,
+          planExpectedFieldTotals,
           optimizerProfile,
           optimizerProfileRules,
         })
@@ -1086,24 +1112,20 @@ export function rebalancePlanTowardPriorityTargets({
     return 0
   }
 
-  function emptyCountsForPlayer(id) {
-    return {
-      P: Number(totalsBefore?.[id]?.P || 0),
-      C: Number(totalsBefore?.[id]?.C || 0),
-      '1B': Number(totalsBefore?.[id]?.['1B'] || 0),
-      '2B': Number(totalsBefore?.[id]?.['2B'] || 0),
-      '3B': Number(totalsBefore?.[id]?.['3B'] || 0),
-      SS: Number(totalsBefore?.[id]?.SS || 0),
-      OF: Number(totalsBefore?.[id]?.OF || 0),
-      fieldTotal: Number(totalsBefore?.[id]?.fieldTotal || 0),
-    }
-  }
-
   function buildCounts() {
     const counts = {}
 
     playerIds.forEach((id) => {
-      counts[id] = emptyCountsForPlayer(id)
+      counts[id] = {
+        P: Number(totalsBefore?.[id]?.P || 0),
+        C: Number(totalsBefore?.[id]?.C || 0),
+        '1B': Number(totalsBefore?.[id]?.['1B'] || 0),
+        '2B': Number(totalsBefore?.[id]?.['2B'] || 0),
+        '3B': Number(totalsBefore?.[id]?.['3B'] || 0),
+        SS: Number(totalsBefore?.[id]?.SS || 0),
+        OF: Number(totalsBefore?.[id]?.OF || 0),
+        fieldTotal: Number(totalsBefore?.[id]?.fieldTotal || 0),
+      }
     })
 
     gameIds.forEach((gameId) => {
@@ -1116,7 +1138,7 @@ export function rebalancePlanTowardPriorityTargets({
           if (!FIELD_POSITIONS.includes(position)) return
 
           const bucket = positionBucket(position)
-          counts[id][bucket] = Number(counts[id][bucket] || 0) + 1
+          counts[id][bucket] += 1
           counts[id].fieldTotal += 1
         })
       }
@@ -1128,55 +1150,28 @@ export function rebalancePlanTowardPriorityTargets({
   function targetFor(counts, playerId, bucket) {
     const pct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
     const fieldTotal = Number(counts?.[playerId]?.fieldTotal || 0)
-
     if (pct <= 0 || fieldTotal <= 0) return 0
-
     return (fieldTotal * pct) / 100
   }
 
-  function playerBucketScore(counts, playerId, bucket) {
-    const pct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
-    const actual = Number(counts?.[playerId]?.[bucket] || 0)
-    const target = targetFor(counts, playerId, bucket)
-
-    if (pct <= 0) {
-      return actual * actual * 2500000
-    }
-
-    const diff = actual - target
-    const absDiff = Math.abs(diff)
-
-    let score = absDiff * absDiff * 1000000
-
-    if (diff > 0) score += diff * 900000
-    if (diff < 0) score += Math.abs(diff) * 1200000
-
-    return score
-  }
-
-  function totalPlanScore(counts) {
+  function playerScore(counts, playerId) {
     let score = 0
 
-    playerIds.forEach((playerId) => {
-      BUCKETS.forEach((bucket) => {
-        score += playerBucketScore(counts, playerId, bucket)
-      })
-    })
+    BUCKETS.forEach((bucket) => {
+      const pct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
+      const actual = Number(counts?.[playerId]?.[bucket] || 0)
+      const target = targetFor(counts, playerId, bucket)
 
-    return score
-  }
+      if (pct <= 0) {
+        score += actual * actual * 3000000
+        return
+      }
 
-  function affectedScore(counts, affectedPlayerIds) {
-    let score = 0
-    const seen = new Set()
+      const diff = actual - target
+      score += Math.abs(diff) * Math.abs(diff) * 1500000
 
-    affectedPlayerIds.forEach((playerId) => {
-      if (seen.has(playerId)) return
-      seen.add(playerId)
-
-      BUCKETS.forEach((bucket) => {
-        score += playerBucketScore(counts, playerId, bucket)
-      })
+      if (diff > 0) score += diff * 900000
+      if (diff < 0) score += Math.abs(diff) * 1200000
     })
 
     return score
@@ -1185,15 +1180,14 @@ export function rebalancePlanTowardPriorityTargets({
   let changed = true
   let guard = 0
 
-  while (changed && guard < 750) {
+  while (changed && guard < 1000) {
     changed = false
     guard += 1
 
-    const counts = buildCounts()
-    const currentPlanScore = totalPlanScore(counts)
+    const beforeCounts = buildCounts()
 
     let bestSwap = null
-    let bestScore = currentPlanScore
+    let bestGain = 0
 
     gameIds.forEach((gameId) => {
       if (lineupLockedByGame?.[gameId]) return
@@ -1215,12 +1209,18 @@ export function rebalancePlanTowardPriorityTargets({
 
             if (!FIELD_POSITIONS.includes(posA)) continue
             if (!FIELD_POSITIONS.includes(posB)) continue
-            if (positionBucket(posA) === positionBucket(posB)) continue
 
+            const bucketA = positionBucket(posA)
+            const bucketB = positionBucket(posB)
+
+            if (bucketA === bucketB) continue
             if (!allowedAt(playerA, posB)) continue
             if (!allowedAt(playerB, posA)) continue
 
-            const beforeAffectedScore = affectedScore(counts, [playerA, playerB])
+            const beforeScore =
+              playerScore(beforeCounts, playerA) +
+              playerScore(beforeCounts, playerB)
+
             const beforeFit =
               fitQuality(playerA, posA) +
               fitQuality(playerB, posB)
@@ -1229,8 +1229,11 @@ export function rebalancePlanTowardPriorityTargets({
             lineup.cells[playerB][inning] = posA
 
             const afterCounts = buildCounts()
-            const afterPlanScore = totalPlanScore(afterCounts)
-            const afterAffectedScore = affectedScore(afterCounts, [playerA, playerB])
+
+            const afterScore =
+              playerScore(afterCounts, playerA) +
+              playerScore(afterCounts, playerB)
+
             const afterFit =
               fitQuality(playerA, posB) +
               fitQuality(playerB, posA)
@@ -1238,15 +1241,11 @@ export function rebalancePlanTowardPriorityTargets({
             lineup.cells[playerA][inning] = posA
             lineup.cells[playerB][inning] = posB
 
-            const affectedImprovement = beforeAffectedScore - afterAffectedScore
-            const fitDrop = Math.max(0, beforeFit - afterFit) * 75000
-            const adjustedScore = afterPlanScore + fitDrop
+            const fitPenalty = Math.max(0, beforeFit - afterFit) * 100000
+            const gain = beforeScore - afterScore - fitPenalty
 
-            if (
-              affectedImprovement > 1000 &&
-              adjustedScore < bestScore
-            ) {
-              bestScore = adjustedScore
+            if (gain > bestGain) {
+              bestGain = gain
               bestSwap = { gameId, inning, playerA, playerB, posA, posB }
             }
           }
@@ -1254,7 +1253,7 @@ export function rebalancePlanTowardPriorityTargets({
       }
     })
 
-    if (bestSwap) {
+    if (bestSwap && bestGain > 500) {
       const lineup = next[bestSwap.gameId]
       lineup.cells[bestSwap.playerA][bestSwap.inning] = bestSwap.posB
       lineup.cells[bestSwap.playerB][bestSwap.inning] = bestSwap.posA
@@ -1306,6 +1305,12 @@ export function optimizeLineupPlan({
     planAssignedOuts[pk(player.id)] = 0
   })
 
+  const planExpectedFieldTotals = buildExpectedFieldTotalsForPlan(
+    games,
+    sourceLineupsByGame,
+    players
+  )
+  
   function addOutsToPlanCounts(lineup) {
     ;(players || []).forEach((player) => {
       const id = pk(player.id)
@@ -1341,6 +1346,8 @@ export function optimizeLineupPlan({
       fitMap,
       planSitOutTargets,
       batchCurrentOuts: planAssignedOuts,
+      baseTotalsForTargets: totalsBefore,
+      planExpectedFieldTotals,
       optimizerProfile,
       optimizerProfileRules,
       skipSingleGameRebalance: true,
@@ -1373,6 +1380,8 @@ export function buildOptimizedLineup({
   fitMap,
   planSitOutTargets = {},
   batchCurrentOuts = {},
+  baseTotalsForTargets = {},
+  planExpectedFieldTotals = null,
   optimizerProfile = null,
   optimizerProfileRules = {},
   skipSingleGameRebalance = false,
@@ -1481,12 +1490,14 @@ export function buildOptimizedLineup({
       inning,
       players,
       rollingTotals,
+      baseTotalsForTargets,
+      planExpectedFieldTotals,
       priorityMap,
       fitMap,
       planPositionCounts,
       optimizerProfile,
       optimizerProfileRules,
-    })
+      })
 
     Object.entries(assigned).forEach(([playerId, position]) => {
       if (!lockedValue(lineup, playerId, inning)) {
