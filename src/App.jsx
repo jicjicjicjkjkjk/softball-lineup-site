@@ -414,16 +414,20 @@ useEffect(() => {
   if (!lineupSetterStateLoaded) return
 
   async function saveLineupSetterState() {
-    const res = await supabase.from('lineup_setter_state').upsert(
-      {
-        team_id: TEAM_ID,
-        batch_game_ids: optimizerBatchGameIds.map(pk),
-        focus_game_id: optimizerFocusGameId || null,
-      },
-      { onConflict: 'team_id' }
-    )
+    try {
+      const res = await supabase.from('lineup_setter_state').upsert(
+        {
+          team_id: TEAM_ID,
+          batch_game_ids: optimizerBatchGameIds.map(pk),
+          focus_game_id: optimizerFocusGameId || null,
+        },
+        { onConflict: 'team_id' }
+      )
 
-    if (res.error) setAppError(res.error.message)
+      if (res.error) setAppError(res.error.message)
+    } catch (error) {
+      setAppError(error?.message || String(error || 'Failed to save lineup setter state.'))
+    }
   }
 
   saveLineupSetterState()
