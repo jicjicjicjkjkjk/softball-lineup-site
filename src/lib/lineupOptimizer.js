@@ -1499,14 +1499,31 @@ playerIds.forEach((id) => {
     })
 
     fillMissingPositionsThenFixOuts({
-      lineup,
-      players,
-      fitMap,
-      priorityMap,
-      optimizerProfileRules,
-    })
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
 
-    lineup.validationIssues = validateLineup({
+rebalanceTowardPriorityTargets({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  totalsBefore,
+  optimizerProfileRules,
+})
+
+fillMissingPositionsThenFixOuts({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
+
+lineup.validationIssues = validateLineup({
       lineup,
       players,
       fitMap,
@@ -1900,14 +1917,31 @@ if (currentFielders.length < neededFielders) {
   })
 
   fillMissingPositionsThenFixOuts({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfileRules,
-  })
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
 
-  lineup.validationIssues = validateLineup({
+rebalanceTowardPriorityTargets({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  totalsBefore,
+  optimizerProfileRules,
+})
+
+fillMissingPositionsThenFixOuts({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules,
+})
+
+lineup.validationIssues = validateLineup({
     lineup,
     players,
     fitMap,
