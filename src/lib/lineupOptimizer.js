@@ -777,6 +777,16 @@ function fillMissingPositionsThenFixOuts({
     return fitAllowedByRule(rule, fit)
   }
 
+  function playerOutCount(playerId) {
+    let total = 0
+
+    for (let inning = 1; inning <= innings; inning += 1) {
+      if (lineup?.cells?.[playerId]?.[inning] === 'Out') total += 1
+    }
+
+    return total
+  }
+
   function candidateScore(playerId, position) {
     const fit = normalizeFit(fitTier(fitMap, playerId, position))
     const priority = Number(priorityValue(priorityMap, playerId, positionBucket(position)) || 0)
@@ -812,69 +822,55 @@ function fillMissingPositionsThenFixOuts({
       })
     }
 
-    let guard = 0
+    // Step 1: fill missing positions by promoting OUT/blank players,
+    // preferring players with the most OUTs so sit balance improves.
+    for (const position of getMissingPositions()) {
+      if (getFielders().length >= neededFielders) break
 
-    while (guard < 30) {
-      guard += 1
+      const best = eligibleIds
+        .filter((id) => !lockedValue(lineup, id, inning))
+        .filter((id) => {
+          const value = lineup?.cells?.[id]?.[inning] || ''
+          if (value === 'Injury') return false
+          if (FIELD_POSITIONS.includes(value)) return false
+          return allowedAt(id, position)
+        })
+        .sort((a, b) => {
+          return (
+            playerOutCount(b) - playerOutCount(a) ||
+            candidateScore(b, position) - candidateScore(a, position)
+          )
+        })[0]
 
-      const missingPositions = getMissingPositions()
-      const fielders = getFielders()
-      const outs = getOuts()
-
-      if (!missingPositions.length && fielders.length === neededFielders && outs.length === expectedOuts) {
-        break
+      if (best) {
+        lineup.cells[best][inning] = position
       }
-
-      let changed = false
-
-      for (const position of missingPositions) {
-        if (getFielders().length >= neededFielders && getOuts().length <= expectedOuts) {
-          break
-        }
-
-        const best = eligibleIds
-          .filter((id) => !lockedValue(lineup, id, inning))
-          .filter((id) => {
-            const value = lineup?.cells?.[id]?.[inning] || ''
-            if (value === 'Injury') return false
-            if (FIELD_POSITIONS.includes(value)) return false
-            return allowedAt(id, position)
-          })
-          .sort((a, b) => candidateScore(b, position) - candidateScore(a, position))[0]
-
-        if (best) {
-          lineup.cells[best][inning] = position
-          changed = true
-        }
-      }
-
-      if (changed) continue
-
-      for (const position of getMissingPositions()) {
-        const swapCandidate = eligibleIds
-          .filter((id) => !lockedValue(lineup, id, inning))
-          .filter((id) => {
-            const current = lineup?.cells?.[id]?.[inning] || ''
-            if (!FIELD_POSITIONS.includes(current)) return false
-            return allowedAt(id, position)
-          })
-          .sort((a, b) => candidateScore(b, position) - candidateScore(a, position))[0]
-
-        if (swapCandidate) {
-          lineup.cells[swapCandidate][inning] = position
-          changed = true
-        }
-      }
-
-      if (changed) continue
-
-      break
     }
 
-    let fielders = getFielders()
+    // Step 2: if still missing a position, move a duplicate/low-value fielder.
+    for (const position of getMissingPositions()) {
+      const swapCandidate = eligibleIds
+        .filter((id) => !lockedValue(lineup, id, inning))
+        .filter((id) => {
+          const current = lineup?.cells?.[id]?.[inning] || ''
+          if (!FIELD_POSITIONS.includes(current)) return false
+          return allowedAt(id, position)
+        })
+        .sort((a, b) => {
+          return candidateScore(b, position) - candidateScore(a, position)
+        })[0]
 
-    if (fielders.length > neededFielders) {
-      const extraFielders = fielders
+      if (swapCandidate) {
+        lineup.cells[swapCandidate][inning] = position
+      }
+    }
+
+    // Step 3: if too many fielders, convert the weakest duplicate fielder to OUT,
+    // preferring players with the fewest OUTs.
+    while (getFielders().length > neededFielders) {
+      const fielders = getFielders()
+
+      const extra = fielders
         .filter((id) => !lockedValue(lineup, id, inning))
         .filter((id) => {
           const current = lineup?.cells?.[id]?.[inning] || ''
@@ -883,23 +879,31 @@ function fillMissingPositionsThenFixOuts({
         .sort((a, b) => {
           const aValue = lineup?.cells?.[a]?.[inning] || ''
           const bValue = lineup?.cells?.[b]?.[inning] || ''
-          return candidateScore(a, aValue) - candidateScore(b, bValue)
-        })
 
-      while (getFielders().length > neededFielders && extraFielders.length > 0) {
-        const id = extraFielders.shift()
-        lineup.cells[id][inning] = 'Out'
-      }
+          return (
+            playerOutCount(a) - playerOutCount(b) ||
+            candidateScore(a, aValue) - candidateScore(b, bValue)
+          )
+        })[0]
+
+      if (!extra) break
+      lineup.cells[extra][inning] = 'Out'
     }
 
-        eligibleIds.forEach((id) => {
-      if (lockedValue(lineup, id, inning)) return
+    // Step 4: add missing OUTs from blank players,
+    // choosing players with the fewest OUTs.
+    while (getOuts().length < expectedOuts) {
+      const blank = eligibleIds
+        .filter((id) => !lockedValue(lineup, id, inning))
+        .filter((id) => {
+          const value = lineup?.cells?.[id]?.[inning] || ''
+          return !value
+        })
+        .sort((a, b) => playerOutCount(a) - playerOutCount(b))[0]
 
-      const value = lineup?.cells?.[id]?.[inning] || ''
-      if (!value && getOuts().length < expectedOuts) {
-        lineup.cells[id][inning] = 'Out'
-      }
-    })
+      if (!blank) break
+      lineup.cells[blank][inning] = 'Out'
+    }
   }
 
   return lineup
