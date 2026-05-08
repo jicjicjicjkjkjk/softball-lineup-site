@@ -7,9 +7,6 @@ import {
 import {
   getNormalizedLineupForGame,
   getOrderedOptimizerGames,
-  buildBatchCurrentOutsFromLineups,
-  getOtherPreviewLineups,
-  calculateTotalsBeforeCurrentGame,
 } from '../lib/optimizerPlanHelpers'
 
 export function useOptimizerActions({
@@ -38,6 +35,7 @@ export function useOptimizerActions({
 }) {
   function addExistingGameToBatch() {
     if (!optimizerExistingGameId) return
+
     const gameId = pk(optimizerExistingGameId)
     const game = games.find((g) => pk(g.id) === gameId)
     if (!game) return
@@ -66,11 +64,11 @@ export function useOptimizerActions({
     })
   }
 
-  function buildPlanInputs(planGames) {
+  function buildSourcePlan(planGames) {
     const sourceLineupsByGame = {}
     const availableIdsByGame = {}
 
-    ;(planGames || []).forEach((game) => {
+    planGames.forEach((game) => {
       const gameId = pk(game.id)
 
       const source = getNormalizedLineupForGame({
@@ -92,7 +90,7 @@ export function useOptimizerActions({
       if (!optimizerBatchGames.length) return alert('No games in plan')
 
       const orderedGames = getOrderedOptimizerGames(optimizerBatchGames)
-      const { sourceLineupsByGame, availableIdsByGame } = buildPlanInputs(orderedGames)
+      const { sourceLineupsByGame, availableIdsByGame } = buildSourcePlan(orderedGames)
 
       const optimizedPlan = optimizeLineupPlan({
         games: orderedGames,
@@ -104,9 +102,9 @@ export function useOptimizerActions({
         priorityMap: priorityByPlayer,
         fitMap: fitByPlayer,
         planSitOutTargets: optimizerPlanSitOutTargets,
-        optimizerMode,
         optimizerProfile: activeOptimizerProfile,
         optimizerProfileRules: activeOptimizerProfileRules,
+        optimizerMode,
       })
 
       Object.entries(optimizedPlan).forEach(([gameId, lineup]) => {
@@ -123,28 +121,16 @@ export function useOptimizerActions({
     try {
       if (!optimizerFocusGameId) return
 
-      const game = games.find((g) => pk(g.id) === pk(optimizerFocusGameId))
-      if (!game) return
-
-      const gameId = pk(game.id)
+      const gameId = pk(optimizerFocusGameId)
 
       if (lineupLockedByGame[gameId]) {
         return setAppError('This lineup is locked. Unlock it before optimizing.')
       }
 
-      const otherPreviewLineups = getOtherPreviewLineups({
-        optimizerBatchGames,
-        currentPlanLineupsByGame,
-        currentGameId: gameId,
-      })
+      const game = games.find((g) => pk(g.id) === gameId)
+      if (!game) return
 
-      const totalsBeforeThisGame = calculateTotalsBeforeCurrentGame({
-        baseTotals: lineupSetterFilteredTotals,
-        otherPreviewLineups,
-        players,
-      })
-
-      const { sourceLineupsByGame, availableIdsByGame } = buildPlanInputs([game])
+      const { sourceLineupsByGame, availableIdsByGame } = buildSourcePlan([game])
 
       const optimizedPlan = optimizeLineupPlan({
         games: [game],
@@ -152,14 +138,13 @@ export function useOptimizerActions({
         sourceLineupsByGame,
         availableIdsByGame,
         lineupLockedByGame,
-        totalsBefore: totalsBeforeThisGame,
+        totalsBefore: lineupSetterFilteredTotals,
         priorityMap: priorityByPlayer,
         fitMap: fitByPlayer,
         planSitOutTargets: optimizerPlanSitOutTargets,
-        batchCurrentOuts: buildBatchCurrentOutsFromLineups(otherPreviewLineups, players),
-        optimizerMode,
         optimizerProfile: activeOptimizerProfile,
         optimizerProfileRules: activeOptimizerProfileRules,
+        optimizerMode,
       })
 
       const rebuilt = optimizedPlan[gameId]
