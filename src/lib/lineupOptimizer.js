@@ -2,7 +2,7 @@
 
 import { FIELD_POSITIONS, PRIORITY_POSITIONS } from './lineupConstants'
 import { pk, clone, normalizeLineup, lockedValue } from './lineupCore'
-import { computeTotals } from './lineupTotals'
+import { computeTotals, addTotals } from './lineupTotals'
 import {
   fitTier,
   priorityValue,
@@ -1237,6 +1237,84 @@ export function rebalancePlanTowardPriorityTargets({
   })
 
   return next
+}
+
+export function optimizeLineupPlan({
+  games,
+  players,
+  sourceLineupsByGame = {},
+  availableIdsByGame = {},
+  lineupLockedByGame = {},
+  totalsBefore = {},
+  priorityMap,
+  fitMap,
+  planSitOutTargets = {},
+  optimizerProfile = null,
+  optimizerProfileRules = {},
+}) {
+  let rollingTotals = clone(totalsBefore || {})
+  const next = {}
+
+  const planAssignedOuts = {}
+  ;(players || []).forEach((player) => {
+    planAssignedOuts[pk(player.id)] = 0
+  })
+
+  function addOutsToPlanCounts(lineup) {
+    ;(players || []).forEach((player) => {
+      const id = pk(player.id)
+      planAssignedOuts[id] = Number(planAssignedOuts[id] || 0) + countPlayerOuts(lineup, id)
+    })
+  }
+
+  ;(games || []).forEach((game) => {
+    const gameId = pk(game.id)
+    const sourceLineup = sourceLineupsByGame[gameId]
+
+    if (!sourceLineup) return
+
+    if (lineupLockedByGame?.[gameId]) {
+      next[gameId] = clone(sourceLineup)
+      rollingTotals = addTotals(rollingTotals, computeTotals([sourceLineup], players), players)
+      addOutsToPlanCounts(sourceLineup)
+      return
+    }
+
+    const availablePlayerIds =
+      availableIdsByGame[gameId] ||
+      sourceLineup.availablePlayerIds ||
+      (players || []).map((player) => pk(player.id))
+
+    const optimized = buildOptimizedLineup({
+      game: { ...game, innings: Number(sourceLineup?.innings || game.innings || 6) },
+      players,
+      availablePlayerIds,
+      sourceLineup,
+      totalsBefore: rollingTotals,
+      priorityMap,
+      fitMap,
+      planSitOutTargets,
+      batchCurrentOuts: planAssignedOuts,
+      optimizerProfile,
+      optimizerProfileRules,
+      skipSingleGameRebalance: true,
+    })
+
+    next[gameId] = optimized
+    rollingTotals = addTotals(rollingTotals, computeTotals([optimized], players), players)
+    addOutsToPlanCounts(optimized)
+  })
+
+  return rebalancePlanTowardPriorityTargets({
+    lineupsByGame: next,
+    games,
+    players,
+    fitMap,
+    priorityMap,
+    totalsBefore,
+    lineupLockedByGame,
+    optimizerProfileRules,
+  })
 }
 
 export function buildOptimizedLineup({
