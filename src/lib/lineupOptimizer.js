@@ -1104,14 +1104,6 @@ export function rebalancePlanTowardPriorityTargets({
     return fitAllowedByRule(rule, fit)
   }
 
-  function fitQuality(playerId, position) {
-    const fit = normalizeFit(fitTier(fitMap, playerId, position))
-    if (fit === 'primary') return 4
-    if (fit === 'secondary') return 3
-    if (fit === 'development') return 2
-    return 0
-  }
-
   function buildCounts() {
     const counts = {}
 
@@ -1154,24 +1146,29 @@ export function rebalancePlanTowardPriorityTargets({
     return (fieldTotal * pct) / 100
   }
 
-  function playerScore(counts, playerId) {
+  function bucketDiff(counts, playerId, bucket) {
+    return Number(counts?.[playerId]?.[bucket] || 0) - targetFor(counts, playerId, bucket)
+  }
+
+  function totalScore(counts) {
     let score = 0
 
-    BUCKETS.forEach((bucket) => {
-      const pct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
-      const actual = Number(counts?.[playerId]?.[bucket] || 0)
-      const target = targetFor(counts, playerId, bucket)
+    playerIds.forEach((playerId) => {
+      BUCKETS.forEach((bucket) => {
+        const pct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
+        const actual = Number(counts?.[playerId]?.[bucket] || 0)
+        const target = targetFor(counts, playerId, bucket)
+        const diff = actual - target
 
-      if (pct <= 0) {
-        score += actual * actual * 3000000
-        return
-      }
+        if (pct <= 0) {
+          score += actual * actual * 5000000
+          return
+        }
 
-      const diff = actual - target
-      score += Math.abs(diff) * Math.abs(diff) * 1500000
-
-      if (diff > 0) score += diff * 900000
-      if (diff < 0) score += Math.abs(diff) * 1200000
+        score += diff * diff * 2000000
+        if (diff > 0) score += diff * 1250000
+        if (diff < 0) score += Math.abs(diff) * 1500000
+      })
     })
 
     return score
@@ -1180,14 +1177,15 @@ export function rebalancePlanTowardPriorityTargets({
   let changed = true
   let guard = 0
 
-  while (changed && guard < 1000) {
+  while (changed && guard < 1500) {
     changed = false
     guard += 1
 
     const beforeCounts = buildCounts()
+    const beforeScore = totalScore(beforeCounts)
 
     let bestSwap = null
-    let bestGain = 0
+    let bestScore = beforeScore
 
     gameIds.forEach((gameId) => {
       if (lineupLockedByGame?.[gameId]) return
@@ -1217,35 +1215,29 @@ export function rebalancePlanTowardPriorityTargets({
             if (!allowedAt(playerA, posB)) continue
             if (!allowedAt(playerB, posA)) continue
 
-            const beforeScore =
-              playerScore(beforeCounts, playerA) +
-              playerScore(beforeCounts, playerB)
+            const aNeedsB = bucketDiff(beforeCounts, playerA, bucketB) < 0
+            const aOverA = bucketDiff(beforeCounts, playerA, bucketA) > 0
+            const bNeedsA = bucketDiff(beforeCounts, playerB, bucketA) < 0
+            const bOverB = bucketDiff(beforeCounts, playerB, bucketB) > 0
 
-            const beforeFit =
-              fitQuality(playerA, posA) +
-              fitQuality(playerB, posB)
+            const priorityMatch =
+              (aNeedsB && aOverA) ||
+              (bNeedsA && bOverB) ||
+              (aNeedsB && bNeedsA)
+
+            if (!priorityMatch) continue
 
             lineup.cells[playerA][inning] = posB
             lineup.cells[playerB][inning] = posA
 
             const afterCounts = buildCounts()
-
-            const afterScore =
-              playerScore(afterCounts, playerA) +
-              playerScore(afterCounts, playerB)
-
-            const afterFit =
-              fitQuality(playerA, posB) +
-              fitQuality(playerB, posA)
+            const afterScore = totalScore(afterCounts)
 
             lineup.cells[playerA][inning] = posA
             lineup.cells[playerB][inning] = posB
 
-            const fitPenalty = Math.max(0, beforeFit - afterFit) * 100000
-            const gain = beforeScore - afterScore - fitPenalty
-
-            if (gain > bestGain) {
-              bestGain = gain
+            if (afterScore < bestScore) {
+              bestScore = afterScore
               bestSwap = { gameId, inning, playerA, playerB, posA, posB }
             }
           }
@@ -1253,7 +1245,7 @@ export function rebalancePlanTowardPriorityTargets({
       }
     })
 
-    if (bestSwap && bestGain > 500) {
+    if (bestSwap && bestScore < beforeScore) {
       const lineup = next[bestSwap.gameId]
       lineup.cells[bestSwap.playerA][bestSwap.inning] = bestSwap.posB
       lineup.cells[bestSwap.playerB][bestSwap.inning] = bestSwap.posA
