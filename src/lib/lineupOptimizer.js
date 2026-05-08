@@ -759,6 +759,96 @@ function repairMissingAndDuplicatePositions({
     }
   }
 
+    return lineup
+}
+
+function fillMissingPositionsThenFixOuts({
+  lineup,
+  players,
+  fitMap,
+  priorityMap,
+  optimizerProfileRules = {},
+}) {
+  const innings = Number(lineup?.innings || 0)
+  const availableIds = (lineup?.availablePlayerIds || []).map(pk)
+
+  function allowedAt(playerId, position) {
+    const rule = getPositionRule(optimizerProfileRules, position)
+    const fit = normalizeFit(fitTier(fitMap, playerId, position))
+    return fitAllowedByRule(rule, fit)
+  }
+
+  function candidateScore(playerId, position) {
+    const fit = normalizeFit(fitTier(fitMap, playerId, position))
+    const priority = Number(priorityValue(priorityMap, playerId, positionBucket(position)) || 0)
+    const importance = Number(positionImportance(optimizerProfileRules, position) || 1)
+
+    const fitRank =
+      fit === 'primary' ? 4 :
+      fit === 'secondary' ? 3 :
+      fit === 'development' ? 2 :
+      1
+
+    return fitRank * 100000 + priority * 1000 + importance * 100
+  }
+
+  for (let inning = 1; inning <= innings; inning += 1) {
+    const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
+
+    const missingPositions = FIELD_POSITIONS.filter((position) => {
+      return !eligibleIds.some((id) => lineup?.cells?.[id]?.[inning] === position)
+    })
+
+    missingPositions.forEach((position) => {
+      const best = eligibleIds
+        .filter((id) => !lockedValue(lineup, id, inning))
+        .filter((id) => {
+          const value = lineup?.cells?.[id]?.[inning] || ''
+          if (value === 'Injury') return false
+          if (FIELD_POSITIONS.includes(value)) return false
+          return allowedAt(id, position)
+        })
+        .sort((a, b) => candidateScore(b, position) - candidateScore(a, position))[0]
+
+      if (best) {
+        lineup.cells[best][inning] = position
+      }
+    })
+
+    let fielders = eligibleIds.filter((id) =>
+      FIELD_POSITIONS.includes(lineup?.cells?.[id]?.[inning] || '')
+    )
+
+    const neededFielders = Math.min(9, eligibleIds.length)
+
+    if (fielders.length > neededFielders) {
+      const extraFielders = fielders
+        .filter((id) => !lockedValue(lineup, id, inning))
+        .sort((a, b) => {
+          const aValue = lineup?.cells?.[a]?.[inning] || ''
+          const bValue = lineup?.cells?.[b]?.[inning] || ''
+          return candidateScore(a, aValue) - candidateScore(b, bValue)
+        })
+
+      while (fielders.length > neededFielders && extraFielders.length > 0) {
+        const id = extraFielders.shift()
+        lineup.cells[id][inning] = 'Out'
+        fielders = eligibleIds.filter((pid) =>
+          FIELD_POSITIONS.includes(lineup?.cells?.[pid]?.[inning] || '')
+        )
+      }
+    }
+
+    eligibleIds.forEach((id) => {
+      if (lockedValue(lineup, id, inning)) return
+
+      const value = lineup?.cells?.[id]?.[inning] || ''
+      if (!value) {
+        lineup.cells[id][inning] = 'Out'
+      }
+    })
+  }
+
   return lineup
 }
 
@@ -1310,6 +1400,22 @@ playerIds.forEach((id) => {
     const lineup = next[gameId]
     if (!lineup) return
 
+        repairMissingAndDuplicatePositions({
+      lineup,
+      players,
+      fitMap,
+      priorityMap,
+      optimizerProfileRules,
+    })
+
+    fillMissingPositionsThenFixOuts({
+      lineup,
+      players,
+      fitMap,
+      priorityMap,
+      optimizerProfileRules,
+    })
+
     repairMissingAndDuplicatePositions({
       lineup,
       players,
@@ -1702,6 +1808,22 @@ if (currentFielders.length < neededFielders) {
   }
 
   // Temporarily disabled: this was over-concentrating players into single positions.
+
+    repairMissingAndDuplicatePositions({
+    lineup,
+    players,
+    fitMap,
+    priorityMap,
+    optimizerProfileRules,
+  })
+
+  fillMissingPositionsThenFixOuts({
+    lineup,
+    players,
+    fitMap,
+    priorityMap,
+    optimizerProfileRules,
+  })
 
   repairMissingAndDuplicatePositions({
     lineup,
