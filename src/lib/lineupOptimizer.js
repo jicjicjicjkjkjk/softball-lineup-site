@@ -408,16 +408,14 @@ function scorePlayerForPosition({
   const importance = positionImportance(optimizerProfileRules, position)
   const targetPct = Number(priorityValue(priorityMap, id, position) || 0)
 
-    const currentPositionInnings = Number(rollingTotals?.[id]?.[bucket] || 0)
-
-  const baseFieldTotal = Number(baseTotalsForTargets?.[id]?.fieldTotal || 0)
+  const currentPositionInnings = Number(planPositionCounts?.[id]?.[bucket] || 0)
 
   const expectedFieldTotalForPlan =
     planExpectedFieldTotals && planExpectedFieldTotals[id] !== undefined
       ? Number(planExpectedFieldTotals[id] || 0)
       : expectedFieldInningsForPlayer(lineup, id)
 
-  const targetFieldTotal = baseFieldTotal + expectedFieldTotalForPlan
+  const targetFieldTotal = expectedFieldTotalForPlan
 
   const targetInnings = priorityTargetInnings(priorityMap, id, position, targetFieldTotal)
   const projectedPositionInnings = currentPositionInnings + 1
@@ -973,15 +971,15 @@ export function rebalanceTowardPriorityTargets({
 
     playerIds.forEach((id) => {
       counts[id] = {
-        P: Number(totalsBefore?.[id]?.P || 0),
-        C: Number(totalsBefore?.[id]?.C || 0),
-        '1B': Number(totalsBefore?.[id]?.['1B'] || 0),
-        '2B': Number(totalsBefore?.[id]?.['2B'] || 0),
-        '3B': Number(totalsBefore?.[id]?.['3B'] || 0),
-        SS: Number(totalsBefore?.[id]?.SS || 0),
-        OF: Number(totalsBefore?.[id]?.OF || 0),
-        fieldTotal: Number(totalsBefore?.[id]?.fieldTotal || 0),
-      }
+    P: 0,
+    C: 0,
+    '1B': 0,
+    '2B': 0,
+    '3B': 0,
+    SS: 0,
+    OF: 0,
+    fieldTotal: 0,
+    }
     })
 
     for (let inning = 1; inning <= innings; inning += 1) {
@@ -1104,154 +1102,206 @@ export function rebalancePlanTowardPriorityTargets({
     return fitAllowedByRule(rule, fit)
   }
 
-  function buildCounts() {
+  function fitQuality(playerId, position) {
+    const fit = normalizeFit(fitTier(fitMap, playerId, position))
+    if (fit === 'primary') return 4
+    if (fit === 'secondary') return 3
+    if (fit === 'development') return 2
+    return 0
+  }
+
+  function makeCounts() {
     const counts = {}
 
     playerIds.forEach((id) => {
       counts[id] = {
-        P: Number(totalsBefore?.[id]?.P || 0),
-        C: Number(totalsBefore?.[id]?.C || 0),
-        '1B': Number(totalsBefore?.[id]?.['1B'] || 0),
-        '2B': Number(totalsBefore?.[id]?.['2B'] || 0),
-        '3B': Number(totalsBefore?.[id]?.['3B'] || 0),
-        SS: Number(totalsBefore?.[id]?.SS || 0),
-        OF: Number(totalsBefore?.[id]?.OF || 0),
-        fieldTotal: Number(totalsBefore?.[id]?.fieldTotal || 0),
-      }
-    })
-
-    gameIds.forEach((gameId) => {
-      const lineup = next[gameId]
-      if (!lineup) return
-
-      for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
-        playerIds.forEach((id) => {
-          const position = lineup?.cells?.[id]?.[inning] || ''
-          if (!FIELD_POSITIONS.includes(position)) return
-
-          const bucket = positionBucket(position)
-          counts[id][bucket] += 1
-          counts[id].fieldTotal += 1
-        })
-      }
+    P: 0,
+    C: 0,
+    '1B': 0,
+    '2B': 0,
+    '3B': 0,
+    SS: 0,
+    OF: 0,
+    fieldTotal: 0,
+    }
     })
 
     return counts
   }
 
-  function targetFor(counts, playerId, bucket) {
-    const pct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
-    const fieldTotal = Number(counts?.[playerId]?.fieldTotal || 0)
-    if (pct <= 0 || fieldTotal <= 0) return 0
-    return (fieldTotal * pct) / 100
+  const counts = makeCounts()
+  const targets = {}
+
+playerIds.forEach((id) => {
+  targets[id] = {
+    P: 0,
+    C: 0,
+    '1B': 0,
+    '2B': 0,
+    '3B': 0,
+    SS: 0,
+    OF: 0,
+  }
+})
+
+  const slots = []
+  
+  const usedByInning = {}
+
+  function inningKey(gameId, inning) {
+    return `${gameId}::${inning}`
   }
 
-  function bucketDiff(counts, playerId, bucket) {
-    return Number(counts?.[playerId]?.[bucket] || 0) - targetFor(counts, playerId, bucket)
-  }
+  gameIds.forEach((gameId) => {
+  const lineup = next[gameId]
+  if (!lineup) return
 
-  function totalScore(counts) {
-    let score = 0
+  const gameIsLocked = !!lineupLockedByGame?.[gameId]
 
-    playerIds.forEach((playerId) => {
-      BUCKETS.forEach((bucket) => {
-        const pct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
-        const actual = Number(counts?.[playerId]?.[bucket] || 0)
-        const target = targetFor(counts, playerId, bucket)
-        const diff = actual - target
+  for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+      const key = inningKey(gameId, inning)
+      usedByInning[key] = new Set()
 
-        if (pct <= 0) {
-          score += actual * actual * 5000000
-          return
+      const availableIds = (lineup.availablePlayerIds || []).map(pk)
+      const lockedPositions = new Set()
+
+            availableIds.forEach((id) => {
+        const value = lineup?.cells?.[id]?.[inning] || ''
+        const isLocked = lockedValue(lineup, id, inning)
+
+        if (FIELD_POSITIONS.includes(value)) {
+          counts[id].fieldTotal += 1
         }
 
-        score += diff * diff * 2000000
-        if (diff > 0) score += diff * 1250000
-        if (diff < 0) score += Math.abs(diff) * 1500000
+        if ((isLocked || gameIsLocked) && FIELD_POSITIONS.includes(value)) {
+          const bucket = positionBucket(value)
+          counts[id][bucket] += 1
+          usedByInning[key].add(id)
+          lockedPositions.add(value)
+        }
+
+        if ((isLocked || gameIsLocked) && value === 'Out') {
+          usedByInning[key].add(id)
+        }
       })
+
+      if (gameIsLocked) continue
+
+      FIELD_POSITIONS.forEach((position) => {
+        if (lockedPositions.has(position)) return
+
+        const fieldingCandidates = availableIds.filter((id) => {
+          const value = lineup?.cells?.[id]?.[inning] || ''
+          if (!FIELD_POSITIONS.includes(value)) return false
+          if (lockedValue(lineup, id, inning)) return false
+          return allowedAt(id, position)
+        })
+
+        if (!fieldingCandidates.length) return
+
+        const bucket = positionBucket(position)
+        const primaryPctTotal = fieldingCandidates.reduce((sum, id) => {
+          return sum + Number(priorityValue(priorityMap, id, bucket) || 0)
+        }, 0)
+
+        if (primaryPctTotal > 0) {
+          fieldingCandidates.forEach((id) => {
+            const pct = Number(priorityValue(priorityMap, id, bucket) || 0)
+            if (pct > 0) {
+              targets[id][bucket] += pct / primaryPctTotal
+            }
+          })
+        }
+
+        slots.push({
+          gameId,
+          inning,
+          key,
+          position,
+          bucket,
+          candidates: fieldingCandidates,
+        })
+      })
+    }
+  })
+
+  slots.sort((a, b) => {
+    return (
+      a.candidates.length - b.candidates.length ||
+      positionFillRank(optimizerProfileRules, a.position) -
+        positionFillRank(optimizerProfileRules, b.position) ||
+      positionImportance(optimizerProfileRules, b.position) -
+        positionImportance(optimizerProfileRules, a.position)
+    )
+  })
+
+  function playerScore(playerId) {
+    let score = 0
+
+    BUCKETS.forEach((bucket) => {
+      const actual = Number(counts?.[playerId]?.[bucket] || 0)
+      const target = Number(targets?.[playerId]?.[bucket] || 0)
+      const pct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
+
+      const diff = actual - target
+
+      if (pct <= 0) {
+        score += Math.max(0, actual - target) ** 2 * 4000000
+      } else {
+        score += Math.abs(diff) ** 2 * 1800000
+        if (diff > 0) score += diff * 1000000
+        if (diff < 0) score += Math.abs(diff) * 1400000
+      }
     })
 
     return score
   }
 
-  let changed = true
-  let guard = 0
+  function scoreCandidate(slot, playerId) {
+    const before = playerScore(playerId)
+    counts[playerId][slot.bucket] += 1
+    const after = playerScore(playerId)
+    counts[playerId][slot.bucket] -= 1
 
-  while (changed && guard < 1500) {
-    changed = false
-    guard += 1
+    const fitBonus = fitQuality(playerId, slot.position) * 125000
+    const priorityBonus = Number(priorityValue(priorityMap, playerId, slot.bucket) || 0) * 5000
 
-    const beforeCounts = buildCounts()
-    const beforeScore = totalScore(beforeCounts)
-
-    let bestSwap = null
-    let bestScore = beforeScore
-
-    gameIds.forEach((gameId) => {
-      if (lineupLockedByGame?.[gameId]) return
-
-      const lineup = next[gameId]
-      if (!lineup) return
-
-      for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
-        for (let aIndex = 0; aIndex < playerIds.length; aIndex += 1) {
-          for (let bIndex = aIndex + 1; bIndex < playerIds.length; bIndex += 1) {
-            const playerA = playerIds[aIndex]
-            const playerB = playerIds[bIndex]
-
-            if (lockedValue(lineup, playerA, inning)) continue
-            if (lockedValue(lineup, playerB, inning)) continue
-
-            const posA = lineup?.cells?.[playerA]?.[inning] || ''
-            const posB = lineup?.cells?.[playerB]?.[inning] || ''
-
-            if (!FIELD_POSITIONS.includes(posA)) continue
-            if (!FIELD_POSITIONS.includes(posB)) continue
-
-            const bucketA = positionBucket(posA)
-            const bucketB = positionBucket(posB)
-
-            if (bucketA === bucketB) continue
-            if (!allowedAt(playerA, posB)) continue
-            if (!allowedAt(playerB, posA)) continue
-
-            const aNeedsB = bucketDiff(beforeCounts, playerA, bucketB) < 0
-            const aOverA = bucketDiff(beforeCounts, playerA, bucketA) > 0
-            const bNeedsA = bucketDiff(beforeCounts, playerB, bucketA) < 0
-            const bOverB = bucketDiff(beforeCounts, playerB, bucketB) > 0
-
-            const priorityMatch =
-              (aNeedsB && aOverA) ||
-              (bNeedsA && bOverB) ||
-              (aNeedsB && bNeedsA)
-
-            if (!priorityMatch) continue
-
-            lineup.cells[playerA][inning] = posB
-            lineup.cells[playerB][inning] = posA
-
-            const afterCounts = buildCounts()
-            const afterScore = totalScore(afterCounts)
-
-            lineup.cells[playerA][inning] = posA
-            lineup.cells[playerB][inning] = posB
-
-            if (afterScore < bestScore) {
-              bestScore = afterScore
-              bestSwap = { gameId, inning, playerA, playerB, posA, posB }
-            }
-          }
-        }
-      }
-    })
-
-    if (bestSwap && bestScore < beforeScore) {
-      const lineup = next[bestSwap.gameId]
-      lineup.cells[bestSwap.playerA][bestSwap.inning] = bestSwap.posB
-      lineup.cells[bestSwap.playerB][bestSwap.inning] = bestSwap.posA
-      changed = true
-    }
+    return after - before - fitBonus - priorityBonus
   }
+
+  gameIds.forEach((gameId) => {
+    const lineup = next[gameId]
+    if (!lineup || lineupLockedByGame?.[gameId]) return
+
+    for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
+      const availableIds = (lineup.availablePlayerIds || []).map(pk)
+
+      availableIds.forEach((id) => {
+        const value = lineup?.cells?.[id]?.[inning] || ''
+        if (FIELD_POSITIONS.includes(value) && !lockedValue(lineup, id, inning)) {
+          lineup.cells[id][inning] = ''
+        }
+      })
+    }
+  })
+
+  slots.forEach((slot) => {
+    const lineup = next[slot.gameId]
+    if (!lineup || lineupLockedByGame?.[slot.gameId]) return
+
+    const used = usedByInning[slot.key] || new Set()
+
+    const best = slot.candidates
+      .filter((id) => !used.has(id))
+      .filter((id) => allowedAt(id, slot.position))
+      .sort((a, b) => scoreCandidate(slot, a) - scoreCandidate(slot, b))[0]
+
+    if (!best) return
+
+    lineup.cells[best][slot.inning] = slot.position
+    counts[best][slot.bucket] += 1
+    used.add(best)
+  })
 
   gameIds.forEach((gameId) => {
     const lineup = next[gameId]
