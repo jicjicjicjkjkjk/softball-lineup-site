@@ -770,7 +770,6 @@ function fillMissingPositionsThenFixOuts({
   optimizerProfileRules = {},
 }) {
   const innings = Number(lineup?.innings || 0)
-  const availableIds = (lineup?.availablePlayerIds || []).map(pk)
 
   function allowedAt(playerId, position) {
     const rule = getPositionRule(optimizerProfileRules, position)
@@ -794,48 +793,102 @@ function fillMissingPositionsThenFixOuts({
 
   for (let inning = 1; inning <= innings; inning += 1) {
     const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
-
-    const missingPositions = FIELD_POSITIONS.filter((position) => {
-      return !eligibleIds.some((id) => lineup?.cells?.[id]?.[inning] === position)
-    })
-
-    missingPositions.forEach((position) => {
-      const best = eligibleIds
-        .filter((id) => !lockedValue(lineup, id, inning))
-        .filter((id) => {
-          const value = lineup?.cells?.[id]?.[inning] || ''
-          if (value === 'Injury') return false
-          if (FIELD_POSITIONS.includes(value)) return false
-          return allowedAt(id, position)
-        })
-        .sort((a, b) => candidateScore(b, position) - candidateScore(a, position))[0]
-
-      if (best) {
-        lineup.cells[best][inning] = position
-      }
-    })
-
-    let fielders = eligibleIds.filter((id) =>
-      FIELD_POSITIONS.includes(lineup?.cells?.[id]?.[inning] || '')
-    )
-
     const neededFielders = Math.min(9, eligibleIds.length)
+    const expectedOuts = Math.max(0, eligibleIds.length - neededFielders)
+
+    function getFielders() {
+      return eligibleIds.filter((id) =>
+        FIELD_POSITIONS.includes(lineup?.cells?.[id]?.[inning] || '')
+      )
+    }
+
+    function getOuts() {
+      return eligibleIds.filter((id) => lineup?.cells?.[id]?.[inning] === 'Out')
+    }
+
+    function getMissingPositions() {
+      return FIELD_POSITIONS.filter((position) => {
+        return !eligibleIds.some((id) => lineup?.cells?.[id]?.[inning] === position)
+      })
+    }
+
+    let guard = 0
+
+    while (guard < 30) {
+      guard += 1
+
+      const missingPositions = getMissingPositions()
+      const fielders = getFielders()
+      const outs = getOuts()
+
+      if (!missingPositions.length && fielders.length === neededFielders && outs.length === expectedOuts) {
+        break
+      }
+
+      let changed = false
+
+      for (const position of missingPositions) {
+        if (getFielders().length >= neededFielders && getOuts().length <= expectedOuts) {
+          break
+        }
+
+        const best = eligibleIds
+          .filter((id) => !lockedValue(lineup, id, inning))
+          .filter((id) => {
+            const value = lineup?.cells?.[id]?.[inning] || ''
+            if (value === 'Injury') return false
+            if (FIELD_POSITIONS.includes(value)) return false
+            return allowedAt(id, position)
+          })
+          .sort((a, b) => candidateScore(b, position) - candidateScore(a, position))[0]
+
+        if (best) {
+          lineup.cells[best][inning] = position
+          changed = true
+        }
+      }
+
+      if (changed) continue
+
+      for (const position of getMissingPositions()) {
+        const swapCandidate = eligibleIds
+          .filter((id) => !lockedValue(lineup, id, inning))
+          .filter((id) => {
+            const current = lineup?.cells?.[id]?.[inning] || ''
+            if (!FIELD_POSITIONS.includes(current)) return false
+            return allowedAt(id, position)
+          })
+          .sort((a, b) => candidateScore(b, position) - candidateScore(a, position))[0]
+
+        if (swapCandidate) {
+          lineup.cells[swapCandidate][inning] = position
+          changed = true
+        }
+      }
+
+      if (changed) continue
+
+      break
+    }
+
+    let fielders = getFielders()
 
     if (fielders.length > neededFielders) {
       const extraFielders = fielders
         .filter((id) => !lockedValue(lineup, id, inning))
+        .filter((id) => {
+          const current = lineup?.cells?.[id]?.[inning] || ''
+          return fielders.filter((pid) => lineup?.cells?.[pid]?.[inning] === current).length > 1
+        })
         .sort((a, b) => {
           const aValue = lineup?.cells?.[a]?.[inning] || ''
           const bValue = lineup?.cells?.[b]?.[inning] || ''
           return candidateScore(a, aValue) - candidateScore(b, bValue)
         })
 
-      while (fielders.length > neededFielders && extraFielders.length > 0) {
+      while (getFielders().length > neededFielders && extraFielders.length > 0) {
         const id = extraFielders.shift()
         lineup.cells[id][inning] = 'Out'
-        fielders = eligibleIds.filter((pid) =>
-          FIELD_POSITIONS.includes(lineup?.cells?.[pid]?.[inning] || '')
-        )
       }
     }
 
