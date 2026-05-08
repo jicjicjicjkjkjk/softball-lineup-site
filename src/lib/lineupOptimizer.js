@@ -912,6 +912,8 @@ export function rebalancePlanTowardPriorityTargets({
   priorityMap,
   totalsBefore = {},
   lineupLockedByGame = {},
+  planSitOutTargets = {},
+  optimizerProfile = null,
   optimizerProfileRules = {},
 }) {
   const next = clone(lineupsByGame || {})
@@ -939,7 +941,7 @@ export function rebalancePlanTowardPriorityTargets({
 
     clearUnlockedCells(lineup, players)
 
-    rebuildUnlockedLineup({
+        rebuildUnlockedLineup({
       lineup,
       players,
       fitMap,
@@ -947,6 +949,8 @@ export function rebalancePlanTowardPriorityTargets({
       targetCounts,
       actualCounts,
       totalsBefore,
+      planSitOutTargets,
+      optimizerProfile,
       optimizerProfileRules,
     })
 
@@ -1025,7 +1029,7 @@ export function optimizeLineupPlan({
     )
   })
 
-  return rebalancePlanTowardPriorityTargets({
+    return rebalancePlanTowardPriorityTargets({
     lineupsByGame: next,
     games,
     players,
@@ -1033,6 +1037,8 @@ export function optimizeLineupPlan({
     priorityMap,
     totalsBefore,
     lineupLockedByGame,
+    planSitOutTargets,
+    optimizerProfile,
     optimizerProfileRules,
   })
 }
