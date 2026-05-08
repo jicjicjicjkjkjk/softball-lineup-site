@@ -892,11 +892,11 @@ function fillMissingPositionsThenFixOuts({
       }
     }
 
-    eligibleIds.forEach((id) => {
+        eligibleIds.forEach((id) => {
       if (lockedValue(lineup, id, inning)) return
 
       const value = lineup?.cells?.[id]?.[inning] || ''
-      if (!value) {
+      if (!value && getOuts().length < expectedOuts) {
         lineup.cells[id][inning] = 'Out'
       }
     })
@@ -1469,14 +1469,6 @@ playerIds.forEach((id) => {
       optimizerProfileRules,
     })
 
-    repairMissingAndDuplicatePositions({
-      lineup,
-      players,
-      fitMap,
-      priorityMap,
-      optimizerProfileRules,
-    })
-
     lineup.validationIssues = validateLineup({
       lineup,
       players,
@@ -1871,14 +1863,6 @@ if (currentFielders.length < neededFielders) {
   })
 
   fillMissingPositionsThenFixOuts({
-    lineup,
-    players,
-    fitMap,
-    priorityMap,
-    optimizerProfileRules,
-  })
-
-  repairMissingAndDuplicatePositions({
     lineup,
     players,
     fitMap,
