@@ -174,8 +174,14 @@ const selectedProfile =
   }
 
   async function refreshAll() {
-    if (typeof reloadAllData === 'function') await reloadAllData()
+  if (typeof reloadAllData !== 'function') return
+
+  try {
+    await reloadAllData()
+  } catch (error) {
+    reportError(error)
   }
+}
 
   function reportError(error) {
     const message = error?.message || String(error || 'Something went wrong.')
@@ -346,8 +352,14 @@ const selectedProfile =
     }
 
     setDirty(false)
-    setSaving(false)
-    await refreshAll()
+
+try {
+  await refreshAll()
+} catch (error) {
+  reportError(error)
+} finally {
+  setSaving(false)
+}
   }
 
   async function deleteStrategy() {
