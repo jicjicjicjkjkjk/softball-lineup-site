@@ -9,6 +9,26 @@ function dbReady() {
   return Boolean(supabase)
 }
 
+function getLoadErrorMessage(error, label = 'data') {
+  const raw = error?.message || String(error || '')
+
+  if (raw === 'Load failed' || raw.includes('Failed to fetch')) {
+    return `Could not refresh ${label}. This is usually a temporary Supabase/network request failure. Try Refresh Data once.`
+  }
+
+  return raw || `Failed to load ${label}.`
+}
+
+async function runQuery(label, query) {
+  try {
+    const res = await query
+    if (res.error) throw res.error
+    return res.data || []
+  } catch (error) {
+    throw new Error(getLoadErrorMessage(error, label))
+  }
+}
+
 export function useAppData({
   setAppError,
   setSelectedGameId,
@@ -220,8 +240,9 @@ export function useAppData({
       }
 
       setLineupSetterStateLoaded(true)
-    } catch (error) {
-      setAppError(error.message || 'Failed to load data.')
+        } catch (error) {
+      console.error('loadAll failed:', error)
+      setAppError(getLoadErrorMessage(error, 'app data'))
     } finally {
       setLoading(false)
     }
