@@ -1070,6 +1070,7 @@ export function rebalancePlanTowardPriorityTargets({
   const next = clone(lineupsByGame || {})
   const playerIds = (players || []).map((player) => pk(player.id))
   const gameIds = (games || []).map((game) => pk(game.id))
+  const BUCKETS = PRIORITY_POSITIONS
 
   function allowedAt(playerId, position) {
     const rule = getPositionRule(optimizerProfileRules, position)
@@ -1077,20 +1078,32 @@ export function rebalancePlanTowardPriorityTargets({
     return fitAllowedByRule(rule, fit)
   }
 
+  function fitQuality(playerId, position) {
+    const fit = normalizeFit(fitTier(fitMap, playerId, position))
+    if (fit === 'primary') return 4
+    if (fit === 'secondary') return 3
+    if (fit === 'development') return 2
+    return 0
+  }
+
+  function emptyCountsForPlayer(id) {
+    return {
+      P: Number(totalsBefore?.[id]?.P || 0),
+      C: Number(totalsBefore?.[id]?.C || 0),
+      '1B': Number(totalsBefore?.[id]?.['1B'] || 0),
+      '2B': Number(totalsBefore?.[id]?.['2B'] || 0),
+      '3B': Number(totalsBefore?.[id]?.['3B'] || 0),
+      SS: Number(totalsBefore?.[id]?.SS || 0),
+      OF: Number(totalsBefore?.[id]?.OF || 0),
+      fieldTotal: Number(totalsBefore?.[id]?.fieldTotal || 0),
+    }
+  }
+
   function buildCounts() {
     const counts = {}
 
     playerIds.forEach((id) => {
-      counts[id] = {
-        P: Number(totalsBefore?.[id]?.P || 0),
-        C: Number(totalsBefore?.[id]?.C || 0),
-        '1B': Number(totalsBefore?.[id]?.['1B'] || 0),
-        '2B': Number(totalsBefore?.[id]?.['2B'] || 0),
-        '3B': Number(totalsBefore?.[id]?.['3B'] || 0),
-        SS: Number(totalsBefore?.[id]?.SS || 0),
-        OF: Number(totalsBefore?.[id]?.OF || 0),
-        fieldTotal: Number(totalsBefore?.[id]?.fieldTotal || 0),
-      }
+      counts[id] = emptyCountsForPlayer(id)
     })
 
     gameIds.forEach((gameId) => {
@@ -1112,51 +1125,75 @@ export function rebalancePlanTowardPriorityTargets({
     return counts
   }
 
-  function bucketTarget(counts, playerId, bucket) {
-    const targetPct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
-    if (targetPct <= 0) return 0
-    return Math.round((Number(counts?.[playerId]?.fieldTotal || 0) * targetPct) / 100)
+  function targetFor(counts, playerId, bucket) {
+    const pct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
+    const fieldTotal = Number(counts?.[playerId]?.fieldTotal || 0)
+
+    if (pct <= 0 || fieldTotal <= 0) return 0
+
+    return (fieldTotal * pct) / 100
   }
 
-  function bucketScore(counts, playerId, bucket) {
-    const targetPct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
+  function playerBucketScore(counts, playerId, bucket) {
+    const pct = Number(priorityValue(priorityMap, playerId, bucket) || 0)
     const actual = Number(counts?.[playerId]?.[bucket] || 0)
-    const target = bucketTarget(counts, playerId, bucket)
+    const target = targetFor(counts, playerId, bucket)
 
-    if (targetPct <= 0) return actual * 600000
+    if (pct <= 0) {
+      return actual * actual * 2500000
+    }
 
-    const shortfall = Math.max(0, target - actual)
-    const overage = Math.max(0, actual - target)
+    const diff = actual - target
+    const absDiff = Math.abs(diff)
 
-    return shortfall * 1200000 + overage * 900000
+    let score = absDiff * absDiff * 1000000
+
+    if (diff > 0) score += diff * 900000
+    if (diff < 0) score += Math.abs(diff) * 1200000
+
+    return score
   }
 
   function totalPlanScore(counts) {
     let score = 0
+
     playerIds.forEach((playerId) => {
-      PRIORITY_POSITIONS.forEach((bucket) => {
-        score += bucketScore(counts, playerId, bucket)
+      BUCKETS.forEach((bucket) => {
+        score += playerBucketScore(counts, playerId, bucket)
       })
     })
+
     return score
   }
 
-  function moveCount(counts, playerId, bucket, amount) {
-    counts[playerId][bucket] = Number(counts[playerId][bucket] || 0) + amount
+  function affectedScore(counts, affectedPlayerIds) {
+    let score = 0
+    const seen = new Set()
+
+    affectedPlayerIds.forEach((playerId) => {
+      if (seen.has(playerId)) return
+      seen.add(playerId)
+
+      BUCKETS.forEach((bucket) => {
+        score += playerBucketScore(counts, playerId, bucket)
+      })
+    })
+
+    return score
   }
 
   let changed = true
   let guard = 0
 
-  while (changed && guard < 250) {
+  while (changed && guard < 750) {
     changed = false
     guard += 1
 
     const counts = buildCounts()
-    const beforeScore = totalPlanScore(counts)
+    const currentPlanScore = totalPlanScore(counts)
 
     let bestSwap = null
-    let bestGain = 0
+    let bestScore = currentPlanScore
 
     gameIds.forEach((gameId) => {
       if (lineupLockedByGame?.[gameId]) return
@@ -1178,29 +1215,38 @@ export function rebalancePlanTowardPriorityTargets({
 
             if (!FIELD_POSITIONS.includes(posA)) continue
             if (!FIELD_POSITIONS.includes(posB)) continue
+            if (positionBucket(posA) === positionBucket(posB)) continue
 
-            const bucketA = positionBucket(posA)
-            const bucketB = positionBucket(posB)
-
-            if (bucketA === bucketB) continue
             if (!allowedAt(playerA, posB)) continue
             if (!allowedAt(playerB, posA)) continue
 
-            moveCount(counts, playerA, bucketA, -1)
-            moveCount(counts, playerA, bucketB, 1)
-            moveCount(counts, playerB, bucketB, -1)
-            moveCount(counts, playerB, bucketA, 1)
+            const beforeAffectedScore = affectedScore(counts, [playerA, playerB])
+            const beforeFit =
+              fitQuality(playerA, posA) +
+              fitQuality(playerB, posB)
 
-            const afterScore = totalPlanScore(counts)
-            const gain = beforeScore - afterScore
+            lineup.cells[playerA][inning] = posB
+            lineup.cells[playerB][inning] = posA
 
-            moveCount(counts, playerA, bucketA, 1)
-            moveCount(counts, playerA, bucketB, -1)
-            moveCount(counts, playerB, bucketB, 1)
-            moveCount(counts, playerB, bucketA, -1)
+            const afterCounts = buildCounts()
+            const afterPlanScore = totalPlanScore(afterCounts)
+            const afterAffectedScore = affectedScore(afterCounts, [playerA, playerB])
+            const afterFit =
+              fitQuality(playerA, posB) +
+              fitQuality(playerB, posA)
 
-            if (gain > bestGain) {
-              bestGain = gain
+            lineup.cells[playerA][inning] = posA
+            lineup.cells[playerB][inning] = posB
+
+            const affectedImprovement = beforeAffectedScore - afterAffectedScore
+            const fitDrop = Math.max(0, beforeFit - afterFit) * 75000
+            const adjustedScore = afterPlanScore + fitDrop
+
+            if (
+              affectedImprovement > 1000 &&
+              adjustedScore < bestScore
+            ) {
+              bestScore = adjustedScore
               bestSwap = { gameId, inning, playerA, playerB, posA, posB }
             }
           }
