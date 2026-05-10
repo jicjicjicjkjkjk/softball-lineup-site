@@ -72,6 +72,31 @@ function displayPct(value) {
   return Number.isNaN(n) ? '' : Math.round(n)
 }
 
+class LineupSetterErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="card" style={{ borderColor: '#fecaca', background: '#fff7f7' }}>
+          <h3 style={{ marginTop: 0, color: '#b91c1c' }}>Lineup focus panel failed to load</h3>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>
+            {this.state.error?.message || String(this.state.error)}
+          </pre>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
 
 export default function LineupSetterPage({
   optimizerFocusLineup,
@@ -593,7 +618,8 @@ const optimizerModeDescription =
           </table>
         </div>
       </div>
-      
+
+      <LineupSetterErrorBoundary>
       <LineupFocusPanel
         optimizerFocusGame={optimizerFocusGame}
         optimizerFocusLineup={optimizerFocusLineup}
@@ -638,7 +664,9 @@ const optimizerModeDescription =
         trackingPriorityByPositionRows={trackingPriorityByPositionRows}
         currentBatchTotals={currentBatchTotals}
         optimizerPlanSitOutTargets={optimizerPlanSitOutTargets}
-      />
+            />
+</LineupSetterErrorBoundary>
+
       <TrackingFilters
   trackingFilters={trackingFilters}
   setTrackingFilters={setTrackingFilters}
