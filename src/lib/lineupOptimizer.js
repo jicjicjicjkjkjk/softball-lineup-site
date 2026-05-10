@@ -296,70 +296,127 @@ function chooseOutsForInning({
 
   const fieldersNeeded = Math.min(9, eligibleIds.length)
   const expectedOuts = Math.max(0, eligibleIds.length - fieldersNeeded)
-  const additionalOutsNeeded = Math.max(0, expectedOuts - lockedInfo.lockedOuts)
 
-  if (additionalOutsNeeded <= 0) return []
+  if (expectedOuts <= lockedInfo.lockedOuts) return []
 
   const minGap = Number(optimizerProfile?.min_innings_between_sitouts ?? 2)
+
+  function hasExplicitTarget(id) {
+    const raw = planSitOutTargets?.[id]
+    return raw !== '' && raw !== null && raw !== undefined
+  }
+
+  function explicitTargetFor(id) {
+    return hasExplicitTarget(id) ? Number(planSitOutTargets[id]) : null
+  }
+
+  function remainingEligibleChances(id) {
+    let count = 0
+
+    for (let next = inning; next <= innings; next += 1) {
+      if (!getEligiblePlayerIdsForInning(lineup, next, players).includes(id)) continue
+      if (lockedValue(lineup, id, next) && lineup?.cells?.[id]?.[next] !== 'Out') continue
+      count += 1
+    }
+
+    return count
+  }
 
   const candidates = eligibleIds
     .filter((id) => !lockedInfo.lockedFieldPlayers.has(id))
     .filter((id) => !lockedInfo.lockedOutPlayers.has(id))
     .map((id) => {
-      const explicitRaw = planSitOutTargets?.[id]
-      const hasExplicit = explicitRaw !== '' && explicitRaw != null
-      const explicitTarget = hasExplicit ? Number(explicitRaw) : null
+      const explicitTarget = explicitTargetFor(id)
       const actualOuts = Number(actualCounts?.[id]?.Out || 0)
+      const explicitNeed = explicitTarget === null ? 0 : explicitTarget - actualOuts
       const seasonOuts = Number(totalsBefore?.[id]?.Out || 0)
       const spacingBad = violatesSitSpacing(lineup, id, inning, innings, minGap)
+      const remainingChances = remainingEligibleChances(id)
 
       return {
         id,
         explicitTarget,
-        explicitNeed: explicitTarget == null ? 0 : explicitTarget - actualOuts,
+        hasExplicit: explicitTarget !== null,
+        explicitNeed,
         actualOuts,
         seasonOuts,
         spacingBad,
+        urgent: explicitTarget !== null && explicitNeed >= remainingChances,
         name: (players || []).find((player) => pk(player.id) === id)?.name || '',
       }
     })
-    .sort((a, b) => {
-      if ((a.explicitNeed > 0) !== (b.explicitNeed > 0)) {
-        return a.explicitNeed > 0 ? -1 : 1
-      }
 
+  const chosen = new Set(lockedInfo.lockedOutPlayers)
+
+  function canChoose(row, allowSpacing = false, allowOverTarget = false) {
+    if (chosen.size >= expectedOuts) return false
+    if (chosen.has(row.id)) return false
+
+    // HARD RULE: a player with a target cannot exceed that target unless there is literally no other legal way.
+    if (row.hasExplicit && row.explicitNeed <= 0 && !allowOverTarget) return false
+
+    // Sit gap is softer than target outs.
+    if (row.spacingBad && !allowSpacing && !row.urgent) return false
+
+    const test = new Set(chosen)
+    test.add(row.id)
+
+    return canFillAllPositions({
+      lineup,
+      inning,
+      players,
+      fitMap,
+      optimizerProfileRules,
+      candidateOuts: test,
+    })
+  }
+
+  function chooseFrom(rows, allowSpacing = false, allowOverTarget = false) {
+    for (const row of rows) {
+      if (chosen.size >= expectedOuts) break
+      if (canChoose(row, allowSpacing, allowOverTarget)) {
+        chosen.add(row.id)
+      }
+    }
+  }
+
+  const neededTargetRows = candidates
+    .filter((row) => row.hasExplicit && row.explicitNeed > 0)
+    .sort((a, b) => {
+      if (a.urgent !== b.urgent) return a.urgent ? -1 : 1
+      if (a.explicitNeed !== b.explicitNeed) return b.explicitNeed - a.explicitNeed
+      if (a.spacingBad !== b.spacingBad) return a.spacingBad ? 1 : -1
+      return a.name.localeCompare(b.name)
+    })
+
+  const noTargetRows = candidates
+    .filter((row) => !row.hasExplicit)
+    .sort((a, b) => {
       if (a.spacingBad !== b.spacingBad) return a.spacingBad ? 1 : -1
       if (a.actualOuts !== b.actualOuts) return a.actualOuts - b.actualOuts
       if (a.seasonOuts !== b.seasonOuts) return a.seasonOuts - b.seasonOuts
       return a.name.localeCompare(b.name)
     })
 
-  const chosen = new Set(lockedInfo.lockedOutPlayers)
+  const cappedTargetRows = candidates
+    .filter((row) => row.hasExplicit && row.explicitNeed <= 0)
+    .sort((a, b) => {
+      if (a.actualOuts !== b.actualOuts) return a.actualOuts - b.actualOuts
+      return a.name.localeCompare(b.name)
+    })
 
-  for (const row of candidates) {
-    if (chosen.size >= expectedOuts) break
+  // 1. First satisfy players who still NEED target outs.
+  chooseFrom(neededTargetRows, false, false)
 
-    const test = new Set(chosen)
-    test.add(row.id)
+  // 2. If sit-gap blocked a needed target, allow breaking sit-gap before using non-target players.
+  chooseFrom(neededTargetRows, true, false)
 
-    if (
-      canFillAllPositions({
-        lineup,
-        inning,
-        players,
-        fitMap,
-        optimizerProfileRules,
-        candidateOuts: test,
-      })
-    ) {
-      chosen.add(row.id)
-    }
-  }
+  // 3. Use players with no explicit target only for remaining required outs.
+  chooseFrom(noTargetRows, false, false)
+  chooseFrom(noTargetRows, true, false)
 
-  for (const row of candidates) {
-    if (chosen.size >= expectedOuts) break
-    chosen.add(row.id)
-  }
+  // 4. Absolute emergency only: exceed a target only if the inning cannot otherwise be legal.
+  chooseFrom(cappedTargetRows, true, true)
 
   return [...chosen].filter((id) => !lockedInfo.lockedOutPlayers.has(id))
 }
