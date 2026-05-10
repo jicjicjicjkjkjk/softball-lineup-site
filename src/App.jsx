@@ -516,43 +516,40 @@ useEffect(() => {
   const savePreview = async () => {}
   const saveSavedLineup = async () => {}
 
-  function updateSavedLineup(gameId, updater) {
-    setLineupsByGame((current) => {
-      const existing = current[pk(gameId)]
-      if (!existing) return current
-      const next = updater(JSON.parse(JSON.stringify(existing)))
-      return { ...current, [pk(gameId)]: next }
-    })
+  function getSavedLineupForGame(gameId) {
+  const existing = lineupsByGame[pk(gameId)]
+  if (existing) return JSON.parse(JSON.stringify(existing))
+
+  const game = games.find((g) => pk(g.id) === pk(gameId))
+
+  return blankLineup(
+    players.map((p) => p.id),
+    Number(game?.innings || 6),
+    activePlayerIds()
+  )
+}
+
+function updateSavedLineup(gameId, updater) {
+  const base = getSavedLineupForGame(gameId)
+  const next = updater(base)
+
+  setLineupsByGame((current) => ({
+    ...current,
+    [pk(gameId)]: JSON.parse(JSON.stringify(next)),
+  }))
+
+  return next
+}
+
+async function updateSavedAndPersist(gameId, updater) {
+  if (lineupLockedByGame[pk(gameId)]) {
+    setAppError('This lineup is locked. Unlock it before editing.')
+    return
   }
 
-  const togglePreviewBattingLock = (gameId, playerId) =>
-    updatePreview(gameId, (lineup) => toggleBattingLockOnLineup(lineup, playerId))
-  const togglePreviewAllBattingLock = (gameId) =>
-    updatePreview(gameId, (lineup) => toggleAllBattingLocksOnLineup(lineup))
-  const updatePreviewCell = (gameId, playerId, inning, value) =>
-    updatePreview(gameId, (lineup) => updateLineupCell(lineup, playerId, inning, value))
-  const updatePreviewBatting = (gameId, playerId, value) =>
-    updatePreview(gameId, (lineup) => updateLineupBattingOrder(lineup, playerId, value))
-  const togglePreviewCellLock = (gameId, playerId, inning) =>
-    updatePreview(gameId, (lineup) => toggleCellLockOnLineup(lineup, playerId, inning))
-  const togglePreviewRowLock = (gameId, playerId) =>
-    updatePreview(gameId, (lineup) => toggleRowLockOnLineup(lineup, playerId))
-  const togglePreviewInningLock = (gameId, inning) =>
-    updatePreview(gameId, (lineup) => toggleInningLockOnLineup(lineup, inning))
-  const addPreviewInning = (gameId) =>
-    updatePreview(gameId, (lineup) => addInningToLineup(lineup))
-  const removePreviewInning = (gameId, inningToRemove) => {
-    if (!window.confirm(`Remove inning ${inningToRemove}?`)) return
-    updatePreview(gameId, (lineup) => removeInningFromLineup(lineup, inningToRemove))
-  }
-
-  function updateSavedAndPersist(gameId, updater) {
-    updateSavedLineup(gameId, (lineup) => {
-      const next = updater(lineup)
-      autoSave(gameId, next)
-      return next
-    })
-  }
+  const next = updateSavedLineup(gameId, updater)
+  await persistLineup(gameId, next)
+}
 
   const updateSavedCell = (gameId, playerId, inning, value) =>
     updateSavedAndPersist(gameId, (lineup) => updateLineupCell(lineup, playerId, inning, value))
