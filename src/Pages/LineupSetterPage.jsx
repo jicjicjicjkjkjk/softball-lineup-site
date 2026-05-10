@@ -124,14 +124,14 @@ export default function LineupSetterPage({
   setOptimizerMode,
   optimizerProfiles = [],
   optimizerProfileRules = {},
-  games,
+  games = [],
   addExistingGameToBatch,
   runOptimizeCurrent,
   optimizerFocusGameId,
   runOptimizeAll,
-  optimizerBatchGames,
-  optimizerPreviewByGame,
-  lineupsByGame,
+  optimizerBatchGames = [],
+  optimizerPreviewByGame = {},
+  lineupsByGame = {},
   activePlayers = [],
   activePlayerIds,
   requiredOutsForGame,
@@ -167,20 +167,35 @@ export default function LineupSetterPage({
 
 const safeActivePlayers = Array.isArray(activePlayers) ? activePlayers : []
 
-const activePlayerIdList = Array.isArray(activePlayerIds)
-  ? activePlayerIds
-  : typeof activePlayerIds === 'function'
-  ? activePlayerIds()
-  : safeActivePlayers.map((p) => pk(p.id))
+let activePlayerIdList = []
+
+try {
+  activePlayerIdList = Array.isArray(activePlayerIds)
+    ? activePlayerIds
+    : typeof activePlayerIds === 'function'
+    ? activePlayerIds()
+    : safeActivePlayers.map((p) => pk(p.id))
+} catch {
+  activePlayerIdList = safeActivePlayers.map((p) => pk(p.id))
+}
 
 const visibleIds = optimizerFocusLineup?.availablePlayerIds || activePlayerIdList
-  
-  const focusStatuses = optimizerFocusLineup
-    ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
-        inning,
-        ...inningStatus(optimizerFocusLineup, inning, safeActivePlayers, fitByPlayer),
-      }))
-    : []
+
+let focusStatuses = []
+
+try {
+  focusStatuses =
+    optimizerFocusLineup && typeof inningStatus === 'function'
+      ? Array.from({ length: Number(optimizerFocusLineup.innings || 0) }, (_, i) => i + 1).map(
+          (inning) => ({
+            inning,
+            ...inningStatus(optimizerFocusLineup, inning, safeActivePlayers, fitByPlayer || {}),
+          })
+        )
+      : []
+} catch {
+  focusStatuses = []
+}
 
   const filterSummary =
     [
