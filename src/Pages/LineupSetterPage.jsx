@@ -134,7 +134,7 @@ export default function LineupSetterPage({
   lineupsByGame = {},
   activePlayers = [],
   activePlayerIds,
-  requiredOutsForGame: rawRequiredOutsForGame,
+  requiredOutsForGame,
   setOptimizerFocusGameId,
   savePreview,
   removeBatchGame,
@@ -158,49 +158,18 @@ export default function LineupSetterPage({
   trackingSort,
   setTrackingSort,
   TrackingTable,
-  blankLineup: rawBlankLineup,
-  pk: rawPk,
+  blankLineup,
+  pk,
   inningStatus,
   trackingPriorityRows = [],
   trackingPriorityByPositionRows = [],
 }) {
 
-const pk = typeof rawPk === 'function' ? rawPk : (value) => String(value ?? '')
-
-const blankLineup =
-  typeof rawBlankLineup === 'function'
-    ? rawBlankLineup
-    : (playerIds = [], innings = 6, availableIds = []) => ({
-        innings,
-        availablePlayerIds: availableIds,
-        cells: Object.fromEntries(
-          (playerIds || []).map((id) => [
-            pk(id),
-            Object.fromEntries(
-              Array.from({ length: Number(innings || 6) }, (_, i) => [i + 1, ''])
-            ),
-          ])
-        ),
-      })
-
-const requiredOutsForGame =
-  typeof rawRequiredOutsForGame === 'function'
-    ? rawRequiredOutsForGame
-    : (playerCount, innings) => Math.max(Number(playerCount || 0) - 9, 0) * Number(innings || 0)
-
 const safeActivePlayers = Array.isArray(activePlayers) ? activePlayers : []
 
-let activePlayerIdList = []
-
-try {
-  activePlayerIdList = Array.isArray(activePlayerIds)
-    ? activePlayerIds
-    : typeof activePlayerIds === 'function'
-    ? activePlayerIds()
-    : safeActivePlayers.map((p) => pk(p.id))
-} catch {
-  activePlayerIdList = safeActivePlayers.map((p) => pk(p.id))
-}
+const activePlayerIdList = Array.isArray(activePlayerIds)
+  ? activePlayerIds
+  : safeActivePlayers.map((p) => pk(p.id))
 
 const visibleIds = optimizerFocusLineup?.availablePlayerIds || activePlayerIdList
 
