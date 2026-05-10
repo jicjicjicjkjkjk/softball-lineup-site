@@ -541,14 +541,14 @@ function updateSavedLineup(gameId, updater) {
   return next
 }
 
-async function updateSavedAndPersist(gameId, updater) {
+function updateSavedAndPersist(gameId, updater) {
   if (lineupLockedByGame[pk(gameId)]) {
     setAppError('This lineup is locked. Unlock it before editing.')
     return
   }
 
   const next = updateSavedLineup(gameId, updater)
-  await persistLineup(gameId, next)
+  persistLineup(gameId, next)
 }
 
   const updateSavedCell = (gameId, playerId, inning, value) =>
