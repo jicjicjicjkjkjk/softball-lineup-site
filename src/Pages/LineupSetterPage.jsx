@@ -674,7 +674,7 @@ const optimizerModeDescription =
         clearPreviewLineup={clearPreviewLineup}
         optimizerBatchGames={optimizerBatchGames}
         activePlayers={safeActivePlayers}
-        activePlayerIds={() => activePlayerIdList}
+        activePlayerIds={activePlayerIdList}
         togglePreviewAvailable={togglePreviewAvailable}
         pk={pk}
         blankLineup={blankLineup}
