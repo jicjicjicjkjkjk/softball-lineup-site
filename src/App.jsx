@@ -774,7 +774,7 @@ function updateSavedAndPersist(gameId, updater) {
             optimizerPreviewByGame={optimizerPreviewByGame}
             lineupsByGame={lineupsByGame}
             activePlayers={activePlayers}
-            activePlayerIds={activePlayerIds()}
+            activePlayerIds={(activePlayers || []).map((p) => pk(p.id))}
             requiredOutsForGame={requiredOutsForGame}
             setOptimizerFocusGameId={setOptimizerFocusGameId}
             savePreview={savePreview}
