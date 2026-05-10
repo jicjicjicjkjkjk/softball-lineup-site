@@ -134,7 +134,7 @@ export default function LineupSetterPage({
   lineupsByGame = {},
   activePlayers = [],
   activePlayerIds,
-  requiredOutsForGame,
+  requiredOutsForGame: rawRequiredOutsForGame,
   setOptimizerFocusGameId,
   savePreview,
   removeBatchGame,
@@ -158,12 +158,35 @@ export default function LineupSetterPage({
   trackingSort,
   setTrackingSort,
   TrackingTable,
-  blankLineup,
-  pk,
+  blankLineup: rawBlankLineup,
+  pk: rawPk,
   inningStatus,
   trackingPriorityRows = [],
   trackingPriorityByPositionRows = [],
 }) {
+
+const pk = typeof rawPk === 'function' ? rawPk : (value) => String(value ?? '')
+
+const blankLineup =
+  typeof rawBlankLineup === 'function'
+    ? rawBlankLineup
+    : (playerIds = [], innings = 6, availableIds = []) => ({
+        innings,
+        availablePlayerIds: availableIds,
+        cells: Object.fromEntries(
+          (playerIds || []).map((id) => [
+            pk(id),
+            Object.fromEntries(
+              Array.from({ length: Number(innings || 6) }, (_, i) => [i + 1, ''])
+            ),
+          ])
+        ),
+      })
+
+const requiredOutsForGame =
+  typeof rawRequiredOutsForGame === 'function'
+    ? rawRequiredOutsForGame
+    : (playerCount, innings) => Math.max(Number(playerCount || 0) - 9, 0) * Number(innings || 0)
 
 const safeActivePlayers = Array.isArray(activePlayers) ? activePlayers : []
 
@@ -711,6 +734,7 @@ const optimizerModeDescription =
   </select>
 </div>
 
+{TrackingTable ? (
 <TrackingTable
   title={selectedUniverseTitle}
   totals={selectedUniverseTotals}
@@ -749,8 +773,10 @@ const optimizerModeDescription =
           },
         ]
       : []
-  }
-/>
+  }/>
+) : (
+  <div className="card">Tracking table could not load.</div>
+)}
       
       <div className="card tracking-card">
         <h3>Tracking by Positioning by Priority</h3>
