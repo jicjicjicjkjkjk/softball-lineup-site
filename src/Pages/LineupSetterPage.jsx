@@ -107,7 +107,7 @@ export default function LineupSetterPage({
   optimizerBatchGames,
   optimizerPreviewByGame,
   lineupsByGame,
-  activePlayers,
+  activePlayers = [],
   activePlayerIds,
   requiredOutsForGame,
   setOptimizerFocusGameId,
@@ -140,11 +140,20 @@ export default function LineupSetterPage({
   trackingPriorityByPositionRows = [],
 }) {
 
+const safeActivePlayers = Array.isArray(activePlayers) ? activePlayers : []
+
+const activePlayerIdList = Array.isArray(activePlayerIds)
+  ? activePlayerIds
+  : typeof activePlayerIds === 'function'
+  ? activePlayerIds()
+  : safeActivePlayers.map((p) => pk(p.id))
+
+const visibleIds = optimizerFocusLineup?.availablePlayerIds || activePlayerIdList
   
   const focusStatuses = optimizerFocusLineup
     ? Array.from({ length: optimizerFocusLineup.innings }, (_, i) => i + 1).map((inning) => ({
         inning,
-        ...inningStatus(optimizerFocusLineup, inning, activePlayers, fitByPlayer),
+        ...inningStatus(optimizerFocusLineup, inning, safeActivePlayers, fitByPlayer),
       }))
     : []
 
@@ -168,13 +177,6 @@ export default function LineupSetterPage({
       .filter(Boolean)
       .join(' | ') || 'All Games'
 
-  const activePlayerIdList = Array.isArray(activePlayerIds)
-  ? activePlayerIds
-  : typeof activePlayerIds === 'function'
-  ? activePlayerIds()
-  : (activePlayers || []).map((p) => pk(p.id))
-
-const visibleIds = optimizerFocusLineup?.availablePlayerIds || activePlayerIdList
 
   const orderedPlanGames = [...(optimizerBatchGames || [])].sort((a, b) =>
     compareGamesAscLocal(a, b, pk)
@@ -186,7 +188,7 @@ const visibleIds = optimizerFocusLineup?.availablePlayerIds || activePlayerIdLis
         optimizerPreviewByGame[pk(game.id)] ||
         lineupsByGame[pk(game.id)] ||
         blankLineup(
-          activePlayers.map((p) => p.id),
+          safeActivePlayers.map((p) => p.id),
           Number(game.innings || 6),
           activePlayerIdList
         )
@@ -284,7 +286,7 @@ const selectedUniverseTitle =
   }, [trackingPriorityRows, pk])
 
   const basePriorityPlayerRows = useMemo(() => {
-    return activePlayers.map((player) => {
+    return safeActivePlayers.map((player) => {
       const playerId = pk(player.id)
       const totals = selectedUniverseTotals?.[playerId] || {}
       const target = priorityTargetByPlayer[playerId] || {}
@@ -317,39 +319,39 @@ const selectedUniverseTitle =
         actOF: actPct(totals.OF),
       }
     })
-  }, [activePlayers, selectedUniverseTotals, priorityTargetByPlayer, pk])
+  }, [safeActivePlayers, selectedUniverseTotals, priorityTargetByPlayer, pk])
 
   const basePriorityPositionRows = useMemo(() => {
     const positionTotals = {
-      P: activePlayers.reduce(
-        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.P || 0),
-        0
-      ),
-      C: activePlayers.reduce(
-        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.C || 0),
-        0
-      ),
-      '1B': activePlayers.reduce(
-        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.['1B'] || 0),
-        0
-      ),
-      '2B': activePlayers.reduce(
-        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.['2B'] || 0),
-        0
-      ),
-      '3B': activePlayers.reduce(
-        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.['3B'] || 0),
-        0
-      ),
-      SS: activePlayers.reduce(
-        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.SS || 0),
-        0
-      ),
-      OF: activePlayers.reduce(
-        (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.OF || 0),
-        0
-      ),
-    }
+  P: safeActivePlayers.reduce(
+    (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.P || 0),
+    0
+  ),
+  C: safeActivePlayers.reduce(
+    (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.C || 0),
+    0
+  ),
+  '1B': safeActivePlayers.reduce(
+    (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.['1B'] || 0),
+    0
+  ),
+  '2B': safeActivePlayers.reduce(
+    (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.['2B'] || 0),
+    0
+  ),
+  '3B': safeActivePlayers.reduce(
+    (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.['3B'] || 0),
+    0
+  ),
+  SS: safeActivePlayers.reduce(
+    (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.SS || 0),
+    0
+  ),
+  OF: safeActivePlayers.reduce(
+    (sum, player) => sum + Number(selectedUniverseTotals?.[pk(player.id)]?.OF || 0),
+    0
+  ),
+}
 
     const actPctByPosition = (playerTotal, positionKey) => {
       const numer = Number(playerTotal || 0)
@@ -358,7 +360,7 @@ const selectedUniverseTitle =
       return Number(((numer / denom) * 100).toFixed(1))
     }
 
-    return activePlayers.map((player) => {
+    return safeActivePlayers.map((player) => {
       const playerId = pk(player.id)
       const totals = selectedUniverseTotals?.[playerId] || {}
       const target = priorityTargetByPlayer[playerId] || {}
@@ -385,7 +387,7 @@ const selectedUniverseTitle =
         actOF: actPctByPosition(totals.OF, 'OF'),
       }
     })
-  }, [activePlayers, selectedUniverseTotals, priorityTargetByPlayer, pk])
+  }, [safeActivePlayers, selectedUniverseTotals, priorityTargetByPlayer, pk])
 
     const sortedCombinedPriorityRows = useMemo(() => {
     const byPosition = Object.fromEntries(
@@ -528,7 +530,7 @@ const optimizerModeDescription =
                   optimizerPreviewByGame[pk(game.id)] ||
                   lineupsByGame[pk(game.id)] ||
                   blankLineup(
-                    activePlayers.map((p) => p.id),
+                    safeActivePlayers.map((p) => p.id),
                     Number(game.innings || 6),
                     activePlayerIdList
                   )
@@ -607,8 +609,8 @@ const optimizerModeDescription =
         runOptimizeAll={runOptimizeAll}
         clearPreviewLineup={clearPreviewLineup}
         optimizerBatchGames={optimizerBatchGames}
-        activePlayers={activePlayers}
-        activePlayerIds={activePlayerIdList}
+        activePlayers={safeActivePlayers}
+        activePlayerIds={() => activePlayerIdList}
         togglePreviewAvailable={togglePreviewAvailable}
         pk={pk}
         blankLineup={blankLineup}
@@ -670,7 +672,7 @@ const optimizerModeDescription =
   title={selectedUniverseTitle}
   totals={selectedUniverseTotals}
   sitOutRows={selectedUniverseSitOutRows}
-  players={activePlayers}
+  players={safeActivePlayers}
   sortConfig={trackingSort}
   setSortConfig={setTrackingSort}
   sitOutTargets={optimizerPlanSitOutTargets}
