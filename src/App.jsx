@@ -47,7 +47,6 @@ import {
   getAvailabilityConfirmMessage,
   updateLineupAvailability,
   addInningToLineup,
-  removeInningFromLineup,
   toggleBattingLockOnLineup,
   toggleAllBattingLocksOnLineup,
   toggleCellLockOnLineup,
@@ -513,6 +512,43 @@ useEffect(() => {
     )
   }
 
+    const updatePreviewCell = (gameId, playerId, inning, value) =>
+    updatePreview(gameId, (lineup) => updateLineupCell(lineup, playerId, inning, value))
+
+  const updatePreviewBatting = (gameId, playerId, value) =>
+    updatePreview(gameId, (lineup) => updateLineupBattingOrder(lineup, playerId, value))
+
+  const togglePreviewBattingLock = (gameId, playerId) =>
+    updatePreview(gameId, (lineup) => toggleBattingLockOnLineup(lineup, playerId))
+
+  const togglePreviewAllBattingLock = (gameId) =>
+    updatePreview(gameId, (lineup) => toggleAllBattingLocksOnLineup(lineup))
+
+  const addPreviewInning = (gameId) =>
+    updatePreview(gameId, (lineup) => addInningToLineup(lineup))
+
+    const removePreviewInning = (gameId, inningToRemove) => {
+    if (!window.confirm(`Remove inning ${inningToRemove}?`)) return
+
+    updatePreview(gameId, (lineup) =>
+      removeInningFromSavedLineup({
+        existing: lineup,
+        inningToRemove,
+        players,
+        activePlayerIds,
+      })
+    )
+  }
+
+  const togglePreviewCellLock = (gameId, playerId, inning) =>
+    updatePreview(gameId, (lineup) => toggleCellLockOnLineup(lineup, playerId, inning))
+
+  const togglePreviewRowLock = (gameId, playerId) =>
+    updatePreview(gameId, (lineup) => toggleRowLockOnLineup(lineup, playerId))
+
+  const togglePreviewInningLock = (gameId, inning) =>
+    updatePreview(gameId, (lineup) => toggleInningLockOnLineup(lineup, inning))
+  
   const savePreview = async () => {}
   const saveSavedLineup = async () => {}
 
@@ -774,7 +810,7 @@ function updateSavedAndPersist(gameId, updater) {
             optimizerPreviewByGame={optimizerPreviewByGame}
             lineupsByGame={lineupsByGame}
             activePlayers={activePlayers}
-            activePlayerIds={activePlayerIds()}
+            activePlayerIds={activePlayerIds}
             requiredOutsForGame={requiredOutsForGame}
             setOptimizerFocusGameId={setOptimizerFocusGameId}
             savePreview={savePreview}
