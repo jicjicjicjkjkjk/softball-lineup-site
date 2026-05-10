@@ -168,7 +168,13 @@ export default function LineupSetterPage({
       .filter(Boolean)
       .join(' | ') || 'All Games'
 
-  const visibleIds = optimizerFocusLineup?.availablePlayerIds || []
+  const activePlayerIdList = Array.isArray(activePlayerIds)
+  ? activePlayerIds
+  : typeof activePlayerIds === 'function'
+  ? activePlayerIds()
+  : (activePlayers || []).map((p) => pk(p.id))
+
+const visibleIds = optimizerFocusLineup?.availablePlayerIds || activePlayerIdList
 
   const orderedPlanGames = [...(optimizerBatchGames || [])].sort((a, b) =>
     compareGamesAscLocal(a, b, pk)
@@ -182,7 +188,7 @@ export default function LineupSetterPage({
         blankLineup(
           activePlayers.map((p) => p.id),
           Number(game.innings || 6),
-          activePlayerIds
+          activePlayerIdList
         )
       )
     })
@@ -524,7 +530,7 @@ const optimizerModeDescription =
                   blankLineup(
                     activePlayers.map((p) => p.id),
                     Number(game.innings || 6),
-                    activePlayerIds
+                    activePlayerIdList
                   )
 
                 const effectiveInnings = Number(lineup?.innings || game.innings || 6)
@@ -602,7 +608,7 @@ const optimizerModeDescription =
         clearPreviewLineup={clearPreviewLineup}
         optimizerBatchGames={optimizerBatchGames}
         activePlayers={activePlayers}
-        activePlayerIds={activePlayerIds}
+        activePlayerIds={activePlayerIdList}
         togglePreviewAvailable={togglePreviewAvailable}
         pk={pk}
         blankLineup={blankLineup}
