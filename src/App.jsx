@@ -451,17 +451,36 @@ useEffect(() => {
     })
   }
 
-  function importLineupToPreview(targetGameId, sourceGameId) {
+    async function importLineupToPreview(targetGameId, sourceGameId) {
     if (!targetGameId || !sourceGameId) return
 
     const targetGame = games.find((game) => pk(game.id) === pk(targetGameId))
-    const sourceLineup = optimizerPreviewByGame[pk(sourceGameId)] || lineupsByGame[pk(sourceGameId)]
+    const sourceLineup =
+      optimizerPreviewByGame[pk(sourceGameId)] || lineupsByGame[pk(sourceGameId)]
 
     if (!sourceLineup) return setAppError('Selected source game does not have a lineup.')
-    if (!window.confirm('Are you sure you want to import this lineup? This will overwrite the current game lineup.')) return
 
-    const copied = copyLineupForGame({ sourceLineup, targetGame, players, activePlayerIds })
-    setOptimizerPreviewByGame((current) => ({ ...current, [pk(targetGameId)]: copied }))
+    if (
+      !window.confirm(
+        'Are you sure you want to import this lineup? This will overwrite the current game lineup.'
+      )
+    ) {
+      return
+    }
+
+    const copied = copyLineupForGame({
+      sourceLineup,
+      targetGame,
+      players,
+      activePlayerIds,
+    })
+
+    setOptimizerPreviewByGame((current) => ({
+      ...current,
+      [pk(targetGameId)]: copied,
+    }))
+
+    await persistLineup(targetGameId, copied)
   }
 
   function importLineupToSaved(targetGameId, sourceGameId) {
