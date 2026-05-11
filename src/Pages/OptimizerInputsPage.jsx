@@ -464,17 +464,17 @@ try {
               </tr>
             </thead>
             <tbody>
-              <tr><td>1</td><td>Respect locks first</td><td>Game grid locks</td><td>Locked values are not cleared or moved.</td></tr>
-              <tr><td>2</td><td>Respect availability and injuries</td><td>Availability checkboxes + Injury</td><td>Unavailable or injured players are excluded.</td></tr>
-              <tr><td>3</td><td>Choose required sit-outs</td><td>Automatic</td><td>Available players minus 9 fielding spots.</td></tr>
-              <tr><td>4</td><td>Apply sit-out rules</td><td>Everyone Sits Once First, Sit Gap, manual targets</td><td>Balances sit-outs and spacing.</td></tr>
-              <tr><td>5</td><td>Fill positions in order</td><td>When to Fill</td><td>Earlier positions are solved first.</td></tr>
-              <tr><td>6</td><td>Score players by fit</td><td>Allowed Positions + Primary/Non-Primary/Avoid</td><td>Controls who can play each spot.</td></tr>
-              <tr><td>7</td><td>Apply Protect weighting</td><td>Protect</td><td>Higher values protect important positions.</td></tr>
-              <tr><td>8</td><td>Prefer consecutive positioning</td><td>Consecutive</td><td>Encourages back-to-back innings.</td></tr>
-              <tr><td>9</td><td>Enforce consecutive minimum</td><td>Must 2+ if possible</td><td>Applies to any marked position.</td></tr>
-              <tr><td>10</td><td>Apply position variety</td><td>Minimum Positions + Minimum Innings per Used Position + Variety Mode</td><td>Tries to give players different positions, but a position only counts toward variety after the minimum innings setting is met.</td></tr>
-            </tbody>
+  <tr><td>1</td><td>Respect locks first</td><td>Game grid locks</td><td>Locked values are not cleared or moved.</td></tr>
+  <tr><td>2</td><td>Respect availability and injuries</td><td>Availability checkboxes + Injury</td><td>Unavailable or injured players are excluded.</td></tr>
+  <tr><td>3</td><td>Calculate required sit-outs</td><td>Automatic</td><td>Every inning calculates the exact required number of sit-outs.</td></tr>
+  <tr><td>4</td><td>Fulfill target sit-outs first</td><td>Target column in Lineup Setter tracking table</td><td>The optimizer must satisfy target outs before optimizing positions or spacing.</td></tr>
+  <tr><td>5</td><td>Protect position coverage</td><td>Allowed Positions + Primary/Non-Primary/Avoid</td><td>The optimizer avoids sitting players if doing so would make a position impossible to fill.</td></tr>
+  <tr><td>6</td><td>Fill positions in order</td><td>When to Fill</td><td>Earlier positions are solved first.</td></tr>
+  <tr><td>7</td><td>Score players by fit and target need</td><td>Positioning Priority + Allowed Positions</td><td>Players with remaining target innings and better fit are prioritized.</td></tr>
+  <tr><td>8</td><td>Apply Protect weighting</td><td>Protect</td><td>Higher values prioritize stronger-fit players at important positions.</td></tr>
+  <tr><td>9</td><td>Prefer consecutive positioning</td><td>Consecutive</td><td>Encourages back-to-back innings when possible.</td></tr>
+  <tr><td>10</td><td>Apply position variety</td><td>Minimum Positions + Minimum Innings per Used Position + Variety Mode</td><td>Tries to give players different positions, but target outs and valid lineups come first.</td></tr>
+</tbody>
           </table>
         </div>
       </div>
