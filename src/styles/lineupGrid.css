@@ -460,3 +460,31 @@
   text-align: center;
   margin-bottom: 2px;
 }
+
+
+.position-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.grid-cell-lock-only {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.grid-cell-lock-only input {
+  width: 16px;
+  height: 16px;
+  accent-color: #167c74;
+}
+
+.position-select {
+  min-width: 58px;
+}
+
+.row-locked .position-select {
+  opacity: 0.65;
+}
