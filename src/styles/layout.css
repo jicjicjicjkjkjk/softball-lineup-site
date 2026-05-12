@@ -303,53 +303,83 @@
   color: #374151;
 }
 
-
-.pitch-admin-table-wrap {
-  width: 100%;
-  overflow-x: auto;
-  padding-bottom: 8px;
+.pitcher-admin-player-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
 }
 
-.pitch-admin-table {
-  min-width: 980px;
+.pitcher-admin-player-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: #f8fafc;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+  padding: 12px;
+  border-radius: 12px;
 }
 
-.pitch-admin-table th,
-.pitch-admin-table td {
-  white-space: nowrap;
-  vertical-align: middle;
+.pitcher-admin-player-card.is-active {
+  background: #e6f6f4;
+  border-color: #167c74;
 }
 
-.pitch-admin-table th:first-child,
-.pitch-admin-table td:first-child {
-  width: 80px;
-  text-align: center;
+.pitcher-admin-player-card.is-selected {
+  outline: 3px solid rgba(22, 124, 116, 0.3);
 }
 
-.pitch-admin-table th:nth-child(2),
-.pitch-admin-table td:nth-child(2) {
-  min-width: 130px;
+.pitcher-admin-check {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #167c74;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex: 0 0 auto;
 }
 
-.pitch-admin-table th:nth-child(3),
-.pitch-admin-table td:nth-child(3) {
-  width: 80px;
+.pitcher-admin-player-card small {
+  display: block;
+  margin-top: 2px;
+  color: #6b7280;
 }
 
-.pitch-admin-table input[type='checkbox'] {
+.pitcher-pitch-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.pitcher-pitch-card {
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.pitcher-pitch-card.is-active {
+  background: #e6f6f4;
+  border-color: #167c74;
+}
+
+.pitcher-pitch-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.pitcher-pitch-toggle input {
   width: 22px;
   height: 22px;
 }
 
-.pitch-admin-table input[type='number'] {
-  width: 48px !important;
-  padding: 6px;
-}
-
-.pitch-admin-table input {
-  max-width: 80px;
-}
-
-.pitch-admin-table td > div {
-  justify-content: center;
+.pitcher-pitch-card input[type='number'] {
+  max-width: 90px;
 }
