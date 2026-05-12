@@ -16,6 +16,7 @@ export default function PitchAdminPage({ players = [], setAppError }) {
   const [options, setOptions] = useState([])
   const [pitchers, setPitchers] = useState([])
   const [pitchPrefs, setPitchPrefs] = useState([])
+  const [selectedPlayerId, setSelectedPlayerId] = useState('')
   const [category, setCategory] = useState('pitch_type')
   const [label, setLabel] = useState('')
   const [loading, setLoading] = useState(false)
@@ -32,6 +33,24 @@ export default function PitchAdminPage({ players = [], setAppError }) {
     .filter((o) => o.category === 'pitch_type' && o.is_active !== false)
     .sort(byOrder)
 
+  const pitcherPlayers = activePlayers.filter((player) => {
+    const row = pitcherRowForPlayer(player.id)
+    return row?.is_active === true
+  })
+
+  const selectedPlayer = activePlayers.find((p) => String(p.id) === String(selectedPlayerId))
+  const selectedPitcher = selectedPlayer ? pitcherRowForPlayer(selectedPlayer.id) : null
+
+  useEffect(() => {
+    loadAllPitchAdmin()
+  }, [])
+
+  useEffect(() => {
+    if (!selectedPlayerId && pitcherPlayers.length) {
+      setSelectedPlayerId(pitcherPlayers[0].id)
+    }
+  }, [pitchers.length, players.length])
+
   async function loadAllPitchAdmin() {
     const optionRes = await supabase
       .from('pitch_options')
@@ -43,19 +62,28 @@ export default function PitchAdminPage({ players = [], setAppError }) {
     setOptions(optionRes.data || [])
 
     const pitcherRes = await supabase.from('pitch_call_pitchers').select('*')
-
     if (pitcherRes.error) return setAppError(pitcherRes.error.message)
     setPitchers(pitcherRes.data || [])
 
     const prefRes = await supabase.from('pitcher_pitch_preferences').select('*')
-
     if (prefRes.error) return setAppError(prefRes.error.message)
     setPitchPrefs(prefRes.data || [])
   }
 
-  useEffect(() => {
-    loadAllPitchAdmin()
-  }, [])
+  function pitcherRowForPlayer(playerId) {
+    return pitchers.find((p) => String(p.player_id) === String(playerId))
+  }
+
+  function prefForPitcherPitch(playerId, pitchOptionId) {
+    const pitcher = pitcherRowForPlayer(playerId)
+    if (!pitcher) return null
+
+    return pitchPrefs.find(
+      (pref) =>
+        String(pref.pitcher_id) === String(pitcher.id) &&
+        String(pref.pitch_option_id) === String(pitchOptionId)
+    )
+  }
 
   async function addOption() {
     if (!label.trim()) return
@@ -87,21 +115,6 @@ export default function PitchAdminPage({ players = [], setAppError }) {
     loadAllPitchAdmin()
   }
 
-  function pitcherRowForPlayer(playerId) {
-    return pitchers.find((p) => String(p.player_id) === String(playerId))
-  }
-
-  function prefForPitcherPitch(playerId, pitchOptionId) {
-    const pitcher = pitcherRowForPlayer(playerId)
-    if (!pitcher) return null
-
-    return pitchPrefs.find(
-      (pref) =>
-        String(pref.pitcher_id) === String(pitcher.id) &&
-        String(pref.pitch_option_id) === String(pitchOptionId)
-    )
-  }
-
   async function togglePitcher(player, checked) {
     const existing = pitcherRowForPlayer(player.id)
 
@@ -112,16 +125,26 @@ export default function PitchAdminPage({ players = [], setAppError }) {
         .eq('id', existing.id)
 
       if (res.error) return setAppError(res.error.message)
+
+      if (checked) setSelectedPlayerId(player.id)
+      if (!checked && String(selectedPlayerId) === String(player.id)) setSelectedPlayerId('')
+
       return loadAllPitchAdmin()
     }
 
-    const res = await supabase.from('pitch_call_pitchers').insert({
-      player_id: player.id,
-      display_number: player.jersey_number || player.number || '',
-      is_active: checked,
-    })
+    const res = await supabase
+      .from('pitch_call_pitchers')
+      .insert({
+        player_id: player.id,
+        display_number: player.jersey_number || player.number || '',
+        is_active: checked,
+      })
+      .select('*')
+      .single()
 
     if (res.error) return setAppError(res.error.message)
+
+    if (checked) setSelectedPlayerId(player.id)
     loadAllPitchAdmin()
   }
 
@@ -192,13 +215,18 @@ export default function PitchAdminPage({ players = [], setAppError }) {
     const existingPref = prefForPitcherPitch(playerId, pitchId)
     if (!existingPref) return
 
+    setPitchPrefs((current) =>
+      current.map((pref) =>
+        pref.id === existingPref.id ? { ...pref, preference_order: Number(value || 0) } : pref
+      )
+    )
+
     const res = await supabase
       .from('pitcher_pitch_preferences')
       .update({ preference_order: Number(value || 0) })
       .eq('id', existingPref.id)
 
     if (res.error) return setAppError(res.error.message)
-    loadAllPitchAdmin()
   }
 
   return (
@@ -212,74 +240,98 @@ export default function PitchAdminPage({ players = [], setAppError }) {
 
       <div className="card">
         <h2>Pitchers</h2>
-        <p>Only active pitchers here will show in the Pitch Calling pitcher dropdown.</p>
+        <p>Choose which players are pitchers. Only checked pitchers show on the Pitch Calling page.</p>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Pitcher?</th>
-              <th>Player</th>
-              <th>#</th>
-              {pitchTypes.map((pitch) => (
-                <th key={pitch.id}>{pitch.label}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {activePlayers.map((player) => {
-              const pitcher = pitcherRowForPlayer(player.id)
-              const isPitcher = pitcher?.is_active === true
+        <div className="pitcher-admin-player-grid">
+          {activePlayers.map((player) => {
+            const pitcher = pitcherRowForPlayer(player.id)
+            const isPitcher = pitcher?.is_active === true
+
+            return (
+              <button
+                key={player.id}
+                type="button"
+                className={`pitcher-admin-player-card ${
+                  isPitcher ? 'is-active' : ''
+                } ${String(selectedPlayerId) === String(player.id) ? 'is-selected' : ''}`}
+                onClick={() => {
+                  if (isPitcher) setSelectedPlayerId(player.id)
+                  else togglePitcher(player, true)
+                }}
+              >
+                <span className="pitcher-admin-check">{isPitcher ? '✓' : '+'}</span>
+                <span>
+                  <strong>{player.name}</strong>
+                  <small>#{pitcher?.display_number || player.jersey_number || player.number || '—'}</small>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {selectedPlayer && (
+        <div className="card">
+          <div className="row-between wrap-row">
+            <div>
+              <h2>{selectedPlayer.name} Pitch Setup</h2>
+              <p>Select pitches and set the order they should appear during games.</p>
+            </div>
+
+            <button type="button" onClick={() => togglePitcher(selectedPlayer, false)}>
+              Remove as Pitcher
+            </button>
+          </div>
+
+          <div className="grid-3">
+            <label>
+              Pitcher Number
+              <input
+                value={
+                  selectedPitcher?.display_number ||
+                  selectedPlayer.jersey_number ||
+                  selectedPlayer.number ||
+                  ''
+                }
+                onChange={(e) => updatePitcherNumber(selectedPlayer.id, e.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="pitcher-pitch-card-grid">
+            {pitchTypes.map((pitch) => {
+              const pref = prefForPitcherPitch(selectedPlayer.id, pitch.id)
+              const enabled = pref?.is_active === true
 
               return (
-                <tr key={player.id}>
-                  <td>
+                <div key={pitch.id} className={`pitcher-pitch-card ${enabled ? 'is-active' : ''}`}>
+                  <label className="pitcher-pitch-toggle">
                     <input
                       type="checkbox"
-                      checked={isPitcher}
-                      onChange={(e) => togglePitcher(player, e.target.checked)}
+                      checked={enabled}
+                      onChange={(e) => togglePitchForPitcher(selectedPlayer, pitch, e.target.checked)}
                     />
-                  </td>
-                  <td>{player.name}</td>
-                  <td>
+                    <span>{pitch.label}</span>
+                  </label>
+
+                  <label>
+                    Display Order
                     <input
-                      value={pitcher?.display_number || player.jersey_number || player.number || ''}
-                      disabled={!pitcher}
-                      onChange={(e) => updatePitcherNumber(player.id, e.target.value)}
-                      style={{ width: 70 }}
+                      type="number"
+                      value={pref?.preference_order || ''}
+                      disabled={!pref}
+                      onChange={(e) =>
+                        updatePitchPreferenceOrder(selectedPlayer.id, pitch.id, e.target.value)
+                      }
+                      placeholder="#"
                     />
-                  </td>
-
-                  {pitchTypes.map((pitch) => {
-                    const pref = prefForPitcherPitch(player.id, pitch.id)
-
-                    return (
-                      <td key={pitch.id}>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={pref?.is_active === true}
-                            onChange={(e) => togglePitchForPitcher(player, pitch, e.target.checked)}
-                          />
-                          <input
-                            type="number"
-                            value={pref?.preference_order || ''}
-                            disabled={!pref}
-                            onChange={(e) =>
-                              updatePitchPreferenceOrder(player.id, pitch.id, e.target.value)
-                            }
-                            placeholder="#"
-                            style={{ width: 55 }}
-                          />
-                        </div>
-                      </td>
-                    )
-                  })}
-                </tr>
+                  </label>
+                </div>
               )
             })}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <h2>Add Option</h2>
