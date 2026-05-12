@@ -21,39 +21,18 @@ function shortLabel(label = '') {
     Walk: 'BB',
     'Weak Hit': 'Weak Hit',
     'Big Hit': 'Big Hit',
-    Inside: 'Inside',
-    Outside: 'Outside',
-    Middle: 'Middle',
-    'High Inside': 'High In',
-    'Low Inside': 'Low In',
-    'High Outside': 'High Out',
-    'Low Outside': 'Low Out',
   }
 
   return map[label] || label
 }
 
-const LOCATION_FALLBACKS = [
-  'Inside',
-  'Outside',
-  'Middle',
-  'High Inside',
-  'Low Inside',
-  'High Outside',
-  'Low Outside',
+const ZONES = [
+  { number: 4, label: 'High Outside', className: 'zone-4' },
+  { number: 3, label: 'High Inside', className: 'zone-3' },
+  { number: 5, label: 'Middle', className: 'zone-5' },
+  { number: 2, label: 'Low Outside', className: 'zone-2' },
+  { number: 1, label: 'Low Inside', className: 'zone-1' },
 ]
-
-function locationClass(label = '') {
-  const lower = label.toLowerCase()
-  if (lower.includes('high inside')) return 'zone-hi'
-  if (lower.includes('high outside')) return 'zone-ho'
-  if (lower.includes('low inside')) return 'zone-li'
-  if (lower.includes('low outside')) return 'zone-lo'
-  if (lower.includes('inside')) return 'zone-in'
-  if (lower.includes('outside')) return 'zone-out'
-  if (lower.includes('middle')) return 'zone-mid'
-  return ''
-}
 
 export default function PitchCallingPage({ games = [], players = [], setAppError }) {
   const [options, setOptions] = useState([])
@@ -62,7 +41,6 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
   const [pitchGame, setPitchGame] = useState(null)
 
   const [selectedGameId, setSelectedGameId] = useState('')
-  const [opponentName, setOpponentName] = useState('')
   const [pitcherId, setPitcherId] = useState('')
 
   const [batters, setBatters] = useState([])
@@ -79,6 +57,7 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
   const [thisAbEvents, setThisAbEvents] = useState([])
   const [showLineup, setShowLineup] = useState(false)
   const [showResultOnly, setShowResultOnly] = useState(false)
+  const [editingEventId, setEditingEventId] = useState('')
 
   const sortedGames = useMemo(() => {
     return [...games].sort((a, b) => {
@@ -182,12 +161,17 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
     return options.find((o) => String(o.id) === String(id))?.label || ''
   }
 
+  function optionIdForLabel(label) {
+    return locations.find((loc) => String(loc.label || '').toLowerCase() === label.toLowerCase())?.id || ''
+  }
+
   function eventSummary(event) {
     if (!event) return 'No pitches yet'
 
     if (event.event_type === 'missed' || event.skipped_reason === 'missed') return 'Missed pitch'
-    if (event.event_type === 'catcher_called' || event.skipped_reason === 'catcher called') {
-      return `Catcher called${labelFor(event.at_bat_result_id) ? ` / ${labelFor(event.at_bat_result_id)}` : ''}`
+
+    if (event.event_type === 'result_only') {
+      return `Result only / ${shortLabel(labelFor(event.at_bat_result_id)) || 'Result'}`
     }
 
     const parts = [
@@ -216,8 +200,8 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
       .from('pitch_call_games')
       .insert({
         game_id: selectedGameId || null,
-        opponent_name: opponentName || linkedGame?.opponent || linkedGame?.opponent_name || null,
-          pitcher_id: pitcherId || null,
+        opponent_name: linkedGame?.opponent || linkedGame?.opponent_name || 'Opponent',
+        pitcher_id: null,
         current_batter_order: 1,
       })
       .select('*')
@@ -237,14 +221,6 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
     setCurrentSpot(1)
   }
 
-  async function updateBatter(id, field, value) {
-    setBatters((current) => current.map((b) => (b.id === id ? { ...b, [field]: value } : b)))
-
-    const res = await supabase.from('pitch_call_batters').update({ [field]: value }).eq('id', id)
-
-    if (res.error) setAppError(res.error.message)
-  }
-
   async function updateLivePitcher(nextPitcherId) {
     setPitcherId(nextPitcherId)
     resetEntry()
@@ -258,7 +234,15 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
 
     if (res.error) setAppError(res.error.message)
   }
-  
+
+  async function updateBatter(id, field, value) {
+    setBatters((current) => current.map((b) => (b.id === id ? { ...b, [field]: value } : b)))
+
+    const res = await supabase.from('pitch_call_batters').update({ [field]: value }).eq('id', id)
+
+    if (res.error) setAppError(res.error.message)
+  }
+
   async function addBatter() {
     if (!pitchGame?.id) return
 
@@ -315,6 +299,17 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
     setPitchResultId('')
     setAtBatResultId('')
     setCoachNote('')
+    setEditingEventId('')
+  }
+
+  function loadEventForEdit(event) {
+    setEditingEventId(event.id)
+    setCalledPitchId(event.pitch_option_id || '')
+    setIntendedLocationId(event.intended_location_id || '')
+    setActualLocationId(event.actual_location_id || '')
+    setPitchResultId(event.pitch_result_id || '')
+    setAtBatResultId(event.at_bat_result_id || '')
+    setCoachNote(event.coach_note || '')
   }
 
   async function saveEvent({
@@ -345,12 +340,30 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
       batter_order_snapshot: currentSpot,
     }
 
-    const res = await supabase.from('pitch_call_events').insert(payload).select('*').single()
+    let savedEvent = null
 
-    if (res.error) return setAppError(res.error.message)
+    if (editingEventId) {
+      const res = await supabase
+        .from('pitch_call_events')
+        .update(payload)
+        .eq('id', editingEventId)
+        .select('*')
+        .single()
 
-    const summary = eventSummary(res.data)
-    setThisAbEvents((current) => [...current, summary])
+      if (res.error) return setAppError(res.error.message)
+      savedEvent = res.data
+
+      setThisAbEvents((current) =>
+        current.map((event) => (event.id === editingEventId ? savedEvent : event))
+      )
+    } else {
+      const res = await supabase.from('pitch_call_events').insert(payload).select('*').single()
+
+      if (res.error) return setAppError(res.error.message)
+      savedEvent = res.data
+
+      setThisAbEvents((current) => [...current, savedEvent])
+    }
 
     resetEntry()
     await loadHistory()
@@ -370,17 +383,20 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
 
     if (res.error) return setAppError(res.error.message)
 
+    setThisAbEvents((current) => current.filter((event) => event.id !== lastEvent.id))
     setCurrentSpot(targetSpot)
     await loadHistory()
   }
 
   function goNext() {
     setThisAbEvents([])
+    resetEntry()
     setCurrentSpot((current) => (current >= maxSpot ? 1 : current + 1))
   }
 
   function goPrevious() {
     setThisAbEvents([])
+    resetEntry()
     setCurrentSpot((current) => (current <= 1 ? maxSpot : current - 1))
   }
 
@@ -399,24 +415,36 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
     )
   }
 
-    function LocationGrid({ selectedId, setSelectedId }) {
+  function LocationMap({ title, selectedId, setSelectedId }) {
     return (
-      <div className="pitch-zone-grid">
-        {locations.map((loc, index) => {
-          const active = String(selectedId) === String(loc.id)
-          const label = loc.label || LOCATION_FALLBACKS[index] || 'Location'
+      <div className="pitch-location-map-wrap">
+        {title && <p className="pitch-map-help">{title}</p>}
 
-          return (
-            <button
-              key={loc.id}
-              type="button"
-              className={`pitch-zone-cell ${locationClass(label)} ${active ? 'is-selected' : ''}`}
-              onClick={() => setSelectedId(active ? '' : loc.id)}
-            >
-              {shortLabel(label)}
-            </button>
-          )
-        })}
+        <div className="pitch-location-map">
+          {ZONES.map((zone) => {
+            const optionId = optionIdForLabel(zone.label)
+            const active = String(selectedId) === String(optionId)
+
+            return (
+              <button
+                key={zone.number}
+                type="button"
+                className={`pitch-map-zone ${zone.className} ${active ? 'is-selected' : ''}`}
+                onClick={() => {
+                  if (!optionId) {
+                    setAppError(`Missing location option: ${zone.label}`)
+                    return
+                  }
+
+                  setSelectedId(active ? '' : optionId)
+                }}
+              >
+                <strong>{zone.number}</strong>
+                <span>{zone.label}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
     )
   }
@@ -434,26 +462,20 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
         <div className="card">
           <h2>Start Pitch Tracking</h2>
 
-          <div className="grid-3">
-            <label>
-              Load Game
-              <select value={selectedGameId} onChange={(e) => setSelectedGameId(e.target.value)}>
-                <option value="">No linked game</option>
+          <label>
+            Load Game
+            <select value={selectedGameId} onChange={(e) => setSelectedGameId(e.target.value)}>
+              <option value="">No linked game</option>
 
-                {sortedGames.map((game) => (
-                  <option key={game.id} value={game.id}>
-                    {game.game_date || game.date} — {game.opponent || game.opponent_name || 'Opponent'}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+              {sortedGames.map((game) => (
+                <option key={game.id} value={game.id}>
+                  {game.game_date || game.date} — {game.opponent || game.opponent_name || 'Opponent'}
+                </option>
+              ))}
+            </select>
+          </label>
 
-          {!pitcherRows.length && (
-            <p style={{ color: '#b91c1c' }}>No pitchers set up yet. Go to Pitch Admin and mark pitchers first.</p>
-          )}
-
-                    <button type="button" onClick={startPitchGame}>
+          <button type="button" onClick={startPitchGame}>
             Start
           </button>
         </div>
@@ -464,8 +486,8 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
   return (
     <div className="pitch-app-page">
       <div className="pitch-app-header">
-                <div>
-          <strong>{opponentName || pitchGame.opponent_name || 'Opponent'}</strong>
+        <div>
+          <strong>{pitchGame.opponent_name || 'Opponent'}</strong>
 
           <label className="pitch-header-select-label">
             Pitcher:
@@ -484,13 +506,6 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
           </label>
         </div>
 
-        <div>
-          <strong>Batter</strong>
-          <span>
-            {currentSpot} of {maxSpot}
-          </span>
-        </div>
-
         <button type="button" onClick={() => setShowLineup((v) => !v)}>
           Lineup
         </button>
@@ -503,9 +518,10 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
               <div>
                 <h2>
                   Batter {currentSpot}
-                  {currentBatter?.player_number ? `  #${currentBatter.player_number}` : ''}
-                  {currentBatter?.batter_name ? `  ${currentBatter.batter_name}` : ''}
+                  {currentBatter?.player_number ? ` #${currentBatter.player_number}` : ''}
+                  {currentBatter?.batter_name ? ` ${currentBatter.batter_name}` : ''}
                 </h2>
+
                 <p>
                   <strong>Note:</strong> {currentBatter?.quick_note || 'No note yet.'}
                 </p>
@@ -527,13 +543,29 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
             </div>
 
             <div className="pitch-info-block">
-              <small>THIS AT-BAT</small>
+              <div className="row-between wrap-row">
+                <small>THIS AT-BAT</small>
+
+                {editingEventId && (
+                  <button type="button" onClick={resetEntry}>
+                    Go Current
+                  </button>
+                )}
+              </div>
+
               <div className="pitch-pill-row">
                 {thisAbEvents.length ? (
-                  thisAbEvents.map((item, index) => (
-                    <span key={`${item}-${index}`} className="pitch-pill">
-                      {index + 1}. {item}
-                    </span>
+                  thisAbEvents.map((event, index) => (
+                    <button
+                      key={event.id || index}
+                      type="button"
+                      className={`pitch-pill pitch-pill-button ${
+                        editingEventId === event.id ? 'is-editing' : ''
+                      }`}
+                      onClick={() => loadEventForEdit(event)}
+                    >
+                      {index + 1}. {eventSummary(event)}
+                    </button>
                   ))
                 ) : (
                   <span className="pitch-muted">No pitches yet</span>
@@ -543,27 +575,52 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
           </div>
 
           <div className="card pitch-call-panel">
+            {editingEventId && (
+              <div className="pitch-editing-banner">
+                Editing saved pitch — tap Save Pitch to update, or Go Current to cancel.
+              </div>
+            )}
+
             <h3>1. Pitch Type</h3>
             <div className="pitch-app-button-grid">
               {pitchTypes.map((pitch) => (
-                <PickButton key={pitch.id} item={pitch} selectedId={calledPitchId} setSelectedId={setCalledPitchId} />
+                <PickButton
+                  key={pitch.id}
+                  item={pitch}
+                  selectedId={calledPitchId}
+                  setSelectedId={setCalledPitchId}
+                />
               ))}
             </div>
 
             <h3>2. Called Location</h3>
-            <LocationGrid selectedId={intendedLocationId} setSelectedId={setIntendedLocationId} />
+            <LocationMap
+              title="Tap one of the 5 zones."
+              selectedId={intendedLocationId}
+              setSelectedId={setIntendedLocationId}
+            />
 
             <h3>3. Pitch Result</h3>
             <div className="pitch-app-button-grid tight">
               {pitchResults.map((result) => (
-                <PickButton key={result.id} item={result} selectedId={pitchResultId} setSelectedId={setPitchResultId} />
+                <PickButton
+                  key={result.id}
+                  item={result}
+                  selectedId={pitchResultId}
+                  setSelectedId={setPitchResultId}
+                />
               ))}
             </div>
 
             <h3>4. Final Result</h3>
             <div className="pitch-app-button-grid tight">
               {atBatResults.map((result) => (
-                <PickButton key={result.id} item={result} selectedId={atBatResultId} setSelectedId={setAtBatResultId} />
+                <PickButton
+                  key={result.id}
+                  item={result}
+                  selectedId={atBatResultId}
+                  setSelectedId={setAtBatResultId}
+                />
               ))}
             </div>
 
@@ -571,7 +628,11 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
               <summary>Optional: Actual Location + Coach Note</summary>
 
               <h3>Actual Location</h3>
-              <LocationGrid selectedId={actualLocationId} setSelectedId={setActualLocationId} />
+              <LocationMap
+                title="Tap where the pitch actually went."
+                selectedId={actualLocationId}
+                setSelectedId={setActualLocationId}
+              />
 
               <label>
                 Coach Note
@@ -624,6 +685,8 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
                       onClick={() => {
                         setCurrentSpot(Number(batter.batting_order))
                         setShowLineup(false)
+                        resetEntry()
+                        setThisAbEvents([])
                       }}
                     >
                       {batter.batting_order}
@@ -698,7 +761,7 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
       <div className="pitch-bottom-bar-v2">
         <button type="button" onClick={() => saveEvent({ eventType: 'tracked' })}>
           Save Pitch
-          <span>Stay</span>
+          <span>{editingEventId ? 'Update' : 'Stay'}</span>
         </button>
 
         <button type="button" onClick={() => saveEvent({ eventType: 'tracked', advance: true })}>
