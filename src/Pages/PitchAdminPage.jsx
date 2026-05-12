@@ -18,6 +18,7 @@ export default function PitchAdminPage({ players = [], setAppError }) {
   const [selectedPlayerId, setSelectedPlayerId] = useState('')
   const [category, setCategory] = useState('pitch_type')
   const [label, setLabel] = useState('')
+  const [shortLabel, setShortLabel] = useState('')
   const [loading, setLoading] = useState(false)
 
   const activePlayers = useMemo(
@@ -54,6 +55,7 @@ export default function PitchAdminPage({ players = [], setAppError }) {
     const optionRes = await supabase
       .from('pitch_options')
       .select('*')
+      .in('category', CATEGORIES.map((cat) => cat.value))
       .order('category', { ascending: true })
       .order('sort_order', { ascending: true })
 
@@ -93,6 +95,7 @@ export default function PitchAdminPage({ players = [], setAppError }) {
     const res = await supabase.from('pitch_options').insert({
       category,
       label: label.trim(),
+      short_label: shortLabel.trim() || label.trim(),
       sort_order: nextOrder,
       is_active: true,
     })
@@ -100,6 +103,7 @@ export default function PitchAdminPage({ players = [], setAppError }) {
     if (res.error) return setAppError(res.error.message)
 
     setLabel('')
+    setShortLabel('')
     loadAllPitchAdmin()
   }
 
@@ -233,7 +237,7 @@ export default function PitchAdminPage({ players = [], setAppError }) {
       <div className="page-header">
         <div>
           <h1>Pitch Calling Admin</h1>
-          <p>Manage pitch types, locations, results, pitchers, and each pitcher’s pitch order.</p>
+          <p>Manage pitchers, pitch options, quick labels, and each pitcher’s pitch order.</p>
         </div>
       </div>
 
@@ -310,8 +314,10 @@ export default function PitchAdminPage({ players = [], setAppError }) {
                       checked={enabled}
                       onChange={(e) => togglePitchForPitcher(selectedPlayer, pitch, e.target.checked)}
                     />
-                    <span>{pitch.label}</span>
+                    <span>{pitch.short_label || pitch.label}</span>
                   </label>
+
+                  <div className="small-note">{pitch.label}</div>
 
                   <label>
                     Display Order
@@ -356,6 +362,15 @@ export default function PitchAdminPage({ players = [], setAppError }) {
             />
           </label>
 
+          <label>
+            Short Label
+            <input
+              value={shortLabel}
+              onChange={(e) => setShortLabel(e.target.value)}
+              placeholder="Example: RB"
+            />
+          </label>
+
           <div style={{ display: 'flex', alignItems: 'end' }}>
             <button type="button" onClick={addOption}>
               Add
@@ -376,6 +391,7 @@ export default function PitchAdminPage({ players = [], setAppError }) {
                 <tr>
                   <th>Active</th>
                   <th>Label</th>
+                  <th>Short Label</th>
                   <th>Order</th>
                 </tr>
               </thead>
@@ -399,6 +415,13 @@ export default function PitchAdminPage({ players = [], setAppError }) {
                     </td>
                     <td>
                       <input
+                        value={option.short_label || ''}
+                        onChange={(e) => updateOption(option.id, 'short_label', e.target.value)}
+                        disabled={loading}
+                      />
+                    </td>
+                    <td>
+                      <input
                         type="number"
                         value={option.sort_order || 0}
                         onChange={(e) =>
@@ -413,7 +436,7 @@ export default function PitchAdminPage({ players = [], setAppError }) {
 
                 {!rows.length && (
                   <tr>
-                    <td colSpan="3">No options yet.</td>
+                    <td colSpan="4">No options yet.</td>
                   </tr>
                 )}
               </tbody>
