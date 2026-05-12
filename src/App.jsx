@@ -949,8 +949,9 @@ function updateSavedAndPersist(gameId, updater) {
           />
         )}
 
-        {page === 'pitch-admin' && (
+          {page === 'pitch-admin' && (
           <PitchAdminPage
+            players={players}
             setAppError={setAppError}
           />
         )}
