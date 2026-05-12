@@ -126,17 +126,9 @@ export default function PitchCallingPage({ games, players, setAppError }) {
   }
 
   async function loadHistory() {
-    const res = await supabase
+        const res = await supabase
       .from('pitch_call_events')
-      .select(`
-        *,
-        pitch_option:pitch_option_id(label),
-        intended_location:intended_location_id(label),
-        actual_location:actual_location_id(label),
-        pitch_result:pitch_result_id(label),
-        at_bat_result:at_bat_result_id(label),
-        batter:batter_id(batting_order, player_number, batter_name)
-      `)
+      .select('*')
       .eq('pitch_call_game_id', pitchGame.id)
       .order('created_at', { ascending: false })
 
@@ -410,14 +402,21 @@ export default function PitchCallingPage({ games, players, setAppError }) {
 
         {batterHistory.slice(0, 6).map((event) => (
           <div key={event.id} style={{ borderBottom: '1px solid #e5e7eb', padding: '8px 0' }}>
-            <strong>
-              {event.skipped ? 'Skipped' : event.pitch_option?.label || 'No pitch'}
+                        <strong>
+              {event.skipped ? 'Skipped' : 'Tracked Pitch'}
             </strong>
-            {event.intended_location?.label ? ` / called ${event.intended_location.label}` : ''}
-            {event.actual_location?.label ? ` / actual ${event.actual_location.label}` : ''}
-            {event.pitch_result?.label ? ` — ${event.pitch_result.label}` : ''}
-            {event.at_bat_result?.label ? ` — Final: ${event.at_bat_result.label}` : ''}
-            {event.coach_note ? <div>Note: {event.coach_note}</div> : null}
+
+            {event.coach_note ? (
+              <div>
+                Note: {event.coach_note}
+              </div>
+            ) : null}
+
+            {event.skipped_reason ? (
+              <div>
+                Reason: {event.skipped_reason}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
