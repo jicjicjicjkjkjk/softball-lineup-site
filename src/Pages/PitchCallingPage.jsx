@@ -217,7 +217,7 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
       .insert({
         game_id: selectedGameId || null,
         opponent_name: opponentName || linkedGame?.opponent || linkedGame?.opponent_name || null,
-        pitcher_id: pitcherId || null,
+          pitcher_id: pitcherId || null,
         current_batter_order: 1,
       })
       .select('*')
@@ -436,7 +436,7 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
 
           <div className="grid-3">
             <label>
-              Existing Game
+              Load Game
               <select value={selectedGameId} onChange={(e) => setSelectedGameId(e.target.value)}>
                 <option value="">No linked game</option>
 
@@ -447,31 +447,13 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
                 ))}
               </select>
             </label>
-
-            <label>
-              Opponent Name
-              <input value={opponentName} onChange={(e) => setOpponentName(e.target.value)} placeholder="Opponent" />
-            </label>
-
-            <label>
-              Pitcher
-              <select value={pitcherId} onChange={(e) => setPitcherId(e.target.value)}>
-                <option value="">Select pitcher</option>
-
-                {pitcherRows.map((row) => (
-                  <option key={row.id} value={row.player_id}>
-                    #{row.display_number || row.player.jersey_number || row.player.number || ''} {row.player.name}
-                  </option>
-                ))}
-              </select>
-            </label>
           </div>
 
           {!pitcherRows.length && (
             <p style={{ color: '#b91c1c' }}>No pitchers set up yet. Go to Pitch Admin and mark pitchers first.</p>
           )}
 
-          <button type="button" onClick={startPitchGame} disabled={!pitcherId}>
+                    <button type="button" onClick={startPitchGame}>
             Start
           </button>
         </div>
