@@ -12,55 +12,61 @@ const NAV_ITEMS = [
 ]
 
 export default function Sidebar({ page, setPage }) {
+  const activeItem = NAV_ITEMS.find((item) => item.key === page)
+
+  function handleNav(key) {
+    setPage(key)
+    document.body.classList.remove('mobile-nav-open')
+  }
+
   return (
-    <aside
-      style={{
-        width: 240,
-        minWidth: 240,
-        background: '#123847',
-        color: 'white',
-        padding: 20,
-        boxSizing: 'border-box',
-      }}
-    >
-      <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.2, marginBottom: 20 }}>
-        Softball
-        <br />
-        Lineups
+    <>
+      <div className="mobile-top-nav">
+        <button
+          type="button"
+          className="mobile-menu-button"
+          onClick={() => document.body.classList.toggle('mobile-nav-open')}
+        >
+          ☰
+        </button>
+
+        <div>
+          <strong>Softball Lineups</strong>
+          <span>{activeItem?.label || 'Dashboard'}</span>
+        </div>
       </div>
 
-      <nav
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-        }}
-      >
-        {NAV_ITEMS.map((item) => {
-          const active = page === item.key
+      <aside className="app-sidebar">
+        <div className="sidebar-title">
+          Softball
+          <br />
+          Lineups
+        </div>
 
-          return (
-            <button
-              key={item.key}
-              onClick={() => setPage(item.key)}
-              style={{
-                width: '100%',
-                textAlign: 'left',
-                padding: '12px 14px',
-                borderRadius: 10,
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 16,
-                fontWeight: active ? 700 : 500,
-                background: active ? '#167c74' : '#1d5568',
-                color: 'white',
-              }}
-            >
-              {item.label}
-            </button>
-          )
-        })}
-      </nav>
-    </aside>
+        <nav className="sidebar-nav">
+          {NAV_ITEMS.map((item) => {
+            const active = page === item.key
+
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => handleNav(item.key)}
+                className={`sidebar-nav-button ${active ? 'is-active' : ''}`}
+              >
+                {item.label}
+              </button>
+            )
+          })}
+        </nav>
+      </aside>
+
+      <button
+        type="button"
+        className="mobile-nav-backdrop"
+        onClick={() => document.body.classList.remove('mobile-nav-open')}
+        aria-label="Close menu"
+      />
+    </>
   )
 }
