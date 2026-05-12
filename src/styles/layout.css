@@ -302,3 +302,54 @@
   font-size: 15px;
   color: #374151;
 }
+
+
+.pitch-admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.pitch-admin-table {
+  min-width: 980px;
+}
+
+.pitch-admin-table th,
+.pitch-admin-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.pitch-admin-table th:first-child,
+.pitch-admin-table td:first-child {
+  width: 80px;
+  text-align: center;
+}
+
+.pitch-admin-table th:nth-child(2),
+.pitch-admin-table td:nth-child(2) {
+  min-width: 130px;
+}
+
+.pitch-admin-table th:nth-child(3),
+.pitch-admin-table td:nth-child(3) {
+  width: 80px;
+}
+
+.pitch-admin-table input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+}
+
+.pitch-admin-table input[type='number'] {
+  width: 48px !important;
+  padding: 6px;
+}
+
+.pitch-admin-table input {
+  max-width: 80px;
+}
+
+.pitch-admin-table td > div {
+  justify-content: center;
+}
