@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase'
 
 const CATEGORIES = [
   { value: 'pitch_type', label: 'Pitch Types' },
-  { value: 'pitch_location', label: 'Locations' },
   { value: 'pitch_result', label: 'Pitch Results' },
   { value: 'at_bat_result', label: 'At-Bat Results' },
 ]
