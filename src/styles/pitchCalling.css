@@ -358,3 +358,152 @@
 .pitch-zone-cell.is-selected {
   color: white !important;
 }
+
+
+.pitch-location-map-wrap {
+  margin-bottom: 16px;
+}
+
+.pitch-map-help {
+  color: #64748b;
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.pitch-location-map {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "zone4 zone3"
+    "zone2 zone1";
+  position: relative;
+  border: 2px solid #1f2937;
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 220px;
+  background: #f8fafc;
+}
+
+.pitch-map-zone {
+  border: 1px solid #1f2937;
+  background: white;
+  color: #1f2937;
+  font-weight: 800;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pitch-map-zone strong {
+  font-size: 42px;
+  line-height: 1;
+}
+
+.pitch-map-zone span {
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.pitch-map-zone.is-selected {
+  background: #008c7a;
+  color: white;
+}
+
+.pitch-map-zone.zone-4 {
+  grid-area: zone4;
+  background: #eff6ff;
+}
+
+.pitch-map-zone.zone-3 {
+  grid-area: zone3;
+  background: #f0fdf4;
+}
+
+.pitch-map-zone.zone-2 {
+  grid-area: zone2;
+  background: #fffbeb;
+}
+
+.pitch-map-zone.zone-1 {
+  grid-area: zone1;
+  background: #f5f3ff;
+}
+
+.pitch-map-zone.is-selected {
+  background: #008c7a !important;
+}
+
+.pitch-map-zone.zone-5 {
+  position: absolute;
+  width: 32%;
+  height: 34%;
+  left: 34%;
+  top: 33%;
+  border: 2px solid #1f2937;
+  border-radius: 10px;
+  background: white;
+  z-index: 2;
+}
+
+.pitch-pill-button {
+  border: none;
+  cursor: pointer;
+}
+
+.pitch-pill-button.is-editing {
+  background: #008c7a;
+  color: white;
+}
+
+.pitch-editing-banner {
+  background: #fffbeb;
+  border: 1px solid #facc15;
+  color: #92400e;
+  border-radius: 12px;
+  padding: 10px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.pitch-header-select-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.95;
+  margin-top: 4px;
+}
+
+.pitch-header-select {
+  min-height: 28px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.12);
+  color: white;
+  font-weight: 800;
+}
+
+.pitch-header-select option {
+  color: #111827;
+}
+
+@media (max-width: 700px) {
+  .pitch-location-map {
+    min-height: 180px;
+  }
+
+  .pitch-map-zone {
+    min-height: 90px;
+  }
+
+  .pitch-map-zone strong {
+    font-size: 34px;
+  }
+
+  .pitch-map-zone span {
+    font-size: 12px;
+  }
+}
