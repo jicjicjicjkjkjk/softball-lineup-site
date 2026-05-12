@@ -119,17 +119,16 @@ export default function LineupGrid({
 />
 
 {showLocks && (
-                    <label className="inning-lock-wrap">
-                      <input
-                        type="checkbox"
-                        className="inning-lock"
-                        checked={inningLocked}
-                        disabled={lockedLineup}
-                        onChange={() => onInningLockToggle?.(inning)}
-                      />
-                      <span>Inning</span>
-                    </label>
-                  )}
+  <button
+    type="button"
+    className={`inning-lock-button ${inningLocked ? 'is-locked' : ''}`}
+    disabled={lockedLineup}
+    onClick={() => onInningLockToggle?.(inning)}
+    title={inningLocked ? 'Unlock inning' : 'Lock inning'}
+  >
+    {inningLocked ? '🔒 Locked' : '🔓 Open'}
+  </button>
+)}
 
                   <div className="inning-number">{inning}</div>
                 </div>
