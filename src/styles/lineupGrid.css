@@ -488,3 +488,23 @@
 .row-locked .position-select {
   opacity: 0.65;
 }
+
+
+.inning-lock-button {
+  margin-top: 6px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #334155;
+  border-radius: 10px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  min-width: 78px;
+}
+
+.inning-lock-button.is-locked {
+  background: #167c74;
+  border-color: #167c74;
+  color: white;
+}
