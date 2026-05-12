@@ -507,3 +507,8 @@
     font-size: 12px;
   }
 }
+
+
+.pitch-bottom-bar-v2.four-buttons {
+  grid-template-columns: repeat(4, 1fr);
+}
