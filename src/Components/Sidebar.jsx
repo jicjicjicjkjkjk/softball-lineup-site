@@ -5,6 +5,8 @@ const NAV_ITEMS = [
   { key: 'tracking', label: 'Tracking' },
   { key: 'positioning-priority', label: 'Positioning Priority' },
   { key: 'attendance', label: 'Attendance' },
+  { key: 'pitch-calling', label: 'Pitch Calling' },
+  { key: 'pitch-admin', label: 'Pitch Admin' },
   { key: 'optimizer-inputs', label: 'Optimizer Inputs' },
   { key: 'admin', label: 'Admin' },
 ]
