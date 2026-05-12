@@ -22,10 +22,29 @@ export default function PitchCallingPage({ games, players, setAppError }) {
   const [coachNote, setCoachNote] = useState('')
   const [history, setHistory] = useState([])
 
-  const activePlayers = useMemo(
-    () => players.filter((p) => p.active !== false).sort((a, b) => (a.name || '').localeCompare(b.name || '')),
+    const activePlayers = useMemo(
+    () =>
+      players
+        .filter((p) => p.active !== false)
+        .sort((a, b) => (a.name || '').localeCompare(b.name || '')),
     [players]
   )
+
+  const sortedGames = useMemo(() => {
+    return [...games].sort((a, b) => {
+      const orderA = Number(a.game_order || 0)
+      const orderB = Number(b.game_order || 0)
+
+      if (orderA !== orderB) {
+        return orderB - orderA
+      }
+
+      const dateA = new Date(a.game_date || a.date || 0).getTime()
+      const dateB = new Date(b.game_date || b.date || 0).getTime()
+
+      return dateB - dateA
+    })
+  }, [games])
 
   const pitchTypes = options.filter((o) => o.category === 'pitch_type' && o.is_active !== false).sort(byOrder)
   const locations = options.filter((o) => o.category === 'pitch_location' && o.is_active !== false).sort(byOrder)
@@ -191,7 +210,7 @@ export default function PitchCallingPage({ games, players, setAppError }) {
               Existing Game
               <select value={selectedGameId} onChange={(e) => setSelectedGameId(e.target.value)}>
                 <option value="">No linked game</option>
-                {games.map((game) => (
+                {sortedGames.map((game) => (
                   <option key={game.id} value={game.id}>
                     {game.game_date || game.date} — {game.opponent || game.opponent_name || 'Opponent'}
                   </option>
