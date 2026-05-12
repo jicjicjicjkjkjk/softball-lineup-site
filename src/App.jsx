@@ -31,6 +31,8 @@ import LineupGrid from './Components/LineupGrid'
 import Sidebar from './Components/Sidebar'
 import AdminPage from './Pages/AdminPage'
 import OptimizerInputsPage from './Pages/OptimizerInputsPage'
+import PitchCallingPage from './Pages/PitchCallingPage'
+import PitchAdminPage from './Pages/PitchAdminPage'
 
 import { nextSort } from './lib/appHelpers'
 import {
@@ -930,11 +932,25 @@ function updateSavedAndPersist(gameId, updater) {
           />
         )}
 
-        {page === 'optimizer-inputs' && (
+                {page === 'optimizer-inputs' && (
           <OptimizerInputsPage
             optimizerProfiles={optimizerProfiles}
             optimizerProfileRules={optimizerProfileRules}
             reloadAllData={loadAll}
+            setAppError={setAppError}
+          />
+        )}
+
+        {page === 'pitch-calling' && (
+          <PitchCallingPage
+            games={games}
+            players={players}
+            setAppError={setAppError}
+          />
+        )}
+
+        {page === 'pitch-admin' && (
+          <PitchAdminPage
             setAppError={setAppError}
           />
         )}
