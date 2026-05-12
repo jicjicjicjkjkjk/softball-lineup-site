@@ -383,3 +383,171 @@
 .pitcher-pitch-card input[type='number'] {
   max-width: 90px;
 }
+
+.pitch-mobile-page {
+  padding-bottom: 96px;
+}
+
+.pitch-mobile-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #123847;
+  color: white;
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.pitch-mobile-topbar span {
+  display: block;
+  font-size: 12px;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+.pitch-mobile-topbar button {
+  background: #167c74;
+  color: white;
+  border: none;
+}
+
+.pitch-batter-card {
+  border: 2px solid rgba(22, 124, 116, 0.25);
+}
+
+.pitch-batter-card h2 {
+  margin-bottom: 4px;
+}
+
+.pitch-batter-card p {
+  margin-top: 0;
+  color: #6b7280;
+}
+
+.pitch-nav-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.pitch-last-history {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.pitch-lineup-drawer {
+  border: 2px solid #167c74;
+}
+
+.pitch-lineup-list {
+  display: grid;
+  gap: 8px;
+}
+
+.pitch-lineup-row {
+  display: grid;
+  grid-template-columns: 34px 54px 1fr;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  background: #f8fafc;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.pitch-lineup-row small {
+  grid-column: 3;
+  color: #6b7280;
+}
+
+.pitch-lineup-row.is-current {
+  background: #e6f6f4;
+  border-color: #167c74;
+}
+
+.pitch-mobile-button-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pitch-mobile-button-grid.compact {
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+}
+
+.pitch-mobile-pick {
+  min-height: 48px;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+  font-weight: 800;
+}
+
+.pitch-mobile-pick.is-selected {
+  background: #167c74;
+  color: white;
+  border-color: #167c74;
+  box-shadow: 0 0 0 3px rgba(22, 124, 116, 0.22);
+}
+
+.pitch-history-row {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px 0;
+}
+
+.pitch-mobile-bottombar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: #ffffff;
+  border-top: 1px solid #d1d5db;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr 0.8fr;
+  gap: 6px;
+}
+
+.pitch-mobile-bottombar button {
+  min-height: 48px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pitch-mobile-bottombar button:first-child,
+.pitch-mobile-bottombar button:nth-child(2) {
+  background: #167c74;
+  color: white;
+  border-color: #167c74;
+}
+
+@media (max-width: 700px) {
+  .pitch-mobile-button-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pitch-mobile-button-grid.compact {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pitch-mobile-bottombar {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .pitch-mobile-bottombar button {
+    font-size: 11px;
+    padding: 6px 4px;
+  }
+}
