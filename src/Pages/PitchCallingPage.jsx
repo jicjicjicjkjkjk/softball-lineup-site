@@ -33,6 +33,16 @@ function shortLabel(label = '') {
   return map[label] || label
 }
 
+const LOCATION_FALLBACKS = [
+  'Inside',
+  'Outside',
+  'Middle',
+  'High Inside',
+  'Low Inside',
+  'High Outside',
+  'Low Outside',
+]
+
 function locationClass(label = '') {
   const lower = label.toLowerCase()
   if (lower.includes('high inside')) return 'zone-hi'
@@ -235,6 +245,20 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
     if (res.error) setAppError(res.error.message)
   }
 
+  async function updateLivePitcher(nextPitcherId) {
+    setPitcherId(nextPitcherId)
+    resetEntry()
+
+    if (!pitchGame?.id) return
+
+    const res = await supabase
+      .from('pitch_call_games')
+      .update({ pitcher_id: nextPitcherId || null })
+      .eq('id', pitchGame.id)
+
+    if (res.error) setAppError(res.error.message)
+  }
+  
   async function addBatter() {
     if (!pitchGame?.id) return
 
@@ -375,20 +399,21 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
     )
   }
 
-  function LocationGrid({ selectedId, setSelectedId }) {
+    function LocationGrid({ selectedId, setSelectedId }) {
     return (
       <div className="pitch-zone-grid">
-        {locations.map((loc) => {
+        {locations.map((loc, index) => {
           const active = String(selectedId) === String(loc.id)
+          const label = loc.label || LOCATION_FALLBACKS[index] || 'Location'
 
           return (
             <button
               key={loc.id}
               type="button"
-              className={`pitch-zone-cell ${locationClass(loc.label)} ${active ? 'is-selected' : ''}`}
+              className={`pitch-zone-cell ${locationClass(label)} ${active ? 'is-selected' : ''}`}
               onClick={() => setSelectedId(active ? '' : loc.id)}
             >
-              {shortLabel(loc.label)}
+              {shortLabel(label)}
             </button>
           )
         })}
@@ -457,9 +482,24 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
   return (
     <div className="pitch-app-page">
       <div className="pitch-app-header">
-        <div>
+                <div>
           <strong>{opponentName || pitchGame.opponent_name || 'Opponent'}</strong>
-          <span>Pitcher: {selectedPitcherRow?.player?.name || '—'}</span>
+
+          <label className="pitch-header-select-label">
+            Pitcher:
+            <select
+              className="pitch-header-select"
+              value={pitcherId}
+              onChange={(e) => updateLivePitcher(e.target.value)}
+            >
+              <option value="">Select</option>
+              {pitcherRows.map((row) => (
+                <option key={row.id} value={row.player_id}>
+                  #{row.display_number || row.player.jersey_number || row.player.number || ''} {row.player.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <div>
