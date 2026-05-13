@@ -3,41 +3,91 @@
    ========================= */
 
 .pitch-app-page {
-  padding-bottom: 120px;
+  padding-bottom: 84px;
 }
 
-.pitch-app-header {
+/* ---------- Header / Game Ribbon ---------- */
+
+.pitch-app-header,
+.pitch-game-ribbon {
   position: sticky;
-  top: 0;
-  z-index: 30;
+  top: 62px;
+  z-index: 40;
   background: #123847;
   color: white;
-  border-radius: 18px;
-  padding: 12px;
-  margin-bottom: 12px;
+  border-radius: 14px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
   display: grid;
-  grid-template-columns: 1.4fr 0.8fr auto;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
   align-items: center;
 }
 
-.pitch-app-header strong,
-.pitch-app-header span {
+.pitch-header-main {
+  min-width: 0;
+}
+
+.pitch-header-main strong,
+.pitch-app-header strong {
   display: block;
+  font-size: 15px;
+  margin-bottom: 3px;
 }
 
-.pitch-app-header span {
+.pitch-header-select-label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
   font-size: 12px;
-  opacity: 0.9;
 }
 
-.pitch-app-header button {
-  background: #167c74;
+.pitch-header-select {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  min-height: 30px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.12);
   color: white;
-  border: none;
-  border-radius: 14px;
+  font-size: 13px;
   font-weight: 800;
 }
+
+.pitch-header-select option {
+  color: #111827;
+}
+
+.pitch-inning-stepper {
+  display: grid;
+  grid-template-columns: auto 30px 30px;
+  gap: 4px;
+  align-items: center;
+  color: white;
+  font-weight: 900;
+}
+
+.pitch-inning-stepper span {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pitch-inning-stepper button {
+  width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: #167c74;
+  color: white;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+/* ---------- Page Layout ---------- */
 
 .pitch-app-grid {
   display: grid;
@@ -48,76 +98,157 @@
 
 .pitch-app-left {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.pitch-batter-panel h2 {
-  margin-bottom: 4px;
+/* ---------- Batter Panel ---------- */
+
+.pitch-batter-panel.compact,
+.pitch-batter-panel {
+  padding: 8px 10px;
 }
 
 .pitch-batter-title-row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+}
+
+.pitch-batter-panel h2 {
+  font-size: 20px;
+  margin: 0 0 2px;
+}
+
+.pitch-batter-panel p {
+  font-size: 13px;
+  margin: 0;
 }
 
 .pitch-nav-mini {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
-.pitch-info-block {
+.pitch-nav-mini button {
+  min-height: 34px;
+  padding: 5px 9px;
+  font-size: 12px;
+}
+
+/* ---------- Batter History ---------- */
+
+.pitch-history-details {
   border-top: 1px solid #e5e7eb;
-  padding-top: 10px;
-  margin-top: 10px;
+  margin-top: 5px;
+  padding-top: 5px;
 }
 
-.pitch-info-block small {
-  color: #64748b;
-  font-weight: 800;
+.pitch-history-details summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  color: #334155;
+}
+
+.pitch-history-details summary span {
   display: block;
-  margin-bottom: 6px;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pitch-pill-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: 6px;
 }
 
-.pitch-pill {
-  background: #e6f6f4;
+.pitch-pill,
+.pitch-pill-button {
   border: 1px solid #b8ded8;
+  border-radius: 999px;
+  background: #e6f6f4;
   color: #0f766e;
   padding: 5px 9px;
-  border-radius: 999px;
-  font-weight: 800;
   font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pitch-pill-button.is-editing {
+  background: #008c7a;
+  color: white;
 }
 
 .pitch-muted {
   color: #64748b;
 }
 
+/* ---------- Pitch Call Panel ---------- */
+
+.pitch-call-panel.compact,
+.pitch-call-panel {
+  max-width: 760px;
+  padding: 8px 10px;
+  order: 10;
+}
+
 .pitch-call-panel h3 {
-  margin-top: 18px;
+  font-size: 14px;
+  margin: 5px 0 4px;
 }
 
-.pitch-app-button-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
-  gap: 10px;
+.pitch-note-compact {
+  font-size: 11px;
+  margin-bottom: 4px;
 }
 
+.pitch-note-compact input,
+.pitch-call-panel label input {
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.pitch-editing-banner {
+  background: #fffbeb;
+  border: 1px solid #facc15;
+  color: #92400e;
+  border-radius: 10px;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+/* ---------- Buttons ---------- */
+
+.pitch-app-button-grid,
 .pitch-app-button-grid.tight {
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 5px;
+  margin-bottom: 4px;
+}
+
+.pitch-type-compact {
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .pitch-app-btn {
-  min-height: 58px;
+  min-height: 34px;
+  padding: 3px 5px;
+  border-radius: 9px;
   background: white;
   color: #1f2937;
   border: 1px solid #d1d5db;
-  border-radius: 14px;
   font-weight: 800;
 }
 
@@ -126,10 +257,14 @@
   display: block;
 }
 
+.pitch-app-btn strong {
+  font-size: 12px;
+}
+
 .pitch-app-btn span {
-  font-size: 11px;
   color: #64748b;
-  margin-top: 4px;
+  font-size: 9px;
+  margin-top: 0;
 }
 
 .pitch-app-btn.is-selected {
@@ -142,28 +277,177 @@
   color: rgba(255,255,255,0.85);
 }
 
-.pitch-zone-grid {
+/* ---------- Location Maps ---------- */
+
+.pitch-map-pair,
+.pitch-result-pair {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
-.pitch-zone-cell {
-  min-height: 54px;
-  border-radius: 12px;
+.pitch-map-help {
+  display: none;
+}
+
+.pitch-location-map-wrap {
+  margin-bottom: 4px;
+}
+
+.pitch-location-map {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "zone4 zone3"
+    "zone2 zone1";
+  position: relative;
+  min-height: 88px;
+  border: 2px solid #1f2937;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.pitch-map-zone {
+  min-height: 44px;
+  border: 1px solid #1f2937;
+  background: white;
+  color: #1f2937;
+  font-weight: 800;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pitch-map-zone strong {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.pitch-map-zone span {
+  font-size: 8px;
+  line-height: 1;
+  margin-top: 3px;
+}
+
+.pitch-map-zone.is-selected {
+  background: #008c7a !important;
+  color: white;
+}
+
+.pitch-map-zone.zone-4 {
+  grid-area: zone4;
+  background: #eff6ff;
+}
+
+.pitch-map-zone.zone-3 {
+  grid-area: zone3;
+  background: #f0fdf4;
+}
+
+.pitch-map-zone.zone-2 {
+  grid-area: zone2;
+  background: #fffbeb;
+}
+
+.pitch-map-zone.zone-1 {
+  grid-area: zone1;
+  background: #f5f3ff;
+}
+
+.pitch-map-zone.zone-5 {
+  position: absolute;
+  width: 32%;
+  max-width: 76px;
+  min-height: 44px;
+  height: 34%;
+  left: 34%;
+  top: 33%;
+  z-index: 2;
+  border: 2px solid #1f2937;
+  border-radius: 10px;
+  background: white;
+}
+
+/* Actual map uses compact button grid */
+.pitch-actual-map {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  border: none;
+  background: transparent;
+}
+
+.pitch-actual-map .pitch-map-zone {
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+}
+
+.pitch-actual-map .zone-extra {
+  background: #f8fafc;
+}
+
+/* ---------- Results ---------- */
+
+.result-compact,
+.final-compact {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.final-compact .pitch-app-btn {
+  min-height: 30px;
+}
+
+/* ---------- Plays Strip ---------- */
+
+.pitch-plays-strip {
+  order: 20;
   background: white;
   border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 7px;
+  margin: 0 0 4px;
+}
+
+.pitch-plays-strip strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.pitch-plays-strip div {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.pitch-plays-strip button,
+.pitch-plays-strip span {
+  flex: 0 0 auto;
+  max-width: 220px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 11px;
   font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.pitch-zone-cell.is-selected {
-  background: #008c7a;
-  color: white;
-  border-color: #008c7a;
-}
+/* ---------- Lineup Panel ---------- */
 
-.pitch-details {
-  margin-top: 18px;
+.pitch-section-jump-row button {
+  width: 100%;
+  min-height: 34px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .pitch-lineup-panel {
@@ -228,6 +512,8 @@
   margin-top: 6px;
 }
 
+/* ---------- Bottom Action Bar ---------- */
+
 .pitch-bottom-bar-v2 {
   position: fixed;
   left: 0;
@@ -236,30 +522,27 @@
   z-index: 80;
   background: white;
   border-top: 1px solid #d1d5db;
-  padding: 8px;
+  padding: 6px;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
 }
 
 .pitch-bottom-bar-v2 button {
-  min-height: 62px;
-  border-radius: 14px;
+  min-height: 50px;
+  border: none;
+  border-radius: 12px;
   background: #008c7a;
   color: white;
+  font-size: 13px;
   font-weight: 900;
-  border: none;
 }
 
 .pitch-bottom-bar-v2 button span {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   opacity: 0.9;
   margin-top: 3px;
-}
-
-.pitch-bottom-bar-v2 .gold {
-  background: #c99700;
 }
 
 .pitch-bottom-bar-v2 .purple {
@@ -270,32 +553,9 @@
   background: #123847;
 }
 
-.pitch-result-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: rgba(0,0,0,0.35);
-  display: flex;
-  align-items: flex-end;
-}
-
-.pitch-result-sheet-inner {
-  background: white;
-  width: 100%;
-  padding: 16px;
-  border-radius: 20px 20px 0 0;
-}
+/* ---------- Responsive ---------- */
 
 @media (max-width: 900px) {
-  .pitch-app-header {
-    top: 64px;
-    grid-template-columns: 1fr auto;
-  }
-
-  .pitch-app-header > div:nth-child(2) {
-    display: none;
-  }
-
   .pitch-app-grid {
     display: block;
   }
@@ -305,1001 +565,6 @@
     max-height: none;
     margin-bottom: 12px;
   }
-
-  .pitch-app-button-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .pitch-app-button-grid.tight {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .pitch-bottom-bar-v2 {
-    gap: 5px;
-    padding: 6px;
-  }
-
-  .pitch-bottom-bar-v2 button {
-    min-height: 56px;
-    font-size: 12px;
-    padding: 5px 3px;
-  }
-}
-
-
-.pitch-header-select-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  opacity: 0.95;
-  margin-top: 4px;
-}
-
-.pitch-header-select {
-  min-height: 28px;
-  padding: 3px 8px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.12);
-  color: white;
-  font-weight: 800;
-}
-
-.pitch-header-select option {
-  color: #111827;
-}
-
-.pitch-zone-cell {
-  color: #1f2937 !important;
-  font-size: 13px;
-}
-
-.pitch-zone-cell.is-selected {
-  color: white !important;
-}
-
-
-.pitch-location-map-wrap {
-  margin-bottom: 16px;
-}
-
-.pitch-map-help {
-  color: #64748b;
-  margin: 0 0 8px;
-  font-size: 13px;
-}
-
-.pitch-location-map {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-areas:
-    "zone4 zone3"
-    "zone2 zone1";
-  position: relative;
-  border: 2px solid #1f2937;
-  border-radius: 10px;
-  overflow: hidden;
-  min-height: 220px;
-  background: #f8fafc;
-}
-
-.pitch-map-zone {
-  border: 1px solid #1f2937;
-  background: white;
-  color: #1f2937;
-  font-weight: 800;
-  min-height: 110px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.pitch-map-zone strong {
-  font-size: 42px;
-  line-height: 1;
-}
-
-.pitch-map-zone span {
-  font-size: 14px;
-  margin-top: 6px;
-}
-
-.pitch-map-zone.is-selected {
-  background: #008c7a;
-  color: white;
-}
-
-.pitch-map-zone.zone-4 {
-  grid-area: zone4;
-  background: #eff6ff;
-}
-
-.pitch-map-zone.zone-3 {
-  grid-area: zone3;
-  background: #f0fdf4;
-}
-
-.pitch-map-zone.zone-2 {
-  grid-area: zone2;
-  background: #fffbeb;
-}
-
-.pitch-map-zone.zone-1 {
-  grid-area: zone1;
-  background: #f5f3ff;
-}
-
-.pitch-map-zone.is-selected {
-  background: #008c7a !important;
-}
-
-.pitch-map-zone.zone-5 {
-  position: absolute;
-  width: 32%;
-  height: 34%;
-  left: 34%;
-  top: 33%;
-  border: 2px solid #1f2937;
-  border-radius: 10px;
-  background: white;
-  z-index: 2;
-}
-
-.pitch-pill-button {
-  border: none;
-  cursor: pointer;
-}
-
-.pitch-pill-button.is-editing {
-  background: #008c7a;
-  color: white;
-}
-
-.pitch-editing-banner {
-  background: #fffbeb;
-  border: 1px solid #facc15;
-  color: #92400e;
-  border-radius: 12px;
-  padding: 10px;
-  font-weight: 800;
-  margin-bottom: 12px;
-}
-
-.pitch-header-select-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  opacity: 0.95;
-  margin-top: 4px;
-}
-
-.pitch-header-select {
-  min-height: 28px;
-  padding: 3px 8px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.12);
-  color: white;
-  font-weight: 800;
-}
-
-.pitch-header-select option {
-  color: #111827;
-}
-
-@media (max-width: 700px) {
-  .pitch-location-map {
-    min-height: 180px;
-  }
-
-  .pitch-map-zone {
-    min-height: 90px;
-  }
-
-  .pitch-map-zone strong {
-    font-size: 34px;
-  }
-
-  .pitch-map-zone span {
-    font-size: 12px;
-  }
-}
-
-
-.pitch-bottom-bar-v2.four-buttons {
-  grid-template-columns: repeat(4, 1fr);
-}
-
-
-.pitch-header-inning {
-  width: 54px;
-  min-height: 28px;
-  padding: 3px 6px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.12);
-  color: white;
-  font-weight: 800;
-}
-
-.pitch-history-details {
-  border-top: 1px solid #e5e7eb;
-  margin-top: 10px;
-  padding-top: 10px;
-}
-
-.pitch-history-details summary {
-  cursor: pointer;
-  font-weight: 900;
-  color: #334155;
-}
-
-.pitch-history-details summary span {
-  display: block;
-  margin-top: 4px;
-  font-weight: 600;
-  color: #64748b;
-  font-size: 12px;
-}
-
-
-.pitch-call-panel {
-  max-width: 760px;
-}
-
-.pitch-call-panel h3 {
-  margin-top: 10px;
-  margin-bottom: 6px;
-  font-size: 18px;
-}
-
-.pitch-map-help {
-  display: none;
-}
-
-.pitch-location-map {
-  min-height: 150px;
-}
-
-.pitch-map-zone {
-  min-height: 75px;
-}
-
-.pitch-map-zone strong {
-  font-size: 26px;
-}
-
-.pitch-map-zone span {
-  font-size: 11px;
-}
-
-.pitch-actual-map {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border: 2px solid #1f2937;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #f8fafc;
-}
-
-.pitch-actual-map .pitch-map-zone {
-  min-height: 54px;
-}
-
-.pitch-inning-stepper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: white;
-  font-weight: 900;
-}
-
-.pitch-inning-stepper button {
-  width: 34px;
-  min-height: 34px;
-  border-radius: 10px;
-  border: none;
-  background: #167c74;
-  color: white;
-  font-weight: 900;
-  font-size: 18px;
-}
-
-.pitch-plays-strip {
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 14px;
-  padding: 8px;
-  margin-bottom: 8px;
-}
-
-.pitch-plays-strip strong {
-  display: block;
-  margin-bottom: 6px;
-}
-
-.pitch-plays-strip div {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
-.pitch-plays-strip button,
-.pitch-plays-strip span {
-  flex: 0 0 auto;
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-@media (max-width: 700px) {
-  .pitch-app-header {
-    position: sticky;
-    top: 62px;
-  }
-
-  .pitch-batter-panel {
-    padding: 10px;
-  }
-
-  .pitch-batter-panel h2 {
-    font-size: 22px;
-  }
-
-  .pitch-batter-panel p {
-    margin: 4px 0;
-  }
-
-  .pitch-history-details {
-    margin-top: 6px;
-    padding-top: 6px;
-  }
-
-  .pitch-app-button-grid,
-  .pitch-app-button-grid.tight {
-    gap: 6px;
-  }
-
-  .pitch-app-btn {
-    min-height: 44px;
-    border-radius: 10px;
-  }
-
-  .pitch-app-btn strong {
-    font-size: 14px;
-  }
-
-  .pitch-app-btn span {
-    font-size: 10px;
-    margin-top: 1px;
-  }
-
-  .pitch-location-map {
-    min-height: 128px;
-  }
-
-  .pitch-map-zone {
-    min-height: 64px;
-  }
-
-  .pitch-map-zone strong {
-    font-size: 24px;
-  }
-
-  .pitch-map-zone span {
-    font-size: 10px;
-  }
-
-  .pitch-actual-map .pitch-map-zone {
-    min-height: 48px;
-  }
-
-  .pitch-bottom-bar-v2 button {
-    min-height: 50px;
-  }
-}
-
-
-/* =========================
-   PITCH CALLING COMPACT FIX
-   ========================= */
-
-.pitch-app-page {
-  padding-bottom: 86px;
-}
-
-.pitch-app-header.compact {
-  position: sticky;
-  top: 62px;
-  z-index: 40;
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 8px;
-  align-items: center;
-  padding: 10px;
-  border-radius: 16px;
-}
-
-.pitch-header-main {
-  min-width: 0;
-}
-
-.pitch-header-main strong {
-  font-size: 16px;
-  margin-bottom: 4px;
-}
-
-.pitch-header-select-label {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 6px;
-  align-items: center;
-  font-size: 12px;
-}
-
-.pitch-header-select {
-  min-width: 0;
-  width: 100%;
-  height: 32px;
-  font-size: 13px;
-}
-
-.pitch-inning-stepper {
-  display: grid;
-  grid-template-columns: 1fr 32px 32px;
-  gap: 4px;
-  align-items: center;
-  color: white;
-  font-weight: 900;
-}
-
-.pitch-inning-stepper span {
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.pitch-inning-stepper button {
-  width: 32px;
-  min-height: 32px;
-  border-radius: 9px;
-  border: none;
-  background: #167c74;
-  color: white;
-  font-weight: 900;
-  font-size: 18px;
-  padding: 0;
-}
-
-.pitch-header-lineup-button {
-  min-height: 42px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  font-weight: 900;
-}
-
-.pitch-batter-panel {
-  padding: 8px 10px;
-}
-
-.pitch-batter-panel h2 {
-  font-size: 20px;
-  margin: 0 0 3px;
-}
-
-.pitch-batter-panel p {
-  margin: 0 0 4px;
-  font-size: 14px;
-}
-
-.pitch-nav-mini button {
-  min-height: 36px;
-  padding: 6px 10px;
-}
-
-.pitch-history-details {
-  margin-top: 6px;
-  padding-top: 6px;
-}
-
-.pitch-history-details summary {
-  font-size: 14px;
-}
-
-.pitch-history-details summary span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pitch-call-panel {
-  max-width: 760px;
-  padding: 10px;
-}
-
-.pitch-call-panel label {
-  margin-bottom: 6px;
-}
-
-.pitch-call-panel label input {
-  min-height: 32px;
-}
-
-.pitch-call-panel h3 {
-  margin-top: 8px;
-  margin-bottom: 5px;
-  font-size: 16px;
-}
-
-.pitch-app-button-grid,
-.pitch-app-button-grid.tight {
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.pitch-app-btn {
-  min-height: 42px;
-  border-radius: 10px;
-  padding: 5px;
-}
-
-.pitch-app-btn strong {
-  font-size: 14px;
-}
-
-.pitch-app-btn span {
-  font-size: 10px;
-  margin-top: 1px;
-}
-
-.pitch-map-help {
-  display: none;
-}
-
-.pitch-location-map {
-  min-height: 104px;
-}
-
-.pitch-map-zone {
-  min-height: 52px;
-}
-
-.pitch-map-zone strong {
-  font-size: 21px;
-  line-height: 1;
-}
-
-.pitch-map-zone span {
-  font-size: 9px;
-  line-height: 1.1;
-}
-
-.pitch-location-map .zone-5 {
-  min-height: 52px;
-}
-
-.pitch-actual-map {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 5px;
-  border: none;
-  background: transparent;
-}
-
-.pitch-actual-map .pitch-map-zone {
-  min-height: 42px;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  background: white;
-}
-
-.pitch-actual-map .pitch-map-zone strong {
-  font-size: 16px;
-}
-
-.pitch-actual-map .pitch-map-zone span {
-  font-size: 8px;
-}
-
-.pitch-actual-map .zone-extra {
-  background: #f8fafc;
-}
-
-.pitch-plays-strip {
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 14px;
-  padding: 8px;
-  margin-top: 8px;
-  margin-bottom: 8px;
-}
-
-.pitch-plays-strip strong {
-  display: block;
-  margin-bottom: 6px;
-}
-
-.pitch-plays-strip div {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
-.pitch-plays-strip button,
-.pitch-plays-strip span {
-  flex: 0 0 auto;
-  max-width: 260px;
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 800;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pitch-bottom-bar-v2.four-buttons {
-  grid-template-columns: repeat(4, 1fr);
-}
-
-.pitch-bottom-bar-v2 {
-  padding: 6px;
-  gap: 6px;
-}
-
-.pitch-bottom-bar-v2 button {
-  min-height: 52px;
-  border-radius: 12px;
-  font-size: 13px;
-}
-
-.pitch-bottom-bar-v2 button span {
-  font-size: 10px;
-}
-
-@media (max-width: 700px) {
-  .pitch-app-header.compact {
-    grid-template-columns: 1fr auto;
-  }
-
-  .pitch-header-lineup-button {
-    grid-column: 1 / -1;
-    min-height: 38px;
-  }
-
-  .pitch-inning-stepper {
-    grid-template-columns: 1fr 30px 30px;
-  }
-
-  .pitch-inning-stepper button {
-    width: 30px;
-    min-height: 30px;
-  }
-
-  .pitch-app-button-grid,
-  .pitch-app-button-grid.tight {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .pitch-actual-map {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.pitch-plays-strip {
-  order: 20;
-}
-
-.pitch-call-panel {
-  order: 10;
-}
-
-.pitch-app-left {
-  display: flex;
-  flex-direction: column;
-}
-
-.pitch-location-map,
-.pitch-actual-map {
-  max-height: none;
-}
-
-.pitch-actual-map {
-  grid-template-columns: repeat(3, 1fr) !important;
-}
-
-.pitch-actual-map .pitch-map-zone {
-  min-height: 44px !important;
-}
-
-.pitch-app-header.compact {
-  grid-template-columns: 1fr auto !important;
-}
-
-.pitch-inning-stepper {
-  grid-column: 1 / -1;
-  display: flex !important;
-  justify-content: flex-start;
-}
-
-.pitch-header-lineup-button {
-  grid-column: 1 / -1;
-}
-
-
-/* =========================
-   PITCH CALLING COMPACT V4
-   ========================= */
-
-.pitch-app-page {
-  padding-bottom: 84px;
-}
-
-.pitch-game-ribbon {
-  position: sticky;
-  top: 62px;
-  z-index: 40;
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto !important;
-  gap: 8px;
-  padding: 8px 10px !important;
-  border-radius: 14px !important;
-}
-
-.pitch-header-main strong {
-  font-size: 15px;
-  margin-bottom: 3px;
-}
-
-.pitch-header-select-label {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 6px;
-  align-items: center;
-  font-size: 12px;
-}
-
-.pitch-header-select {
-  height: 30px;
-  min-height: 30px;
-  font-size: 13px;
-  padding: 3px 8px;
-}
-
-.pitch-inning-stepper {
-  display: grid !important;
-  grid-template-columns: auto 30px 30px;
-  gap: 4px;
-  align-items: center;
-}
-
-.pitch-inning-stepper span {
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.pitch-inning-stepper button {
-  width: 30px;
-  min-height: 30px;
-  padding: 0;
-  border-radius: 8px;
-  font-size: 18px;
-}
-
-.pitch-app-left {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.pitch-batter-panel.compact {
-  padding: 8px 10px;
-}
-
-.pitch-batter-panel.compact h2 {
-  font-size: 20px;
-  margin: 0 0 2px;
-}
-
-.pitch-batter-panel.compact p {
-  font-size: 13px;
-  margin: 0;
-}
-
-.pitch-nav-mini button {
-  min-height: 34px;
-  padding: 5px 9px;
-  font-size: 12px;
-}
-
-.pitch-history-details {
-  margin-top: 5px;
-  padding-top: 5px;
-}
-
-.pitch-history-details summary {
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.pitch-history-details summary span {
-  display: block;
-  font-size: 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pitch-call-panel.compact {
-  padding: 8px 10px;
-}
-
-.pitch-call-panel.compact h3 {
-  font-size: 14px;
-  margin: 5px 0 4px;
-}
-
-.pitch-note-compact {
-  font-size: 11px;
-  margin-bottom: 4px;
-}
-
-.pitch-note-compact input {
-  min-height: 28px !important;
-  padding: 4px 8px !important;
-  font-size: 12px !important;
-}
-
-.pitch-app-button-grid,
-.pitch-app-button-grid.tight {
-  gap: 5px;
-  margin-bottom: 4px;
-}
-
-.pitch-app-btn {
-  min-height: 34px !important;
-  padding: 3px 5px !important;
-  border-radius: 9px !important;
-}
-
-.pitch-app-btn strong {
-  font-size: 12px;
-}
-
-.pitch-app-btn span {
-  font-size: 9px;
-  margin-top: 0;
-}
-
-.pitch-type-compact {
-  grid-template-columns: repeat(4, 1fr) !important;
-}
-
-.pitch-map-pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.pitch-map-help {
-  display: none;
-}
-
-.pitch-location-map {
-  min-height: 88px !important;
-}
-
-.pitch-location-map .pitch-map-zone {
-  min-height: 44px !important;
-}
-
-.pitch-location-map .zone-5 {
-  min-height: 44px !important;
-  max-width: 76px;
-}
-
-.pitch-map-zone strong {
-  font-size: 18px !important;
-  line-height: 1;
-}
-
-.pitch-map-zone span {
-  font-size: 8px !important;
-  line-height: 1;
-}
-
-.pitch-actual-map {
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
-  gap: 4px;
-  border: none !important;
-  background: transparent !important;
-}
-
-.pitch-actual-map .pitch-map-zone {
-  min-height: 38px !important;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: white;
-}
-
-.pitch-result-pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.result-compact,
-.final-compact {
-  grid-template-columns: repeat(2, 1fr) !important;
-}
-
-.final-compact .pitch-app-btn {
-  min-height: 30px !important;
-}
-
-.pitch-plays-strip {
-  order: 20;
-  padding: 7px;
-  margin: 0 0 4px;
-}
-
-.pitch-plays-strip strong {
-  font-size: 13px;
-  margin-bottom: 4px;
-}
-
-.pitch-plays-strip div {
-  display: flex;
-  gap: 5px;
-  overflow-x: auto;
-}
-
-.pitch-plays-strip button,
-.pitch-plays-strip span {
-  flex: 0 0 auto;
-  max-width: 220px;
-  font-size: 11px;
-  padding: 5px 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pitch-section-jump-row button {
-  width: 100%;
-  min-height: 34px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.pitch-bottom-bar-v2.four-buttons {
-  grid-template-columns: repeat(4, 1fr);
-}
-
-.pitch-bottom-bar-v2 {
-  padding: 6px;
-  gap: 6px;
-}
-
-.pitch-bottom-bar-v2 button {
-  min-height: 50px;
-  border-radius: 12px;
-  font-size: 13px;
-}
-
-.pitch-bottom-bar-v2 button span {
-  font-size: 10px;
 }
 
 @media (max-width: 700px) {
@@ -1309,7 +574,7 @@
   }
 
   .pitch-type-compact {
-    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .pitch-app-btn strong {
@@ -1319,4 +584,69 @@
   .pitch-app-btn span {
     display: none;
   }
+
+  .pitch-bottom-bar-v2 button {
+    min-height: 50px;
+    font-size: 12px;
+    padding: 5px 3px;
+  }
+}
+
+/* =========================
+   PITCH CALLING QUICK FIX
+   ========================= */
+
+/* Stop Actual Location "5 Middle" from floating over the screen */
+.pitch-actual-map .zone-5 {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  min-height: 38px !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: auto !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+}
+
+/* Make actual location grid tighter */
+.pitch-actual-map {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+
+/* Reduce giant green blank bar if it is the lineup jump button */
+.pitch-section-jump-row button {
+  min-height: 32px !important;
+  padding: 6px 10px !important;
+}
+
+/* Compact the header more */
+.pitch-app-header,
+.pitch-game-ribbon {
+  padding: 7px 10px !important;
+  margin-bottom: 6px !important;
+}
+
+/* Keep pitch controls tighter */
+.pitch-call-panel {
+  padding: 7px 9px !important;
+}
+
+.pitch-call-panel h3 {
+  font-size: 13px !important;
+  margin: 4px 0 3px !important;
+}
+
+.pitch-app-btn {
+  min-height: 30px !important;
+}
+
+/* Smaller map labels */
+.pitch-map-zone strong {
+  font-size: 16px !important;
+}
+
+.pitch-map-zone span {
+  font-size: 7px !important;
 }
