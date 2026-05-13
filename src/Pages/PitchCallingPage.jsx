@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 function byOrder(a, b) {
@@ -15,6 +15,18 @@ const ZONES = [
   { number: 5, label: 'Middle', className: 'zone-5' },
   { number: 2, label: 'Low Outside', className: 'zone-2' },
   { number: 1, label: 'Low Inside', className: 'zone-1' },
+]
+
+const ACTUAL_ZONES = [
+  { number: 'H', label: 'High', className: 'zone-high-extra' },
+  { number: 4, label: 'High Outside', className: 'zone-4' },
+  { number: 3, label: 'High Inside', className: 'zone-3' },
+  { number: 'WO', label: 'Way Outside', className: 'zone-way-out' },
+  { number: 5, label: 'Middle', className: 'zone-5' },
+  { number: 'WI', label: 'Way Inside', className: 'zone-way-in' },
+  { number: 2, label: 'Low Outside', className: 'zone-2' },
+  { number: 1, label: 'Low Inside', className: 'zone-1' },
+  { number: 'D', label: 'Dirt', className: 'zone-dirt-extra' },
 ]
 
 function initials(name = '') {
@@ -50,6 +62,8 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
   const [showBatterHistory, setShowBatterHistory] = useState(false)
   const [editingEventId, setEditingEventId] = useState('')
 
+  const lineupRef = useRef(null)
+  
   const sortedGames = useMemo(() => {
     return [...games].sort((a, b) => {
       const orderA = Number(a.game_order || 0)
@@ -496,39 +510,41 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
     )
   }
 
-  function LocationMap({ title, selectedId, setSelectedId }) {
-    return (
-      <div className="pitch-location-map-wrap">
-        {title && <p className="pitch-map-help">{title}</p>}
+  function LocationMap({ title, selectedId, setSelectedId, actual = false }) {
+  const zonesToUse = actual ? ACTUAL_ZONES : ZONES
 
-        <div className="pitch-location-map">
-          {ZONES.map((zone) => {
-            const optionId = optionIdForLabel(zone.label)
-            const active = String(selectedId) === String(optionId)
+  return (
+    <div className={`pitch-location-map-wrap ${actual ? 'actual-map' : 'called-map'}`}>
+      {title && <p className="pitch-map-help">{title}</p>}
 
-            return (
-              <button
-                key={zone.number}
-                type="button"
-                className={`pitch-map-zone ${zone.className} ${active ? 'is-selected' : ''}`}
-                onClick={() => {
-                  if (!optionId) {
-                    setAppError(`Missing location option: ${zone.label}`)
-                    return
-                  }
+      <div className={actual ? 'pitch-actual-map' : 'pitch-location-map'}>
+        {zonesToUse.map((zone) => {
+          const optionId = optionIdForLabel(zone.label)
+          const active = String(selectedId) === String(optionId)
 
-                  setSelectedId(active ? '' : optionId)
-                }}
-              >
-                <strong>{zone.number}</strong>
-                <span>{zone.label}</span>
-              </button>
-            )
-          })}
-        </div>
+          return (
+            <button
+              key={`${zone.label}-${zone.number}`}
+              type="button"
+              className={`pitch-map-zone ${zone.className} ${active ? 'is-selected' : ''}`}
+              onClick={() => {
+                if (!optionId) {
+                  setAppError(`Missing location option: ${zone.label}`)
+                  return
+                }
+
+                setSelectedId(active ? '' : optionId)
+              }}
+            >
+              <strong>{zone.number}</strong>
+              <span>{zone.label}</span>
+            </button>
+          )
+        })}
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   if (!pitchGame) {
     return (
@@ -584,18 +600,21 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
           </label>
         </div>
 
-        <label className="pitch-header-select-label">
-          Inning:
-          <input
-            className="pitch-header-inning"
-            type="number"
-            min="1"
-            value={currentInning}
-            onChange={(e) => updateCurrentInning(e.target.value)}
-          />
-        </label>
+        <div className="pitch-inning-stepper">
+  <span>Inn {currentInning}</span>
+  <button type="button" onClick={() => updateCurrentInning(Number(currentInning) - 1)}>-</button>
+  <button type="button" onClick={() => updateCurrentInning(Number(currentInning) + 1)}>+</button>
+</div>
 
-        <button type="button" onClick={() => setShowLineup((v) => !v)}>Lineup</button>
+        <button
+  type="button"
+  onClick={() => {
+    setShowLineup(true)
+    setTimeout(() => lineupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }}
+>
+  Lineup
+</button>
       </div>
 
       <div className="pitch-app-grid">
@@ -642,7 +661,19 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
               </div>
 
               {editingEventId && <button type="button" onClick={resetEntry}>Go Current</button>}
-            </details>
+                        </details>
+          </div>
+
+          <div className="pitch-plays-strip">
+            <strong>Plays</strong>
+            <div>
+              {history.slice(0, 8).map((event) => (
+                <button key={event.id} type="button" onClick={() => loadEventForEdit(event)}>
+                  {eventSummary(event)}
+                </button>
+              ))}
+              {!history.length && <span>No plays yet</span>}
+            </div>
           </div>
 
           <div className="card pitch-call-panel">
@@ -667,15 +698,25 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
             <h3>2. Called Location</h3>
             <LocationMap title="Tap one of the 5 zones." selectedId={intendedLocationId} setSelectedId={setIntendedLocationId} />
 
-            <h3>3. Pitch Result</h3>
+                        <h3>3. Actual Location</h3>
+            <LocationMap
+              title="Tap where it actually went."
+              selectedId={actualLocationId}
+              setSelectedId={setActualLocationId}
+              actual={true}
+            />
+
+            <h3>4. Pitch Result</h3>
             <div className="pitch-app-button-grid tight">
               {pitchResults.map((result) => (
-                <PickButton key={result.id} item={result} selectedId={pitchResultId} setSelectedId={setPitchResultId} />
+                <PickButton
+                  key={result.id}
+                  item={result}
+                  selectedId={pitchResultId}
+                  setSelectedId={setPitchResultId}
+                />
               ))}
             </div>
-
-            <h3>4. Actual Location</h3>
-            <LocationMap title="Tap where the pitch actually went." selectedId={actualLocationId} setSelectedId={setActualLocationId} />
 
             <h3>5. Final Result</h3>
             <div className="pitch-app-button-grid tight">
@@ -687,7 +728,7 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
         </div>
 
         {showLineup && (
-          <div className="card pitch-lineup-panel">
+  <div className="card pitch-lineup-panel" ref={lineupRef}>
             <div className="pitch-lineup-header">
               <h2>Opponent Lineup</h2>
               <button type="button" onClick={() => setShowLineup(false)}>×</button>
