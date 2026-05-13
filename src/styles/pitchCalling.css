@@ -1034,3 +1034,289 @@
 .pitch-header-lineup-button {
   grid-column: 1 / -1;
 }
+
+
+/* =========================
+   PITCH CALLING COMPACT V4
+   ========================= */
+
+.pitch-app-page {
+  padding-bottom: 84px;
+}
+
+.pitch-game-ribbon {
+  position: sticky;
+  top: 62px;
+  z-index: 40;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px;
+  padding: 8px 10px !important;
+  border-radius: 14px !important;
+}
+
+.pitch-header-main strong {
+  font-size: 15px;
+  margin-bottom: 3px;
+}
+
+.pitch-header-select-label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.pitch-header-select {
+  height: 30px;
+  min-height: 30px;
+  font-size: 13px;
+  padding: 3px 8px;
+}
+
+.pitch-inning-stepper {
+  display: grid !important;
+  grid-template-columns: auto 30px 30px;
+  gap: 4px;
+  align-items: center;
+}
+
+.pitch-inning-stepper span {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pitch-inning-stepper button {
+  width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border-radius: 8px;
+  font-size: 18px;
+}
+
+.pitch-app-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pitch-batter-panel.compact {
+  padding: 8px 10px;
+}
+
+.pitch-batter-panel.compact h2 {
+  font-size: 20px;
+  margin: 0 0 2px;
+}
+
+.pitch-batter-panel.compact p {
+  font-size: 13px;
+  margin: 0;
+}
+
+.pitch-nav-mini button {
+  min-height: 34px;
+  padding: 5px 9px;
+  font-size: 12px;
+}
+
+.pitch-history-details {
+  margin-top: 5px;
+  padding-top: 5px;
+}
+
+.pitch-history-details summary {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.pitch-history-details summary span {
+  display: block;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pitch-call-panel.compact {
+  padding: 8px 10px;
+}
+
+.pitch-call-panel.compact h3 {
+  font-size: 14px;
+  margin: 5px 0 4px;
+}
+
+.pitch-note-compact {
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.pitch-note-compact input {
+  min-height: 28px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+}
+
+.pitch-app-button-grid,
+.pitch-app-button-grid.tight {
+  gap: 5px;
+  margin-bottom: 4px;
+}
+
+.pitch-app-btn {
+  min-height: 34px !important;
+  padding: 3px 5px !important;
+  border-radius: 9px !important;
+}
+
+.pitch-app-btn strong {
+  font-size: 12px;
+}
+
+.pitch-app-btn span {
+  font-size: 9px;
+  margin-top: 0;
+}
+
+.pitch-type-compact {
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+
+.pitch-map-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pitch-map-help {
+  display: none;
+}
+
+.pitch-location-map {
+  min-height: 88px !important;
+}
+
+.pitch-location-map .pitch-map-zone {
+  min-height: 44px !important;
+}
+
+.pitch-location-map .zone-5 {
+  min-height: 44px !important;
+  max-width: 76px;
+}
+
+.pitch-map-zone strong {
+  font-size: 18px !important;
+  line-height: 1;
+}
+
+.pitch-map-zone span {
+  font-size: 8px !important;
+  line-height: 1;
+}
+
+.pitch-actual-map {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 4px;
+  border: none !important;
+  background: transparent !important;
+}
+
+.pitch-actual-map .pitch-map-zone {
+  min-height: 38px !important;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+}
+
+.pitch-result-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.result-compact,
+.final-compact {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+.final-compact .pitch-app-btn {
+  min-height: 30px !important;
+}
+
+.pitch-plays-strip {
+  order: 20;
+  padding: 7px;
+  margin: 0 0 4px;
+}
+
+.pitch-plays-strip strong {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.pitch-plays-strip div {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+}
+
+.pitch-plays-strip button,
+.pitch-plays-strip span {
+  flex: 0 0 auto;
+  max-width: 220px;
+  font-size: 11px;
+  padding: 5px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pitch-section-jump-row button {
+  width: 100%;
+  min-height: 34px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.pitch-bottom-bar-v2.four-buttons {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.pitch-bottom-bar-v2 {
+  padding: 6px;
+  gap: 6px;
+}
+
+.pitch-bottom-bar-v2 button {
+  min-height: 50px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.pitch-bottom-bar-v2 button span {
+  font-size: 10px;
+}
+
+@media (max-width: 700px) {
+  .pitch-map-pair,
+  .pitch-result-pair {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pitch-type-compact {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  .pitch-app-btn strong {
+    font-size: 11px;
+  }
+
+  .pitch-app-btn span {
+    display: none;
+  }
+}
