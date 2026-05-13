@@ -18,15 +18,15 @@ const ZONES = [
 ]
 
 const ACTUAL_ZONES = [
-  { number: 'H', label: 'High', className: 'zone-high-extra' },
   { number: 4, label: 'High Outside', className: 'zone-4' },
   { number: 3, label: 'High Inside', className: 'zone-3' },
-  { number: 'WO', label: 'Way Outside', className: 'zone-way-out' },
   { number: 5, label: 'Middle', className: 'zone-5' },
-  { number: 'WI', label: 'Way Inside', className: 'zone-way-in' },
   { number: 2, label: 'Low Outside', className: 'zone-2' },
   { number: 1, label: 'Low Inside', className: 'zone-1' },
-  { number: 'D', label: 'Dirt', className: 'zone-dirt-extra' },
+  { number: 'H', label: 'High', className: 'zone-extra' },
+  { number: 'WO', label: 'Way Outside', className: 'zone-extra' },
+  { number: 'WI', label: 'Way Inside', className: 'zone-extra' },
+  { number: 'D', label: 'Dirt', className: 'zone-extra' },
 ]
 
 function initials(name = '') {
@@ -583,13 +583,17 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
 
   return (
     <div className="pitch-app-page">
-      <div className="pitch-app-header">
-        <div>
+            <div className="pitch-app-header compact">
+        <div className="pitch-header-main">
           <strong>{pitchGame.opponent_name || 'Opponent'}</strong>
 
           <label className="pitch-header-select-label">
             Pitcher:
-            <select className="pitch-header-select" value={pitcherId} onChange={(e) => updateLivePitcher(e.target.value)}>
+            <select
+              className="pitch-header-select"
+              value={pitcherId}
+              onChange={(e) => updateLivePitcher(e.target.value)}
+            >
               <option value="">Select</option>
               {pitcherRows.map((row) => (
                 <option key={row.id} value={row.player_id}>
@@ -601,20 +605,25 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
         </div>
 
         <div className="pitch-inning-stepper">
-  <span>Inn {currentInning}</span>
-  <button type="button" onClick={() => updateCurrentInning(Number(currentInning) - 1)}>-</button>
-  <button type="button" onClick={() => updateCurrentInning(Number(currentInning) + 1)}>+</button>
-</div>
+          <span>Inn {currentInning}</span>
+          <button type="button" onClick={() => updateCurrentInning(Number(currentInning) - 1)}>
+            −
+          </button>
+          <button type="button" onClick={() => updateCurrentInning(Number(currentInning) + 1)}>
+            +
+          </button>
+        </div>
 
-        <button
-  type="button"
-  onClick={() => {
-    setShowLineup(true)
-    setTimeout(() => lineupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
-  }}
->
-  Lineup
-</button>
+                <button
+          type="button"
+          className="pitch-header-lineup-button"
+          onClick={() => {
+            setShowLineup(true)
+            setTimeout(() => lineupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+          }}
+        >
+          Lineup ↓
+        </button>
       </div>
 
       <div className="pitch-app-grid">
