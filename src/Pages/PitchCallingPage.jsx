@@ -495,6 +495,15 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
     saveCurrentSpot(nextSpot)
   }
 
+function goCurrentBatter() {
+  const spot = Number(lastEvent?.batter_order_snapshot || pitchGame?.current_batter_order || currentSpot || 1)
+  const inning = Number(lastEvent?.inning_number || pitchGame?.current_inning || currentInning || 1)
+
+  setCurrentInning(inning)
+  saveCurrentSpot(spot)
+  resetEntry()
+}
+
   function PickButton({ item, selectedId, setSelectedId }) {
     const active = String(selectedId) === String(item.id)
 
@@ -723,16 +732,35 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
           </div>
 
           <div className="pitch-plays-strip">
-            <strong>Plays</strong>
-            <div>
-              {history.slice(0, 12).map((event) => (
-                <button key={event.id} type="button" onClick={() => loadEventForEdit(event)}>
-                  {eventSummary(event)}
-                </button>
-              ))}
-              {!history.length && <span>No plays yet</span>}
-            </div>
-          </div>
+  <div className="pitch-plays-header">
+    <strong>Recent Plays</strong>
+
+    <button type="button" onClick={goCurrentBatter} disabled={!lastEvent}>
+      Current Batter
+    </button>
+  </div>
+
+  <div className="pitch-plays-list">
+    {history.slice(0, 8).map((event, index) => {
+      const batter = batters.find((b) => String(b.id) === String(event.batter_id))
+      const batterLabel = batter
+        ? `Batter ${batter.batting_order}${batter.player_number ? ` #${batter.player_number}` : ''}`
+        : `Batter ${event.batter_order_snapshot || ''}`
+
+      return (
+        <button key={event.id} type="button" onClick={() => loadEventForEdit(event)}>
+          <span className="pitch-play-number">{index + 1}</span>
+          <span>
+            <strong>{batterLabel}</strong>
+            <small>{eventSummary(event)}</small>
+          </span>
+        </button>
+      )
+    })}
+
+    {!history.length && <span>No plays yet</span>}
+  </div>
+</div>
 
           <div className="pitch-section-jump-row">
             <button
