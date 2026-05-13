@@ -724,3 +724,168 @@
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
+
+/* =========================
+   PITCH CALLING ACTUAL MAP + PLAYS FIX
+   ========================= */
+
+.pitch-actual-map {
+  display: grid !important;
+  grid-template-columns: 0.65fr 1fr 1fr 0.65fr !important;
+  grid-template-areas:
+    "high high high high"
+    "wo zone4 zone3 wi"
+    "wo zone2 zone1 wi"
+    "low low low low"
+    "dirt dirt dirt dirt" !important;
+  gap: 4px !important;
+  width: 100% !important;
+  border: 2px solid #1f2937 !important;
+  border-radius: 10px !important;
+  background: #f8fafc !important;
+  padding: 4px !important;
+  box-sizing: border-box !important;
+}
+
+.pitch-actual-map .pitch-map-zone {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: auto !important;
+  min-height: 32px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  background: white !important;
+  color: #1f2937 !important;
+}
+
+.pitch-actual-map .zone-4 {
+  grid-area: zone4 !important;
+}
+
+.pitch-actual-map .zone-3 {
+  grid-area: zone3 !important;
+}
+
+.pitch-actual-map .zone-2 {
+  grid-area: zone2 !important;
+}
+
+.pitch-actual-map .zone-1 {
+  grid-area: zone1 !important;
+}
+
+.pitch-actual-map .zone-5 {
+  grid-area: auto !important;
+  position: absolute !important;
+  width: 28% !important;
+  height: 38% !important;
+  left: 36% !important;
+  top: 31% !important;
+  min-height: 34px !important;
+  border: 2px solid #1f2937 !important;
+  z-index: 3 !important;
+}
+
+.pitch-actual-map .zone-extra:nth-child(6) {
+  grid-area: high !important;
+}
+
+.pitch-actual-map .zone-extra:nth-child(7) {
+  grid-area: wo !important;
+}
+
+.pitch-actual-map .zone-extra:nth-child(8) {
+  grid-area: wi !important;
+}
+
+.pitch-actual-map .zone-extra:nth-child(9) {
+  grid-area: dirt !important;
+}
+
+.pitch-actual-map .pitch-map-zone strong {
+  font-size: 14px !important;
+}
+
+.pitch-actual-map .pitch-map-zone span {
+  font-size: 7px !important;
+}
+
+/* Recent plays: vertical, readable, newest first */
+.pitch-plays-strip {
+  background: white !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 14px !important;
+  padding: 8px !important;
+  margin: 6px 0 !important;
+}
+
+.pitch-plays-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.pitch-plays-header strong {
+  font-size: 14px;
+}
+
+.pitch-plays-header button {
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.pitch-plays-list {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 5px !important;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.pitch-plays-list button,
+.pitch-plays-list span {
+  width: 100%;
+  max-width: none !important;
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  border-radius: 10px !important;
+  padding: 6px 8px !important;
+  font-size: 12px !important;
+  opacity: 1 !important;
+}
+
+.pitch-play-number {
+  width: 22px !important;
+  height: 22px;
+  border-radius: 999px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: #008c7a !important;
+  color: white !important;
+  font-size: 11px !important;
+  font-weight: 900;
+}
+
+.pitch-plays-list small {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.25;
+}
