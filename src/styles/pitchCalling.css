@@ -926,3 +926,34 @@
 .pitch-actual-map .zone-5 span {
   font-size: 7px !important;
 }
+
+/* =========================
+   ACTUAL LOCATION SELECTED COLORS
+   ========================= */
+
+.pitch-actual-map .pitch-map-zone.is-selected {
+  color: #111827 !important;
+  border-color: #0f172a !important;
+}
+
+/* top */
+.pitch-actual-map .zone-4.is-selected,
+.pitch-actual-map .zone-3.is-selected {
+  background: #dbeafe !important;
+}
+
+/* middle */
+.pitch-actual-map .zone-5.is-selected {
+  background: #e2e8f0 !important;
+}
+
+/* bottom */
+.pitch-actual-map .zone-2.is-selected,
+.pitch-actual-map .zone-1.is-selected {
+  background: #fef3c7 !important;
+}
+
+/* outside locations */
+.pitch-actual-map .zone-extra.is-selected {
+  background: #d1fae5 !important;
+}
