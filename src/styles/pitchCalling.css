@@ -544,3 +544,164 @@
   color: #64748b;
   font-size: 12px;
 }
+
+
+.pitch-call-panel {
+  max-width: 760px;
+}
+
+.pitch-call-panel h3 {
+  margin-top: 10px;
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.pitch-map-help {
+  display: none;
+}
+
+.pitch-location-map {
+  min-height: 150px;
+}
+
+.pitch-map-zone {
+  min-height: 75px;
+}
+
+.pitch-map-zone strong {
+  font-size: 26px;
+}
+
+.pitch-map-zone span {
+  font-size: 11px;
+}
+
+.pitch-actual-map {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 2px solid #1f2937;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.pitch-actual-map .pitch-map-zone {
+  min-height: 54px;
+}
+
+.pitch-inning-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: white;
+  font-weight: 900;
+}
+
+.pitch-inning-stepper button {
+  width: 34px;
+  min-height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: #167c74;
+  color: white;
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.pitch-plays-strip {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.pitch-plays-strip strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.pitch-plays-strip div {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.pitch-plays-strip button,
+.pitch-plays-strip span {
+  flex: 0 0 auto;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  .pitch-app-header {
+    position: sticky;
+    top: 62px;
+  }
+
+  .pitch-batter-panel {
+    padding: 10px;
+  }
+
+  .pitch-batter-panel h2 {
+    font-size: 22px;
+  }
+
+  .pitch-batter-panel p {
+    margin: 4px 0;
+  }
+
+  .pitch-history-details {
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+
+  .pitch-app-button-grid,
+  .pitch-app-button-grid.tight {
+    gap: 6px;
+  }
+
+  .pitch-app-btn {
+    min-height: 44px;
+    border-radius: 10px;
+  }
+
+  .pitch-app-btn strong {
+    font-size: 14px;
+  }
+
+  .pitch-app-btn span {
+    font-size: 10px;
+    margin-top: 1px;
+  }
+
+  .pitch-location-map {
+    min-height: 128px;
+  }
+
+  .pitch-map-zone {
+    min-height: 64px;
+  }
+
+  .pitch-map-zone strong {
+    font-size: 24px;
+  }
+
+  .pitch-map-zone span {
+    font-size: 10px;
+  }
+
+  .pitch-actual-map .pitch-map-zone {
+    min-height: 48px;
+  }
+
+  .pitch-bottom-bar-v2 button {
+    min-height: 50px;
+  }
+}
