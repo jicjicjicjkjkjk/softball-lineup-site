@@ -889,3 +889,40 @@
   font-size: 11px;
   line-height: 1.25;
 }
+
+/* =========================
+   FIX FLOATING 5 MIDDLE BOX
+   ========================= */
+
+.pitch-location-map-wrap {
+  position: relative;
+}
+
+.pitch-actual-map .zone-5 {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: auto !important;
+  grid-area: zone5 !important;
+}
+
+.pitch-actual-map {
+  grid-template-columns: 0.75fr 1fr 1fr 0.75fr !important;
+  grid-template-areas:
+    "high high high high"
+    "wo zone4 zone3 wi"
+    "wo zone5 zone5 wi"
+    "wo zone2 zone1 wi"
+    "dirt dirt dirt dirt" !important;
+}
+
+/* make the middle box normal size in actual map */
+.pitch-actual-map .zone-5 strong {
+  font-size: 14px !important;
+}
+
+.pitch-actual-map .zone-5 span {
+  font-size: 7px !important;
+}
