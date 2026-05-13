@@ -583,7 +583,7 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
 
   return (
     <div className="pitch-app-page">
-            <div className="pitch-app-header compact">
+                  <div className="pitch-app-header compact pitch-game-ribbon">
         <div className="pitch-header-main">
           <strong>{pitchGame.opponent_name || 'Opponent'}</strong>
 
@@ -606,29 +606,14 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
 
         <div className="pitch-inning-stepper">
           <span>Inn {currentInning}</span>
-          <button type="button" onClick={() => updateCurrentInning(Number(currentInning) - 1)}>
-            −
-          </button>
-          <button type="button" onClick={() => updateCurrentInning(Number(currentInning) + 1)}>
-            +
-          </button>
+          <button type="button" onClick={() => updateCurrentInning(Number(currentInning) - 1)}>−</button>
+          <button type="button" onClick={() => updateCurrentInning(Number(currentInning) + 1)}>+</button>
         </div>
-
-                <button
-          type="button"
-          className="pitch-header-lineup-button"
-          onClick={() => {
-            setShowLineup(true)
-            setTimeout(() => lineupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
-          }}
-        >
-          Lineup ↓
-        </button>
       </div>
 
-      <div className="pitch-app-grid">
+            <div className="pitch-app-grid">
         <div className="pitch-app-left">
-          <div className="card pitch-batter-panel">
+          <div className="card pitch-batter-panel compact">
             <div className="pitch-batter-title-row">
               <div>
                 <h2>
@@ -648,7 +633,7 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
 
             <details className="pitch-history-details" open={showBatterHistory} onToggle={(e) => setShowBatterHistory(e.currentTarget.open)}>
               <summary>
-                Last / Batter History
+                History
                 <span>{eventSummary(lastBatterEvent)}</span>
               </summary>
 
@@ -670,13 +655,77 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
               </div>
 
               {editingEventId && <button type="button" onClick={resetEntry}>Go Current</button>}
-                        </details>
+            </details>
+          </div>
+
+          <div className="card pitch-call-panel compact">
+            {editingEventId && (
+              <div className="pitch-editing-banner">
+                Editing saved pitch — tap Save Pitch to update, or Go Current to cancel.
+              </div>
+            )}
+
+            <label className="pitch-note-compact">
+              Coach Note
+              <input value={coachNote} onChange={(e) => setCoachNote(e.target.value)} placeholder="Late on FB, chased outside, etc." />
+            </label>
+
+            <div className="pitch-compact-section">
+              <h3>1. Pitch</h3>
+              <div className="pitch-app-button-grid pitch-type-compact">
+                {pitchTypes.map((pitch) => (
+                  <PickButton key={pitch.id} item={pitch} selectedId={calledPitchId} setSelectedId={setCalledPitchId} />
+                ))}
+              </div>
+            </div>
+
+            <div className="pitch-map-pair">
+              <div>
+                <h3>2. Call</h3>
+                <LocationMap title="" selectedId={intendedLocationId} setSelectedId={setIntendedLocationId} />
+              </div>
+
+              <div>
+                <h3>3. Actual</h3>
+                <LocationMap
+                  title=""
+                  selectedId={actualLocationId}
+                  setSelectedId={setActualLocationId}
+                  actual={true}
+                />
+              </div>
+            </div>
+
+            <div className="pitch-result-pair">
+              <div>
+                <h3>4. Pitch Result</h3>
+                <div className="pitch-app-button-grid tight result-compact">
+                  {pitchResults.map((result) => (
+                    <PickButton
+                      key={result.id}
+                      item={result}
+                      selectedId={pitchResultId}
+                      setSelectedId={setPitchResultId}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3>5. Final</h3>
+                <div className="pitch-app-button-grid tight final-compact">
+                  {atBatResults.map((result) => (
+                    <PickButton key={result.id} item={result} selectedId={atBatResultId} setSelectedId={setAtBatResultId} />
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="pitch-plays-strip">
             <strong>Plays</strong>
             <div>
-              {history.slice(0, 8).map((event) => (
+              {history.slice(0, 12).map((event) => (
                 <button key={event.id} type="button" onClick={() => loadEventForEdit(event)}>
                   {eventSummary(event)}
                 </button>
@@ -685,54 +734,16 @@ export default function PitchCallingPage({ games = [], players = [], setAppError
             </div>
           </div>
 
-          <div className="card pitch-call-panel">
-            {editingEventId && (
-              <div className="pitch-editing-banner">
-                Editing saved pitch — tap Save Pitch to update, or Go Current to cancel.
-              </div>
-            )}
-
-            <label>
-              Coach Note
-              <input value={coachNote} onChange={(e) => setCoachNote(e.target.value)} placeholder="Late on FB, chased outside, etc." />
-            </label>
-
-            <h3>1. Pitch Type</h3>
-            <div className="pitch-app-button-grid">
-              {pitchTypes.map((pitch) => (
-                <PickButton key={pitch.id} item={pitch} selectedId={calledPitchId} setSelectedId={setCalledPitchId} />
-              ))}
-            </div>
-
-            <h3>2. Called Location</h3>
-            <LocationMap title="Tap one of the 5 zones." selectedId={intendedLocationId} setSelectedId={setIntendedLocationId} />
-
-                        <h3>3. Actual Location</h3>
-            <LocationMap
-              title="Tap where it actually went."
-              selectedId={actualLocationId}
-              setSelectedId={setActualLocationId}
-              actual={true}
-            />
-
-            <h3>4. Pitch Result</h3>
-            <div className="pitch-app-button-grid tight">
-              {pitchResults.map((result) => (
-                <PickButton
-                  key={result.id}
-                  item={result}
-                  selectedId={pitchResultId}
-                  setSelectedId={setPitchResultId}
-                />
-              ))}
-            </div>
-
-            <h3>5. Final Result</h3>
-            <div className="pitch-app-button-grid tight">
-              {atBatResults.map((result) => (
-                <PickButton key={result.id} item={result} selectedId={atBatResultId} setSelectedId={setAtBatResultId} />
-              ))}
-            </div>
+          <div className="pitch-section-jump-row">
+            <button
+              type="button"
+              onClick={() => {
+                setShowLineup(true)
+                setTimeout(() => lineupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+              }}
+            >
+              Edit / View Lineup ↓
+            </button>
           </div>
         </div>
 
