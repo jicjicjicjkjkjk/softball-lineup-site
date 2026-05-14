@@ -964,6 +964,81 @@ function enforceMinimumPositions({
   return lineup
 }
 
+function enforceGameSitOutTargets({
+  lineup,
+  players,
+  fitMap,
+  optimizerProfile = null,
+  optimizerProfileRules = {},
+}) {
+  const targets = lineup?.gameSitOutTargets || {}
+  const innings = Number(lineup?.innings || 0)
+  const minGap = Number(optimizerProfile?.min_innings_between_sitouts ?? 2)
+
+  function targetFor(playerId) {
+    const raw = targets?.[pk(playerId)]
+    if (raw === '' || raw === null || raw === undefined) return null
+    const n = Number(raw)
+    return Number.isNaN(n) ? null : n
+  }
+
+  function canRemoveOutFrom(playerId) {
+    const target = targetFor(playerId)
+    if (target === null) return true
+    return countPlayerOuts(lineup, playerId) > target
+  }
+
+  ;(players || []).forEach((player) => {
+    const playerId = pk(player.id)
+    const target = targetFor(playerId)
+
+    if (target === null) return
+
+    let guard = 0
+
+    while (countPlayerOuts(lineup, playerId) < target && guard < 20) {
+      guard += 1
+      let changed = false
+
+      for (let inning = 1; inning <= innings; inning += 1) {
+        if (countPlayerOuts(lineup, playerId) >= target) break
+        if (lockedValue(lineup, playerId, inning)) continue
+        if (violatesSitSpacing(lineup, playerId, inning, innings, minGap)) continue
+
+        const currentPosition = lineup?.cells?.[playerId]?.[inning] || ''
+        if (!FIELD_POSITIONS.includes(currentPosition)) continue
+
+        const replacement = (players || [])
+          .map((p) => pk(p.id))
+          .find((otherId) => {
+            if (otherId === playerId) return false
+            if (lockedValue(lineup, otherId, inning)) return false
+            if ((lineup?.cells?.[otherId]?.[inning] || '') !== 'Out') return false
+            if (!canRemoveOutFrom(otherId)) return false
+
+            return allowedAt({
+              playerId: otherId,
+              position: currentPosition,
+              fitMap,
+              optimizerProfileRules,
+            })
+          })
+
+        if (!replacement) continue
+
+        lineup.cells[playerId][inning] = 'Out'
+        lineup.cells[replacement][inning] = currentPosition
+        changed = true
+        break
+      }
+
+      if (!changed) break
+    }
+  })
+
+  return lineup
+}
+
 export function rebalanceTowardPriorityTargets({
   lineup,
   players,
@@ -1051,10 +1126,18 @@ export function rebalancePlanTowardPriorityTargets({
       optimizerProfileRules,
     })
 
-    enforceConsecutivePositionRules({
+        enforceConsecutivePositionRules({
       lineup,
       players,
       fitMap,
+      optimizerProfileRules,
+    })
+
+    enforceGameSitOutTargets({
+      lineup,
+      players,
+      fitMap,
+      optimizerProfile,
       optimizerProfileRules,
     })
 
@@ -1217,6 +1300,14 @@ export function buildOptimizedLineup({
     })
   }
 
+  enforceGameSitOutTargets({
+    lineup,
+    players,
+    fitMap,
+    optimizerProfile,
+    optimizerProfileRules,
+  })
+  
   lineup.validationIssues = validateLineup({
     lineup,
     players,
