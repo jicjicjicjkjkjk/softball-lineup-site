@@ -595,7 +595,8 @@ const optimizerModeDescription =
                         .reduce((sum, v) => sum + Number(v || 0), 0)}
                     </td>
                     <td>
-                      <button                        onClick={() =>
+                      <button                        
+                        onClick={() =>
                           toggleLineupLocked(game.id, !lineupLockedByGame?.[pk(game.id)])
                         }
                       >
