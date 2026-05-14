@@ -539,6 +539,23 @@ useEffect(() => {
   const updatePreviewBatting = (gameId, playerId, value) =>
     updatePreview(gameId, (lineup) => updateLineupBattingOrder(lineup, playerId, value))
 
+  const updatePreviewGameSitOutTarget = (gameId, playerId, value) =>
+    updatePreview(gameId, (lineup) => {
+      const id = pk(playerId)
+      const nextTargets = { ...(lineup.gameSitOutTargets || {}) }
+
+      if (value === '' || value === null || value === undefined) {
+        delete nextTargets[id]
+      } else {
+        nextTargets[id] = Number(value)
+      }
+
+      return {
+        ...lineup,
+        gameSitOutTargets: nextTargets,
+      }
+    })
+  
   const togglePreviewBattingLock = (gameId, playerId) =>
     updatePreview(gameId, (lineup) => toggleBattingLockOnLineup(lineup, playerId))
 
@@ -845,6 +862,7 @@ function updateSavedAndPersist(gameId, updater) {
             fitByPlayer={fitByPlayer}
             updatePreviewCell={updatePreviewCell}
             updatePreviewBatting={updatePreviewBatting}
+            updatePreviewGameSitOutTarget={updatePreviewGameSitOutTarget}
             togglePreviewCellLock={togglePreviewCellLock}
             togglePreviewRowLock={togglePreviewRowLock}
             filteredLineups={lineupSetterFilteredLineups}
