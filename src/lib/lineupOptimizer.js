@@ -434,17 +434,18 @@ urgent: explicitTarget !== null && explicitNeed >= remainingChances,
       return a.name.localeCompare(b.name)
     })
 
-  // 1. First satisfy players who still NEED target outs.
+    // 1. First satisfy players who still need target outs, while respecting sit spacing.
   chooseFrom(neededTargetRows, false, false)
 
-  // 2. If sit-gap blocked a needed target, allow breaking sit-gap before using non-target players.
-  chooseFrom(neededTargetRows, true, false)
-
-  // 3. Use players with no explicit target only for remaining required outs.
+  // 2. Use players with no explicit target, while respecting sit spacing.
   chooseFrom(noTargetRows, false, false)
-  chooseFrom(noTargetRows, true, false)
 
-  // 4. Absolute emergency only: exceed a target only if the inning cannot otherwise be legal.
+  // 3. If still short, allow capped target players, but still respect sit spacing.
+  chooseFrom(cappedTargetRows, false, true)
+
+  // 4. Absolute emergency only: break sit spacing only if the inning cannot otherwise be legal.
+  chooseFrom(neededTargetRows, true, false)
+  chooseFrom(noTargetRows, true, false)
   chooseFrom(cappedTargetRows, true, true)
 
   return [...chosen].filter((id) => !lockedInfo.lockedOutPlayers.has(id))
@@ -574,7 +575,7 @@ function assignPositionsForInning({
       }))
       .sort((a, b) => b.score - a.score)
 
-    candidatesByPosition[position] = [...strictCandidates, ...emergencyCandidates]
+        candidatesByPosition[position] = strictCandidates
   })
 
   const orderedPositions = [...openPositions].sort((a, b) => {
@@ -669,21 +670,31 @@ function applyInningHardRules({
     (id) => lineup?.cells?.[id]?.[inning] === 'Out'
   ).length
 
-  if (currentOuts < expectedOuts) {
-    const extraOutCandidates = eligibleIds
-      .filter((id) => !lockedValue(lineup, id, inning))
-      .filter((id) => (lineup?.cells?.[id]?.[inning] || '') === '')
-      .sort((a, b) => {
-        return (
-          Number(actualCounts?.[a]?.Out || 0) -
-          Number(actualCounts?.[b]?.Out || 0)
-        )
-      })
+    if (currentOuts < expectedOuts) {
+    const minGap = Number(optimizerProfile?.min_innings_between_sitouts ?? 2)
 
-    for (const id of extraOutCandidates) {
+    const buildExtraOutCandidates = (allowSpacing = false) =>
+      eligibleIds
+        .filter((id) => !lockedValue(lineup, id, inning))
+        .filter((id) => (lineup?.cells?.[id]?.[inning] || '') === '')
+        .filter((id) => allowSpacing || !violatesSitSpacing(lineup, id, inning, innings, minGap))
+        .sort((a, b) => {
+          return (
+            Number(actualCounts?.[a]?.Out || 0) -
+            Number(actualCounts?.[b]?.Out || 0)
+          )
+        })
+
+    for (const allowSpacing of [false, true]) {
+      const extraOutCandidates = buildExtraOutCandidates(allowSpacing)
+
+      for (const id of extraOutCandidates) {
+        if (currentOuts >= expectedOuts) break
+        lineup.cells[id][inning] = 'Out'
+        currentOuts += 1
+      }
+
       if (currentOuts >= expectedOuts) break
-      lineup.cells[id][inning] = 'Out'
-      currentOuts += 1
     }
   }
 
