@@ -415,7 +415,7 @@ urgent: explicitTarget !== null && explicitNeed >= remainingChances,
     if (row.hasExplicit && row.explicitNeed <= 0 && !allowOverTarget) return false
 
     // Sit gap is softer than target outs.
-    if (row.spacingBad && !allowSpacing && !row.urgent) return false
+    if (row.spacingBad && !allowSpacing) return false
 
     const test = new Set(chosen)
     test.add(row.id)
@@ -476,10 +476,9 @@ urgent: explicitTarget !== null && explicitNeed >= remainingChances,
   // 3. If still short, allow capped target players, but still respect sit spacing.
   chooseFrom(cappedTargetRows, false, true)
 
-  // 4. Absolute emergency only: break sit spacing only if the inning cannot otherwise be legal.
-  chooseFrom(neededTargetRows, true, false)
-  chooseFrom(noTargetRows, true, false)
-  chooseFrom(cappedTargetRows, true, true)
+  // 4. Do not break sit spacing just to hit targets.
+// If targets cannot be met legally, leave the target short.
+chooseFrom(cappedTargetRows, false, true)
 
   return [...chosen].filter((id) => !lockedInfo.lockedOutPlayers.has(id))
 }
@@ -733,7 +732,7 @@ function applyInningHardRules({
           )
         })
 
-    for (const allowSpacing of [false, true]) {
+    for (const allowSpacing of [false]) {
       const extraOutCandidates = buildExtraOutCandidates(allowSpacing)
 
       for (const id of extraOutCandidates) {
