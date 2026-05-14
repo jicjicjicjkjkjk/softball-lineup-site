@@ -20,6 +20,7 @@ export default function LineupGrid({
   currentBatchTotals = {},
   optimizerPlanSitOutTargets = {},
   optimizerProfileRules = {},
+  onGameSitOutTargetChange,
   onRemoveInning,
   onCellChange,
   onBattingChange,
@@ -141,6 +142,7 @@ export default function LineupGrid({
           <th>P</th>
           <th>C</th>
           <th>X</th>
+          <th>Game Target Outs</th>
         </tr>
       </thead>
 
@@ -269,11 +271,23 @@ background =
                 )
               })}
 
-              <td>{summary.IF}</td>
+                            <td>{summary.IF}</td>
               <td>{summary.OF}</td>
               <td>{summary.P}</td>
               <td>{summary.C}</td>
               <td>{summary.X}</td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={lineup?.gameSitOutTargets?.[id] ?? ''}
+                  disabled={lockedLineup}
+                  onChange={(e) => onGameSitOutTargetChange?.(id, e.target.value)}
+                  className="batting-order-input"
+                  style={{ textAlign: 'center' }}
+                />
+              </td>
             </tr>
           )
         })}
