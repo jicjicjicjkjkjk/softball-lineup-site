@@ -142,7 +142,9 @@ export default function LineupGrid({
           <th>P</th>
           <th>C</th>
           <th>X</th>
-          <th>Game Target Outs</th>
+          <th style={{ width: 85, whiteSpace: 'normal', lineHeight: 1.1 }}>
+          Game Target Outs
+          </th>
         </tr>
       </thead>
 
@@ -285,7 +287,7 @@ background =
                   disabled={lockedLineup}
                   onChange={(e) => onGameSitOutTargetChange?.(id, e.target.value)}
                   className="batting-order-input"
-                  style={{ textAlign: 'center' }}
+                  style={{ width: 58, textAlign: 'center' }}
                 />
               </td>
             </tr>
