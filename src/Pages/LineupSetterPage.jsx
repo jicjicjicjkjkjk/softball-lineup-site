@@ -553,6 +553,7 @@ const optimizerModeDescription =
                 <th>Season</th>
                 <th>Innings</th>
                 <th>Req. Outs</th>
+                <th>Game Target Outs</th>
                 <th>Lock</th>
                 <th>Remove</th>
               </tr>
@@ -589,8 +590,12 @@ const optimizerModeDescription =
                     <td>{effectiveInnings}</td>
                     <td>{effectiveRequiredOuts}</td>
                     <td>
-                      <button
-                        onClick={() =>
+                      {Object.values(lineup?.gameSitOutTargets || {})
+                        .filter((v) => v !== '' && v !== null && v !== undefined)
+                        .reduce((sum, v) => sum + Number(v || 0), 0)}
+                    </td>
+                    <td>
+                      <button                        onClick={() =>
                           toggleLineupLocked(game.id, !lineupLockedByGame?.[pk(game.id)])
                         }
                       >
@@ -619,7 +624,7 @@ const optimizerModeDescription =
 
               {!optimizerBatchGames.length && (
                 <tr>
-                  <td colSpan="10">No games in current plan.</td>
+                <td colSpan="11">No games in current plan.</td>
                 </tr>
               )}
             </tbody>
