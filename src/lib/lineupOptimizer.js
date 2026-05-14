@@ -301,13 +301,34 @@ function chooseOutsForInning({
 
   const minGap = Number(optimizerProfile?.min_innings_between_sitouts ?? 2)
 
-  function hasExplicitTarget(id) {
+    const gameSitOutTargets = lineup?.gameSitOutTargets || {}
+
+  function hasGameTarget(id) {
+    const raw = gameSitOutTargets?.[id]
+    return raw !== '' && raw !== null && raw !== undefined
+  }
+
+  function gameTargetFor(id) {
+    return hasGameTarget(id) ? Number(gameSitOutTargets[id]) : null
+  }
+
+  function hasPlanTarget(id) {
     const raw = planSitOutTargets?.[id]
     return raw !== '' && raw !== null && raw !== undefined
   }
 
+  function planTargetFor(id) {
+    return hasPlanTarget(id) ? Number(planSitOutTargets[id]) : null
+  }
+
   function explicitTargetFor(id) {
-    return hasExplicitTarget(id) ? Number(planSitOutTargets[id]) : null
+    const gameTarget = gameTargetFor(id)
+    if (gameTarget !== null && !Number.isNaN(gameTarget)) return gameTarget
+
+    const planTarget = planTargetFor(id)
+    if (planTarget !== null && !Number.isNaN(planTarget)) return planTarget
+
+    return null
   }
 
   function remainingEligibleChances(id) {
