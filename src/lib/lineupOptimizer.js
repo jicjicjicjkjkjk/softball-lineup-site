@@ -1085,9 +1085,7 @@ function enforceGameSitOutTargets({
     while (countPlayerOuts(lineup, playerId) < target && guard < 20) {
       guard += 1
 
-      const swap =
-        findSwap(playerId, false) ||
-        findSwap(playerId, true)
+      const swap = findSwap(playerId, false)
 
       if (!swap) break
 
