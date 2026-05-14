@@ -266,8 +266,10 @@ function canFillAllPositions({
     return true
   })
 
-  return openPositions.every((position) =>
-    usableIds.some((id) =>
+  const candidatesByPosition = {}
+
+  openPositions.forEach((position) => {
+    candidatesByPosition[position] = usableIds.filter((id) =>
       allowedAt({
         playerId: id,
         position,
@@ -275,7 +277,35 @@ function canFillAllPositions({
         optimizerProfileRules,
       })
     )
-  )
+  })
+
+  const orderedPositions = [...openPositions].sort((a, b) => {
+    return (
+      (candidatesByPosition[a]?.length || 0) -
+      (candidatesByPosition[b]?.length || 0)
+    )
+  })
+
+  function search(index, usedIds) {
+    if (index >= orderedPositions.length) return true
+
+    const position = orderedPositions[index]
+    const candidates = candidatesByPosition[position] || []
+
+    for (const id of candidates) {
+      if (usedIds.has(id)) continue
+
+      usedIds.add(id)
+
+      if (search(index + 1, usedIds)) return true
+
+      usedIds.delete(id)
+    }
+
+    return false
+  }
+
+  return search(0, new Set())
 }
 
 function chooseOutsForInning({
