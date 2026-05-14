@@ -351,8 +351,8 @@ function chooseOutsForInning({
   const hasGameSpecificTarget = hasGameTarget(id)
 
   const actualOutsForTarget = hasGameSpecificTarget
-    ? countPlayerOuts(lineup, id)
-    : Number(actualCounts?.[id]?.Out || 0)
+  ? countPlayerOuts(lineup, id)
+  : Number(totalsBefore?.[id]?.Out || 0) + Number(actualCounts?.[id]?.Out || 0)
 
       const actualOuts = Number(actualCounts?.[id]?.Out || 0)
       const explicitNeed = explicitTarget === null ? 0 : explicitTarget - actualOutsForTarget
@@ -412,11 +412,14 @@ urgent: explicitTarget !== null && explicitNeed >= remainingChances,
   const neededTargetRows = candidates
     .filter((row) => row.hasExplicit && row.explicitNeed > 0)
     .sort((a, b) => {
-      if (a.urgent !== b.urgent) return a.urgent ? -1 : 1
-      if (a.explicitNeed !== b.explicitNeed) return b.explicitNeed - a.explicitNeed
-      if (a.spacingBad !== b.spacingBad) return a.spacingBad ? 1 : -1
-      return a.name.localeCompare(b.name)
-    })
+  if (a.hasGameSpecificTarget !== b.hasGameSpecificTarget) {
+    return a.hasGameSpecificTarget ? -1 : 1
+  }
+  if (a.urgent !== b.urgent) return a.urgent ? -1 : 1
+  if (a.explicitNeed !== b.explicitNeed) return b.explicitNeed - a.explicitNeed
+  if (a.spacingBad !== b.spacingBad) return a.spacingBad ? 1 : -1
+  return a.name.localeCompare(b.name)
+})
 
   const noTargetRows = candidates
     .filter((row) => !row.hasExplicit)
@@ -1209,18 +1212,7 @@ export function optimizeLineupPlan({
     )
   })
 
-    return rebalancePlanTowardPriorityTargets({
-    lineupsByGame: next,
-    games,
-    players,
-    fitMap,
-    priorityMap,
-    totalsBefore,
-    lineupLockedByGame,
-    planSitOutTargets,
-    optimizerProfile,
-    optimizerProfileRules,
-  })
+      return next
 }
 
 export function buildOptimizedLineup({
