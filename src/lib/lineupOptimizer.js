@@ -592,17 +592,27 @@ function assignPositionsForInning({
       )
     })
 
-  let bestScore = -Infinity
+    let bestScore = -Infinity
   let bestAssignment = {}
+  let bestFilledCount = -1
+
+  function rememberBest(assignment, runningScore) {
+    const filledCount = Object.keys(assignment).length
+
+    if (
+      filledCount > bestFilledCount ||
+      (filledCount === bestFilledCount && runningScore > bestScore)
+    ) {
+      bestFilledCount = filledCount
+      bestScore = runningScore
+      bestAssignment = { ...assignment }
+    }
+  }
 
   function search(index, usedIds, assignment, runningScore) {
-    if (index >= orderedPositions.length) {
-      if (runningScore > bestScore) {
-        bestScore = runningScore
-        bestAssignment = { ...assignment }
-      }
-      return
-    }
+    rememberBest(assignment, runningScore)
+
+    if (index >= orderedPositions.length) return
 
     const position = orderedPositions[index]
     const candidates = candidatesByPosition[position] || []
@@ -618,6 +628,9 @@ function assignPositionsForInning({
       delete assignment[candidate.id]
       usedIds.delete(candidate.id)
     }
+
+    // If this position cannot be filled legally, keep going and fill later positions.
+    search(index + 1, usedIds, assignment, runningScore)
   }
 
   search(0, new Set(), {}, 0)
