@@ -581,14 +581,16 @@ function assignPositionsForInning({
         candidatesByPosition[position] = strictCandidates
   })
 
-  const orderedPositions = [...openPositions].sort((a, b) => {
-    return (
-      (candidatesByPosition[a]?.length || 0) -
-        (candidatesByPosition[b]?.length || 0) ||
-      positionFillRank(optimizerProfileRules, a) -
-        positionFillRank(optimizerProfileRules, b)
-    )
-  })
+    const orderedPositions = [...openPositions]
+    .filter((position) => (candidatesByPosition[position]?.length || 0) > 0)
+    .sort((a, b) => {
+      return (
+        (candidatesByPosition[a]?.length || 0) -
+          (candidatesByPosition[b]?.length || 0) ||
+        positionFillRank(optimizerProfileRules, a) -
+          positionFillRank(optimizerProfileRules, b)
+      )
+    })
 
   let bestScore = -Infinity
   let bestAssignment = {}
