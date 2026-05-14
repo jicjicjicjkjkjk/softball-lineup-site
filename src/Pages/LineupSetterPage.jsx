@@ -467,6 +467,15 @@ const totalAssigned = Object.values(optimizerPlanSitOutTargets)
   .filter((v) => v !== '' && v != null)
   .reduce((sum, v) => sum + Number(v || 0), 0)
 
+const gameTargetOutsByPlayer = currentPlanLineupsOrdered.reduce((acc, lineup) => {
+  Object.entries(lineup?.gameSitOutTargets || {}).forEach(([playerId, value]) => {
+    if (value === '' || value === null || value === undefined) return
+    acc[pk(playerId)] = Number(acc[pk(playerId)] || 0) + Number(value || 0)
+  })
+
+  return acc
+}, {})
+  
 const selectedOptimizerProfile =
   optimizerProfiles.find((profile) => profile.profile_key === optimizerMode) ||
   optimizerProfiles.find((profile) => profile.id === optimizerMode) ||
@@ -720,6 +729,7 @@ const optimizerModeDescription =
   sortConfig={trackingSort}
   setSortConfig={setTrackingSort}
   sitOutTargets={optimizerPlanSitOutTargets}
+  gameTargetOutsByPlayer={gameTargetOutsByPlayer}
   showSitOutTargets={lineupSetterUniverse === 'currentPlan'}
   editableSitOutTargets={lineupSetterUniverse === 'currentPlan'}
   setSitOutTargets={setOptimizerPlanSitOutTargets}
