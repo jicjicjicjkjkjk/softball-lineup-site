@@ -348,8 +348,14 @@ function chooseOutsForInning({
     .filter((id) => !lockedInfo.lockedOutPlayers.has(id))
     .map((id) => {
       const explicitTarget = explicitTargetFor(id)
+  const hasGameSpecificTarget = hasGameTarget(id)
+
+  const actualOutsForTarget = hasGameSpecificTarget
+    ? countPlayerOuts(lineup, id)
+    : Number(actualCounts?.[id]?.Out || 0)
+
       const actualOuts = Number(actualCounts?.[id]?.Out || 0)
-      const explicitNeed = explicitTarget === null ? 0 : explicitTarget - actualOuts
+      const explicitNeed = explicitTarget === null ? 0 : explicitTarget - actualOutsForTarget
       const seasonOuts = Number(totalsBefore?.[id]?.Out || 0)
       const spacingBad = violatesSitSpacing(lineup, id, inning, innings, minGap)
       const remainingChances = remainingEligibleChances(id)
@@ -360,9 +366,11 @@ function chooseOutsForInning({
         hasExplicit: explicitTarget !== null,
         explicitNeed,
         actualOuts,
-        seasonOuts,
-        spacingBad,
-        urgent: explicitTarget !== null && explicitNeed >= remainingChances,
+actualOutsForTarget,
+hasGameSpecificTarget,
+seasonOuts,
+spacingBad,
+urgent: explicitTarget !== null && explicitNeed >= remainingChances,
         name: (players || []).find((player) => pk(player.id) === id)?.name || '',
       }
     })
