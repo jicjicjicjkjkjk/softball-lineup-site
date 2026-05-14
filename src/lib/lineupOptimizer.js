@@ -395,7 +395,9 @@ function chooseOutsForInning({
     .filter((id) => !lockedInfo.lockedOutPlayers.has(id))
         .map((id) => {
       const targetInfo = targetInfoFor(id)
-      const actualOuts = Number(actualCounts?.[id]?.Out || 0)
+       const actualOuts = Number(actualCounts?.[id]?.Out || 0)
+      const planOutsSoFar =
+        Number(planTotalsBefore?.[id]?.Out || 0) + Number(actualCounts?.[id]?.Out || 0)
       const spacingBad = violatesSitSpacing(lineup, id, inning, innings, minGap)
       const remainingChances = remainingEligibleChances(id)
 
@@ -405,6 +407,7 @@ function chooseOutsForInning({
         hasExplicit: targetInfo.hasAnyTarget,
         explicitNeed: targetInfo.combinedNeed,
         actualOuts,
+        planOutsSoFar,
         actualOutsForTarget: targetInfo.actualOutsForTarget,
         hasGameSpecificTarget: targetInfo.hasGameTarget,
         hasPlanTarget: targetInfo.hasPlanTarget,
@@ -471,9 +474,11 @@ function chooseOutsForInning({
       return a.name.localeCompare(b.name)
     })
 
-  const cappedTargetRows = candidates
-    .filter((row) => row.hasExplicit && row.explicitNeed <= 0)
+    const noTargetRows = candidates
+    .filter((row) => !row.hasExplicit)
     .sort((a, b) => {
+      if (a.spacingBad !== b.spacingBad) return a.spacingBad ? 1 : -1
+      if (a.planOutsSoFar !== b.planOutsSoFar) return a.planOutsSoFar - b.planOutsSoFar
       if (a.actualOuts !== b.actualOuts) return a.actualOuts - b.actualOuts
       return a.name.localeCompare(b.name)
     })
@@ -738,11 +743,13 @@ function applyInningHardRules({
         .filter((id) => !lockedValue(lineup, id, inning))
         .filter((id) => (lineup?.cells?.[id]?.[inning] || '') === '')
         .filter((id) => allowSpacing || !violatesSitSpacing(lineup, id, inning, innings, minGap))
-        .sort((a, b) => {
-          return (
-            Number(actualCounts?.[a]?.Out || 0) -
-            Number(actualCounts?.[b]?.Out || 0)
-          )
+                .sort((a, b) => {
+          const aPlanOuts =
+            Number(planTotalsBefore?.[a]?.Out || 0) + Number(actualCounts?.[a]?.Out || 0)
+          const bPlanOuts =
+            Number(planTotalsBefore?.[b]?.Out || 0) + Number(actualCounts?.[b]?.Out || 0)
+
+          return aPlanOuts - bPlanOuts
         })
 
     for (const allowSpacing of [false]) {
