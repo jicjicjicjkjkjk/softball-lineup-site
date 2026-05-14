@@ -1036,6 +1036,44 @@ function enforceGameSitOutTargets({
     return countPlayerOuts(lineup, playerId) > target
   }
 
+  function findSwap(playerId, allowSpacing) {
+    for (let inning = 1; inning <= innings; inning += 1) {
+      if (lockedValue(lineup, playerId, inning)) continue
+
+      if (
+        !allowSpacing &&
+        violatesSitSpacing(lineup, playerId, inning, innings, minGap)
+      ) {
+        continue
+      }
+
+      const currentPosition = lineup?.cells?.[playerId]?.[inning] || ''
+      if (!FIELD_POSITIONS.includes(currentPosition)) continue
+
+      const replacement = (players || [])
+        .map((p) => pk(p.id))
+        .find((otherId) => {
+          if (otherId === playerId) return false
+          if (lockedValue(lineup, otherId, inning)) return false
+          if ((lineup?.cells?.[otherId]?.[inning] || '') !== 'Out') return false
+          if (!canRemoveOutFrom(otherId)) return false
+
+          return allowedAt({
+            playerId: otherId,
+            position: currentPosition,
+            fitMap,
+            optimizerProfileRules,
+          })
+        })
+
+      if (replacement) {
+        return { inning, replacement, currentPosition }
+      }
+    }
+
+    return null
+  }
+
   ;(players || []).forEach((player) => {
     const playerId = pk(player.id)
     const target = targetFor(playerId)
@@ -1046,41 +1084,15 @@ function enforceGameSitOutTargets({
 
     while (countPlayerOuts(lineup, playerId) < target && guard < 20) {
       guard += 1
-      let changed = false
 
-      for (let inning = 1; inning <= innings; inning += 1) {
-        if (countPlayerOuts(lineup, playerId) >= target) break
-        if (lockedValue(lineup, playerId, inning)) continue
-        if (violatesSitSpacing(lineup, playerId, inning, innings, minGap)) continue
+      const swap =
+        findSwap(playerId, false) ||
+        findSwap(playerId, true)
 
-        const currentPosition = lineup?.cells?.[playerId]?.[inning] || ''
-        if (!FIELD_POSITIONS.includes(currentPosition)) continue
+      if (!swap) break
 
-        const replacement = (players || [])
-          .map((p) => pk(p.id))
-          .find((otherId) => {
-            if (otherId === playerId) return false
-            if (lockedValue(lineup, otherId, inning)) return false
-            if ((lineup?.cells?.[otherId]?.[inning] || '') !== 'Out') return false
-            if (!canRemoveOutFrom(otherId)) return false
-
-            return allowedAt({
-              playerId: otherId,
-              position: currentPosition,
-              fitMap,
-              optimizerProfileRules,
-            })
-          })
-
-        if (!replacement) continue
-
-        lineup.cells[playerId][inning] = 'Out'
-        lineup.cells[replacement][inning] = currentPosition
-        changed = true
-        break
-      }
-
-      if (!changed) break
+      lineup.cells[playerId][swap.inning] = 'Out'
+      lineup.cells[swap.replacement][swap.inning] = swap.currentPosition
     }
   })
 
