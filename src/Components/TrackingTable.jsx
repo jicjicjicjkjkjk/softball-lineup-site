@@ -74,6 +74,7 @@ export default function TrackingTable({
   universeLabel,
   center = true,
   sitOutTargets = {},
+  gameTargetOutsByPlayer = {},
   setSitOutTargets,
   showSitOutTargets = false,
   editableSitOutTargets = false,
@@ -113,6 +114,7 @@ export default function TrackingTable({
         fieldTotal: safeNumber(t.fieldTotal),
         Out: safeNumber(t.Out),
         targetOuts: targetOuts ?? '',
+        gameTargetOuts: gameTargetOutsByPlayer?.[id] ?? '',
         gap,
         sitOutRunningTotal:
           sitOutRunningByPlayer[id] !== undefined
@@ -175,6 +177,7 @@ export default function TrackingTable({
 
             {showSitOutTargets && (
               <>
+                {header('Game Target Outs', 'gameTargetOuts')}
                 {header('Plan Target Outs', 'targetOuts')}
                 {header('Gap', 'gap')}
               </>
@@ -212,6 +215,7 @@ export default function TrackingTable({
 
               {showSitOutTargets && (
                 <>
+                  <td>{row.gameTargetOuts}</td>
                   <td>
                     {editableSitOutTargets ? (
                       <input
