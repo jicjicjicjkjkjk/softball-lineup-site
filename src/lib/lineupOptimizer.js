@@ -315,6 +315,7 @@ function chooseOutsForInning({
   players,
   fitMap,
   totalsBefore = {},
+  planTotalsBefore = {},
   targetCounts = {},
   actualCounts = {},
   planSitOutTargets = {},
@@ -382,11 +383,11 @@ function chooseOutsForInning({
 
   const actualOutsForTarget = hasGameSpecificTarget
   ? countPlayerOuts(lineup, id)
-  : Number(totalsBefore?.[id]?.Out || 0) + Number(actualCounts?.[id]?.Out || 0)
+  : Number(planTotalsBefore?.[id]?.Out || 0) + Number(actualCounts?.[id]?.Out || 0)
 
       const actualOuts = Number(actualCounts?.[id]?.Out || 0)
       const explicitNeed = explicitTarget === null ? 0 : explicitTarget - actualOutsForTarget
-      const seasonOuts = Number(totalsBefore?.[id]?.Out || 0)
+      const seasonOuts = 0
       const spacingBad = violatesSitSpacing(lineup, id, inning, innings, minGap)
       const remainingChances = remainingEligibleChances(id)
 
@@ -676,6 +677,7 @@ function applyInningHardRules({
   targetCounts,
   actualCounts,
   totalsBefore,
+  planTotalsBefore,
   planSitOutTargets,
   optimizerProfile,
   optimizerProfileRules,
@@ -700,6 +702,7 @@ function applyInningHardRules({
     players,
     fitMap,
     totalsBefore,
+    planTotalsBefore,
     targetCounts,
     actualCounts,
     planSitOutTargets,
@@ -785,6 +788,7 @@ function rebuildUnlockedLineup({
   targetCounts,
   actualCounts,
   totalsBefore = {},
+  planTotalsBefore = {},
   planSitOutTargets = {},
   optimizerProfile = null,
   optimizerProfileRules = {},
@@ -801,6 +805,7 @@ function rebuildUnlockedLineup({
       targetCounts,
       actualCounts,
       totalsBefore,
+      planTotalsBefore,
       planSitOutTargets,
       optimizerProfile,
       optimizerProfileRules,
@@ -1222,7 +1227,7 @@ export function optimizeLineupPlan({
   optimizerProfile = null,
   optimizerProfileRules = {},
 }) {
-  let rollingTotals = clone(totalsBefore || {})
+    let rollingPlanTotals = {}
   const next = {}
 
   ;(games || []).forEach((game) => {
@@ -1232,11 +1237,8 @@ export function optimizeLineupPlan({
 
     if (lineupLockedByGame?.[gameId]) {
       next[gameId] = clone(sourceLineup)
-      rollingTotals = addTotals(
-        rollingTotals,
-        computeTotals([sourceLineup], players),
-        players
-      )
+            const lockedTotals = computeTotals([sourceLineup], players)
+      rollingPlanTotals = addTotals(rollingPlanTotals, lockedTotals, players)
       return
     }
 
@@ -1250,7 +1252,8 @@ export function optimizeLineupPlan({
       players,
       availablePlayerIds,
       sourceLineup,
-      totalsBefore: rollingTotals,
+      totalsBefore: {},
+      planTotalsBefore: rollingPlanTotals,
       priorityMap,
       fitMap,
       planSitOutTargets,
@@ -1259,11 +1262,8 @@ export function optimizeLineupPlan({
     })
 
     next[gameId] = optimized
-    rollingTotals = addTotals(
-      rollingTotals,
-      computeTotals([optimized], players),
-      players
-    )
+        const optimizedTotals = computeTotals([optimized], players)
+    rollingPlanTotals = addTotals(rollingPlanTotals, optimizedTotals, players)
   })
 
       return next
@@ -1275,6 +1275,7 @@ export function buildOptimizedLineup({
   availablePlayerIds,
   sourceLineup,
   totalsBefore = {},
+  planTotalsBefore = {},
   priorityMap,
   fitMap,
   planSitOutTargets = {},
@@ -1323,6 +1324,7 @@ export function buildOptimizedLineup({
     targetCounts,
     actualCounts,
     totalsBefore,
+    planTotalsBefore,
     planSitOutTargets,
     optimizerProfile,
     optimizerProfileRules,
