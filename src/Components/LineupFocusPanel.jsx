@@ -36,6 +36,7 @@ export default function LineupFocusPanel(props) {
     removePreviewInning,
     updatePreviewCell,
     updatePreviewBatting,
+    updatePreviewGameSitOutTarget,
     togglePreviewCellLock,
     togglePreviewRowLock,
     togglePreviewInningLock,
@@ -186,6 +187,69 @@ export default function LineupFocusPanel(props) {
         </div>
       )}
 
+      {optimizerFocusLineup && (
+        <div className="card">
+          <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
+            <div>
+              <h3 style={{ margin: 0 }}>Target Outs for This Game</h3>
+              <div className="small-note">
+                These targets are saved with this specific game and remembered when you reopen it.
+                Leave blank for the solver to use the current plan target instead.
+              </div>
+            </div>
+          </div>
+
+          <div className="table-scroll">
+            <table className="table-center" style={{ tableLayout: 'fixed' }}>
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Game Target Outs</th>
+                  <th>Plan Target Outs</th>
+                  <th>Current Plan Outs</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {(activePlayers || [])
+                  .filter((player) => (lineup.availablePlayerIds || []).map(pk).includes(pk(player.id)))
+                  .map((player) => {
+                    const playerId = pk(player.id)
+                    const gameTarget = optimizerFocusLineup?.gameSitOutTargets?.[playerId] ?? ''
+                    const planTarget = optimizerPlanSitOutTargets?.[playerId] ?? ''
+                    const currentOuts = currentBatchTotals?.[playerId]?.Out || 0
+
+                    return (
+                      <tr key={playerId}>
+                        <td style={{ textAlign: 'left' }}>{player.name}</td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={gameTarget}
+                            disabled={optimizerFocusLocked}
+                            onChange={(e) =>
+                              updatePreviewGameSitOutTarget?.(
+                                optimizerFocusGame.id,
+                                playerId,
+                                e.target.value
+                              )
+                            }
+                            style={{ maxWidth: 90, textAlign: 'center' }}
+                          />
+                        </td>
+                        <td>{planTarget}</td>
+                        <td>{currentOuts}</td>
+                      </tr>
+                    )
+                  })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      
       {optimizerFocusLineup && (
         <div className="card">
           <div className="row-between wrap-row" style={{ marginBottom: 12 }}>
