@@ -175,7 +175,7 @@ export default function TrackingTable({
 
             {showSitOutTargets && (
               <>
-                {header('Target', 'targetOuts')}
+                {header('Plan Target Outs', 'targetOuts')}
                 {header('Gap', 'gap')}
               </>
             )}
