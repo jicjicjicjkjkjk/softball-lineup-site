@@ -1,6 +1,6 @@
 // src/lib/lineupOptimizer.js
 
-import { FIELD_POSITIONS, PRIORITY_POSITIONS } from './lineupConstants'
+import { FIELD_POSITIONS } from './lineupConstants'
 import { pk, clone, normalizeLineup, lockedValue } from './lineupCore'
 import { computeTotals, addTotals } from './lineupTotals'
 import {
@@ -352,14 +352,30 @@ function chooseOutsForInning({
     return hasPlanTarget(id) ? Number(planSitOutTargets[id]) : null
   }
 
-  function explicitTargetFor(id) {
+    function targetInfoFor(id) {
     const gameTarget = gameTargetFor(id)
-    if (gameTarget !== null && !Number.isNaN(gameTarget)) return gameTarget
-
     const planTarget = planTargetFor(id)
-    if (planTarget !== null && !Number.isNaN(planTarget)) return planTarget
 
-    return null
+    const validGameTarget = gameTarget !== null && !Number.isNaN(gameTarget)
+    const validPlanTarget = planTarget !== null && !Number.isNaN(planTarget)
+
+    const currentGameOuts = countPlayerOuts(lineup, id)
+    const currentPlanOuts =
+      Number(planTotalsBefore?.[id]?.Out || 0) + Number(actualCounts?.[id]?.Out || 0)
+
+    const gameNeed = validGameTarget ? gameTarget - currentGameOuts : 0
+    const planNeed = validPlanTarget ? planTarget - currentPlanOuts : 0
+
+    return {
+      hasGameTarget: validGameTarget,
+      hasPlanTarget: validPlanTarget,
+      hasAnyTarget: validGameTarget || validPlanTarget,
+      gameNeed,
+      planNeed,
+      combinedNeed: Math.max(gameNeed, planNeed, 0),
+      actualOutsForTarget: validGameTarget ? currentGameOuts : currentPlanOuts,
+      displayTarget: validGameTarget ? gameTarget : validPlanTarget ? planTarget : null,
+    }
   }
 
   function remainingEligibleChances(id) {
@@ -377,31 +393,26 @@ function chooseOutsForInning({
   const candidates = eligibleIds
     .filter((id) => !lockedInfo.lockedFieldPlayers.has(id))
     .filter((id) => !lockedInfo.lockedOutPlayers.has(id))
-    .map((id) => {
-      const explicitTarget = explicitTargetFor(id)
-  const hasGameSpecificTarget = hasGameTarget(id)
-
-  const actualOutsForTarget = hasGameSpecificTarget
-  ? countPlayerOuts(lineup, id)
-  : Number(planTotalsBefore?.[id]?.Out || 0) + Number(actualCounts?.[id]?.Out || 0)
-
+        .map((id) => {
+      const targetInfo = targetInfoFor(id)
       const actualOuts = Number(actualCounts?.[id]?.Out || 0)
-      const explicitNeed = explicitTarget === null ? 0 : explicitTarget - actualOutsForTarget
-      const seasonOuts = 0
       const spacingBad = violatesSitSpacing(lineup, id, inning, innings, minGap)
       const remainingChances = remainingEligibleChances(id)
 
       return {
         id,
-        explicitTarget,
-        hasExplicit: explicitTarget !== null,
-        explicitNeed,
+        explicitTarget: targetInfo.displayTarget,
+        hasExplicit: targetInfo.hasAnyTarget,
+        explicitNeed: targetInfo.combinedNeed,
         actualOuts,
-actualOutsForTarget,
-hasGameSpecificTarget,
-seasonOuts,
-spacingBad,
-urgent: explicitTarget !== null && explicitNeed >= remainingChances,
+        actualOutsForTarget: targetInfo.actualOutsForTarget,
+        hasGameSpecificTarget: targetInfo.hasGameTarget,
+        hasPlanTarget: targetInfo.hasPlanTarget,
+        gameNeed: targetInfo.gameNeed,
+        planNeed: targetInfo.planNeed,
+        seasonOuts: 0,
+        spacingBad,
+        urgent: targetInfo.combinedNeed > 0 && targetInfo.combinedNeed >= remainingChances,
         name: (players || []).find((player) => pk(player.id) === id)?.name || '',
       }
     })
@@ -443,10 +454,9 @@ urgent: explicitTarget !== null && explicitNeed >= remainingChances,
   const neededTargetRows = candidates
     .filter((row) => row.hasExplicit && row.explicitNeed > 0)
     .sort((a, b) => {
-  if (a.hasGameSpecificTarget !== b.hasGameSpecificTarget) {
-    return a.hasGameSpecificTarget ? -1 : 1
-  }
   if (a.urgent !== b.urgent) return a.urgent ? -1 : 1
+  if (a.planNeed !== b.planNeed) return b.planNeed - a.planNeed
+  if (a.gameNeed !== b.gameNeed) return b.gameNeed - a.gameNeed
   if (a.explicitNeed !== b.explicitNeed) return b.explicitNeed - a.explicitNeed
   if (a.spacingBad !== b.spacingBad) return a.spacingBad ? 1 : -1
   return a.name.localeCompare(b.name)
@@ -1101,6 +1111,139 @@ function enforceGameSitOutTargets({
   return lineup
 }
 
+function enforcePlanSitOutTargets({
+  lineupsByGame,
+  games,
+  players,
+  fitMap,
+  planSitOutTargets = {},
+  lineupLockedByGame = {},
+  optimizerProfile = null,
+  optimizerProfileRules = {},
+}) {
+  const minGap = Number(optimizerProfile?.min_innings_between_sitouts ?? 2)
+
+  function planTargetFor(playerId) {
+    const raw = planSitOutTargets?.[pk(playerId)]
+    if (raw === '' || raw === null || raw === undefined) return null
+    const n = Number(raw)
+    return Number.isNaN(n) ? null : n
+  }
+
+  function gameTargetFor(lineup, playerId) {
+    const raw = lineup?.gameSitOutTargets?.[pk(playerId)]
+    if (raw === '' || raw === null || raw === undefined) return null
+    const n = Number(raw)
+    return Number.isNaN(n) ? null : n
+  }
+
+  function planOutCounts() {
+    const counts = {}
+    ;(players || []).forEach((player) => {
+      counts[pk(player.id)] = 0
+    })
+
+    ;(games || []).forEach((game) => {
+      const lineup = lineupsByGame?.[pk(game.id)]
+      if (!lineup) return
+
+      ;(players || []).forEach((player) => {
+        counts[pk(player.id)] += countPlayerOuts(lineup, player.id)
+      })
+    })
+
+    return counts
+  }
+
+  let guard = 0
+
+  while (guard < 50) {
+    guard += 1
+    const counts = planOutCounts()
+    let changed = false
+
+    const underRows = (players || [])
+      .map((player) => {
+        const id = pk(player.id)
+        const target = planTargetFor(id)
+
+        return {
+          id,
+          name: player.name || '',
+          target,
+          current: Number(counts[id] || 0),
+          need: target === null ? 0 : target - Number(counts[id] || 0),
+        }
+      })
+      .filter((row) => row.target !== null && row.need > 0)
+      .sort((a, b) => b.need - a.need || a.name.localeCompare(b.name))
+
+    if (!underRows.length) break
+
+    for (const under of underRows) {
+      for (const game of games || []) {
+        const gameId = pk(game.id)
+        const lineup = lineupsByGame?.[gameId]
+
+        if (!lineup || lineupLockedByGame?.[gameId]) continue
+
+        const innings = Number(lineup?.innings || 0)
+
+        for (let inning = 1; inning <= innings; inning += 1) {
+          if (changed) break
+          if (lockedValue(lineup, under.id, inning)) continue
+          if (violatesSitSpacing(lineup, under.id, inning, innings, minGap)) continue
+
+          const currentPosition = lineup?.cells?.[under.id]?.[inning] || ''
+          if (!FIELD_POSITIONS.includes(currentPosition)) continue
+
+          const replacement = (players || [])
+            .map((p) => pk(p.id))
+            .find((otherId) => {
+              if (otherId === under.id) return false
+              if (lockedValue(lineup, otherId, inning)) return false
+              if ((lineup?.cells?.[otherId]?.[inning] || '') !== 'Out') return false
+
+              const otherPlanTarget = planTargetFor(otherId)
+
+// Do not steal an OUT from someone still below their plan target.
+// But if they have no target, or are already at/above target, they can be used.
+if (otherPlanTarget !== null && Number(counts[otherId] || 0) < otherPlanTarget) {
+  return false
+}
+
+              const otherGameTarget = gameTargetFor(lineup, otherId)
+              if (otherGameTarget !== null && countPlayerOuts(lineup, otherId) <= otherGameTarget) {
+                return false
+              }
+
+              return allowedAt({
+                playerId: otherId,
+                position: currentPosition,
+                fitMap,
+                optimizerProfileRules,
+              })
+            })
+
+          if (!replacement) continue
+
+          lineup.cells[under.id][inning] = 'Out'
+          lineup.cells[replacement][inning] = currentPosition
+          changed = true
+        }
+
+        if (changed) break
+      }
+
+      if (changed) break
+    }
+
+    if (!changed) break
+  }
+
+  return lineupsByGame
+}
+
 export function rebalanceTowardPriorityTargets({
   lineup,
   players,
@@ -1138,81 +1281,6 @@ export function rebalanceTowardPriorityTargets({
   return lineup
 }
 
-export function rebalancePlanTowardPriorityTargets({
-  lineupsByGame,
-  games,
-  players,
-  fitMap,
-  priorityMap,
-  totalsBefore = {},
-  lineupLockedByGame = {},
-  planSitOutTargets = {},
-  optimizerProfile = null,
-  optimizerProfileRules = {},
-}) {
-  const next = clone(lineupsByGame || {})
-  const expectedFieldTotals = buildExpectedFieldTotalsForPlan(games, next, players)
-
-  const targetCounts = makeTargetCounts({
-    players,
-    priorityMap,
-    expectedFieldTotals,
-  })
-
-  const actualCounts = makeActualCounts(players)
-
-  ;(games || []).forEach((game) => {
-    const gameId = pk(game.id)
-    const lineup = next[gameId]
-    if (!lineup) return
-    addExistingLockedCounts({ lineup, players, actualCounts })
-  })
-
-  ;(games || []).forEach((game) => {
-    const gameId = pk(game.id)
-    const lineup = next[gameId]
-    if (!lineup || lineupLockedByGame?.[gameId]) return
-
-    clearUnlockedCells(lineup, players)
-
-        rebuildUnlockedLineup({
-      lineup,
-      players,
-      fitMap,
-      priorityMap,
-      targetCounts,
-      actualCounts,
-      totalsBefore,
-      planSitOutTargets,
-      optimizerProfile,
-      optimizerProfileRules,
-    })
-
-        enforceConsecutivePositionRules({
-      lineup,
-      players,
-      fitMap,
-      optimizerProfileRules,
-    })
-
-    enforceGameSitOutTargets({
-      lineup,
-      players,
-      fitMap,
-      optimizerProfile,
-      optimizerProfileRules,
-    })
-
-    lineup.validationIssues = validateLineup({
-      lineup,
-      players,
-      fitMap,
-      optimizerProfileRules,
-    })
-  })
-
-  return next
-}
 
 export function optimizeLineupPlan({
   games,
@@ -1265,8 +1333,30 @@ export function optimizeLineupPlan({
         const optimizedTotals = computeTotals([optimized], players)
     rollingPlanTotals = addTotals(rollingPlanTotals, optimizedTotals, players)
   })
+  
+  enforcePlanSitOutTargets({
+    lineupsByGame: next,
+    games,
+    players,
+    fitMap,
+    planSitOutTargets,
+    lineupLockedByGame,
+    optimizerProfile,
+    optimizerProfileRules,
+  })
 
-      return next
+  Object.entries(next).forEach(([gameId, lineup]) => {
+  if (lineupLockedByGame?.[gameId]) return
+
+  lineup.validationIssues = validateLineup({
+    lineup,
+    players,
+    fitMap,
+    optimizerProfileRules,
+  })
+})
+  
+  return next
 }
 
 export function buildOptimizedLineup({
