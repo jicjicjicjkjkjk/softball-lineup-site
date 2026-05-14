@@ -146,6 +146,7 @@ export default function LineupSetterPage({
   fitByPlayer,
   updatePreviewCell,
   updatePreviewBatting,
+  updatePreviewGameSitOutTarget,
   togglePreviewCellLock,
   togglePreviewRowLock,
   filteredLineups = [],
@@ -657,6 +658,7 @@ const optimizerModeDescription =
         visibleIds={visibleIds}
         updatePreviewCell={updatePreviewCell}
         updatePreviewBatting={updatePreviewBatting}
+        updatePreviewGameSitOutTarget={updatePreviewGameSitOutTarget}
         togglePreviewBattingLock={togglePreviewBattingLock}
         togglePreviewAllBattingLock={togglePreviewAllBattingLock}
         togglePreviewCellLock={togglePreviewCellLock}
