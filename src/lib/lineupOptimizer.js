@@ -1261,6 +1261,7 @@ function enforcePlanSitOutTargets({
   games,
   players,
   fitMap,
+  priorityMap,
   planSitOutTargets = {},
   lineupLockedByGame = {},
   optimizerProfile = null,
@@ -1272,127 +1273,198 @@ function enforcePlanSitOutTargets({
     const raw = planSitOutTargets?.[pk(playerId)]
     if (raw === '' || raw === null || raw === undefined) return null
     const n = Number(raw)
-    return Number.isNaN(n) || n <= 0 ? null : n
+    return Number.isNaN(n) ? null : n
   }
 
-  function gameTargetFor(lineup, playerId) {
-    const raw = lineup?.gameSitOutTargets?.[pk(playerId)]
-    if (raw === '' || raw === null || raw === undefined) return null
-    const n = Number(raw)
-    return Number.isNaN(n) || n <= 0 ? null : n
-  }
+  const outCounts = {}
+  ;(players || []).forEach((player) => {
+    outCounts[pk(player.id)] = 0
+  })
 
-  function planOutCounts() {
-    const counts = {}
+  // Clear only unlocked generated cells. Preserve locked games/cells and injuries.
+  ;(games || []).forEach((game) => {
+    const gameId = pk(game.id)
+    const lineup = lineupsByGame?.[gameId]
+    if (!lineup) return
+
+    if (lineupLockedByGame?.[gameId]) return
+
     ;(players || []).forEach((player) => {
-      counts[pk(player.id)] = 0
+      const id = pk(player.id)
+
+      for (let inning = 1; inning <= Number(lineup?.innings || 0); inning += 1) {
+        if (lockedValue(lineup, id, inning)) continue
+
+        const value = lineup?.cells?.[id]?.[inning] || ''
+        if (value === 'Injury') continue
+
+        if (FIELD_POSITIONS.includes(value) || value === 'Out') {
+          lineup.cells[id][inning] = ''
+        }
+      }
     })
+  })
 
-    ;(games || []).forEach((game) => {
-      const lineup = lineupsByGame?.[pk(game.id)]
-      if (!lineup) return
+  const expectedFieldTotals = buildExpectedFieldTotalsForPlan(
+    games,
+    lineupsByGame,
+    players
+  )
 
-      ;(players || []).forEach((player) => {
-        counts[pk(player.id)] += countPlayerOuts(lineup, player.id)
+  const targetCounts = makeTargetCounts({
+    players,
+    priorityMap,
+    expectedFieldTotals,
+  })
+
+  const actualCounts = makeActualCounts(players)
+
+  // Count locked outs/positions first.
+  ;(games || []).forEach((game) => {
+    const lineup = lineupsByGame?.[pk(game.id)]
+    if (!lineup) return
+
+    ;(players || []).forEach((player) => {
+      const id = pk(player.id)
+
+      for (let inning = 1; inning <= Number(lineup?.innings || 0); inning += 1) {
+        const value = lineup?.cells?.[id]?.[inning] || ''
+
+        if (value === 'Out') {
+          outCounts[id] = Number(outCounts[id] || 0) + 1
+        }
+
+        if (FIELD_POSITIONS.includes(value)) {
+          const bucket = positionBucket(value)
+          actualCounts[id][bucket] += 1
+          actualCounts[id].fieldTotal += 1
+        }
+      }
+    })
+  })
+
+  function sortOutCandidates(ids, lineup, inning, innings, allowSpacing, allowOverTarget) {
+    return [...ids]
+      .filter((id) => allowSpacing || !violatesSitSpacing(lineup, id, inning, innings, minGap))
+      .filter((id) => {
+        const target = planTargetFor(id)
+        if (target === null) return true
+        if (allowOverTarget) return true
+        return Number(outCounts[id] || 0) < target
       })
-    })
+      .sort((a, b) => {
+        const aTarget = planTargetFor(a)
+        const bTarget = planTargetFor(b)
 
-    return counts
+        const aNeed = aTarget === null ? 0 : aTarget - Number(outCounts[a] || 0)
+        const bNeed = bTarget === null ? 0 : bTarget - Number(outCounts[b] || 0)
+
+        if (aNeed !== bNeed) return bNeed - aNeed
+
+        const aOuts = Number(outCounts[a] || 0)
+        const bOuts = Number(outCounts[b] || 0)
+
+        if (aOuts !== bOuts) return aOuts - bOuts
+        return String(a).localeCompare(String(b))
+      })
   }
 
-  let guard = 0
+  ;(games || []).forEach((game) => {
+    const gameId = pk(game.id)
+    const lineup = lineupsByGame?.[gameId]
+    if (!lineup || lineupLockedByGame?.[gameId]) return
 
-  while (guard < 50) {
-    guard += 1
-    const counts = planOutCounts()
-    let changed = false
+    const innings = Number(lineup?.innings || 0)
 
-    const underRows = (players || [])
-      .map((player) => {
-        const id = pk(player.id)
-        const target = planTargetFor(id)
+    for (let inning = 1; inning <= innings; inning += 1) {
+      const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
+      const lockedInfo = getLockedAssignmentsForInning(lineup, inning, players)
 
-        return {
-          id,
-          name: player.name || '',
-          target,
-          current: Number(counts[id] || 0),
-          need: target === null ? 0 : target - Number(counts[id] || 0),
-        }
+      const expectedOuts = Math.max(0, eligibleIds.length - Math.min(9, eligibleIds.length))
+
+      const currentOutIds = new Set(
+        eligibleIds.filter((id) => lineup?.cells?.[id]?.[inning] === 'Out')
+      )
+
+      const candidates = eligibleIds.filter((id) => {
+        if (currentOutIds.has(id)) return false
+        if (lockedInfo.lockedFieldPlayers.has(id)) return false
+        if (lockedInfo.lockedOutPlayers.has(id)) return false
+        if (lockedValue(lineup, id, inning)) return false
+        return true
       })
-      .filter((row) => row.target !== null && row.need > 0)
-      .sort((a, b) => b.need - a.need || a.name.localeCompare(b.name))
 
-    if (!underRows.length) break
+      const passes = [
+        { allowSpacing: false, allowOverTarget: false },
+        { allowSpacing: true, allowOverTarget: false },
+        { allowSpacing: false, allowOverTarget: true },
+        { allowSpacing: true, allowOverTarget: true },
+      ]
 
-    for (const under of underRows) {
-      for (const game of games || []) {
-        const gameId = pk(game.id)
-        const lineup = lineupsByGame?.[gameId]
+      for (const pass of passes) {
+        const rows = sortOutCandidates(
+          candidates,
+          lineup,
+          inning,
+          innings,
+          pass.allowSpacing,
+          pass.allowOverTarget
+        )
 
-        if (!lineup || lineupLockedByGame?.[gameId]) continue
+        for (const id of rows) {
+          if (currentOutIds.size >= expectedOuts) break
+          if (currentOutIds.has(id)) continue
 
-        const innings = Number(lineup?.innings || 0)
+          const testOuts = new Set(currentOutIds)
+          testOuts.add(id)
 
-        for (let inning = 1; inning <= innings; inning += 1) {
-          if (changed) break
-          if (lockedValue(lineup, under.id, inning)) continue
-          if (violatesSitSpacing(lineup, under.id, inning, innings, minGap)) continue
-
-                    const underGameTarget = gameTargetFor(lineup, under.id)
           if (
-            underGameTarget !== null &&
-            countPlayerOuts(lineup, under.id) >= underGameTarget
-          ) {
-            continue
-          }
-
-          const currentPosition = lineup?.cells?.[under.id]?.[inning] || ''
-          if (!FIELD_POSITIONS.includes(currentPosition)) continue
-
-          const replacement = (players || [])
-            .map((p) => pk(p.id))
-            .find((otherId) => {
-              if (otherId === under.id) return false
-              if (lockedValue(lineup, otherId, inning)) return false
-              if ((lineup?.cells?.[otherId]?.[inning] || '') !== 'Out') return false
-
-              const otherPlanTarget = planTargetFor(otherId)
-
-// Do not steal an OUT from someone still below their plan target.
-// But if they have no target, or are above target, they can be used.
-if (otherPlanTarget !== null && Number(counts[otherId] || 0) <= otherPlanTarget) {
-  return false
-}
-
-              const otherGameTarget = gameTargetFor(lineup, otherId)
-              if (otherGameTarget !== null && countPlayerOuts(lineup, otherId) <= otherGameTarget) {
-                return false
-              }
-
-              return allowedAt({
-                playerId: otherId,
-                position: currentPosition,
-                fitMap,
-                optimizerProfileRules,
-              })
+            canFillAllPositions({
+              lineup,
+              inning,
+              players,
+              fitMap,
+              optimizerProfileRules,
+              candidateOuts: testOuts,
             })
-
-          if (!replacement) continue
-
-          lineup.cells[under.id][inning] = 'Out'
-          lineup.cells[replacement][inning] = currentPosition
-          changed = true
+          ) {
+            lineup.cells[id][inning] = 'Out'
+            currentOutIds.add(id)
+            outCounts[id] = Number(outCounts[id] || 0) + 1
+          }
         }
 
-        if (changed) break
+        if (currentOutIds.size >= expectedOuts) break
       }
 
-      if (changed) break
-    }
+      const assignment = assignPositionsForInning({
+        lineup,
+        inning,
+        players,
+        fitMap,
+        priorityMap,
+        targetCounts,
+        actualCounts,
+        optimizerProfileRules,
+      })
 
-    if (!changed) break
-  }
+      Object.entries(assignment).forEach(([id, position]) => {
+        if (!lockedValue(lineup, id, inning)) {
+          lineup.cells[id][inning] = position
+        }
+      })
+
+      eligibleIds.forEach((id) => {
+        const value = lineup?.cells?.[id]?.[inning] || ''
+
+        if (FIELD_POSITIONS.includes(value)) {
+          const bucket = positionBucket(value)
+          actualCounts[id][bucket] += 1
+          actualCounts[id].fieldTotal += 1
+        }
+      })
+    }
+  })
 
   return lineupsByGame
 }
@@ -1486,24 +1558,10 @@ export function optimizeLineupPlan({
     players
   )
 
-      const cleanManualSitOutTargets = {}
-
-  Object.entries(planSitOutTargets || {}).forEach(([id, value]) => {
-    if (value === '' || value === null || value === undefined) return
-
-    const n = Number(value)
-
-    // Treat 0 as blank for plan-level targets so empty/default UI values
-    // do not wipe out the auto-balanced sit-out plan.
-    if (!Number.isNaN(n) && n > 0) {
-      cleanManualSitOutTargets[pk(id)] = n
-    }
-  })
-
-  const effectivePlanSitOutTargets = {
-    ...autoSitOutTargets,
-    ...cleanManualSitOutTargets,
-  }
+  // Use auto-balanced plan targets as the source of truth.
+  // Do NOT merge planSitOutTargets here, because those values may be stale
+  // from a previous generated plan and can lock in bad imbalance like 4/4/2/2.
+  const effectivePlanSitOutTargets = autoSitOutTargets
     
   ;(games || []).forEach((game) => {
     const gameId = pk(game.id)
@@ -1546,6 +1604,7 @@ export function optimizeLineupPlan({
     games,
     players,
     fitMap,
+    priorityMap,
     planSitOutTargets: effectivePlanSitOutTargets,
     lineupLockedByGame,
     optimizerProfile,
@@ -1588,10 +1647,17 @@ export function buildOptimizedLineup({
     safeAvailable.length ? safeAvailable : (players || []).map((player) => pk(player.id))
   )
 
-  lineup.innings = Number(game?.innings || lineup?.innings || 6)
+    lineup.innings = Number(game?.innings || lineup?.innings || 6)
   lineup.availablePlayerIds = safeAvailable.length
     ? safeAvailable
     : (players || []).map((player) => pk(player.id))
+
+  // When optimizing a multi-game plan, planSitOutTargets is the source of truth.
+  // Clear stale per-game sit-out targets so old generated values do not override
+  // the balanced plan and create 4/4/2/2 type results.
+  if (planSitOutTargets && Object.keys(planSitOutTargets).length) {
+    lineup.gameSitOutTargets = {}
+  }
 
   clearUnlockedCells(lineup, players)
 
