@@ -103,14 +103,11 @@ function previousOutDistance(lineup, playerId, inning) {
   return 999
 }
 
-function nextLockedOutDistance(lineup, playerId, inning, innings) {
+function nextOutDistance(lineup, playerId, inning, innings) {
   const id = pk(playerId)
 
   for (let next = inning + 1; next <= innings; next += 1) {
-    if (
-      lockedValue(lineup, id, next) &&
-      (lineup?.cells?.[id]?.[next] || '') === 'Out'
-    ) {
+    if ((lineup?.cells?.[id]?.[next] || '') === 'Out') {
       return next - inning
     }
   }
@@ -123,7 +120,7 @@ function violatesSitSpacing(lineup, playerId, inning, innings, minGap = 2) {
   if (gap <= 0) return false
 
   const prev = previousOutDistance(lineup, playerId, inning)
-  const next = nextLockedOutDistance(lineup, playerId, inning, innings)
+    const next = nextOutDistance(lineup, playerId, inning, innings)
 
   return prev <= gap || next <= gap
 }
@@ -1573,7 +1570,75 @@ function enforcePlanSitOutTargets({
   }
 
 
-    let balanceGuard = 0
+      
+
+let spacingGuard = 0
+
+  while (spacingGuard < 100) {
+    spacingGuard += 1
+
+    const counts = recomputeOutCounts()
+    let fixedSpacing = false
+
+    for (const game of games || []) {
+      const gameId = pk(game.id)
+      const lineup = lineupsByGame?.[gameId]
+      if (!lineup || lineupLockedByGame?.[gameId]) continue
+
+      const innings = Number(lineup?.innings || 0)
+
+      for (let inning = 2; inning <= innings; inning += 1) {
+        const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
+
+        for (const sittingId of eligibleIds) {
+          if (lineup?.cells?.[sittingId]?.[inning] !== 'Out') continue
+          if (lineup?.cells?.[sittingId]?.[inning - 1] !== 'Out') continue
+          if (lockedValue(lineup, sittingId, inning)) continue
+
+          const replacementRows = eligibleIds
+            .filter((id) => id !== sittingId)
+            .filter((id) => !lockedValue(lineup, id, inning))
+            .filter((id) => FIELD_POSITIONS.includes(lineup?.cells?.[id]?.[inning] || ''))
+            .map((id) => {
+              const target = planTargetFor(id)
+              const current = Number(counts[id] || 0)
+              return {
+                id,
+                target,
+                current,
+                need: target === null ? 0 : target - current,
+              }
+            })
+            .filter((row) => row.target === null || row.current < row.target)
+            .sort((a, b) => b.need - a.need || a.current - b.current)
+
+          for (const replacement of replacementRows) {
+            if (
+              rebuildOneInningWithForcedOut({
+                lineup,
+                inning,
+                underId: replacement.id,
+                overId: sittingId,
+              })
+            ) {
+              fixedSpacing = true
+              break
+            }
+          }
+
+          if (fixedSpacing) break
+        }
+
+        if (fixedSpacing) break
+      }
+
+      if (fixedSpacing) break
+    }
+
+    if (!fixedSpacing) break
+  }
+
+let balanceGuard = 0
 
   while (balanceGuard < 200) {
     balanceGuard += 1
@@ -1660,74 +1725,10 @@ function enforcePlanSitOutTargets({
     }
 
     if (!fixedBalance) break
-  }  
-
-let spacingGuard = 0
-
-  while (spacingGuard < 100) {
-    spacingGuard += 1
-
-    const counts = recomputeOutCounts()
-    let fixedSpacing = false
-
-    for (const game of games || []) {
-      const gameId = pk(game.id)
-      const lineup = lineupsByGame?.[gameId]
-      if (!lineup || lineupLockedByGame?.[gameId]) continue
-
-      const innings = Number(lineup?.innings || 0)
-
-      for (let inning = 2; inning <= innings; inning += 1) {
-        const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
-
-        for (const sittingId of eligibleIds) {
-          if (lineup?.cells?.[sittingId]?.[inning] !== 'Out') continue
-          if (lineup?.cells?.[sittingId]?.[inning - 1] !== 'Out') continue
-          if (lockedValue(lineup, sittingId, inning)) continue
-
-          const replacementRows = eligibleIds
-            .filter((id) => id !== sittingId)
-            .filter((id) => !lockedValue(lineup, id, inning))
-            .filter((id) => FIELD_POSITIONS.includes(lineup?.cells?.[id]?.[inning] || ''))
-            .map((id) => {
-              const target = planTargetFor(id)
-              const current = Number(counts[id] || 0)
-              return {
-                id,
-                target,
-                current,
-                need: target === null ? 0 : target - current,
-              }
-            })
-            .filter((row) => row.target === null || row.current < row.target)
-            .sort((a, b) => b.need - a.need || a.current - b.current)
-
-          for (const replacement of replacementRows) {
-            if (
-              rebuildOneInningWithForcedOut({
-                lineup,
-                inning,
-                underId: replacement.id,
-                overId: sittingId,
-              })
-            ) {
-              fixedSpacing = true
-              break
-            }
-          }
-
-          if (fixedSpacing) break
-        }
-
-        if (fixedSpacing) break
-      }
-
-      if (fixedSpacing) break
-    }
-
-    if (!fixedSpacing) break
   }
   
+
+
   return lineupsByGame
 }
 
