@@ -1395,10 +1395,10 @@ function enforcePlanSitOutTargets({
       })
 
       const passes = [
-      { allowSpacing: false, allowOverTarget: false },
-      { allowSpacing: false, allowOverTarget: true },
-      { allowSpacing: true, allowOverTarget: false },
-      { allowSpacing: true, allowOverTarget: true },
+        { allowSpacing: false, allowOverTarget: false },
+        { allowSpacing: true, allowOverTarget: false },
+        { allowSpacing: false, allowOverTarget: true },
+        { allowSpacing: true, allowOverTarget: true },
       ]
 
       for (const pass of passes) {
@@ -1622,10 +1622,10 @@ function enforcePlanSitOutTargets({
     if (!fixedSpacing) break
   }
   
-  let repairGuard = 0
+    let balanceGuard = 0
 
-  while (repairGuard < 100) {
-    repairGuard += 1
+  while (balanceGuard < 200) {
+    balanceGuard += 1
 
     const counts = recomputeOutCounts()
 
@@ -1634,24 +1634,38 @@ function enforcePlanSitOutTargets({
         const id = pk(player.id)
         const target = planTargetFor(id)
         const current = Number(counts[id] || 0)
-        return { id, name: player.name || '', target, current, need: target - current }
+
+        return {
+          id,
+          name: player.name || '',
+          target,
+          current,
+          need: target === null ? 0 : target - current,
+        }
       })
       .filter((row) => row.target !== null && row.need > 0)
-      .sort((a, b) => b.need - a.need || a.current - b.current)
+      .sort((a, b) => b.need - a.need || a.current - b.current || a.name.localeCompare(b.name))
 
     const overs = (players || [])
       .map((player) => {
         const id = pk(player.id)
         const target = planTargetFor(id)
         const current = Number(counts[id] || 0)
-        return { id, name: player.name || '', target, current, over: current - target }
+
+        return {
+          id,
+          name: player.name || '',
+          target,
+          current,
+          over: target === null ? 0 : current - target,
+        }
       })
       .filter((row) => row.target !== null && row.over > 0)
-      .sort((a, b) => b.over - a.over || b.current - a.current)
+      .sort((a, b) => b.over - a.over || b.current - a.current || a.name.localeCompare(b.name))
 
     if (!unders.length || !overs.length) break
 
-    let fixed = false
+    let fixedBalance = false
 
     for (const under of unders) {
       for (const over of overs) {
@@ -1668,10 +1682,8 @@ function enforcePlanSitOutTargets({
             if (lockedValue(lineup, under.id, inning)) continue
             if (lockedValue(lineup, over.id, inning)) continue
 
-            if (lineup?.cells?.[over.id]?.[inning] !== 'Out') continue
+            if ((lineup?.cells?.[over.id]?.[inning] || '') !== 'Out') continue
             if (!FIELD_POSITIONS.includes(lineup?.cells?.[under.id]?.[inning] || '')) continue
-
-            // Do not create back-to-back sit-outs.
             if (violatesSitSpacing(lineup, under.id, inning, innings, minGap)) continue
 
             if (
@@ -1682,22 +1694,22 @@ function enforcePlanSitOutTargets({
                 overId: over.id,
               })
             ) {
-              fixed = true
+              fixedBalance = true
               break
             }
           }
 
-          if (fixed) break
+          if (fixedBalance) break
         }
 
-        if (fixed) break
+        if (fixedBalance) break
       }
 
-      if (fixed) break
+      if (fixedBalance) break
     }
 
-    if (!fixed) break
-  }
+    if (!fixedBalance) break
+  }  
 
   return lineupsByGame
 }
