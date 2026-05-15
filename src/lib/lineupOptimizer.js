@@ -488,12 +488,11 @@ function chooseOutsForInning({
   // 2. Use players with no explicit target, while respecting sit spacing.
   chooseFrom(noTargetRows, false, false)
 
-  // 3. If still short, allow capped target players, but still respect sit spacing.
+  // 3. If still short, use capped target players ONLY as a last resort,
+// balanced by lowest total plan outs first.
+if (chosen.size < expectedOuts) {
   chooseFrom(cappedTargetRows, false, true)
-
-  // 4. Do not break sit spacing just to hit targets.
-// If targets cannot be met legally, leave the target short.
-chooseFrom(cappedTargetRows, false, true)
+}
 
   return [...chosen].filter((id) => !lockedInfo.lockedOutPlayers.has(id))
 }
@@ -734,35 +733,83 @@ function applyInningHardRules({
     (id) => lineup?.cells?.[id]?.[inning] === 'Out'
   ).length
 
-    if (currentOuts < expectedOuts) {
-    const minGap = Number(optimizerProfile?.min_innings_between_sitouts ?? 2)
+  if (currentOuts < expectedOuts) {
+  const minGap = Number(optimizerProfile?.min_innings_between_sitouts ?? 2)
 
-    const buildExtraOutCandidates = (allowSpacing = false) =>
-      eligibleIds
-        .filter((id) => !lockedValue(lineup, id, inning))
-        .filter((id) => (lineup?.cells?.[id]?.[inning] || '') === '')
-        .filter((id) => allowSpacing || !violatesSitSpacing(lineup, id, inning, innings, minGap))
-                .sort((a, b) => {
-          const aPlanOuts =
-            Number(planTotalsBefore?.[a]?.Out || 0) + Number(actualCounts?.[a]?.Out || 0)
-          const bPlanOuts =
-            Number(planTotalsBefore?.[b]?.Out || 0) + Number(actualCounts?.[b]?.Out || 0)
+  const targetFor = (id) => {
+  const gameRaw = lineup?.gameSitOutTargets?.[id]
+  if (gameRaw !== '' && gameRaw !== null && gameRaw !== undefined) {
+    const n = Number(gameRaw)
+    if (!Number.isNaN(n)) return n
+  }
 
-          return aPlanOuts - bPlanOuts
-        })
+  const planRaw = planSitOutTargets?.[id]
+  if (planRaw !== '' && planRaw !== null && planRaw !== undefined) {
+    const n = Number(planRaw)
+    if (!Number.isNaN(n)) return n
+  }
 
-    for (const allowSpacing of [false]) {
-      const extraOutCandidates = buildExtraOutCandidates(allowSpacing)
+  return null
+}
 
-      for (const id of extraOutCandidates) {
-        if (currentOuts >= expectedOuts) break
-        lineup.cells[id][inning] = 'Out'
-        currentOuts += 1
-      }
+const currentTargetOuts = (id) => {
+  const gameRaw = lineup?.gameSitOutTargets?.[id]
+  if (gameRaw !== '' && gameRaw !== null && gameRaw !== undefined) {
+    return countPlayerOuts(lineup, id)
+  }
 
-      if (currentOuts >= expectedOuts) break
+  return Number(planTotalsBefore?.[id]?.Out || 0) + Number(actualCounts?.[id]?.Out || 0)
+}
+
+const buildExtraOutCandidates = (allowOverTarget = false) =>
+  eligibleIds
+    .filter((id) => !lockedValue(lineup, id, inning))
+    .filter((id) => (lineup?.cells?.[id]?.[inning] || '') === '')
+    .filter((id) => !violatesSitSpacing(lineup, id, inning, innings, minGap))
+    .filter((id) => {
+      const target = targetFor(id)
+      if (target === null) return true
+      if (allowOverTarget) return true
+      return currentTargetOuts(id) < target
+    })
+    .sort((a, b) => {
+      const aPlanOuts =
+        Number(planTotalsBefore?.[a]?.Out || 0) + Number(actualCounts?.[a]?.Out || 0)
+      const bPlanOuts =
+        Number(planTotalsBefore?.[b]?.Out || 0) + Number(actualCounts?.[b]?.Out || 0)
+
+      return aPlanOuts - bPlanOuts
+    })
+
+for (const allowOverTarget of [false, true]) {
+  const extraOutCandidates = buildExtraOutCandidates(allowOverTarget)
+
+  for (const id of extraOutCandidates) {
+    if (currentOuts >= expectedOuts) break
+
+    const testOuts = new Set(
+      eligibleIds.filter((pid) => lineup?.cells?.[pid]?.[inning] === 'Out')
+    )
+    testOuts.add(id)
+
+    if (
+      canFillAllPositions({
+        lineup,
+        inning,
+        players,
+        fitMap,
+        optimizerProfileRules,
+        candidateOuts: testOuts,
+      })
+    ) {
+      lineup.cells[id][inning] = 'Out'
+      currentOuts += 1
     }
   }
+
+    if (currentOuts >= expectedOuts) break
+}
+}
 
   const assignment = assignPositionsForInning({
     lineup,
@@ -1213,7 +1260,7 @@ function enforcePlanSitOutTargets({
               const otherPlanTarget = planTargetFor(otherId)
 
 // Do not steal an OUT from someone still below their plan target.
-// But if they have no target, or are already at/above target, they can be used.
+// But if they have no target, or are above target, they can be used.
 if (otherPlanTarget !== null && Number(counts[otherId] || 0) <= otherPlanTarget) {
   return false
 }
