@@ -813,7 +813,7 @@ function applyInningHardRules({
       const gameRaw = lineup?.gameSitOutTargets?.[id]
       if (gameRaw !== '' && gameRaw !== null && gameRaw !== undefined) {
         const n = Number(gameRaw)
-        if (!Number.isNaN(n)) return n
+        if (!Number.isNaN(n) && n > 0) return n
       }
 
       const planRaw = planSitOutTargets?.[id]
@@ -1186,7 +1186,7 @@ function enforceGameSitOutTargets({
     const raw = targets?.[pk(playerId)]
     if (raw === '' || raw === null || raw === undefined) return null
     const n = Number(raw)
-    return Number.isNaN(n) ? null : n
+    return Number.isNaN(n) || n <= 0 ? null : n
   }
 
   function canRemoveOutFrom(playerId) {
@@ -1272,14 +1272,14 @@ function enforcePlanSitOutTargets({
     const raw = planSitOutTargets?.[pk(playerId)]
     if (raw === '' || raw === null || raw === undefined) return null
     const n = Number(raw)
-    return Number.isNaN(n) ? null : n
+    return Number.isNaN(n) || n <= 0 ? null : n
   }
 
   function gameTargetFor(lineup, playerId) {
     const raw = lineup?.gameSitOutTargets?.[pk(playerId)]
     if (raw === '' || raw === null || raw === undefined) return null
     const n = Number(raw)
-    return Number.isNaN(n) ? null : n
+    return Number.isNaN(n) || n <= 0 ? null : n
   }
 
   function planOutCounts() {
