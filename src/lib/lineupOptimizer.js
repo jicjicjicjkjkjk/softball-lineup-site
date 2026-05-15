@@ -1488,96 +1488,157 @@ function enforcePlanSitOutTargets({
     return counts
   }
 
-  function rebuildOneInningWithForcedOut({ lineup, inning, underId, overId }) {
-    const snapshot = {}
+    function rebuildOneInningWithForcedOuts({
+  lineup,
+  inning,
+  forcedOutIds = [],
+  protectedFieldIds = [],
+}) {
+  const snapshot = {}
 
-    ;(players || []).forEach((player) => {
-      const id = pk(player.id)
-      snapshot[id] = lineup?.cells?.[id]?.[inning] || ''
-    })
+  ;(players || []).forEach((player) => {
+    const id = pk(player.id)
+    snapshot[id] = lineup?.cells?.[id]?.[inning] || ''
+  })
 
-    ;(players || []).forEach((player) => {
-      const id = pk(player.id)
-      if (lockedValue(lineup, id, inning)) return
+  ;(players || []).forEach((player) => {
+    const id = pk(player.id)
+    if (lockedValue(lineup, id, inning)) return
 
-      const value = lineup?.cells?.[id]?.[inning] || ''
-      if (value === 'Injury') return
+    const value = lineup?.cells?.[id]?.[inning] || ''
+    if (value === 'Injury') return
 
-      if (FIELD_POSITIONS.includes(value) || value === 'Out') {
-        lineup.cells[id][inning] = ''
-      }
-    })
-
-    lineup.cells[underId][inning] = 'Out'
-    lineup.cells[overId][inning] = ''
-
-    const currentOutIds = new Set(
-      getEligiblePlayerIdsForInning(lineup, inning, players).filter(
-        (id) => lineup?.cells?.[id]?.[inning] === 'Out'
-      )
-    )
-
-    if (
-      !canFillAllPositions({
-        lineup,
-        inning,
-        players,
-        fitMap,
-        optimizerProfileRules,
-        candidateOuts: currentOutIds,
-      })
-    ) {
-      Object.entries(snapshot).forEach(([id, value]) => {
-        lineup.cells[id][inning] = value
-      })
-      return false
+    if (FIELD_POSITIONS.includes(value) || value === 'Out') {
+      lineup.cells[id][inning] = ''
     }
+  })
 
-    const assignment = assignPositionsForInning({
-      lineup,
-      inning,
-      players,
-      fitMap,
-      priorityMap,
-      targetCounts,
-      actualCounts,
-      optimizerProfileRules,
-    })
+  const forcedSet = new Set(forcedOutIds.map(pk))
+  const protectedSet = new Set(protectedFieldIds.map(pk))
 
-    Object.entries(assignment).forEach(([id, position]) => {
-      if (!lockedValue(lineup, id, inning)) {
-        lineup.cells[id][inning] = position
-      }
-    })
-
-    const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
-    const expectedOuts = Math.max(0, eligibleIds.length - Math.min(9, eligibleIds.length))
-    const actualOuts = eligibleIds.filter((id) => lineup?.cells?.[id]?.[inning] === 'Out').length
-
-    const invalidPlayer = eligibleIds.find((id) => {
-      const value = lineup?.cells?.[id]?.[inning] || ''
-      return value !== 'Out' && !FIELD_POSITIONS.includes(value)
-    })
-
-    if (invalidPlayer || actualOuts !== expectedOuts) {
-      Object.entries(snapshot).forEach(([id, value]) => {
-        lineup.cells[id][inning] = value
-      })
-      return false
+  forcedSet.forEach((id) => {
+    if (!lockedValue(lineup, id, inning)) {
+      lineup.cells[id][inning] = 'Out'
     }
-    
-    return true
+  })
+
+  const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
+  const expectedOuts = Math.max(0, eligibleIds.length - Math.min(9, eligibleIds.length))
+
+  let currentOutIds = new Set(
+    eligibleIds.filter((id) => lineup?.cells?.[id]?.[inning] === 'Out')
+  )
+
+  if (currentOutIds.size > expectedOuts) {
+    Object.entries(snapshot).forEach(([id, value]) => {
+      lineup.cells[id][inning] = value
+    })
+    return false
   }
 
+  const counts = recomputeOutCounts()
 
-      
+  function buildFillOutCandidates(allowOverTarget = false) {
+    return eligibleIds
+      .filter((id) => !currentOutIds.has(id))
+      .filter((id) => !forcedSet.has(id))
+      .filter((id) => !protectedSet.has(id))
+      .filter((id) => !lockedValue(lineup, id, inning))
+      .filter((id) => (lineup?.cells?.[id]?.[inning] || '') !== 'Injury')
+      .filter((id) => {
+        const target = planTargetFor(id)
+        if (target === null) return true
+        if (allowOverTarget) return true
+        return Number(counts[id] || 0) < target
+      })
+      .sort((a, b) => {
+        const aTarget = planTargetFor(a)
+        const bTarget = planTargetFor(b)
 
-let spacingGuard = 0
+        const aNeed = aTarget === null ? 0 : aTarget - Number(counts[a] || 0)
+        const bNeed = bTarget === null ? 0 : bTarget - Number(counts[b] || 0)
+
+        if (aNeed !== bNeed) return bNeed - aNeed
+
+        const aOuts = Number(counts[a] || 0)
+        const bOuts = Number(counts[b] || 0)
+
+        if (aOuts !== bOuts) return aOuts - bOuts
+        return String(a).localeCompare(String(b))
+      })
+  }
+
+  for (const allowOverTarget of [false, true]) {
+    const fillOutCandidates = buildFillOutCandidates(allowOverTarget)
+
+    for (const id of fillOutCandidates) {
+      if (currentOutIds.size >= expectedOuts) break
+
+      const testOuts = new Set(currentOutIds)
+      testOuts.add(id)
+
+      if (
+        canFillAllPositions({
+          lineup,
+          inning,
+          players,
+          fitMap,
+          optimizerProfileRules,
+          candidateOuts: testOuts,
+        })
+      ) {
+        lineup.cells[id][inning] = 'Out'
+        currentOutIds.add(id)
+      }
+    }
+
+    if (currentOutIds.size >= expectedOuts) break
+  }
+
+  if (currentOutIds.size !== expectedOuts) {
+    Object.entries(snapshot).forEach(([id, value]) => {
+      lineup.cells[id][inning] = value
+    })
+    return false
+  }
+
+  const assignment = assignPositionsForInning({
+    lineup,
+    inning,
+    players,
+    fitMap,
+    priorityMap,
+    targetCounts,
+    actualCounts,
+    optimizerProfileRules,
+  })
+
+  Object.entries(assignment).forEach(([id, position]) => {
+    if (!lockedValue(lineup, id, inning)) {
+      lineup.cells[id][inning] = position
+    }
+  })
+
+  const invalidPlayer = eligibleIds.find((id) => {
+    const value = lineup?.cells?.[id]?.[inning] || ''
+    return value !== 'Out' && !FIELD_POSITIONS.includes(value)
+  })
+
+  if (invalidPlayer) {
+    Object.entries(snapshot).forEach(([id, value]) => {
+      lineup.cells[id][inning] = value
+    })
+    return false
+  }
+
+  return true
+}
+
+  let spacingGuard = 0
 
   while (spacingGuard < 100) {
     spacingGuard += 1
 
-    const counts = recomputeOutCounts()
     let fixedSpacing = false
 
     for (const game of games || []) {
@@ -1600,6 +1661,7 @@ let spacingGuard = 0
             .filter((id) => !lockedValue(lineup, id, inning))
             .filter((id) => FIELD_POSITIONS.includes(lineup?.cells?.[id]?.[inning] || ''))
             .map((id) => {
+              const counts = recomputeOutCounts()
               const target = planTargetFor(id)
               const current = Number(counts[id] || 0)
               return {
@@ -1614,11 +1676,11 @@ let spacingGuard = 0
 
           for (const replacement of replacementRows) {
             if (
-              rebuildOneInningWithForcedOut({
+              rebuildOneInningWithForcedOuts({
                 lineup,
                 inning,
-                underId: replacement.id,
-                overId: sittingId,
+                forcedOutIds: [replacement.id],
+                protectedFieldIds: [sittingId],
               })
             ) {
               fixedSpacing = true
@@ -1638,9 +1700,9 @@ let spacingGuard = 0
     if (!fixedSpacing) break
   }
 
-let balanceGuard = 0
+  let balanceGuard = 0
 
-  while (balanceGuard < 200) {
+  while (balanceGuard < 300) {
     balanceGuard += 1
 
     const counts = recomputeOutCounts()
@@ -1662,60 +1724,35 @@ let balanceGuard = 0
       .filter((row) => row.target !== null && row.need > 0)
       .sort((a, b) => b.need - a.need || a.current - b.current || a.name.localeCompare(b.name))
 
-    const overs = (players || [])
-      .map((player) => {
-        const id = pk(player.id)
-        const target = planTargetFor(id)
-        const current = Number(counts[id] || 0)
-
-        return {
-          id,
-          name: player.name || '',
-          target,
-          current,
-          over: target === null ? 0 : current - target,
-        }
-      })
-      .filter((row) => row.target !== null && row.over > 0)
-      .sort((a, b) => b.over - a.over || b.current - a.current || a.name.localeCompare(b.name))
-
-    if (!unders.length || !overs.length) break
+    if (!unders.length) break
 
     let fixedBalance = false
 
     for (const under of unders) {
-      for (const over of overs) {
-        if (under.id === over.id) continue
+      for (const game of games || []) {
+        const gameId = pk(game.id)
+        const lineup = lineupsByGame?.[gameId]
+        if (!lineup || lineupLockedByGame?.[gameId]) continue
 
-        for (const game of games || []) {
-          const gameId = pk(game.id)
-          const lineup = lineupsByGame?.[gameId]
-          if (!lineup || lineupLockedByGame?.[gameId]) continue
+        const innings = Number(lineup?.innings || 0)
 
-          const innings = Number(lineup?.innings || 0)
+        for (let inning = 1; inning <= innings; inning += 1) {
+          if (lockedValue(lineup, under.id, inning)) continue
+          if (!getEligiblePlayerIdsForInning(lineup, inning, players).includes(under.id)) continue
+          if (lineup?.cells?.[under.id]?.[inning] === 'Out') continue
+          if (violatesSitSpacing(lineup, under.id, inning, innings, minGap)) continue
 
-          for (let inning = 1; inning <= innings; inning += 1) {
-            if (lockedValue(lineup, under.id, inning)) continue
-            if (lockedValue(lineup, over.id, inning)) continue
-
-            if ((lineup?.cells?.[over.id]?.[inning] || '') !== 'Out') continue
-            if (!FIELD_POSITIONS.includes(lineup?.cells?.[under.id]?.[inning] || '')) continue
-            if (violatesSitSpacing(lineup, under.id, inning, innings, minGap)) continue
-
-            if (
-              rebuildOneInningWithForcedOut({
-                lineup,
-                inning,
-                underId: under.id,
-                overId: over.id,
-              })
-            ) {
-              fixedBalance = true
-              break
-            }
+          if (
+            rebuildOneInningWithForcedOuts({
+              lineup,
+              inning,
+              forcedOutIds: [under.id],
+              protectedFieldIds: [],
+            })
+          ) {
+            fixedBalance = true
+            break
           }
-
-          if (fixedBalance) break
         }
 
         if (fixedBalance) break
@@ -1727,8 +1764,6 @@ let balanceGuard = 0
     if (!fixedBalance) break
   }
   
-
-
   return lineupsByGame
 }
 
