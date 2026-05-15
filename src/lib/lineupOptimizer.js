@@ -457,24 +457,15 @@ function chooseOutsForInning({
   const neededTargetRows = candidates
     .filter((row) => row.hasExplicit && row.explicitNeed > 0)
     .sort((a, b) => {
-  if (a.urgent !== b.urgent) return a.urgent ? -1 : 1
-  if (a.planNeed !== b.planNeed) return b.planNeed - a.planNeed
-  if (a.gameNeed !== b.gameNeed) return b.gameNeed - a.gameNeed
-  if (a.explicitNeed !== b.explicitNeed) return b.explicitNeed - a.explicitNeed
-  if (a.spacingBad !== b.spacingBad) return a.spacingBad ? 1 : -1
-  return a.name.localeCompare(b.name)
-})
-
-  const noTargetRows = candidates
-    .filter((row) => !row.hasExplicit)
-    .sort((a, b) => {
+      if (a.urgent !== b.urgent) return a.urgent ? -1 : 1
+      if (a.planNeed !== b.planNeed) return b.planNeed - a.planNeed
+      if (a.gameNeed !== b.gameNeed) return b.gameNeed - a.gameNeed
+      if (a.explicitNeed !== b.explicitNeed) return b.explicitNeed - a.explicitNeed
       if (a.spacingBad !== b.spacingBad) return a.spacingBad ? 1 : -1
-      if (a.actualOuts !== b.actualOuts) return a.actualOuts - b.actualOuts
-      if (a.seasonOuts !== b.seasonOuts) return a.seasonOuts - b.seasonOuts
       return a.name.localeCompare(b.name)
     })
 
-    const noTargetRows = candidates
+  const noTargetRows = candidates
     .filter((row) => !row.hasExplicit)
     .sort((a, b) => {
       if (a.spacingBad !== b.spacingBad) return a.spacingBad ? 1 : -1
@@ -483,6 +474,14 @@ function chooseOutsForInning({
       return a.name.localeCompare(b.name)
     })
 
+  const cappedTargetRows = candidates
+    .filter((row) => row.hasExplicit && row.explicitNeed <= 0)
+    .sort((a, b) => {
+      if (a.planOutsSoFar !== b.planOutsSoFar) return a.planOutsSoFar - b.planOutsSoFar
+      if (a.actualOuts !== b.actualOuts) return a.actualOuts - b.actualOuts
+      return a.name.localeCompare(b.name)
+    })
+  
     // 1. First satisfy players who still need target outs, while respecting sit spacing.
   chooseFrom(neededTargetRows, false, false)
 
@@ -1215,7 +1214,7 @@ function enforcePlanSitOutTargets({
 
 // Do not steal an OUT from someone still below their plan target.
 // But if they have no target, or are already at/above target, they can be used.
-if (otherPlanTarget !== null && Number(counts[otherId] || 0) < otherPlanTarget) {
+if (otherPlanTarget !== null && Number(counts[otherId] || 0) <= otherPlanTarget) {
   return false
 }
 
