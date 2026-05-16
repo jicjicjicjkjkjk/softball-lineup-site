@@ -106,12 +106,6 @@ export default function LineupGrid({
                     <div style={{ height: 20 }} />
                   )}
 
-                {showLocks && (
-  <div className="mini-inning-lock">
-    {inningLocked ? '🔒' : '🔓'}
-  </div>
-)}
-
 <MiniDiamond
   status={status}
   inning={inning}
@@ -127,7 +121,7 @@ export default function LineupGrid({
     onClick={() => onInningLockToggle?.(inning)}
     title={inningLocked ? 'Unlock inning' : 'Lock inning'}
   >
-    {inningLocked ? '🔒 Locked' : '🔓 Open'}
+    {inningLocked ? '🔒 Locked' : '🔒 Open'}
   </button>
 )}
 
