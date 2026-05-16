@@ -71,12 +71,13 @@ export default function MiniDiamond({
           {isPositionLocked(pos) && (
             <span
               style={{
-                position: 'absolute',
-                top: -12,
-                right: -8,
-                fontSize: 10,
-                lineHeight: 1,
-              }}
+  position: 'absolute',
+  top: -4,
+  right: -4,
+  fontSize: 8,
+  lineHeight: 1,
+  zIndex: 5,
+}}
             >
               🔒
             </span>
