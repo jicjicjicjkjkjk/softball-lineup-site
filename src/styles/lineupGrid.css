@@ -428,11 +428,10 @@
     gap: 0 !important;
   }
 
-  .lineup-print-table .inning-header > button,
-  .lineup-print-table .inning-header .mini-diamond-wrap,
-  .lineup-print-table .inning-header .inning-lock-wrap {
-    display: none !important;
-  }
+  .lineup-print-table .inning-header > button.inning-remove,
+.lineup-print-table .inning-header .mini-diamond-wrap {
+  display: none !important;
+}
 
   .lineup-print-table .inning-number {
     font-size: 16px !important;
@@ -447,18 +446,12 @@
 }
 
 .mini-inning-lock {
-  display: block;
-  margin: -6px auto 2px;
-  font-size: 14px;
-  line-height: 1;
-  color: #0f172a;
-}
-
-.mini-inning-lock {
-  font-size: 14px;
-  line-height: 1;
+  height: 18px;
+  margin: 0 auto 2px;
+  font-size: 13px;
+  line-height: 18px;
   text-align: center;
-  margin-bottom: 2px;
+  color: #0f172a;
 }
 
 
