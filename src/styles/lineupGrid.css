@@ -508,3 +508,23 @@
   border-color: #167c74;
   color: white;
 }
+
+
+.position-cell {
+  position: relative;
+}
+
+.cell-lock-badge {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.position-select.cell-is-locked {
+  padding-left: 28px;
+}
