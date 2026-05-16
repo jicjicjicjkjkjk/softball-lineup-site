@@ -258,11 +258,6 @@ background =
 ))}
 </select>
 
-{cellLocked && (
-  <span className="cell-lock-badge" title="This position is locked">
-    🔒
-  </span>
-)}
                       
 {showLocks && (
   <label className="checkbox-item grid-lock-label grid-cell-lock-only" title="Lock this cell">
