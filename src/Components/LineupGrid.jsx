@@ -106,9 +106,9 @@ export default function LineupGrid({
                     <div style={{ height: 20 }} />
                   )}
 
-                {inningLocked && (
-  <div className="mini-inning-lock" title={`Inning ${inning} is locked`}>
-    🔒
+                {showLocks && (
+  <div className="mini-inning-lock">
+    {inningLocked ? '🔒' : '🔓'}
   </div>
 )}
 
