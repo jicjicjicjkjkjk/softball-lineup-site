@@ -246,11 +246,11 @@ background =
                       <select
   title={`${player.name} ${value}: ${fitTier(fitMap, id, value) || 'blank'}`}
   value={value}
-                        disabled={effectiveLocked}
-                        onChange={(e) => onCellChange?.(id, inning, e.target.value)}
-                        style={{ background }}
-                        className="position-select"
-                      >
+  disabled={effectiveLocked}
+  onChange={(e) => onCellChange?.(id, inning, e.target.value)}
+  style={{ background }}
+  className={`position-select ${cellLocked ? 'cell-is-locked' : ''}`}
+>
                         {GRID_OPTIONS.map((option) => (
   <option key={option || 'blank'} value={option}>
     {option || '--'}
@@ -258,6 +258,12 @@ background =
 ))}
 </select>
 
+{cellLocked && (
+  <span className="cell-lock-badge" title="This position is locked">
+    🔒
+  </span>
+)}
+                      
 {showLocks && (
   <label className="checkbox-item grid-lock-label grid-cell-lock-only" title="Lock this cell">
     <input
