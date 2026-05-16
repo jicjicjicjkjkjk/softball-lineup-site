@@ -1674,53 +1674,54 @@ function enforcePlanSitOutTargets({
     }
   }
 
-  function balanceOutTargets() {
-    let guard = 0
+ function balanceOutTargets() {
+  let guard = 0
 
-    while (guard < 300) {
-      guard += 1
+  while (guard < 300) {
+    guard += 1
 
-      const counts = recomputeOutCounts()
-      const { targetCounts, actualCounts } = buildPlanTargetsAndCounts()
+    const counts = recomputeOutCounts()
+    const { targetCounts, actualCounts } = buildPlanTargetsAndCounts()
 
-      const unders = (players || [])
-        .map((player) => {
-          const id = pk(player.id)
-          const target = planTargetFor(id)
-          const current = Number(counts[id] || 0)
+    const unders = (players || [])
+      .map((player) => {
+        const id = pk(player.id)
+        const target = planTargetFor(id)
+        const current = Number(counts[id] || 0)
 
-          return {
-            id,
-            name: player.name || '',
-            target,
-            current,
-            need: target === null ? 0 : target - current,
-          }
-        })
-        .filter((row) => row.target !== null && row.need > 0)
-        .sort((a, b) => b.need - a.need || a.current - b.current || a.name.localeCompare(b.name))
+        return {
+          id,
+          name: player.name || '',
+          target,
+          current,
+          need: target === null ? 0 : target - current,
+        }
+      })
+      .filter((row) => row.target !== null && row.need > 0)
+      .sort((a, b) => b.need - a.need || a.current - b.current || a.name.localeCompare(b.name))
 
-      const overs = (players || [])
-        .map((player) => {
-          const id = pk(player.id)
-          const target = planTargetFor(id)
-          const current = Number(counts[id] || 0)
+    const overs = (players || [])
+      .map((player) => {
+        const id = pk(player.id)
+        const target = planTargetFor(id)
+        const current = Number(counts[id] || 0)
 
-          return {
-            id,
-            name: player.name || '',
-            target,
-            current,
-            over: target === null ? 0 : current - target,
-          }
-        })
-        .filter((row) => row.target !== null && row.over > 0)
-        .sort((a, b) => b.over - a.over || b.current - a.current || a.name.localeCompare(b.name))
+        return {
+          id,
+          name: player.name || '',
+          target,
+          current,
+          over: target === null ? 0 : current - target,
+        }
+      })
+      .filter((row) => row.target !== null && row.over > 0)
+      .sort((a, b) => b.over - a.over || b.current - a.current || a.name.localeCompare(b.name))
 
-      if (!unders.length || !overs.length) break
+    if (!unders.length || !overs.length) break
 
-      let fixed = false
+    let fixed = false
 
+    for (const allowSpacing of [false, true]) {
       for (const under of unders) {
         for (const over of overs) {
           if (under.id === over.id) continue
@@ -1742,7 +1743,13 @@ function enforcePlanSitOutTargets({
 
               if (lineup?.cells?.[under.id]?.[inning] === 'Out') continue
               if (lineup?.cells?.[over.id]?.[inning] !== 'Out') continue
-              if (violatesSitSpacing(lineup, under.id, inning, innings, minGap)) continue
+
+              if (
+                !allowSpacing &&
+                violatesSitSpacing(lineup, under.id, inning, innings, minGap)
+              ) {
+                continue
+              }
 
               if (
                 rebuildOneInningWithForcedOuts({
@@ -1768,9 +1775,12 @@ function enforcePlanSitOutTargets({
         if (fixed) break
       }
 
-      if (!fixed) break
+      if (fixed) break
     }
+
+    if (!fixed) break
   }
+}
 
   clearUnlockedGeneratedCells()
   buildInitialPlan()
