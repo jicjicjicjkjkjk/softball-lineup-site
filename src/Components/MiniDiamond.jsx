@@ -1,4 +1,10 @@
-export default function MiniDiamond({ status, lockedPositions = [] }) {
+export default function MiniDiamond({
+  status,
+  inning,
+  lineup,
+  players = [],
+  lockedPositions = [],
+}) {
   const posCoords = {
     P: { left: '46%', top: '60%' },
     C: { left: '46%', top: '83%' },
@@ -17,7 +23,19 @@ export default function MiniDiamond({ status, lockedPositions = [] }) {
     return '#22c55e'
   }
 
-  const lockedSet = new Set(lockedPositions)
+  function isPositionLocked(pos) {
+    if (lockedPositions.includes(pos)) return true
+
+    const player = (players || []).find((p) => {
+      const id = String(p.id)
+      return lineup?.cells?.[id]?.[inning] === pos
+    })
+
+    if (!player) return false
+
+    const id = String(player.id)
+    return lineup?.lockedCells?.[id]?.[inning] === true
+  }
 
   return (
     <div style={{ position: 'relative', width: 82, height: 82, margin: '0 auto' }}>
@@ -50,31 +68,19 @@ export default function MiniDiamond({ status, lockedPositions = [] }) {
             transform: 'translate(-50%, -50%)',
           }}
         >
-          {lockedSet.has(pos) && (
-  <div
-    style={{
-      position: 'absolute',
-      top: -5,
-      right: -5,
-      width: 10,
-      height: 10,
-      borderRadius: 999,
-      background: '#1e293b',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    <div
-      style={{
-        width: 5,
-        height: 5,
-        borderRadius: 999,
-        background: '#22c55e',
-      }}
-    />
-  </div>
-)}
+          {isPositionLocked(pos) && (
+            <span
+              style={{
+                position: 'absolute',
+                top: -12,
+                right: -8,
+                fontSize: 10,
+                lineHeight: 1,
+              }}
+            >
+              🔒
+            </span>
+          )}
         </div>
       ))}
     </div>
