@@ -1874,16 +1874,23 @@ export function optimizeLineupPlan({
     targetLineupsByGame[gameId] = targetLineup
   })
 
-  const autoSitOutTargets = buildBalancedSitOutTargetsForPlan(
+    const autoSitOutTargets = buildBalancedSitOutTargetsForPlan(
     games,
     targetLineupsByGame,
     players
   )
 
-  // Use auto-balanced plan targets as the source of truth.
-  // Do NOT merge planSitOutTargets here, because those values may be stale
-  // from a previous generated plan and can lock in bad imbalance like 4/4/2/2.
-  const effectivePlanSitOutTargets = autoSitOutTargets
+  // User-entered Current Plan targets must win over auto-balanced targets.
+  const effectivePlanSitOutTargets = { ...autoSitOutTargets }
+
+  Object.entries(planSitOutTargets || {}).forEach(([playerId, value]) => {
+    if (value === '' || value === null || value === undefined) return
+
+    const n = Number(value)
+    if (Number.isNaN(n)) return
+
+    effectivePlanSitOutTargets[pk(playerId)] = n
+  })
     
   ;(games || []).forEach((game) => {
     const gameId = pk(game.id)
@@ -1974,15 +1981,13 @@ export function buildOptimizedLineup({
     ? safeAvailable
     : (players || []).map((player) => pk(player.id))
 
-  // When optimizing a multi-game plan, planSitOutTargets is the source of truth.
-  // Clear stale per-game sit-out targets so old generated values do not override
-  // the balanced plan and create 4/4/2/2 type results.
-  if (planSitOutTargets && Object.keys(planSitOutTargets).length) {
-    lineup.gameSitOutTargets = {}
+    // Preserve user-entered game-specific sit-out targets.
+  // Game targets should override plan targets for that specific game.
+  lineup.gameSitOutTargets = {
+    ...(sourceLineup?.gameSitOutTargets || lineup?.gameSitOutTargets || {}),
   }
 
   clearUnlockedCells(lineup, players)
-
   const expectedFieldTotals = {}
 
   ;(players || []).forEach((player) => {
