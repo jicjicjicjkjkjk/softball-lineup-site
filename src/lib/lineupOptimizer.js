@@ -1691,6 +1691,246 @@ function improveSitSpacing({
   return lineupsByGame
 }
 
+function reconcileExactTargets({
+  lineupsByGame,
+  games,
+  players,
+  fitMap,
+  priorityMap,
+  planSitOutTargets,
+  lineupLockedByGame = {},
+  optimizerProfile,
+  optimizerProfileRules,
+}) {
+  function reconcileGameTargetsForLineup(lineup) {
+    let guard = 0
+
+    while (guard < 300) {
+      guard += 1
+
+      const unders = idsOf(players)
+        .map((id) => {
+          const target = gameTargetFor(lineup, id)
+          const actual = countPlayerOuts(lineup, id)
+
+          return {
+            id,
+            target,
+            actual,
+            need: target === null ? 0 : target - actual,
+          }
+        })
+        .filter((row) => row.target !== null && row.need > 0)
+        .sort((a, b) => b.need - a.need)
+
+      if (!unders.length) break
+
+      let changed = false
+
+      for (const under of unders) {
+        for (let inning = 1; inning <= Number(lineup?.innings || 0); inning += 1) {
+          if (lockedValue(lineup, under.id, inning)) continue
+          if ((lineup?.cells?.[under.id]?.[inning] || '') === OUT) continue
+
+          const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
+          if (!eligibleIds.includes(under.id)) continue
+
+          const currentPlanCounts = countPlanOuts(lineupsByGame, games, players)
+
+          const donors = eligibleIds
+            .filter((id) => id !== under.id)
+            .filter((id) => !lockedValue(lineup, id, inning))
+            .filter((id) => (lineup?.cells?.[id]?.[inning] || '') === OUT)
+            .map((id) => {
+              const gTarget = gameTargetFor(lineup, id)
+              const gActual = countPlayerOuts(lineup, id)
+              const pTarget = planTargetFor(planSitOutTargets, id)
+              const pActual = Number(currentPlanCounts?.[id] || 0)
+
+              return {
+                id,
+                gameOver: gTarget === null ? 999 : gActual - gTarget,
+                planOver: pTarget === null ? 999 : pActual - pTarget,
+                totalOuts: pActual,
+              }
+            })
+            .filter((row) => row.gameOver > 0 || row.planOver > 0 || row.gameOver === 999)
+            .sort((a, b) => {
+              if (a.gameOver !== b.gameOver) return b.gameOver - a.gameOver
+              if (a.planOver !== b.planOver) return b.planOver - a.planOver
+              return b.totalOuts - a.totalOuts
+            })
+
+          for (const donor of donors) {
+            const planCounts = countPlanOuts(lineupsByGame, games, players)
+
+            if (
+              rebuildOneInning({
+                lineup,
+                inning,
+                players,
+                fitMap,
+                priorityMap,
+                planSitOutTargets,
+                planCounts,
+                forcedOutIds: [under.id],
+                protectedFieldIds: [donor.id],
+                optimizerProfile,
+                optimizerProfileRules,
+              })
+            ) {
+              changed = true
+              break
+            }
+          }
+
+          if (changed) break
+        }
+
+        if (changed) break
+      }
+
+      if (!changed) break
+    }
+  }
+
+  function reconcilePlanTargets() {
+    let guard = 0
+
+    while (guard < 500) {
+      guard += 1
+
+      const counts = countPlanOuts(lineupsByGame, games, players)
+
+      const unders = idsOf(players)
+        .map((id) => {
+          const target = planTargetFor(planSitOutTargets, id)
+          const actual = Number(counts?.[id] || 0)
+
+          return {
+            id,
+            target,
+            actual,
+            need: target === null ? 0 : target - actual,
+          }
+        })
+        .filter((row) => row.target !== null && row.need > 0)
+        .sort((a, b) => b.need - a.need)
+
+      const overs = idsOf(players)
+        .map((id) => {
+          const target = planTargetFor(planSitOutTargets, id)
+          const actual = Number(counts?.[id] || 0)
+
+          return {
+            id,
+            target,
+            actual,
+            over: target === null ? 999 : actual - target,
+          }
+        })
+        .filter((row) => row.target === null || row.over > 0)
+        .sort((a, b) => b.over - a.over || b.actual - a.actual)
+
+      if (!unders.length || !overs.length) break
+
+      let changed = false
+
+      for (const under of unders) {
+        for (const over of overs) {
+          if (under.id === over.id) continue
+
+          for (const game of games || []) {
+            const gameId = pk(game.id)
+            const lineup = lineupsByGame?.[gameId]
+
+            if (!lineup || lineupLockedByGame?.[gameId]) continue
+
+            for (let inning = 1; inning <= Number(lineup?.innings || 0); inning += 1) {
+              if (lockedValue(lineup, under.id, inning)) continue
+              if (lockedValue(lineup, over.id, inning)) continue
+
+              const eligibleIds = getEligiblePlayerIdsForInning(lineup, inning, players)
+              if (!eligibleIds.includes(under.id)) continue
+              if (!eligibleIds.includes(over.id)) continue
+
+              if ((lineup?.cells?.[under.id]?.[inning] || '') === OUT) continue
+              if ((lineup?.cells?.[over.id]?.[inning] || '') !== OUT) continue
+
+              const underGameTarget = gameTargetFor(lineup, under.id)
+              if (
+                underGameTarget !== null &&
+                countPlayerOuts(lineup, under.id) >= underGameTarget
+              ) {
+                continue
+              }
+
+              const overGameTarget = gameTargetFor(lineup, over.id)
+              if (
+                overGameTarget !== null &&
+                countPlayerOuts(lineup, over.id) <= overGameTarget
+              ) {
+                continue
+              }
+
+              const planCounts = countPlanOuts(lineupsByGame, games, players)
+
+              if (
+                rebuildOneInning({
+                  lineup,
+                  inning,
+                  players,
+                  fitMap,
+                  priorityMap,
+                  planSitOutTargets,
+                  planCounts,
+                  forcedOutIds: [under.id],
+                  protectedFieldIds: [over.id],
+                  optimizerProfile,
+                  optimizerProfileRules,
+                })
+              ) {
+                changed = true
+                break
+              }
+            }
+
+            if (changed) break
+          }
+
+          if (changed) break
+        }
+
+        if (changed) break
+      }
+
+      if (!changed) break
+    }
+  }
+
+  ;(games || []).forEach((game) => {
+    const gameId = pk(game.id)
+    const lineup = lineupsByGame?.[gameId]
+
+    if (!lineup || lineupLockedByGame?.[gameId]) return
+
+    reconcileGameTargetsForLineup(lineup)
+  })
+
+  reconcilePlanTargets()
+
+  ;(games || []).forEach((game) => {
+    const gameId = pk(game.id)
+    const lineup = lineupsByGame?.[gameId]
+
+    if (!lineup || lineupLockedByGame?.[gameId]) return
+
+    reconcileGameTargetsForLineup(lineup)
+  })
+
+  return lineupsByGame
+}
+
 function addOptimizerWarnings({
   lineup,
   players,
@@ -1831,13 +2071,25 @@ export function buildOptimizedLineup({
     optimizerProfileRules,
   })
 
-  enforceGameSitOutTargets({
+    enforceGameSitOutTargets({
     lineup,
     players,
     fitMap,
     priorityMap,
     planSitOutTargets,
     planCounts,
+    optimizerProfile,
+    optimizerProfileRules,
+  })
+
+  reconcileExactTargets({
+    lineupsByGame: { [pk(game.id)]: lineup },
+    games: [game],
+    players,
+    fitMap,
+    priorityMap,
+    planSitOutTargets,
+    lineupLockedByGame: {},
     optimizerProfile,
     optimizerProfileRules,
   })
@@ -1965,7 +2217,19 @@ export function optimizeLineupPlan({
     optimizerProfileRules,
   })
 
-  improveSitSpacing({
+    improveSitSpacing({
+    lineupsByGame: next,
+    games,
+    players,
+    fitMap,
+    priorityMap,
+    planSitOutTargets: effectivePlanTargets,
+    lineupLockedByGame,
+    optimizerProfile,
+    optimizerProfileRules,
+  })
+
+  reconcileExactTargets({
     lineupsByGame: next,
     games,
     players,
