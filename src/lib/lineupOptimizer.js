@@ -2159,10 +2159,13 @@ export function optimizeLineupPlan({
     })
   })
 
-  const effectivePlanTargets = mergePlanTargets(
-    buildBalancedSitOutTargetsForPlan(games, normalizedLineups, players),
-    planSitOutTargets
-  )
+  const effectivePlanTargets = {}
+
+Object.entries(planSitOutTargets || {}).forEach(([playerId, value]) => {
+  const target = targetNumber(value)
+  if (target === null) return
+  effectivePlanTargets[pk(playerId)] = target
+})
 
   let rollingPlanTotals = {}
   const next = {}
@@ -2196,16 +2199,30 @@ export function optimizeLineupPlan({
       optimizerProfileRules,
     })
 
-    next[gameId] = optimized
+      next[gameId] = optimized
 
-    rollingPlanTotals = addTotals(
+      rollingPlanTotals = addTotals(
       rollingPlanTotals,
       computeTotals([optimized], players),
       players
     )
   })
 
-  enforcePlanSitOutTargets({
+  if (Object.keys(effectivePlanTargets || {}).length) {
+    enforcePlanSitOutTargets({
+      lineupsByGame: next,
+      games,
+      players,
+      fitMap,
+      priorityMap,
+      planSitOutTargets: effectivePlanTargets,
+      lineupLockedByGame,
+      optimizerProfile,
+      optimizerProfileRules,
+    })
+  }
+
+  reconcileExactTargets({
     lineupsByGame: next,
     games,
     players,
@@ -2217,7 +2234,7 @@ export function optimizeLineupPlan({
     optimizerProfileRules,
   })
 
-    improveSitSpacing({
+  improveSitSpacing({
     lineupsByGame: next,
     games,
     players,
