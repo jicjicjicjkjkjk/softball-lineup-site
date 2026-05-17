@@ -96,8 +96,10 @@ export default function TrackingTable({
     })
   )
 
-  const rows = sortRows(
-    (players || []).map((player) => {
+  const visiblePlayers = (players || []).filter((player) => player?.active !== false)
+
+const rows = sortRows(
+  visiblePlayers.map((player) => {
       const id = pk(player.id)
       const t = totals?.[id] || {}
       const targetOuts = sitOutTargets?.[id]
