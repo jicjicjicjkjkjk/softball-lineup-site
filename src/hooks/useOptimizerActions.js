@@ -17,6 +17,7 @@ export function useOptimizerActions({
   optimizerExistingGameId,
   optimizerFocusGameId,
   optimizerBatchGames,
+  optimizerPreviewByGame,
   currentPlanLineupsByGame,
   lineupLockedByGame,
   lineupsByGame,
@@ -49,17 +50,31 @@ export function useOptimizerActions({
 
     setOptimizerBatchGameIds((current) => [...new Set([...current, gameId])])
     setOptimizerFocusGameId(gameId)
-    setOptimizerPreviewByGame((current) => ({ ...current, [gameId]: normalized }))
+    setOptimizerPreviewByGame((current) => ({
+      ...current,
+      [gameId]: {
+        ...normalized,
+        ...(current?.[gameId] || {}),
+        gameSitOutTargets: {
+          ...(normalized?.gameSitOutTargets || {}),
+          ...(current?.[gameId]?.gameSitOutTargets || {}),
+        },
+      },
+    }))
   }
 
   function removeBatchGame(gameId) {
-    setOptimizerBatchGameIds((current) => current.filter((id) => pk(id) !== pk(gameId)))
+    const safeGameId = pk(gameId)
 
-    if (lineupsByGame[pk(gameId)]) return
+    setOptimizerBatchGameIds((current) =>
+      current.filter((id) => pk(id) !== safeGameId)
+    )
+
+    if (lineupsByGame?.[safeGameId]) return
 
     setOptimizerPreviewByGame((current) => {
-      const next = { ...current }
-      delete next[pk(gameId)]
+      const next = { ...(current || {}) }
+      delete next[safeGameId]
       return next
     })
   }
@@ -71,12 +86,32 @@ export function useOptimizerActions({
     planGames.forEach((game) => {
       const gameId = pk(game.id)
 
-      const source = getNormalizedLineupForGame({
+      const normalized = getNormalizedLineupForGame({
         game,
         players,
         activePlayers,
         currentPlanLineupsByGame,
       })
+
+      const preview =
+        optimizerPreviewByGame?.[gameId] ||
+        currentPlanLineupsByGame?.[gameId] ||
+        lineupsByGame?.[gameId] ||
+        normalized
+
+      const source = {
+        ...normalized,
+        ...preview,
+        cells: preview?.cells || normalized?.cells || {},
+        availablePlayerIds:
+          preview?.availablePlayerIds ||
+          normalized?.availablePlayerIds ||
+          activePlayerIds(),
+        gameSitOutTargets: {
+          ...(normalized?.gameSitOutTargets || {}),
+          ...(preview?.gameSitOutTargets || {}),
+        },
+      }
 
       sourceLineupsByGame[gameId] = source
       availableIdsByGame[gameId] = (source.availablePlayerIds || activePlayerIds()).map(pk)
@@ -111,7 +146,10 @@ export function useOptimizerActions({
         persistLineup(gameId, lineup)
       })
 
-      setOptimizerPreviewByGame((current) => ({ ...current, ...optimizedPlan }))
+      setOptimizerPreviewByGame((current) => ({
+        ...(current || {}),
+        ...optimizedPlan,
+      }))
     } catch (error) {
       setAppError(error?.message || 'Optimize all failed.')
     }
@@ -123,7 +161,7 @@ export function useOptimizerActions({
 
       const gameId = pk(optimizerFocusGameId)
 
-      if (lineupLockedByGame[gameId]) {
+      if (lineupLockedByGame?.[gameId]) {
         return setAppError('This lineup is locked. Unlock it before optimizing.')
       }
 
@@ -147,10 +185,14 @@ export function useOptimizerActions({
         optimizerMode,
       })
 
-      const rebuilt = optimizedPlan[gameId]
+      const rebuilt = optimizedPlan?.[gameId]
       if (!rebuilt) return
 
-      setOptimizerPreviewByGame((current) => ({ ...current, [gameId]: rebuilt }))
+      setOptimizerPreviewByGame((current) => ({
+        ...(current || {}),
+        [gameId]: rebuilt,
+      }))
+
       persistLineup(gameId, rebuilt)
     } catch (error) {
       setAppError(error?.message || 'Optimize current failed.')
