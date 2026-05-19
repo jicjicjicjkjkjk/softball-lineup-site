@@ -137,9 +137,10 @@ export function buildSitOutSummary(games, lineupsByGame, players, pk) {
       const lineup = lineupsByGame[pk(game.id)]
       if (!lineup) return null
 
-      const availableIds = (lineup.availablePlayerIds || []).filter((id) =>
-        players.some((p) => pk(p.id) === pk(id))
-      )
+      // IMPORTANT:
+      // Use the saved lineup's availablePlayerIds as the historical math universe.
+      // Do NOT filter this by active players.
+      const availableIds = (lineup.availablePlayerIds || []).map(pk)
 
       const totalPlayers = availableIds.length
       const innings = Number(lineup.innings || 0)
@@ -156,7 +157,7 @@ export function buildSitOutSummary(games, lineupsByGame, players, pk) {
       })
 
       const totalOpenSlots = Math.max(
-        ((totalPlayers * innings) - injury) - (9 * innings),
+        totalPlayers * innings - injury - 9 * innings,
         0
       )
 
@@ -172,8 +173,8 @@ export function buildSitOutSummary(games, lineupsByGame, players, pk) {
     .filter(Boolean)
 }
 
-export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
-  return (activePlayers || []).map((player) => {
+export function buildPlayerSitOuts(games, lineupsByGame, players, pk) {
+  return (players || []).map((player) => {
     const playerId = pk(player.id)
     const perGame = []
     const deltaPerGame = []
@@ -191,6 +192,9 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
         return
       }
 
+      // IMPORTANT:
+      // Historical math universe comes from the saved lineup,
+      // not current active/inactive player status.
       const availableIds = (lineup.availablePlayerIds || []).map(pk)
       const playersInLineup = availableIds.length
 
@@ -216,7 +220,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
       })
 
       const totalSitOuts = Math.max(
-        ((playersInLineup * innings) - injuryInnings) - (9 * innings),
+        playersInLineup * innings - injuryInnings - 9 * innings,
         0
       )
 
@@ -224,9 +228,6 @@ export function buildPlayerSitOuts(games, lineupsByGame, activePlayers, pk) {
         ? totalSitOuts / playersInLineup
         : 0
 
-      // spreadsheet logic:
-      // 1 out vs 1.25 avg = +0.25
-      // 2 outs vs 1.25 avg = -0.75
       const gameDelta = Number((teamAverageSitOuts - playerOuts).toFixed(2))
 
       runningTotal = Number((runningTotal + gameDelta).toFixed(2))
