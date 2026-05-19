@@ -96,7 +96,7 @@ export default function TrackingTable({
     })
   )
 
-  const visiblePlayers = (players || []).filter((player) => player?.active !== false)
+  const visiblePlayers = players || []
 
 const rows = sortRows(
   visiblePlayers.map((player) => {
