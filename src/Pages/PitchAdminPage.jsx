@@ -11,6 +11,29 @@ function byOrder(a, b) {
   return Number(a.sort_order || 0) - Number(b.sort_order || 0)
 }
 
+function nextSort(current, key) {
+  if (current.key !== key) return { key, direction: 'asc' }
+  return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
+}
+
+function sortOptionRows(rows, sortConfig) {
+  const key = sortConfig?.key || 'sort_order'
+  const dir = sortConfig?.direction === 'desc' ? -1 : 1
+
+  return [...rows].sort((a, b) => {
+    const av = key === 'is_active' ? (a.is_active !== false ? 1 : 0) : a[key]
+    const bv = key === 'is_active' ? (b.is_active !== false ? 1 : 0) : b[key]
+
+    const an = Number(av)
+    const bn = Number(bv)
+    const aNum = !Number.isNaN(an) && String(av ?? '').trim() !== ''
+    const bNum = !Number.isNaN(bn) && String(bv ?? '').trim() !== ''
+
+    if (aNum && bNum) return (an - bn) * dir
+    return String(av ?? '').localeCompare(String(bv ?? '')) * dir
+  })
+}
+
 export default function PitchAdminPage({ players = [], setAppError }) {
   const [options, setOptions] = useState([])
   const [pitchers, setPitchers] = useState([])
@@ -20,6 +43,12 @@ export default function PitchAdminPage({ players = [], setAppError }) {
   const [label, setLabel] = useState('')
   const [shortLabel, setShortLabel] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const [optionSorts, setOptionSorts] = useState({
+    pitch_type: { key: 'sort_order', direction: 'asc' },
+    pitch_result: { key: 'sort_order', direction: 'asc' },
+    at_bat_result: { key: 'sort_order', direction: 'asc' },
+  })
 
   const activePlayers = useMemo(
     () =>
@@ -83,6 +112,26 @@ export default function PitchAdminPage({ players = [], setAppError }) {
       (pref) =>
         String(pref.pitcher_id) === String(pitcher.id) &&
         String(pref.pitch_option_id) === String(pitchOptionId)
+    )
+  }
+
+  function optionHeader(catValue, label, key) {
+    const current = optionSorts[catValue] || { key: 'sort_order', direction: 'asc' }
+    const arrow = current.key === key ? (current.direction === 'asc' ? ' ▲' : ' ▼') : ''
+
+    return (
+      <th
+        onClick={() =>
+          setOptionSorts((prev) => ({
+            ...prev,
+            [catValue]: nextSort(prev[catValue] || { key: 'sort_order', direction: 'asc' }, key),
+          }))
+        }
+        style={{ cursor: 'pointer' }}
+      >
+        {label}
+        {arrow}
+      </th>
     )
   }
 
@@ -380,7 +429,8 @@ export default function PitchAdminPage({ players = [], setAppError }) {
       </div>
 
       {CATEGORIES.map((cat) => {
-        const rows = options.filter((o) => o.category === cat.value)
+        const rawRows = options.filter((o) => o.category === cat.value)
+        const rows = sortOptionRows(rawRows, optionSorts[cat.value])
 
         return (
           <div className="card" key={cat.value}>
@@ -389,12 +439,13 @@ export default function PitchAdminPage({ players = [], setAppError }) {
             <table>
               <thead>
                 <tr>
-                  <th>Active</th>
-                  <th>Label</th>
-                  <th>Short Label</th>
-                  <th>Order</th>
+                  {optionHeader(cat.value, 'Active', 'is_active')}
+                  {optionHeader(cat.value, 'Label', 'label')}
+                  {optionHeader(cat.value, 'Short Label', 'short_label')}
+                  {optionHeader(cat.value, 'Order', 'sort_order')}
                 </tr>
               </thead>
+
               <tbody>
                 {rows.map((option) => (
                   <tr key={option.id}>
@@ -406,6 +457,7 @@ export default function PitchAdminPage({ players = [], setAppError }) {
                         disabled={loading}
                       />
                     </td>
+
                     <td>
                       <input
                         value={option.label || ''}
@@ -413,6 +465,7 @@ export default function PitchAdminPage({ players = [], setAppError }) {
                         disabled={loading}
                       />
                     </td>
+
                     <td>
                       <input
                         value={option.short_label || ''}
@@ -420,6 +473,7 @@ export default function PitchAdminPage({ players = [], setAppError }) {
                         disabled={loading}
                       />
                     </td>
+
                     <td>
                       <input
                         type="number"
