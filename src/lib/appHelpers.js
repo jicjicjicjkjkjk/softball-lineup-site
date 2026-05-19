@@ -108,7 +108,7 @@ export function compareGamesAsc(a, b, pk) {
 }
 
 export function isPlayerAvailableForGame(lineup, playerId, pk) {
-  return (lineup?.availablePlayerIds || []).includes(pk(playerId))
+  return getHistoricalLineupPlayerIds(lineup, pk).includes(pk(playerId))
 }
 
 export function buildBattingOrderMatrix(games, lineupsByGame, players, pk) {
@@ -131,6 +131,20 @@ export function buildBattingOrderMatrix(games, lineupsByGame, players, pk) {
   })
 }
 
+function getHistoricalLineupPlayerIds(lineup, pk) {
+  const ids = new Set()
+
+  ;(lineup?.availablePlayerIds || []).forEach((id) => {
+    if (id) ids.add(pk(id))
+  })
+
+  Object.keys(lineup?.cells || {}).forEach((id) => {
+    if (id) ids.add(pk(id))
+  })
+
+  return [...ids]
+}
+
 export function buildSitOutSummary(games, lineupsByGame, players, pk) {
   return games
     .map((game) => {
@@ -140,7 +154,7 @@ export function buildSitOutSummary(games, lineupsByGame, players, pk) {
       // IMPORTANT:
       // Use the saved lineup's availablePlayerIds as the historical math universe.
       // Do NOT filter this by active players.
-      const availableIds = (lineup.availablePlayerIds || []).map(pk)
+      const availableIds = getHistoricalLineupPlayerIds(lineup, pk)
 
       const totalPlayers = availableIds.length
       const innings = Number(lineup.innings || 0)
@@ -195,7 +209,7 @@ export function buildPlayerSitOuts(games, lineupsByGame, players, pk) {
       // IMPORTANT:
       // Historical math universe comes from the saved lineup,
       // not current active/inactive player status.
-      const availableIds = (lineup.availablePlayerIds || []).map(pk)
+      const availableIds = getHistoricalLineupPlayerIds(lineup, pk)
       const playersInLineup = availableIds.length
 
       if (!availableIds.includes(playerId) || playersInLineup === 0) {
@@ -321,7 +335,7 @@ export function buildAvailabilityAdjustedPriorityRows(games, lineupsByGame, play
     const lineup = lineupsByGame?.[pk(game.id)]
     if (!lineup) return
 
-    const availableIds = (lineup.availablePlayerIds || []).map(pk)
+    const availableIds = getHistoricalLineupPlayerIds(lineup, pk)
 
     for (let inning = 1; inning <= Number(lineup.innings || 0); inning += 1) {
       const inningCounts = { P: 0, C: 0, '1B': 0, '2B': 0, '3B': 0, SS: 0, OF: 0 }
