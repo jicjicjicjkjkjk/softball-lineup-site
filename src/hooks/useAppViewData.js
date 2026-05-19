@@ -466,8 +466,8 @@ export function useAppViewData({
   )
 
   const trackingComputedSitRows = useMemo(
-    () => buildCumulativeSitOutRows(sitByPlayer),
-    [sitByPlayer]
+  () => buildCumulativeSitOutRows(sitByPlayer, sitSummary),
+  [sitByPlayer, sitSummary]
   )
 
   const trackingTotals = useMemo(
