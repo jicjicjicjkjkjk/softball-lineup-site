@@ -32,6 +32,29 @@ function isCompleteLineup(lineup) {
   return true
 }
 
+function playersForGamesWithLineups({
+  gamesWithLineups = [],
+  lineupsByGame = {},
+  players = [],
+  fallbackPlayers = [],
+}) {
+  const ids = new Set()
+
+  gamesWithLineups.forEach((game) => {
+    const lineup = lineupsByGame[pk(game.id)]
+
+    Object.values(lineup?.cells || {}).forEach((cell) => {
+      Object.values(cell || {}).forEach((playerId) => {
+        if (playerId) ids.add(pk(playerId))
+      })
+    })
+  })
+
+  const lineupPlayers = players.filter((player) => ids.has(pk(player.id)))
+
+  return lineupPlayers.length ? lineupPlayers : fallbackPlayers
+}
+
 export function useAppViewData({
   players,
   games,
@@ -287,6 +310,17 @@ export function useAppViewData({
     [lineupSetterFilteredGames, optimizerBatchGameIds, lineupsByGame]
   )
 
+  const lineupSetterFilteredPlayers = useMemo(
+    () =>
+      playersForGamesWithLineups({
+        gamesWithLineups: lineupSetterFilteredGamesWithLineups,
+        lineupsByGame,
+        players,
+        fallbackPlayers: activePlayers,
+      }),
+    [lineupSetterFilteredGamesWithLineups, lineupsByGame, players, activePlayers]
+  )
+
   const lineupSetterFilteredLineups = useMemo(
     () =>
       lineupSetterFilteredGamesWithLineups
@@ -301,13 +335,13 @@ export function useAppViewData({
   )
 
   const lineupSetterSitSummary = useMemo(
-    () => buildSitOutSummary(lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers, pk),
-    [lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers]
+    () => buildSitOutSummary(lineupSetterFilteredGamesWithLineups, lineupsByGame, lineupSetterFilteredPlayers, pk),
+    [lineupSetterFilteredGamesWithLineups, lineupsByGame, lineupSetterFilteredPlayers]
   )
 
   const lineupSetterSitByPlayer = useMemo(
-    () => buildPlayerSitOuts(lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers, pk),
-    [lineupSetterFilteredGamesWithLineups, lineupsByGame, activePlayers]
+    () => buildPlayerSitOuts(lineupSetterFilteredGamesWithLineups, lineupsByGame, lineupSetterFilteredPlayers, pk),
+    [lineupSetterFilteredGamesWithLineups, lineupsByGame, lineupSetterFilteredPlayers]
   )
 
   const lineupSetterComputedSitRows = useMemo(
@@ -320,13 +354,24 @@ export function useAppViewData({
     [lineupsByGame, optimizerPreviewByGame]
   )
 
+  const currentPlanPlayers = useMemo(
+    () =>
+      playersForGamesWithLineups({
+        gamesWithLineups: optimizerBatchGames,
+        lineupsByGame: currentPlanLineupsByGame,
+        players,
+        fallbackPlayers: activePlayers,
+      }),
+    [optimizerBatchGames, currentPlanLineupsByGame, players, activePlayers]
+  )
+
   const currentPlanSitOutRows = useMemo(
     () =>
       buildCumulativeSitOutRows(
-        buildPlayerSitOuts(optimizerBatchGames, currentPlanLineupsByGame, activePlayers, pk),
-        buildSitOutSummary(optimizerBatchGames, currentPlanLineupsByGame, activePlayers, pk)
+        buildPlayerSitOuts(optimizerBatchGames, currentPlanLineupsByGame, currentPlanPlayers, pk),
+        buildSitOutSummary(optimizerBatchGames, currentPlanLineupsByGame, currentPlanPlayers, pk)
       ),
-    [optimizerBatchGames, currentPlanLineupsByGame, activePlayers]
+    [optimizerBatchGames, currentPlanLineupsByGame, currentPlanPlayers]
   )
 
   const currentBatchTotals = useMemo(
@@ -350,14 +395,25 @@ export function useAppViewData({
     [lineupSetterFilteredGamesWithLineups, optimizerBatchGames]
   )
 
+  const lineupSetterFuturePlayers = useMemo(
+    () =>
+      playersForGamesWithLineups({
+        gamesWithLineups: lineupSetterFutureGamesWithLineups,
+        lineupsByGame: currentPlanLineupsByGame,
+        players,
+        fallbackPlayers: activePlayers,
+      }),
+    [lineupSetterFutureGamesWithLineups, currentPlanLineupsByGame, players, activePlayers]
+  )
+
   const lineupSetterFutureSitSummary = useMemo(
-    () => buildSitOutSummary(lineupSetterFutureGamesWithLineups, currentPlanLineupsByGame, activePlayers, pk),
-    [lineupSetterFutureGamesWithLineups, currentPlanLineupsByGame, activePlayers]
+    () => buildSitOutSummary(lineupSetterFutureGamesWithLineups, currentPlanLineupsByGame, lineupSetterFuturePlayers, pk),
+    [lineupSetterFutureGamesWithLineups, currentPlanLineupsByGame, lineupSetterFuturePlayers]
   )
 
   const lineupSetterFutureSitByPlayer = useMemo(
-    () => buildPlayerSitOuts(lineupSetterFutureGamesWithLineups, currentPlanLineupsByGame, activePlayers, pk),
-    [lineupSetterFutureGamesWithLineups, currentPlanLineupsByGame, activePlayers]
+    () => buildPlayerSitOuts(lineupSetterFutureGamesWithLineups, currentPlanLineupsByGame, lineupSetterFuturePlayers, pk),
+    [lineupSetterFutureGamesWithLineups, currentPlanLineupsByGame, lineupSetterFuturePlayers]
   )
 
   const lineupSetterFutureComputedSitRows = useMemo(
@@ -375,6 +431,17 @@ export function useAppViewData({
     [filteredTrackingGames, lineupsByGame]
   )
 
+  const filteredTrackingPlayers = useMemo(
+    () =>
+      playersForGamesWithLineups({
+        gamesWithLineups: filteredTrackingGamesWithLineups,
+        lineupsByGame,
+        players,
+        fallbackPlayers: activePlayers,
+      }),
+    [filteredTrackingGamesWithLineups, lineupsByGame, players, activePlayers]
+  )
+
   const filteredTrackingLineups = useMemo(
     () =>
       filteredTrackingGamesWithLineups
@@ -384,18 +451,18 @@ export function useAppViewData({
   )
 
   const battingRows = useMemo(
-    () => buildBattingOrderMatrix(filteredTrackingGamesWithLineups, lineupsByGame, activePlayers, pk),
-    [filteredTrackingGamesWithLineups, lineupsByGame, activePlayers]
+    () => buildBattingOrderMatrix(filteredTrackingGamesWithLineups, lineupsByGame, filteredTrackingPlayers, pk),
+    [filteredTrackingGamesWithLineups, lineupsByGame, filteredTrackingPlayers]
   )
 
   const sitSummary = useMemo(
-    () => buildSitOutSummary(filteredTrackingGamesWithLineups, lineupsByGame, activePlayers, pk),
-    [filteredTrackingGamesWithLineups, lineupsByGame, activePlayers]
+    () => buildSitOutSummary(filteredTrackingGamesWithLineups, lineupsByGame, filteredTrackingPlayers, pk),
+    [filteredTrackingGamesWithLineups, lineupsByGame, filteredTrackingPlayers]
   )
 
   const sitByPlayer = useMemo(
-    () => buildPlayerSitOuts(filteredTrackingGamesWithLineups, lineupsByGame, activePlayers, pk),
-    [filteredTrackingGamesWithLineups, lineupsByGame, activePlayers]
+    () => buildPlayerSitOuts(filteredTrackingGamesWithLineups, lineupsByGame, filteredTrackingPlayers, pk),
+    [filteredTrackingGamesWithLineups, lineupsByGame, filteredTrackingPlayers]
   )
 
   const trackingComputedSitRows = useMemo(
@@ -416,7 +483,7 @@ export function useAppViewData({
   const trackingPriorityRows = useMemo(
     () =>
       sortRows(
-        activePlayers.map((player) => {
+        filteredTrackingPlayers.map((player) => {
           const totals = trackingTotals[pk(player.id)] || {}
           const priority = priorityByPlayer[pk(player.id)] || {}
           const fieldTotal = Math.max(totals.fieldTotal || 0, 1)
@@ -448,14 +515,14 @@ export function useAppViewData({
         }),
         trackingSort
       ),
-    [activePlayers, trackingTotals, priorityByPlayer, trackingSort]
+    [filteredTrackingPlayers, trackingTotals, priorityByPlayer, trackingSort]
   )
 
   const trackingPriorityByPositionRows = useMemo(() => {
     const positionTotals = {}
 
     ;['P', 'C', '1B', '2B', '3B', 'SS', 'OF'].forEach((pos) => {
-      positionTotals[pos] = activePlayers.reduce(
+      positionTotals[pos] = filteredTrackingPlayers.reduce(
         (sum, player) => sum + Number(trackingTotals[pk(player.id)]?.[pos] || 0),
         0
       )
@@ -468,7 +535,7 @@ export function useAppViewData({
       return Number(((numer / denom) * 100).toFixed(1))
     }
 
-    return activePlayers.map((player) => {
+    return filteredTrackingPlayers.map((player) => {
       const playerId = pk(player.id)
       const totals = trackingTotals[playerId] || {}
       const priority = priorityByPlayer[playerId] || {}
@@ -493,7 +560,7 @@ export function useAppViewData({
         actOF: actPctByPosition(totals.OF, 'OF'),
       }
     })
-  }, [activePlayers, trackingTotals, priorityByPlayer])
+  }, [filteredTrackingPlayers, trackingTotals, priorityByPlayer])
 
   const filteredAttendanceEvents = useMemo(
     () => sortRows(attendanceEvents, attendanceSort),
